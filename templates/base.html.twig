@@ -1,24 +1,145 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="fr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CITRAC GMAO{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    {% include '_lucide_icons.html.twig' %}
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    {% block stylesheets %}{% endblock %}
+</head>
+<body class="h-full">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-logo">
+                <i data-lucide="factory" class="brand-icon"></i>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">CITRAC</span>
+                <span class="brand-sub">GMAO</span>
+            </div>
+            <button id="sidebarToggle" class="sidebar-toggle" aria-label="Rabattre la barre latérale">
+                <i data-lucide="panel-left-close"></i>
+            </button>
+        </div>
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <span class="nav-section-title">Principal</span>
+                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'dashboard' ? 'active' }}">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span class="nav-label">Tableau de bord</span>
+                </a>
+                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
+                    <i data-lucide="clipboard-list"></i>
+                    <span class="nav-label">Ordres de travail</span>
 
-        {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphp_hot_reload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
+                        <span class="nav-badge">0</span>
+
+                </a>
+                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'equipment' ? 'active' }}">
+                    <i data-lucide="cog"></i>
+                    <span class="nav-label">Équipements</span>
+                </a>
+                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'preventive' ? 'active' }}">
+                    <i data-lucide="calendar-clock"></i>
+                    <span class="nav-label">Plans préventifs</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <span class="nav-section-title">Stocks</span>
+                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'spare_part' ? 'active' }}">
+                    <i data-lucide="package"></i>
+                    <span class="nav-label">Pièces de rechange</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i data-lucide="alert-triangle"></i>
+                    <span class="nav-label">Alertes stock</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <span class="nav-section-title">Achats</span>
+                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'supplier' ? 'active' }}">
+                    <i data-lucide="truck"></i>
+                    <span class="nav-label">Fournisseurs</span>
+                </a>
+            </div>
+
+            {% if is_granted('ROLE_ADMIN') %}
+                <div class="nav-section">
+                    <span class="nav-section-title">Administration</span>
+                    <a href="#" class="nav-item">
+                        <i data-lucide="users"></i>
+                        <span class="nav-label">Utilisateurs</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i data-lucide="bar-chart-3"></i>
+                        <span class="nav-label">Rapports</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i data-lucide="settings"></i>
+                        <span class="nav-label">Paramètres</span>
+                    </a>
+                </div>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-avatar">{{ app.user.prenoms|first }}{{ app.user.nom|first }}</div>
+            <div class="user-info">
+                <span class="user-name">{{ app.user.prenoms }} {{ app.user.nom }}</span>
+                <span class="user-role">{{ app.user.roles|first|replace({'ROLE_': ''})|title }}</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div id="main-wrapper" class="main-wrapper">
+        <!-- Top Banner -->
+        <header class="banner">
+            <button id="bannerToggle" class="banner-toggle" aria-label="Ouvrir la barre latérale">
+                <i data-lucide="panel-left-open"></i>
+            </button>
+            <div class="breadcrumb">
+                {% block breadcrumb %}
+                    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+                {% endblock %}
+            </div>
+            <div class="banner-actions">
+                <div class="search-bar" onclick="document.getElementById('search-input').focus()">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input id="search-input" type="text" placeholder="Rechercher... (⌘K)" class="search-input">
+                    <kbd class="search-kbd">⌘K</kbd>
+                </div>
+                <button class="notification-bell" aria-label="Notifications">
+                    <i data-lucide="bell"></i>
+                    <span class="notif-dot"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="flash flash-{{ label }}">
+                        <i data-lucide="{{ label == 'success' ? 'check-circle' : (label == 'error' ? 'x-circle' : 'info') }}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            {% block body %}{% endblock %}
+        </main>
+    </div>
+
+<script src="{{ asset('js/lucide-sprite.js') }}"></script>
+<script src="{{ asset('js/app.js') }}"></script>
+{% block javascripts %}{% endblock %}
+</body>
 </html>

@@ -52,6 +52,9 @@ class Equipement
     #[ORM\ManyToOne(inversedBy: 'equipements')]
     private ?Criticite $criticite = null;
 
+    #[ORM\Column(length: 255)]
+    private ?string $nom = null;
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -197,6 +200,18 @@ class Equipement
     public function setCriticite(?Criticite $criticite): static
     {
         $this->criticite = $criticite;
+
+        return $this;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(string $nom): static
+    {
+        $this->nom = $nom;
 
         return $this;
     }

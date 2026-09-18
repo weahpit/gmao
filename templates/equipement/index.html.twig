@@ -1,0 +1,83 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Équipements — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Équipements</span>
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Parc équipements</h1>
+    <a href="{{ path('equipment_new') }}" class="btn btn-primary">
+        <i data-lucide="plus"></i> Nouvel équipement
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+    <form method="get" class="filters-form">
+        <input type="text" name="search" value="{{ filters.search }}" placeholder="Rechercher..." class="input input-search">
+        <select name="department" class="input">
+            <option value="">Tous départements</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}" {{ filters.department == dept.id ? 'selected' }}>{{ dept.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="criticality" class="input">
+            <option value="">Toutes criticalités</option>
+            <option value="CRITIQUE" {{ filters.criticality == 'CRITIQUE' ? 'selected' }}>Critique</option>
+            <option value="MAJEUR" {{ filters.criticality == 'MAJEUR' ? 'selected' }}>Majeur</option>
+            <option value="MINEUR" {{ filters.criticality == 'MINEUR' ? 'selected' }}>Mineur</option>
+        </select>
+        <select name="status" class="input">
+            <option value="">Tous statuts</option>
+            <option value="OPERATIONNEL" {{ filters.status == 'OPERATIONNEL' ? 'selected' }}>Opérationnel</option>
+            <option value="DEGRADE" {{ filters.status == 'DEGRADE' ? 'selected' }}>Dégradé</option>
+            <option value="ARRETE" {{ filters.status == 'ARRETE' ? 'selected' }}>Arrêté</option>
+            <option value="EN_MAINTENANCE" {{ filters.status == 'EN_MAINTENANCE' ? 'selected' }}>En maintenance</option>
+            <option value="HORS_SERVICE" {{ filters.status == 'HORS_SERVICE' ? 'selected' }}>Hors service</option>
+        </select>
+        <button type="submit" class="btn btn-secondary"><i data-lucide="filter"></i> Filtrer</button>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Criticalité</th>
+                    <th>Statut</th>
+                    <th>Département</th>
+                    <th>Localisation</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for eq in equipments %}
+                <tr>
+                    <td><a href="{{ path('equipment_show', {id: eq.id}) }}" class="link">{{ eq.code }}</a></td>
+                    <td>{{ eq.marque }}</td>
+                    <td>{{ eq.type }}</td>
+                    <td><span class="badge badge-criticality-{{ eq.criticality|lower }}">{{ eq.criticality }}</span></td>
+                    <td><span class="status status-{{ eq.status|lower|replace({'_': '-'}) }}">{{ eq.status }}</span></td>
+                    <td>{{ eq.department.name }}</td>
+                    <td>{{ eq.location }}</td>
+                    <td class="actions">
+                        <a href="{{ path('equipment_show', {id: eq.id}) }}" class="btn-icon" title="Voir"><i data-lucide="eye"></i></a>
+                        <a href="{{ path('equipment_edit', {id: eq.id}) }}" class="btn-icon" title="Modifier"><i data-lucide="pencil"></i></a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
