@@ -55,6 +55,9 @@ class Equipement
     #[ORM\Column(length: 255)]
     private ?string $nom = null;
 
+    #[ORM\ManyToOne(inversedBy: 'equipements')]
+    private ?NatureEquipement $nature = null;
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -212,6 +215,18 @@ class Equipement
     public function setNom(string $nom): static
     {
         $this->nom = $nom;
+
+        return $this;
+    }
+
+    public function getNature(): ?NatureEquipement
+    {
+        return $this->nature;
+    }
+
+    public function setNature(?NatureEquipement $nature): static
+    {
+        $this->nature = $nature;
 
         return $this;
     }

@@ -1,0 +1,151 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Fournisseurs — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Fournisseurs</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">Fournisseurs</h1>
+        <a href="#"  id="btn_add_frn" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddFournisseur">
+            <i data-lucide="plus"></i> Nouveau
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+        <form method="get" class="filters-form">
+            <input type="text" name="search" value="{#{{ filters.search }}#}" placeholder="Rechercher..." class="input input-search">
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="card-body p-2 div_fournisseur">
+
+        </div>
+    </div>
+
+    {#    -------------------------------------------------------------------#}
+    {#    MODALS#}
+    {#    -------------------------------------------------------------------#}
+
+    <!-- Modal Add/Edith Fournisseur-->
+    <div class="modal fade" id="modalAddFournisseur" tabindex="-1" aria-labelledby="modalAddFournisseurLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('images/broyeur.png') }}" height="40" alt=""> Enregistrer un fournisseur</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(187,187,187,0.19)">
+                    <div class="row p-1" style="background: #94c0af">
+                        <div class="col-md-3 d-flex justify-content-start">
+                            <label class="fw-bold span" for="CodeFournisseur">Code</label>
+                            <input type="text" class="input fw-bold text-danger" id="CodeFournisseur" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-6 d-flex justify-content-start">
+                            <label class="fw-bold span " for="rsFournisseur" style="width: 200px;">Raison sociale</label>
+                            <input type="text" class="input" id="rsFournisseur" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-3 d-flex justify-content-start">
+                            <label for="sigleFournisseur" class="fw-bold span">sigle</label>
+                            <input type="text" class="input" id="sigleFournisseur" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3 d-flex justify-content-start">
+                        <label for="emailFournisseur" class="fw-bold span">Email</label>
+                        <input type="email" class="input" id="emailFournisseur" style="">
+                    </div>
+                    <div class="row mt-3 p-1">
+                        <div class="col-md-4 mb-3 d-flex justify-content-start">
+                            <label for="telFournisseur" class=" span fw-bold ">Tél.</label>
+                            <input type="text" class="input" id="telFournisseur" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4 mb-3 d-flex justify-content-start">
+                            <label for="mobileFournisseur" class=" span fw-bold ">Mobile.</label>
+                            <input type="text" class="input" id="mobileFournisseur" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <div class="mb-3 d-flex justify-content-start">
+                        <label for="adresseFournisseur" class="fw-bold span">Adresse</label>
+                        <input type="text" class="input" id="adresseFournisseur">
+                    </div>
+                    <div class="mb-3 d-flex justify-content-start">
+                        <label for="bpFournisseur" class="fw-bold span">Boîte Postale</label>
+                        <input type="text" class="input" id="bpFournisseur">
+                    </div>
+                    <div class="row mt-3 p-1">
+                        <div class="col-md-2 mb-3 d-flex justify-content-start">
+                            <input type="checkbox" class="btn-check" id="btn-check-agree" autocomplete="off">
+                            <label class="btn btn-outline-success iddleToggleRadio" for="btn-check-agree" id="lblAgree" style="">Agréé ?</label><br>
+                        </div>
+                        <div class="col-md-4 mb-3 d-flex justify-content-start">
+                            <label for="rccimFournisseur" class=" span fw-bold ">RCCIM</label>
+                            <input type="text" class="input" id="rccimFournisseur" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4 mb-3 d-flex justify-content-start">
+                            <label for="ccFournisseur" class=" span fw-bold ">CC</label>
+                            <input type="text" class="input" id="ccFournisseur" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <hr>
+                    <span><u>Personne à contacter</u></span>
+                    <div class="row p-1">
+                        <div class="col-md-7 mb-3 d-flex justify-content-start">
+                            <label for="nomContactFournisseur" class=" span fw-bold " style="width: 200px;">Nom et Prénoms</label>
+                            <input type="text" class="input" id="nomContactFournisseur" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-5 mb-3 d-flex justify-content-start">
+                            <label for="mobileContactFournisseur" class=" span fw-bold ">Mobile</label>
+                            <input type="text" class="input" id="mobileContactFournisseur" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <div class="mb-3 d-flex justify-content-start">
+                        <label style="width: 200px;" for="notesFournisseur" class=" span fw-bold ">Notes</label>
+                        <textarea class="input" id="notesFournisseur"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveFournisseur">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/NatureFournisseur.js') }}"></script>
+    <script>
+
+
+
+        document.querySelector("#saveFournisseur").addEventListener("click", function () {
+            let agree = "0";
+            let FormDataFournisseur = new FormData();
+            FormDataFournisseur.append('code_fournisseur', document.querySelector("#CodeFournisseur").value)
+            FormDataFournisseur.append('rs_fournisseur', document.querySelector("#rsFournisseur").value)
+            FormDataFournisseur.append('sigle_fournisseur', document.querySelector("#sigleFournisseur").value)
+            FormDataFournisseur.append('email_fournisseur', document.querySelector("#emailFournisseur").value)
+            FormDataFournisseur.append('tel_fournisseur', document.querySelector("#telFournisseur").value)
+            FormDataFournisseur.append('adresse_fournisseur', document.querySelector("#adresseFournisseur").value)
+            FormDataFournisseur.append('bp_fournisseur', document.querySelector("#bpFournisseur").value)
+            FormDataFournisseur.append('rccim_fournisseur', document.querySelector("#rccimFournisseur").value)
+            FormDataFournisseur.append('cc_fournisseur', document.querySelector("#ccFournisseur").value)
+            FormDataFournisseur.append('nom_contact_fournisseur', document.querySelector("#nomContactFournisseur").value)
+            FormDataFournisseur.append('mobile_contact_fournisseur', document.querySelector("#mobileContactFournisseur").value)
+            FormDataFournisseur.append('notes_fournisseur', document.querySelector("#notesFournisseur").value)
+
+            if (document.querySelector("#btn-check-agree").checked === true) { agree = "1";}
+            FormDataFournisseur.append('agree_fournisseur', agree)
+
+            saveFournisseur(FormDataFournisseur, document.querySelector(".div_fournisseur"), 1)
+        })
+
+    </script>
+{% endblock %}

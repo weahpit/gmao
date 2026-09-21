@@ -2,7 +2,12 @@
 
 namespace App\DataFixtures;
 
+use App\Entity\Criticite;
+use App\Entity\EtatEquipement;
+use App\Entity\NatureEquipement;
+use App\Entity\TypeZoneExploitation;
 use App\Entity\User;
+use App\Entity\ZoneExploitation;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -39,6 +44,56 @@ class AppFixtures extends Fixture
         $tech->setMatricule('0064');
         $tech->setMobile('07 78 65 25 33');
         $manager->persist($tech);
+
+        // Criticité
+        $chriticite = new Criticite();
+        $chriticite->setLibelle("A");
+        $manager->persist($chriticite);
+
+        $chriticite = new Criticite();
+        $chriticite->setLibelle("B");
+        $manager->persist($chriticite);
+
+        $chriticite = new Criticite();
+        $chriticite->setLibelle("C");
+        $manager->persist($chriticite);
+
+
+        //Etat Equipement
+        $etat = new EtatEquipement();
+        $etat->setLibelle("EN SERVICE");
+        $manager->persist($etat);
+
+        $etat = new EtatEquipement();
+        $etat->setLibelle("EN PANNE");
+        $manager->persist($etat);
+
+        $etat = new EtatEquipement();
+        $etat->setLibelle("EN ARRET");
+        $manager->persist($etat);
+
+        $etat = new EtatEquipement();
+        $etat->setLibelle("OBSOLETE");
+        $manager->persist($etat);
+
+
+        // Nature Equipement
+        $nature = new NatureEquipement();
+        $nature->setLibelle("UNIQUE [Avec SN]");
+        $manager->persist($nature);
+
+        $nature = new NatureEquipement();
+        $nature->setLibelle("QUANTITE");
+        $manager->persist($nature);
+
+        // Zone Exploitation
+        $ze = new TypeZoneExploitation();
+        $ze->setLibelle("LIGNE");
+        $manager->persist($ze);
+
+        $ze = new TypeZoneExploitation();
+        $ze->setLibelle("ESPACE / ZONE DE TRAVAIL");
+        $manager->persist($ze);
 
         $manager->flush();
     }

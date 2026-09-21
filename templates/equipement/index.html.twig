@@ -11,7 +11,7 @@
 {% block body %}
 <div class="page-header">
     <h1 class="page-title">Parc équipements</h1>
-    <a href="{{ path('equipment_new') }}" class="btn btn-primary">
+    <a href="#"  id="btn_add_eq" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddEquipement">
         <i data-lucide="plus"></i> Nouvel équipement
     </a>
 </div>
@@ -19,26 +19,26 @@
 <!-- Filters -->
 <div class="filters-bar">
     <form method="get" class="filters-form">
-        <input type="text" name="search" value="{{ filters.search }}" placeholder="Rechercher..." class="input input-search">
+        <input type="text" name="search" value="{#{{ filters.search }}#}" placeholder="Rechercher..." class="input input-search">
         <select name="department" class="input">
             <option value="">Tous départements</option>
-            {% for dept in departments %}
+            {#{% for dept in departments %}
             <option value="{{ dept.id }}" {{ filters.department == dept.id ? 'selected' }}>{{ dept.name }}</option>
-            {% endfor %}
+            {% endfor %}#}
         </select>
         <select name="criticality" class="input">
             <option value="">Toutes criticalités</option>
-            <option value="CRITIQUE" {{ filters.criticality == 'CRITIQUE' ? 'selected' }}>Critique</option>
+            {#<option value="CRITIQUE" {{ filters.criticality == 'CRITIQUE' ? 'selected' }}>Critique</option>
             <option value="MAJEUR" {{ filters.criticality == 'MAJEUR' ? 'selected' }}>Majeur</option>
-            <option value="MINEUR" {{ filters.criticality == 'MINEUR' ? 'selected' }}>Mineur</option>
+            <option value="MINEUR" {{ filters.criticality == 'MINEUR' ? 'selected' }}>Mineur</option>#}
         </select>
         <select name="status" class="input">
             <option value="">Tous statuts</option>
-            <option value="OPERATIONNEL" {{ filters.status == 'OPERATIONNEL' ? 'selected' }}>Opérationnel</option>
+            {#<option value="OPERATIONNEL" {{ filters.status == 'OPERATIONNEL' ? 'selected' }}>Opérationnel</option>
             <option value="DEGRADE" {{ filters.status == 'DEGRADE' ? 'selected' }}>Dégradé</option>
             <option value="ARRETE" {{ filters.status == 'ARRETE' ? 'selected' }}>Arrêté</option>
             <option value="EN_MAINTENANCE" {{ filters.status == 'EN_MAINTENANCE' ? 'selected' }}>En maintenance</option>
-            <option value="HORS_SERVICE" {{ filters.status == 'HORS_SERVICE' ? 'selected' }}>Hors service</option>
+            <option value="HORS_SERVICE" {{ filters.status == 'HORS_SERVICE' ? 'selected' }}>Hors service</option>#}
         </select>
         <button type="submit" class="btn btn-secondary"><i data-lucide="filter"></i> Filtrer</button>
     </form>
@@ -52,32 +52,163 @@
                 <tr>
                     <th>Code</th>
                     <th>Nom</th>
-                    <th>Type</th>
-                    <th>Criticalité</th>
-                    <th>Statut</th>
-                    <th>Département</th>
-                    <th>Localisation</th>
-                    <th>Actions</th>
+                    <th>Marque</th>
+{#                    <th>Type</th>#}
+{#                    <th>Criticalité</th>#}
+{#                    <th>Statut</th>#}
+{#                    <th>Département</th>#}
+{#                    <th>Localisation</th>#}
+{#                    <th>Actions</th>#}
                 </tr>
             </thead>
             <tbody>
-            {% for eq in equipments %}
+            {% for eq in equipements %}
                 <tr>
                     <td><a href="{{ path('equipment_show', {id: eq.id}) }}" class="link">{{ eq.code }}</a></td>
-                    <td>{{ eq.marque }}</td>
-                    <td>{{ eq.type }}</td>
-                    <td><span class="badge badge-criticality-{{ eq.criticality|lower }}">{{ eq.criticality }}</span></td>
-                    <td><span class="status status-{{ eq.status|lower|replace({'_': '-'}) }}">{{ eq.status }}</span></td>
-                    <td>{{ eq.department.name }}</td>
-                    <td>{{ eq.location }}</td>
-                    <td class="actions">
-                        <a href="{{ path('equipment_show', {id: eq.id}) }}" class="btn-icon" title="Voir"><i data-lucide="eye"></i></a>
-                        <a href="{{ path('equipment_edit', {id: eq.id}) }}" class="btn-icon" title="Modifier"><i data-lucide="pencil"></i></a>
-                    </td>
+                    <td>{{ eq.nom }}</td>
+                    <td>{% if (eq.marque) %}{{ eq.marque.nom }}{% else %}-{% endif %}</td>
+{#                    <td>{{ eq.type }}</td>#}
+{#                    <td><span class="badge badge-criticality-{{ eq.criticality|lower }}">{{ eq.criticality }}</span></td>#}
+{#                    <td><span class="status status-{{ eq.status|lower|replace({'_': '-'}) }}">{{ eq.status }}</span></td>#}
+{#                    <td>{{ eq.department.name }}</td>#}
+{#                    <td>{{ eq.location }}</td>#}
+{#                    <td class="actions">#}
+{#                        <a href="{{ path('equipment_show', {id: eq.id}) }}" class="btn-icon" title="Voir"><i data-lucide="eye"></i></a>#}
+{#                        <a href="{{ path('equipment_edit', {id: eq.id}) }}" class="btn-icon" title="Modifier"><i data-lucide="pencil"></i></a>#}
+{#                    </td>#}
                 </tr>
             {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+{#    -------------------------------------------------------------------#}
+{#    MODALS#}
+{#    -------------------------------------------------------------------#}
+
+    <!-- Modal Add/Edith Equipement-->
+    <div class="modal fade" id="modalAddEquipement" tabindex="-1" aria-labelledby="modalAddEquipementLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('images/broyeur.png') }}" height="40" alt=""> Enregistrer un équipement</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <div class="row p-1" style="background: #94c0af">
+                        <div class="col-md-3 d-flex justify-content-start">
+                                <label class="fw-bold span" for="CodeEquipement">Code</label>
+                                <input type="text" class="input fw-bold text-danger" id="CodeEquipement" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-5 d-flex justify-content-start">
+                            <label class="fw-bold span " for="nomEquipement" style="width: 150px;">Nom</label>
+                            <input type="text" class="input" id="nomEquipement" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4 d-flex justify-content-start">
+                            <label for="codeFournisseur" class="fw-bold span">Fournisseur</label><select class="input fw-bold text-danger" id="codeFournisseur"></select>
+                        </div>
+                    </div>
+                    <div class="row mt-3 p-1">
+                        <div class="col-md-6 mb-3 d-flex justify-content-start">
+                            <label for="marque" class=" span fw-bold ">Marque</label><select class="input fw-bold text-danger" id="marque"></select>
+                        </div>
+                        <div class="col-md-6 mb-3 d-flex justify-content-start">
+                            <label for="modele" class="fw-bold span">Modèle</label>
+                            <input type="text" class="input" id="modele" style="text-transform: uppercase;">
+                        </div>
+                        <div class="mb-3 d-flex justify-content-start">
+                            <label for="date_entree" class="fw-bold span">Entrée Stock</label>
+                            <input type="date" class="input" id="date_entree" style="width: 120px;">
+                        </div>
+
+
+                        <div class="col-md-6 mb-3 d-flex justify-content-start">
+                            <label for="etat_equipement" class="fw-bold span">Etat</label><select class="input fw-bold" id="etat_equipement"></select>
+                        </div>
+                        <div class="col-md-6 mb-3 d-flex justify-content-start">
+                            <label for="criticite_id" class="fw-bold span">Criticité</label><select class="input fw-bold" id="criticite_id"></select>
+                        </div>
+                        <div class="col-md-6 mb-3 d-flex justify-content-start">
+                            <label for="type_unicite_id" class="fw-bold span">Nature</label><select class="input fw-bold" id="type_unicite_id"></select>
+                        </div>
+                    </div>
+                    <div class="row p-1 container mx-auto" style="border-top: 2px solid darkgreen;border-bottom: 2px solid darkgreen;background: #f6fcf8;width: 85%;">
+                        <div class="serial"  style="display: none;">
+                            <div class="col-md-4  d-flex justify-content-start">
+                                <label for="numero_serie" class="fw-bold span ">N° Série</label>
+                                <input type="text" class="input fw-bold text-danger bg-light" id="numero_serie" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="stock"  style="display: none;">
+                            <div class="col-md-4 d-flex justify-content-start">
+                                <label for="stock_initial" class="fw-bold span">Stock initial</label>
+                                <input type="number" class="input" id="stock_initial" style="width: 100px;">
+                            </div>
+                            <div class="col-md-4 d-flex justify-content-start">
+                                <label for="stock_actuel" class="fw-bold span">Stock actuel</label>
+                                <input type="number" class="input" disabled id="stock_actuel" style="width: 100px;">
+                            </div>
+                            <div class="col-md-4 d-flex justify-content-start">
+                                <label for="stock_final" class="fw-bold span">Stock final</label>
+                                <input type="number" class="input" id="stock_final" disabled style="width: 100px;">
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-4 mb-3 mx-auto text-center">
+                            <span class="fw-bold d-block mb-2">Insérer un logo</span>
+
+                            <!-- Bouton personnalisé -->
+                            <label for="eqUpload" class="btn mb-2" style="cursor: pointer;background: #94c0af;">
+                                <img class="p-1" src="{{ asset('icons/telecharger.png') }}" alt="">
+                                <small>cliquez ici</small>
+                            </label>
+                            <input type="file" id="eqUpload" accept="image/*" hidden>
+                            <small class="text-danger d-block mb-2">
+                                Image de moins de 200Ko
+                            </small>
+                        </div>
+                        <div class="col-md-8 mb-3 mx-auto text-center">
+                            <img id="eqPreview" class="p-2"
+                                 style="height:150px;border:2px dashed #000;object-fit:inherit;"
+                                 src="" alt="Aperçu du logo">
+                        </div>
+                    </div>
+
+                    </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+    <script>
+        uploadImage(document.getElementById('eqUpload'), document.getElementById('eqPreview'));
+
+
+        document.getElementById("type_unicite_id").addEventListener('change', ()=>{
+            let select = document.getElementById("type_unicite_id");
+            let valeur = select.options[select.selectedIndex].text;
+            document.querySelector(".stock").style.display = "none"
+            document.querySelector(".serial").style.display = "none"
+            if (valeur === "MOUVEMENTE [QUANTITE]"){
+                document.querySelector(".stock").style.display = "inherit"
+                document.getElementById("stock_initial").focus()
+            } else {
+                document.querySelector(".serial").style.display = "inline"
+                document.getElementById("numero_serie").focus()
+            }
+        })
+
+        document.querySelector("#btn_add_eq").addEventListener("click", function (){
+            getAllNatureEquipement(document.getElementById("type_unicite_id"), 2)
+        })
+    </script>
 {% endblock %}

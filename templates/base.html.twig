@@ -7,10 +7,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     {% include '_lucide_icons.html.twig' %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <script src="{{ asset('js/app.js') }}"></script>
     {% block stylesheets %}{% endblock %}
 </head>
 <body class="h-full">
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-brand">
@@ -40,7 +45,7 @@
                         <span class="nav-badge">0</span>
 
                 </a>
-                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'equipment' ? 'active' }}">
+                <a href="{{ path('app_equipement') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'equipment' ? 'active' }}">
                     <i data-lucide="cog"></i>
                     <span class="nav-label">Équipements</span>
                 </a>
@@ -64,7 +69,7 @@
 
             <div class="nav-section">
                 <span class="nav-section-title">Achats</span>
-                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'supplier' ? 'active' }}">
+                <a href="{{ path('app_fournisseur') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'supplier' ? 'active' }}">
                     <i data-lucide="truck"></i>
                     <span class="nav-label">Fournisseurs</span>
                 </a>
@@ -113,7 +118,7 @@
             <div class="banner-actions">
                 <div class="search-bar" onclick="document.getElementById('search-input').focus()">
                     <i data-lucide="search" class="search-icon"></i>
-                    <input id="search-input" type="text" placeholder="Rechercher... (⌘K)" class="search-input">
+                    <label for="search-input"></label><input id="search-input" type="text" placeholder="Rechercher... (⌘K)" class="search-input">
                     <kbd class="search-kbd">⌘K</kbd>
                 </div>
                 <button class="notification-bell" aria-label="Notifications">
@@ -138,8 +143,10 @@
         </main>
     </div>
 
+<script src="{{ asset('js/external/jquery.js') }}"></script>
 <script src="{{ asset('js/lucide-sprite.js') }}"></script>
-<script src="{{ asset('js/app.js') }}"></script>
+<script src="{{ asset('js/tools/functions.js') }}"></script>
+<script src="{{ asset('js/tools/showToast.js') }}"></script>
 {% block javascripts %}{% endblock %}
 </body>
 </html>

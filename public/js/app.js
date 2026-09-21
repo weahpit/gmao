@@ -4,6 +4,8 @@
  * Replace an <i data-lucide="name"> placeholder with an inline SVG
  * that references the project's Lucide sprite sheet.
  */
+let URL_APP = window.location.origin + '/'
+
 function lucideReplace(el, size) {
     size = size || 18;
     var name = el.getAttribute('data-lucide');
