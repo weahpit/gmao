@@ -42,7 +42,7 @@ function showToast(message, options = {}) {
     const themes = {
         success: { bg: '#ecfdf5', border: '#10b981', accent: '#059669', text: '#065f46' },
         error:   { bg: '#fef2f2', border: '#ef4444', accent: '#dc2626', text: '#991b1b' },
-        warning: { bg: '#fffbeb', border: '#f59e0b', accent: '#d97706', text: '#92400e' },
+        warning: { bg: '#fffbeb', border: '#f59e0b', accent: '#d97706', text: '#4e2308' , fontWeight : 'bold'},
         info:    { bg: '#eff6ff', border: '#3b82f6', accent: '#2563eb', text: '#1e40af' },
     };
 

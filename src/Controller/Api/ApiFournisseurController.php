@@ -2,19 +2,20 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\NatureEquipement;
+use App\Entity\Fournisseur;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 final class ApiFournisseurController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em){}
 
-    #[Route('api/getAllNatureEquipement', name: 'app_api_get_nature_equipement')]
+    #[Route('api/getAllFournisseurs', name: 'app_api_get_fournisseur')]
     public function index(): Response
         {
             if (!$this->getUser()){return $this->redirectToRoute("app_login");}
@@ -23,11 +24,23 @@ final class ApiFournisseurController extends AbstractController
             if ($this->isGranted("ROLE_USER")){
                 try{
                     // Liste des Natures d'équipements
-                    $natures = $this->em->getRepository(NatureEquipement::class)->findBy([], ['libelle'=>'ASC']);
-                    foreach ($natures as $nature){
+                    $fournisseurs = $this->em->getRepository(Fournisseur::class)->findBy([], ['sigle'=>'ASC']);
+                    foreach ($fournisseurs as $fournisseur){
                         $data[] = array(
-                            'id'=>$nature->getId(),
-                            'nature'=>$nature->getLibelle()
+                            'id'=>$fournisseur->getId(),
+                            'sigle'=>$fournisseur->getSigle(),
+                            'rs'=>$fournisseur->getRaisonSociale(),
+                            'email'=>$fournisseur->getEmail(),
+                            'site'=>$fournisseur->getSiteweb(),
+                            'tel'=>$fournisseur->getTel(),
+                            'mobile'=>$fournisseur->getMobile(),
+                            'adresse'=>$fournisseur->getAdresse(),
+                            'cc'=>$fournisseur->getCc(),
+                            'rccim'=>$fournisseur->getRccim(),
+                            'agree'=>$fournisseur->isAgree()? "OUI" : 'NON',
+                            'code'=>$fournisseur->getCode(),
+                            'personne'=>$fournisseur->getPersonneRessource(),
+                            'mobile_personne'=>$fournisseur->getContactPersonne(),
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -39,20 +52,20 @@ final class ApiFournisseurController extends AbstractController
             }
             return new JsonResponse(json_encode($reponse));
         }
-    #[Route('api/getSingleNatureEquipement/{$id_nature_equipement}', name: 'app_api_get_single_nature_equipement')]
-    public function app_api_get_single_nature_equipement(int $id_nature_equipement): Response
+    #[Route('api/getSingleFournisseur/{$id_fournisseur}', name: 'app_api_get_single_fournisseur')]
+    public function app_api_get_single_fournisseur(int $id_fournisseur): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
-                $nature_equipement = $this->em->getRepository(NatureEquipement::class)->find($id_nature_equipement);
+                $fournisseur = $this->em->getRepository(Fournisseur::class)->find($id_fournisseur);
 
-            if ($nature_equipement){
+            if ($fournisseur){
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
-                    'libelle'=>$nature_equipement->getLibelle()
+                    'libelle'=>$fournisseur->getLibelle()
                 );
             } else {
                 $reponse = array(
@@ -69,34 +82,65 @@ final class ApiFournisseurController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/saveNatureEquipement', name: 'app_api_save_nature_equipement')]
-    public function app_api_save_nature_equipement(Request $request): Response
+    #[Route('api/saveFournisseur', name: 'app_api_save_fournisseur')]
+    public function app_api_save_fournisseur(Request $request): Response
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $id_nature_equipement = $request->request->get('id_nature_equipement');
-                $libelle = $request->request->get('libelle_nature_equipement');
+                $id_fournisseur = $request->request->get('id_fournisseur');
+                $code_fournisseur = $request->request->get('code_fournisseur');
+                $rs_fournisseur  = $request->request->get('rs_fournisseur');
+                $sigle_fournisseur= $request->request->get('sigle_fournisseur');
+                $email_fournisseur= $request->request->get('email_fournisseur');
+                $site_fournisseur= $request->request->get('site_fournisseur');
+                $tel_fournisseur = $request->request->get('tel_fournisseur');
+                $mobile_fournisseur = $request->request->get('mobile_fournisseur');
+                $adresse_fournisseur = $request->request->get('adresse_fournisseur');
+                $bp_fournisseur = $request->request->get('bp_fournisseur');
+                $rccim_fournisseur = $request->request->get('rccim_fournisseur');
+                $cc_fournisseur = $request->request->get('cc_fournisseur');
+                $nom_contact_fournisseur = $request->request->get('nom_contact_fournisseur');
+                $mobile_contact_fournisseur = $request->request->get('mobile_contact_fournisseur');
+                $notes_fournisseur = $request->request->get('notes_fournisseur');
+                $agree = $request->request->get('agree_fournisseur');
 
-                if (!$libelle) {
+                // dd($agree);
+                if (!$rs_fournisseur || !$sigle_fournisseur || !$email_fournisseur ||
+                    !$tel_fournisseur) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs obligatoires !'];
                 } else {
-                    $nature_equipement = $this->em->getRepository(NatureEquipement::class)->find($id_nature_equipement);
+                    $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_fournisseur);
+                    $fournisseur = $this->em->getRepository(Fournisseur::class)->find($uuid);
                     $isNew = false;
-                    if (!$nature_equipement) {
-                        $nature_equipement = new NatureEquipement();
+                    if (!$fournisseur) {
+                        $fournisseur = new Fournisseur();
                         $isNew = true;
                     }
 
-                    $nature_equipement->setLibelle(strtoupper($libelle));
+                    $fournisseur->setRaisonSociale(strtoupper($rs_fournisseur));
+                    $fournisseur->setSigle(strtoupper($sigle_fournisseur));
+                    $fournisseur->setEmail(strtolower($email_fournisseur));
+                    $fournisseur->setSiteweb($site_fournisseur);
+                    $fournisseur->setMobile(strtoupper($mobile_fournisseur));
+                    $fournisseur->setTel(strtoupper($tel_fournisseur));
+                    $fournisseur->setCc(strtoupper($cc_fournisseur));
+                    $fournisseur->setBp($bp_fournisseur);
+                    $fournisseur->setRccim(strtoupper($rccim_fournisseur));
+                    $fournisseur->setAdresse($adresse_fournisseur);
+                    $fournisseur->setPersonneRessource(strtoupper($nom_contact_fournisseur));
+                    $fournisseur->setContactPersonne(strtoupper($mobile_contact_fournisseur));
+                    $fournisseur->setCode(strtoupper($code_fournisseur));
+                    $fournisseur->setNotes($notes_fournisseur);
+                    if ($agree == "1"){$fournisseur->setAgree(true);} else {$fournisseur->setAgree(false);}
 
-                    $this->em->persist($nature_equipement);
+                    $this->em->persist($fournisseur);
                     $this->em->flush();
 
                     $reponse = [
-                        'code' => 1,
-                        'msg' => $isNew ? 'Nature Equipement créé avec succès !' : 'Nature Equipement créé mise à jour avec succès !'
+                        'code' => "success",
+                        'msg' => $isNew ? 'Fournisseur créé avec succès !' : 'Fournisseur créé mise à jour avec succès !'
                     ];
                 }
             } catch (\Throwable $throwable) {
@@ -107,17 +151,17 @@ final class ApiFournisseurController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/deleteNatureEquipement/{$id_nature_equipement}', name: 'app_api_delete_nature_equipement')]
-    public function app_api_delete_nature_equipement(Request $request, int $id_nature_equipement): Response
+    #[Route('api/deleteFournisseur/{$id_fournisseur}', name: 'app_api_delete_fournisseur')]
+    public function app_api_delete_fournisseur(Request $request, int $id_fournisseur): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $nature_equipement = $this->em->getRepository(NatureEquipement::class)->find($id_nature_equipement);
+                $fournisseur = $this->em->getRepository(Fournisseur::class)->find($id_fournisseur);
 
-                if ($nature_equipement){
-                    $this->em->remove($nature_equipement);
+                if ($fournisseur){
+                    $this->em->remove($fournisseur);
                     $this->em->flush();
                     $reponse = array(
                         'code'=>'success',

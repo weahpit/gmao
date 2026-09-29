@@ -57,8 +57,6 @@ class Fournisseur
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $cc = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?int $note = null;
 
     /**
      * @var Collection<int, Marque>
@@ -71,6 +69,12 @@ class Fournisseur
      */
     #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'code_fournisseur')]
     private Collection $equipements;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $notes = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $siteweb = null;
 
     public function __construct()
     {
@@ -239,18 +243,6 @@ class Fournisseur
         return $this;
     }
 
-    public function getNote(): ?int
-    {
-        return $this->note;
-    }
-
-    public function setNote(?int $note): static
-    {
-        $this->note = $note;
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, Marque>
      */
@@ -304,6 +296,30 @@ class Fournisseur
                 $equipement->setCodeFournisseur(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getNotes(): ?string
+    {
+        return $this->notes;
+    }
+
+    public function setNotes(?string $notes): static
+    {
+        $this->notes = $notes;
+
+        return $this;
+    }
+
+    public function getSiteweb(): ?string
+    {
+        return $this->siteweb;
+    }
+
+    public function setSiteweb(?string $siteweb): static
+    {
+        $this->siteweb = $siteweb;
 
         return $this;
     }

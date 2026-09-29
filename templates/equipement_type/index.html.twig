@@ -1,0 +1,165 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Équipements — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Équipements</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">Parc équipements</h1>
+        <div class="d-flex">
+            <a href="#"  id="btn_add_eq" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddEquipement">
+                <i data-lucide="plus"></i> Nouvel équipement
+            </a>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="card-body">
+
+        </div>
+    </div>
+
+    {#    -------------------------------------------------------------------#}
+    {#    MODALS#}
+    {#    -------------------------------------------------------------------#}
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddEquipement" tabindex="-1" aria-labelledby="modalAddEquipementLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('images/machine.png') }}" height="40" alt="" style="background: #FFFFFF;border-radius: 4px;"> Enregistrer un équipement</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: var(--green-100)">
+                    <form id="formEquipementType">
+                        <div class="row p-1" style="background: var(--green-200)">
+                            <div class="col-md-3 d-flex justify-content-start">
+                                <label class="fw-bold span" for="CodeEquipement">Code</label>
+                                <input type="text" class="input fw-bold text-danger" id="CodeEquipement" style="text-transform: uppercase;">
+                            </div>
+                            <div class="col-md-9 d-flex justify-content-start">
+                                <label class="fw-bold span " for="nomEquipement" style="width: 150px;">Nom</label>
+                                <input type="text" class="input" id="nomEquipement" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="row mt-3 p-1">
+                            <div class="col-md-6 mb-2 d-flex justify-content-start">
+                                <label for="famille" class="fw-bold span">Famille</label>
+                                <select class="input fw-bold" id="famille"></select>
+                            </div>
+                            <div class="col-md-6 mb-2 d-flex justify-content-start">
+                                <label for="categorie" class="fw-bold span">Catégorie</label>
+                                <select class="input fw-bold" id="categorie"></select>
+                            </div>
+                        </div>
+                        <div class="row mt-3 p-1">
+                            <div class="col-md-6 mb-2 d-flex justify-content-start">
+                                <label for="criticite_id" class="fw-bold span">Criticité</label><select class="input fw-bold" id="criticite_id"></select>
+                            </div>
+                            <div class="col-md-6 mb-2 d-flex justify-content-start">
+                                <label for="type_unicite_id" class="fw-bold span">Nature</label><select class="input fw-bold" id="type_unicite_id"></select>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-4 mb-2 mx-auto text-center">
+                                <span class="fw-bold d-block mb-2">Insérer un logo</span>
+
+                                <!-- Bouton personnalisé -->
+                                <label for="eqUpload" class="btn mb-2" style="cursor: pointer;background: var(--green-200);">
+                                    <img class="p-1" src="{{ asset('icons/telecharger.png') }}" alt="">
+                                    <small>cliquez ici</small>
+                                </label>
+                                <input type="file" id="eqUpload" accept="image/*" hidden>
+                                <small class="text-danger d-block mb-2">
+                                    Image de moins de 200Ko
+                                </small>
+                            </div>
+                            <div class="col-md-8 mb-2 mx-auto text-center">
+                                <img id="eqPreview" class="p-2"
+                                     style="height:150px;border:2px dashed #000;object-fit:inherit;"
+                                     src="" alt="Aperçu du logo">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveEquipement">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalPhoto" tabindex="-1" aria-labelledby="modalPhotoLabel" aria-hidden="true" data-bs-keyboard="false">
+        <div class="modal-dialog modal-center">
+            <div class="modal-content">
+                <div class="modal-body text-center m-2" style="background: white;border: 1px solid lightgrey;box-shadow: 4px 4px #e4e4e4">
+                    <img class="mx-auto" src="" alt="" id="imgPhoto">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/TypeEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+    <script src="{{ asset('js/api/references/FamilleEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
+    <script>
+        let idEquipement = 0
+        getAllEquipementTypes(document.querySelector('.card-body'), 1)
+
+        uploadImage(document.getElementById('eqUpload'), document.getElementById('eqPreview'));
+
+        getAllTypeEquipements(document.getElementById("categorie"), 2)
+        getAllCriticiteEquipement(document.getElementById("criticite_id"), 2)
+        getAllFamilles(document.getElementById("famille"), 2)
+
+        document.getElementById("famille").addEventListener('change', ()=>{
+            let value = document.getElementById("famille").value;
+            getTypeEquipementByFamille(document.getElementById("categorie"),2, value)
+        })
+
+        document.querySelector("#btn_add_eq").addEventListener("click", function (){
+            getAllNatureEquipement(document.getElementById("type_unicite_id"), 2)
+        })
+
+        clearForm("formEquipementType", "CodeEquipement")
+
+        document.querySelector("#saveEquipement").addEventListener("click", function () {
+
+            let eqUpload = document.getElementById("eqUpload").files;
+
+            let FormDataEquipement = new FormData();
+            FormDataEquipement.append('idEquipement', idEquipement)
+            FormDataEquipement.append('CodeEquipement', document.querySelector("#CodeEquipement").value)
+            FormDataEquipement.append('nomEquipement', document.querySelector("#nomEquipement").value)
+            FormDataEquipement.append('criticite_id', document.querySelector("#criticite_id").value)
+            FormDataEquipement.append('categorie', document.querySelector("#categorie").value)
+            FormDataEquipement.append('type_unicite_id', document.querySelector("#type_unicite_id").value)
+
+            FormDataEquipement.append("photo", eqUpload[0]);
+            saveEquipementType(FormDataEquipement, document.querySelector(".card-body"), 1)
+        })
+
+        $("body").on( "click", ".thumbnail", function(){
+                let id = this.id;
+                $("#modalPhoto").modal('show')
+                document.getElementById("imgPhoto").src = "data/equipements/" + id
+        })
+        document.querySelector()
+    </script>
+{% endblock %}

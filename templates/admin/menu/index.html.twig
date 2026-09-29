@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Menus — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Menus</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">Menus</h1>
+        <a href="#"  id="btn_add_menu" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddMenu">
+            <i class="bi bi-plus text-white"></i> Nouveau Menu
+        </a>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="card-body">
+
+        </div>
+    </div>
+
+    <!-- Modal Add/Edith Equipement-->
+    <div class="modal fade" id="modalAddMenu" tabindex="-1" aria-labelledby="modalAddMenuLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/menu.png') }}" height="40" alt=""> Enregistrer une menu</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formMenu" >
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="menu" style="width: 150px;">Nom Menu</label>
+                            <input type="text" class="input" id="nom_menu" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="parent_menu" style="width: 150px;">Parent Menu</label>
+                            <select class="input" id="parent_menu" name=""></select>
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="classname_menu" style="width: 150px;">Classname</label>
+                            <input type="text" class="input" id="classname_menu">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveMenu">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Menu.js') }}"></script>
+    <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
+    <script>
+
+        let idMenu = 0;
+        getAllMenus(document.querySelector(".card-body"), 1)
+        clearForm("formMenu", "nom_menu")
+
+        ValidateOnKeypress(document.getElementById("nom_menu"), document.getElementById("saveMenu"), "formMenu")
+        ValidateOnKeypress(document.getElementById("classname_menu"), document.getElementById("saveMenu"), "formMenu")
+
+        document.querySelector("#btn_add_menu").addEventListener("click", function () {
+            clearForm("formMenu", "nom_menu")
+            getParentMenu(document.getElementById("parent_menu"))
+            getStateClassname(document.getElementById("parent_menu").value)
+        })
+
+        document.querySelector("#parent_menu").addEventListener("change", function () {
+            getStateClassname(document.getElementById("parent_menu").value)
+        })
+
+        document.querySelector("#saveMenu").addEventListener("click", function () {
+            let FormDataMenu= new FormData();
+            FormDataMenu.append('id_menu', idMenu)
+            FormDataMenu.append('nom_menu', document.querySelector("#nom_menu").value)
+            FormDataMenu.append('parent_menu', document.querySelector("#parent_menu").value)
+            FormDataMenu.append('classname_menu', document.querySelector("#classname_menu").value)
+            saveMenu(FormDataMenu, document.querySelector(".card-body"), 1)
+            setTimeout(()=>{
+                getParentMenu(document.getElementById("parent_menu")) ;
+                getStateClassname(document.getElementById("parent_menu").value) ;
+                clearForm("formMenu", "nom_menu") ;
+            }, 500)
+        })
+
+        function getStateClassname(value){
+            document.getElementById("classname_menu").value = ""
+            if (value === "0" || value === ""){
+                document.getElementById("classname_menu").disabled =  true
+            } else {
+                document.getElementById("classname_menu").disabled =  false
+                document.getElementById("classname_menu").focus()
+            }
+        }
+    </script>
+{% endblock %}

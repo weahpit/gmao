@@ -26,9 +26,16 @@ class NatureEquipement
     #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'nature')]
     private Collection $equipements;
 
+    /**
+     * @var Collection<int, EquipementType>
+     */
+    #[ORM\OneToMany(targetEntity: EquipementType::class, mappedBy: 'nature_equipement')]
+    private Collection $equipementTypes;
+
     public function __construct()
     {
         $this->equipements = new ArrayCollection();
+        $this->equipementTypes = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -72,6 +79,36 @@ class NatureEquipement
             // set the owning side to null (unless already changed)
             if ($equipement->getNature() === $this) {
                 $equipement->setNature(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, EquipementType>
+     */
+    public function getEquipementTypes(): Collection
+    {
+        return $this->equipementTypes;
+    }
+
+    public function addEquipementType(EquipementType $equipementType): static
+    {
+        if (!$this->equipementTypes->contains($equipementType)) {
+            $this->equipementTypes->add($equipementType);
+            $equipementType->setNatureEquipement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEquipementType(EquipementType $equipementType): static
+    {
+        if ($this->equipementTypes->removeElement($equipementType)) {
+            // set the owning side to null (unless already changed)
+            if ($equipementType->getNatureEquipement() === $this) {
+                $equipementType->setNatureEquipement(null);
             }
         }
 

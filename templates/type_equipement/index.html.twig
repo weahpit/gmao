@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Catégories Equipements — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Catégories Equipements</span>
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Catégories Equipements</h1>
+    <a href="#"  id="btn_add_type" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddType">
+        <img src="{{ asset('icons/categorie.png') }}" class="me-2" alt="" height="16"> Nouvelle catégorie
+    </a>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+
+    </div>
+</div>
+
+    <!-- Modal Add/Edith Equipement-->
+    <div class="modal fade" id="modalAddType" tabindex="-1" aria-labelledby="modalAddTypeLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/type.png') }}" height="40" alt=""> Enregistrer une catégorie</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formType" >
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="typeEquipement" style="width: 150px;">Nom</label>
+                            <input type="text" class="input" id="typeEquipement" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="code_famille" style="width: 150px;">Famille</label>
+                            <select name="code_famille" class="input" id="code_famille"></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveType">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/TypeEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/FamilleEquipement.js') }}"></script>
+    <script>
+
+        let idType = 0;
+        getAllTypeEquipements(document.querySelector(".card-body"), 1)
+        getAllFamilles(document.querySelector("#code_famille"), 2)
+        clearForm("formType", "typeEquipement")
+
+        ValidateOnKeypress(document.querySelector("#typeEquipement"), document.querySelector("#saveType"),"formType")
+        ValidateOnKeypress(document.querySelector("#code_famille"), document.querySelector("#saveType"),"formType")
+
+
+
+       document.querySelector("#btn_add_type").addEventListener("click", function () {
+           clearForm("formType", "typeEquipement")
+       })
+
+       document.querySelector("#saveType").addEventListener("click", function () {
+           let FormDataType = new FormData();
+           FormDataType.append('id_type', idType)
+           FormDataType.append('type_equipement', document.querySelector("#typeEquipement").value)
+           FormDataType.append('code_famille', document.querySelector("#code_famille").value)
+           saveTypeEquipement(FormDataType, document.querySelector(".card-body"), 1)
+           setTimeout(()=>{
+               clearForm("formType", "typeEquipement") ;
+           }, 500)
+       })
+    </script>
+{% endblock %}

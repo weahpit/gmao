@@ -45,6 +45,10 @@
                         <span class="nav-badge">0</span>
 
                 </a>
+                <a href="{{ path('app_references') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
+                    <i data-lucide="clipboard-list"></i>
+                    <span class="nav-label">Références</span>
+                </a>
                 <a href="{{ path('app_equipement') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'equipment' ? 'active' }}">
                     <i data-lucide="cog"></i>
                     <span class="nav-label">Équipements</span>
@@ -57,9 +61,9 @@
 
             <div class="nav-section">
                 <span class="nav-section-title">Stocks</span>
-                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'spare_part' ? 'active' }}">
+                <a href="{{ path('app_mouvements_stock') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'spare_part' ? 'active' }}">
                     <i data-lucide="package"></i>
-                    <span class="nav-label">Pièces de rechange</span>
+                    <span class="nav-label">Mouvementer le stock</span>
                 </a>
                 <a href="#" class="nav-item">
                     <i data-lucide="alert-triangle"></i>
@@ -79,9 +83,10 @@
                 <div class="nav-section">
                     <span class="nav-section-title">Administration</span>
                     <a href="#" class="nav-item">
-                        <i data-lucide="users"></i>
-                        <span class="nav-label">Utilisateurs</span>
+                        <i data-lucide="refresh-ccw"></i>
+                        <span class="nav-label">Utilisateurs </span>
                     </a>
+
                     <a href="#" class="nav-item">
                         <i data-lucide="bar-chart-3"></i>
                         <span class="nav-label">Rapports</span>
@@ -142,6 +147,7 @@
             {% block body %}{% endblock %}
         </main>
     </div>
+
 
 <script src="{{ asset('js/external/jquery.js') }}"></script>
 <script src="{{ asset('js/lucide-sprite.js') }}"></script>

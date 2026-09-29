@@ -7,8 +7,8 @@ function getAllFournisseurs(ctrl_name, ctrl_type){
             let reponse = JSON.parse(response)
             if (ctrl_type === 1){
                 contentCtrl +=`
-                <table>
-                    <thead><tr>
+                <table class="table">
+                    <thead style="background: rgba(133,132,132,0.61);font-weight: bold;"><tr>
                             <th>Code</th>
                             <th>Sigle</th>
                             <th>Tel / Mobile</th>
@@ -18,20 +18,27 @@ function getAllFournisseurs(ctrl_name, ctrl_type){
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
-                    contentCtrl +='<td><a href="' + reponse.data[i].id + '">' + reponse.data[i].nature + '</a></td>'
+                    contentCtrl +='<td><a href="#" style="font-weight: bold;">' + reponse.data[i].code + '</a></td>'
+                    contentCtrl +='<td>' + reponse.data[i].sigle + '</td>'
+                    if (reponse.data[i].tel){
+                        contentCtrl +='<td>' + reponse.data[i].tel +' - '  + reponse.data[i].mobile + '</td>'
+                    } else {
+                        contentCtrl +='<td>' + reponse.data[i].mobile + '</td>'
+                    }
+                    contentCtrl +='<td>' + reponse.data[i].email + '</td>'
                     contentCtrl +='<tr>'
                 }
                 contentCtrl +='</tbody></table>';
             } else {
-                contentCtrl += '<option value="0">-- nature de l\'équipement --</option>'
+                contentCtrl += '<option value="0">-- Sélectionnez un fournisseur --</option>'
                 for (var i=0;i < reponse.data.length;i++) {
-                    contentCtrl += '<option value="' + reponse.data[i].id + '">' + reponse.data[i].nature + '</option>'
+                    contentCtrl += '<option value="' + reponse.data[i].id + '">' + reponse.data[i].sigle + '</option>'
                 }
             }
             ctrl_name.innerHTML = contentCtrl
         },
         error : function (response){
-            showToast(response.msg, {title: 'Nature Equipement', type: 'error', duration: 3000})
+            showToast(response.msg, {title: 'Fournisseur', type: 'error', duration: 3000})
         }
     })
 }
@@ -42,13 +49,14 @@ function saveFournisseur(formData, ctrl_name, ctrl_type){
             showToast(data.msg, {
                 type : data.code,
                 duration: 4000,
-                title: this.name
+                title: 'Fournisseurs'
             })
             if (data.code === "success") {
+                clearForm("formFournisseur", "CodeFournisseur")
                 getAllFournisseurs(ctrl_name, ctrl_type)
             }
         })
-        .catch(err => showToast("❌ Erreur : " + err, {title: 'Nature Equipement', duration: 4000}));
+        .catch(err => showToast("❌ Erreur : " + err, {title: 'Fournisseurs', duration: 4000}));
 }
 function deleteFournisseur(id_fournisseur){
     fetch("api/deleteFournisseur", { method: "POST", body: id_fournisseur })

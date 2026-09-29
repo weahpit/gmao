@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Etats Equipements — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Etat Equipement</span>
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Etats équipements</h1>
+    <a href="#"  id="btn_add_etat" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddEtat">
+        <img src="{{ asset('icons/etat.png') }}" class="me-2" alt="" height="16"> Nouvelle etat
+    </a>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+
+    </div>
+</div>
+
+    <!-- Modal Add/Edith Equipement-->
+    <div class="modal fade" id="modalAddEtat" tabindex="-1" aria-labelledby="modalAddEtatLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/etat.png') }}" height="40" alt=""> Enregistrer une etat</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formEtat" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="etat" style="width: 150px;">Etat</label>
+                            <input type="text" class="input" id="etat" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveEtat">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
+    <script>
+
+        let idEtat = 0;
+       getAllEtatEquipement(document.querySelector(".card-body"), 1)
+       clearForm("formEtat", "etat")
+
+       document.querySelector("#btn_add_mrq").addEventListener("click", function () {
+           clearForm("formFournisseur", "etat")
+       })
+
+       document.querySelector("#saveEtat").addEventListener("click", function () {
+
+           let FormDataEtat = new FormData();
+           FormDataEtat.append('id_etat', idEtat)
+           FormDataEtat.append('etat', document.querySelector("#etat").value)
+           saveEtatEquipement(FormDataEtat, document.querySelector(".card-body"), 1)
+       })
+    </script>
+{% endblock %}

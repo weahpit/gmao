@@ -1,0 +1,167 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion du stock — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Mouvementer le stock</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">Mouvementer le stock</h1>
+        <div class="d-flex">
+            {#<a href="#"  id="btn_add_eq" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddEquipement">
+                <i data-lucide="plus"></i> Nouvel équipement
+            </a>#}
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="" style="border: 1px solid #555555;background: radial-gradient(rgba(224,219,219,0.86), rgba(228,228,228,0.67));border-radius: 0;height: 400px;">
+        <div class="card-body" style="border: 0;">
+            <div class="container" id="div_mvt">
+                <div class="d-flex p-1 text-center" style="background: #f2f2f2;">
+                    <select class="input" name="type_mvt" id="type_mvt" style="width: 400px;font-size: 20px;border: 1px solid black;">
+                        <option value="0">-- Sélectionnez un mouvement --</option>
+                        <option value="1">-- Entrée --</option>
+                        <option value="2">-- Sortie --</option>
+                    </select>
+                    <input class="input" id="equipement" style="background: #fefcfb;border: 1px solid black;font-weight: lighter;font-size: 20px;color: #2563EB;max-width: 500px;" disabled placeholder="Cliquer sur le bouton pour sélectionnez un équipement">
+                    <button type="button" class="btn btn-light" id="btn-search"><img src="{{ asset('icons/SVG/search.svg') }}" alt=""></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Add/Edith Equipement-->
+    <div class="modal fade" id="modalAddEq" tabindex="-1" aria-labelledby="modalAddEqLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    {#<h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/marque.png') }}" height="40" alt=""> Enregistrer une marque</h1>#}
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <div class="d-flex">
+                        <select class="input" name="famille" id="famille" style="font-size: 20px;"></select>
+                        <select class="input" name="categorie" id="categorie" style="font-size: 20px;"></select>
+                    </div>
+                    <hr>
+                    <div class="d-flex mb-2">
+                        <h6 class="fw-bold">Liste des équipements</h6>
+                        <input class="input ms-2" id="searchList" style="width: 250px;" placeholder="Rechercher Equipement....">
+                    </div>
+                    <ul class="ul-elegant" id="ul_eq" style="max-height: 300px;overflow-y: scroll;"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/TypeEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+    <script src="{{ asset('js/api/references/FamilleEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
+    <script>
+
+        let id_equipement = ""
+        let photo_eq_url = "{{ asset('data/equipements/') }}"
+        document.getElementById('equipement').value = ""
+        document.getElementById('type_mvt').value = "0"
+
+        document.getElementById("btn-search").addEventListener("click", ()=>{
+            let type_mvt = document.getElementById("type_mvt").value;
+            if (type_mvt === "0"){
+                showToast("Merci de sélectionner un movement !", {title : "Enregistrer un mouvement", duration: 3000, type: 'warning', closable:true})
+            }else {
+                $("#modalAddEq").modal('show')
+                getAllFamilles(document.getElementById("famille"), 2)
+                getAllTypeEquipements(document.getElementById("categorie"), 2)
+                getAllEquipementTypes(document.getElementById('ul_eq'), 3)
+            }
+        })
+
+        document.getElementById("famille").addEventListener('change', ()=>{
+            let value = document.getElementById("famille").value;
+            if (value === "0"){
+                getAllTypeEquipements(document.getElementById("categorie"), 2)
+                getAllEquipementTypes(document.getElementById('ul_eq'), 3)
+            } else {
+                getTypeEquipementByFamille(document.getElementById("categorie"),2, value)
+                getEquipementTypeByFamille(document.getElementById("ul_eq"),3, value)
+            }
+        })
+
+        document.getElementById("categorie").addEventListener('change', ()=>{
+            let value = document.getElementById("categorie").value;
+            if (value === "0"){
+                getEquipementTypeByFamille(document.getElementById("ul_eq"),3, value)
+            } else {
+                getEquipementTypeByCategorie(document.getElementById("ul_eq"),3, value)
+            }
+        })
+
+        document.getElementById('searchList').addEventListener('input', function () {
+            const term = this.value.trim().toLowerCase();
+            const items = document.querySelectorAll('#ul_eq > li');
+            let visibles = 0;
+
+            items.forEach(function (li) {
+                const match = li.textContent.toLowerCase().indexOf(term) !== -1;
+                li.style.display = match ? '' : 'none';
+                if (match) visibles++;
+            });
+
+            document.getElementById('noResult').style.display = visibles === 0 ? 'block' : 'none';
+        });
+
+        document.getElementById("type_mvt").addEventListener('change', ()=>{
+            document.getElementById('equipement').value = ""
+            id_equipement = "";
+        })
+
+        $("body").on("click",".eq_li", function (){
+            document.getElementById("equipement").value = this.innerText;
+            id_equipement = this.id;
+            $('#modalAddEq .btn-close').click()
+            getEquipementDetails(id_equipement)
+        })
+
+        function getEquipementDetails(id_equipement){
+            getSingleEquipementType(id_equipement)
+                .then(eq => {
+                    let html = `
+                        <hr>
+                        <div class="bg-white container p-2"  style="border:1px solid black;">
+                        <div class="success-gradient  mx-auto p-2 mb-2 h3"">${eq.libelle}</div>
+                        <div class="row mx-auto">
+                            <div class="col-4">
+                                <div class="d-flex"><label class="underline mb-2" style="width: 150px;">Code</label> : <label class="fw-bold ms-2">${eq.code_eq}</label></div>
+                                <div class="d-flex"><label class="underline mb-2" style="width: 150px;">Nature</label> : <label class="fw-bold ms-2 text-primary">${eq.nature}</label></div>
+                                <div class="d-flex"><label class="underline mb-2" style="width: 150px;">Catégorie</label> : <label class="fw-bold ms-2">${eq.categorie}</label></div>
+                                <div class="d-flex"><label class="underline mb-2" style="width: 150px;">Criticité</label> : <label class="fw-bold ms-2">${eq.criticite}</label></div>
+                            </div>
+                            <div class="col-4">
+                                <img src="${photo_eq_url}${eq.photo}" alt="" style="height:150px;">
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mt-2 d-flex">
+                           <input class="input text-success text-center" id="nb_eq" type="number" style="width: 150px;font-size: 20px;">
+                            <button class="btn btn-success" id="btn-mvt" type="button" style="font-size: 20px;">Mouvementer</button>
+                        </div>
+                    `
+                    document.getElementById("div_mvt").insertAdjacentHTML("afterend", html)
+                    document.getElementById("nb_eq").focus()
+                })
+                .catch(err => {
+                    console.error("Erreur :", err);
+                });
+        }
+
+    </script>
+{% endblock %}

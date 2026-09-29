@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Marques — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Marque</span>
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Marques équipements</h1>
+    <a href="#"  id="btn_add_mrq" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddMarque">
+        <img src="{{ asset('icons/marque.png') }}" class="me-2" alt="" height="16"> Nouvelle marque
+    </a>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+
+    </div>
+</div>
+
+    <!-- Modal Add/Edith Equipement-->
+    <div class="modal fade" id="modalAddMarque" tabindex="-1" aria-labelledby="modalAddMarqueLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/marque.png') }}" height="40" alt=""> Enregistrer une marque</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formMarque" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="marque" style="width: 150px;">Nom</label>
+                            <input type="text" class="input" id="marque" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveMarque">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/MarqueEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
+    <script>
+
+        let idMarque = 0;
+       getAllMarques(document.querySelector(".card-body"), 1)
+       clearForm("formMarque", "marque")
+
+       document.querySelector("#btn_add_mrq").addEventListener("click", function () {
+           clearForm("formMarque", "marque")
+       })
+
+       document.querySelector("#saveMarque").addEventListener("click", function () {
+           let agree = "0";
+           let FormDataFournisseur = new FormData();
+           FormDataFournisseur.append('id_marque', idMarque)
+           FormDataFournisseur.append('marque', document.querySelector("#marque").value)
+           saveMarque(FormDataFournisseur, document.querySelector(".card-body"), 1)
+       })
+    </script>
+{% endblock %}

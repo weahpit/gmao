@@ -26,9 +26,19 @@ class TypeEquipement
     #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'type_unicite')]
     private Collection $equipements;
 
+    #[ORM\ManyToOne(inversedBy: 'typeEquipements')]
+    private ?Famille $code_famille = null;
+
+    /**
+     * @var Collection<int, EquipementType>
+     */
+    #[ORM\OneToMany(targetEntity: EquipementType::class, mappedBy: 'categorie')]
+    private Collection $equipementTypes;
+
     public function __construct()
     {
         $this->equipements = new ArrayCollection();
+        $this->equipementTypes = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -72,6 +82,48 @@ class TypeEquipement
             // set the owning side to null (unless already changed)
             if ($equipement->getTypeUnicite() === $this) {
                 $equipement->setTypeUnicite(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getCodeFamille(): ?Famille
+    {
+        return $this->code_famille;
+    }
+
+    public function setCodeFamille(?Famille $code_famille): static
+    {
+        $this->code_famille = $code_famille;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, EquipementType>
+     */
+    public function getEquipementTypes(): Collection
+    {
+        return $this->equipementTypes;
+    }
+
+    public function addEquipementType(EquipementType $equipementType): static
+    {
+        if (!$this->equipementTypes->contains($equipementType)) {
+            $this->equipementTypes->add($equipementType);
+            $equipementType->setCategorie($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEquipementType(EquipementType $equipementType): static
+    {
+        if ($this->equipementTypes->removeElement($equipementType)) {
+            // set the owning side to null (unless already changed)
+            if ($equipementType->getCategorie() === $this) {
+                $equipementType->setCategorie(null);
             }
         }
 

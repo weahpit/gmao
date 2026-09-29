@@ -9,13 +9,23 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --green-900: #1A2E26;
+/*  --green-900: #1A2E26;
   --green-800: #223D33;
   --green-700: #2D5F4C;
   --green-600: #3A7D63;
   --green-500: #4A9A7A;
   --green-100: #E8F3ED;
-  --green-50:  #F4FAF6;
+  --green-50:  #F4FAF6;*/
+
+    --green-900: #3e3023;
+    --green-800: #483928;
+    --green-700: #5f4a2d;
+    --green-600: #7d5e3a;
+    --green-500: #9a794a;
+    --green-200: #d3ae7b;
+    --green-100: #f3eee8;
+    --green-50: rgba(250, 248, 244, 0.7);
+
   --gold-600: #C8953A;
   --gold-500: #D4A54B;
   --gold-400: #E0BD6E;
@@ -497,15 +507,16 @@ img { max-width: 100%; }
 .table { width: 100%; border-collapse: collapse; }
 .table thead th {
   font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
-  color: var(--gray-500); padding: 10px 12px; text-align: left;
+  color: var(--gray-100); padding: 10px 12px; text-align: left;
   border-bottom: 2px solid var(--gray-200);
   white-space: nowrap;
+    background: var(--green-700);
 }
-.table tbody td {
-  padding: 10px 12px; font-size: .82rem; border-bottom: 1px solid var(--gray-100);
+/*.table tbody td {
+  padding: 5px 6px; font-size: .92rem; !*border-bottom: 1px solid var(--gray-100);*!
   vertical-align: middle;
-}
-.table tbody tr:hover { background: var(--green-50); }
+}*/
+.table tbody tr:hover { background-color: #4A9A7A; cursor: pointer;border-bottom: 1px solid lightgrey;}
 .table td.actions { white-space: nowrap; width: 80px; }
 
 /* --- Badges --- */
@@ -882,3 +893,51 @@ textarea.input { min-height: 80px; resize: vertical; }
     width: 250px;
     justify-content: center;
 }
+
+.ul-elegant {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+}
+
+.ul-elegant li {
+    position: relative;
+    padding: 12px 20px 12px 35px; /* espace pour l’icône */
+    margin: 10px 0;
+    background: linear-gradient(135deg, #ffffff, #f7f9fc);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.ul-elegant li::before {
+    content: "⚙";                  /* roue dentée Unicode */
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #0078d7;                /* bleu moderne */
+}
+
+.ul-elegant li:hover {
+    background: linear-gradient(135deg, #e6f0ff, #ffffff);
+    transform: translateX(5px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.success-gradient {
+    background: linear-gradient(135deg,
+    #d4edda,   /* vert très pâle */
+    #c3e6cb,   /* vert doux */
+    #28a745    /* vert succès */
+    );
+    color: #155724;          /* texte vert foncé */
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    font-family: "Segoe UI", sans-serif;
+}
+

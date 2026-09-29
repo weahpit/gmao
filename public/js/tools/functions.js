@@ -17,3 +17,37 @@ function uploadImage(button, image){
         }
     });
 }
+function clearForm(formId, focusId) {
+    const form = document.getElementById(formId);
+    const ctrl = document.getElementById(focusId);
+    form.querySelectorAll("input").forEach(input => {
+        if (input.type === "checkbox" || input.type === "radio") {
+            input.checked = false;
+        } else {
+            input.value = "";
+        }
+    });
+    form.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+    form.querySelectorAll("textarea").forEach(textarea => textarea.value = "");
+    setTimeout(()=>{ctrl.focus()}, 500)
+}
+
+// Event sur keypress pour valider un button
+
+function ValidateOnKeypress(input, buttonAction, form){
+
+        /*
+            input : le champ ou control qui contient la valeur
+            buttonAction : le boutton qui contient le code
+            form : le formulaire s'il existe
+        */
+
+    input.addEventListener("keypress", function (evt) {
+        if (evt.key === 'Enter'){
+            evt.preventDefault();
+            buttonAction.click()
+            if (form){
+                document.getElementById(form).reset()}
+        }
+    })
+}

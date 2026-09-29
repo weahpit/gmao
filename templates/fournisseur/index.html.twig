@@ -43,17 +43,18 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background: rgba(187,187,187,0.19)">
+                    <form id="formFournisseur">
                     <div class="row p-1" style="background: #94c0af">
                         <div class="col-md-3 d-flex justify-content-start">
                             <label class="fw-bold span" for="CodeFournisseur">Code</label>
                             <input type="text" class="input fw-bold text-danger" id="CodeFournisseur" style="text-transform: uppercase;">
                         </div>
-                        <div class="col-md-6 d-flex justify-content-start">
+                        <div class="col-md-5 d-flex justify-content-start">
                             <label class="fw-bold span " for="rsFournisseur" style="width: 200px;">Raison sociale</label>
                             <input type="text" class="input" id="rsFournisseur" style="text-transform: uppercase;">
                         </div>
-                        <div class="col-md-3 d-flex justify-content-start">
-                            <label for="sigleFournisseur" class="fw-bold span">sigle</label>
+                        <div class="col-md-4 d-flex justify-content-start">
+                            <label for="sigleFournisseur" class="fw-bold span" style="width: 50px;">sigle</label>
                             <input type="text" class="input" id="sigleFournisseur" style="text-transform: uppercase;">
                         </div>
                     </div>
@@ -61,6 +62,10 @@
                         <label for="emailFournisseur" class="fw-bold span">Email</label>
                         <input type="email" class="input" id="emailFournisseur" style="">
                     </div>
+                        <div class="mb-3 mt-3 d-flex justify-content-start">
+                            <label for="siteFournisseur" class="fw-bold span">Site web</label>
+                            <input type="url" class="input" id="siteFournisseur" placeholder="https://monsite.com">
+                        </div>
                     <div class="row mt-3 p-1">
                         <div class="col-md-4 mb-3 d-flex justify-content-start">
                             <label for="telFournisseur" class=" span fw-bold ">Tél.</label>
@@ -109,30 +114,42 @@
                         <label style="width: 200px;" for="notesFournisseur" class=" span fw-bold ">Notes</label>
                         <textarea class="input" id="notesFournisseur"></textarea>
                     </div>
+                    </form>
                 </div>
                 <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
                     <button type="button" class="btn btn-primary" id="saveFournisseur">Enregistrer</button>
                 </div>
+
             </div>
         </div>
     </div>
     <script src="{{ asset('js/external/jquery.js') }}"></script>
     <script src="{{ asset('js/tools/functions.js') }}"></script>
     <script src="{{ asset('js/tools/showToast.js') }}"></script>
-    <script src="{{ asset('js/api/references/NatureFournisseur.js') }}"></script>
+    <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
     <script>
+    let idFournisseur = "0";
 
+        getAllFournisseurs(document.querySelector(".div_fournisseur"), 1)
 
+        clearForm("formFournisseur", "CodeFournisseur")
+
+        document.querySelector("#btn_add_frn").addEventListener("click", function () {
+            clearForm("formFournisseur", "CodeFournisseur")
+        })
 
         document.querySelector("#saveFournisseur").addEventListener("click", function () {
             let agree = "0";
             let FormDataFournisseur = new FormData();
+            FormDataFournisseur.append('id_fournisseur', idFournisseur)
             FormDataFournisseur.append('code_fournisseur', document.querySelector("#CodeFournisseur").value)
             FormDataFournisseur.append('rs_fournisseur', document.querySelector("#rsFournisseur").value)
             FormDataFournisseur.append('sigle_fournisseur', document.querySelector("#sigleFournisseur").value)
             FormDataFournisseur.append('email_fournisseur', document.querySelector("#emailFournisseur").value)
+            FormDataFournisseur.append('site_fournisseur', document.querySelector("#siteFournisseur").value)
             FormDataFournisseur.append('tel_fournisseur', document.querySelector("#telFournisseur").value)
+            FormDataFournisseur.append('mobile_fournisseur', document.querySelector("#mobileFournisseur").value)
             FormDataFournisseur.append('adresse_fournisseur', document.querySelector("#adresseFournisseur").value)
             FormDataFournisseur.append('bp_fournisseur', document.querySelector("#bpFournisseur").value)
             FormDataFournisseur.append('rccim_fournisseur', document.querySelector("#rccimFournisseur").value)
@@ -146,6 +163,7 @@
 
             saveFournisseur(FormDataFournisseur, document.querySelector(".div_fournisseur"), 1)
         })
+
 
     </script>
 {% endblock %}

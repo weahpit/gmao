@@ -26,9 +26,16 @@ class Criticite
     #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'criticite')]
     private Collection $equipements;
 
+    /**
+     * @var Collection<int, EquipementType>
+     */
+    #[ORM\OneToMany(targetEntity: EquipementType::class, mappedBy: 'criticite')]
+    private Collection $equipementTypes;
+
     public function __construct()
     {
         $this->equipements = new ArrayCollection();
+        $this->equipementTypes = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -72,6 +79,36 @@ class Criticite
             // set the owning side to null (unless already changed)
             if ($equipement->getCriticite() === $this) {
                 $equipement->setCriticite(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, EquipementType>
+     */
+    public function getEquipementTypes(): Collection
+    {
+        return $this->equipementTypes;
+    }
+
+    public function addEquipementType(EquipementType $equipementType): static
+    {
+        if (!$this->equipementTypes->contains($equipementType)) {
+            $this->equipementTypes->add($equipementType);
+            $equipementType->setCriticite($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEquipementType(EquipementType $equipementType): static
+    {
+        if ($this->equipementTypes->removeElement($equipementType)) {
+            // set the owning side to null (unless already changed)
+            if ($equipementType->getCriticite() === $this) {
+                $equipementType->setCriticite(null);
             }
         }
 

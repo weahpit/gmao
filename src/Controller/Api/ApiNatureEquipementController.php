@@ -95,7 +95,7 @@ final class ApiNatureEquipementController extends AbstractController
                     $this->em->flush();
 
                     $reponse = [
-                        'code' => 1,
+                        'code' => 'success',
                         'msg' => $isNew ? 'Nature Equipement créé avec succès !' : 'Nature Equipement créé mise à jour avec succès !'
                     ];
                 }
