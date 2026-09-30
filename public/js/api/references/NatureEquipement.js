@@ -15,12 +15,12 @@ function getAllNatureEquipement(ctrl_name, ctrl_type){
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
-                    contentCtrl +='<td><a href="' + reponse.data[i].id + '">' + reponse.data[i].nature + '</a></td>'
+                    contentCtrl +='<td><a href="#">' + reponse.data[i].nature + '</a></td>'
                     contentCtrl +='<tr>'
                 }
                 contentCtrl +='</tbody></table>';
             } else {
-                contentCtrl += '<option value="0">-- nature de l\'équipement --</option>'
+                contentCtrl += '<option value="0">-- Nature de l\'équipement --</option>'
                 for (var i=0;i < reponse.data.length;i++) {
                     contentCtrl += '<option value="' + reponse.data[i].id + '">' + reponse.data[i].nature + '</option>'
                 }

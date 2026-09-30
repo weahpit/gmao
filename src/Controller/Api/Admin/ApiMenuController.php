@@ -154,7 +154,7 @@ final class ApiMenuController extends AbstractController
     }
 
     #[Route('api/deleteMenu/{$id_menu}', name: 'app_api_delete_menu')]
-    public function app_api_delete_menu(Request $request, int $id_menu): Response
+    public function app_api_delete_menu(Request $request,  $id_menu): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}

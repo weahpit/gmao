@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\References;
 
-use App\Entity\Famille;
+use App\Entity\Marque;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -11,11 +11,11 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 
-final class ApiFamilleController extends AbstractController
+final class ApiMarqueController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em){}
 
-    #[Route('api/getAllFamilles', name: 'app_api_get_famille')]
+    #[Route('api/getAllMarques', name: 'app_api_get_marque')]
     public function index(): Response
         {
             if (!$this->getUser()){return $this->redirectToRoute("app_login");}
@@ -24,11 +24,11 @@ final class ApiFamilleController extends AbstractController
             if ($this->isGranted("ROLE_USER")){
                 try{
                     // Liste des Natures d'équipements
-                    $familles = $this->em->getRepository(Famille::class)->findBy([], ['libelle'=>'ASC']);
-                    foreach ($familles as $famille){
+                    $marques = $this->em->getRepository(Marque::class)->findBy([], ['nom'=>'ASC']);
+                    foreach ($marques as $marque){
                         $data[] = array(
-                            'id'=>$famille->getId(),
-                            'famille'=>$famille->getLibelle()
+                            'id'=>$marque->getId(),
+                            'marque'=>$marque->getNom()
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -40,25 +40,25 @@ final class ApiFamilleController extends AbstractController
             }
             return new JsonResponse(json_encode($reponse));
         }
-    #[Route('api/getSingleFamille/{$id_famille}', name: 'app_api_get_single_famille')]
-    public function app_api_get_single_famille(int $id_famille): Response
+    #[Route('api/getSingleMarque/{$id_marque}', name: 'app_api_get_single_marque')]
+    public function app_api_get_single_marque(int $id_marque): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
-                $famille = $this->em->getRepository(Famille::class)->find($id_famille);
+                $marque = $this->em->getRepository(Marque::class)->find($id_marque);
 
-            if ($famille){
+            if ($marque){
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
-                    'famille'=>$famille->getLibelle()
+                    'marque'=>$marque->getNom()
                 );
             } else {
                 $reponse = array(
                     'code'=>'warning',
-                    'msg'=>'Merci de sélectionner une famille  dans la liste !'
+                    'msg'=>'Merci de sélectionner une marque  dans la liste !'
                 );
             }
 
@@ -70,35 +70,35 @@ final class ApiFamilleController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/saveFamille', name: 'app_api_save_famille')]
-    public function app_api_save_famille(Request $request): Response
+    #[Route('api/saveMarque', name: 'app_api_save_marque')]
+    public function app_api_save_marque(Request $request): Response
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $id_famille = $request->request->get('id_famille');
-                $libelle_famille = $request->request->get('famille');
+                $id_marque = $request->request->get('id_marque');
+                $libelle_marque = $request->request->get('marque');
 
-                if (!$libelle_famille) {
-                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir la famille !'];
+                if (!$libelle_marque) {
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir la marque !'];
                 } else {
-                    $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_famille);
-                    $famille = $this->em->getRepository(Famille::class)->find($uuid);
+                    $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_marque);
+                    $marque = $this->em->getRepository(Marque::class)->find($uuid);
                     $isNew = false;
-                    if (!$famille) {
-                        $famille = new Famille();
+                    if (!$marque) {
+                        $marque = new Marque();
                         $isNew = true;
                     }
 
-                    $famille->setLibelle(strtoupper($libelle_famille));
+                    $marque->setNom(strtoupper($libelle_marque));
 
-                    $this->em->persist($famille);
+                    $this->em->persist($marque);
                     $this->em->flush();
 
                     $reponse = [
                         'code' => 'success',
-                        'msg' => $isNew ? 'Famille créée avec succès !' : 'Famille  mise à jour avec succès !'
+                        'msg' => $isNew ? 'Marque créée avec succès !' : 'Marque  mise à jour avec succès !'
                     ];
                 }
             } catch (\Throwable $throwable) {
@@ -109,27 +109,27 @@ final class ApiFamilleController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/deleteFamille/{$id_famille}', name: 'app_api_delete_famille')]
-    public function app_api_delete_famille(Request $request, int $id_famille): Response
+    #[Route('api/deleteMarque/{$id_marque}', name: 'app_api_delete_marque')]
+    public function app_api_delete_marque(Request $request, int $id_marque): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_famille);
-                $famille = $this->em->getRepository(Famille::class)->find($uuid);
+                $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_marque);
+                $marque = $this->em->getRepository(Marque::class)->find($uuid);
 
-                if ($famille){
-                    $this->em->remove($famille);
+                if ($marque){
+                    $this->em->remove($marque);
                     $this->em->flush();
                     $reponse = array(
                         'code'=>'success',
-                        'msg'=>'Famille supprimée avec succès !'
+                        'msg'=>'Marque supprimée avec succès !'
                     );
                 } else {
                     $reponse = array(
                         'code'=>'warning',
-                        'msg'=>'Merci de sélectionner une famille d\'équipements !'
+                        'msg'=>'Merci de sélectionner une marque d\'équipements !'
                     );
                 }
 

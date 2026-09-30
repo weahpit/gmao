@@ -10,26 +10,31 @@
 
 {% block body %}
     <div class="page-header">
-        <h1 class="page-title">Mouvementer le stock</h1>
+         <h1 class="page-title"><img src="{{ asset('images/arrow.png') }}" height="32" class="me-2" alt=""> Mouvementer le stock</h1>
         <div class="d-flex">
-            {#<a href="#"  id="btn_add_eq" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddEquipement">
-                <i data-lucide="plus"></i> Nouvel équipement
-            </a>#}
         </div>
     </div>
 
     <!-- Table -->
-    <div class="" style="border: 1px solid #555555;background: radial-gradient(rgba(224,219,219,0.86), rgba(228,228,228,0.67));border-radius: 0;height: 400px;">
-        <div class="card-body" style="border: 0;">
-            <div class="container" id="div_mvt">
-                <div class="d-flex p-1 text-center" style="background: #f2f2f2;">
-                    <select class="input" name="type_mvt" id="type_mvt" style="width: 400px;font-size: 20px;border: 1px solid black;">
+    <div class="" style="border: 1px solid #d2d0d0;background: radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius: 0;">
+        <div class="card-body" style="border: 1px solid #dedede;">
+            <div class="container pb-3">
+                <div class="d-flex p-1 text-center" style="background: #97c1a6;border: 1px solid #023902;">
+                    <select name="type_mvt" id="type_mvt">
                         <option value="0">-- Sélectionnez un mouvement --</option>
                         <option value="1">-- Entrée --</option>
                         <option value="2">-- Sortie --</option>
                     </select>
-                    <input class="input" id="equipement" style="background: #fefcfb;border: 1px solid black;font-weight: lighter;font-size: 20px;color: #2563EB;max-width: 500px;" disabled placeholder="Cliquer sur le bouton pour sélectionnez un équipement">
-                    <button type="button" class="btn btn-light" id="btn-search"><img src="{{ asset('icons/SVG/search.svg') }}" alt=""></button>
+                    <input class="input" id="equipement" style="background: #d2d0d0;border: 1px solid black;font-weight: lighter;color: #0a0a0a;max-width: 300px;" disabled placeholder="sélectionnez un équipement">
+                    <button type="button" class="btn btn-primary ms-2 p-0 fw-light" id="btn-search" style="border: 1px solid lightgrey;border-radius: 0;width: 130px;"><img class="ms-2" src="{{ asset('icons/SVG/search.svg') }}" alt="" height="16" style="background: white;"> Rechercher</button>
+                </div>
+            </div>
+            <div class="mb-2" id="div_mvt">
+                <div class="mx-auto text-center text-primary mt-4">
+                    <img src="{{ asset('images/stock.png') }}" height="92"  class="me-2" alt="">
+                    <h4 class="mt-3">Sélectionner un type de mouvement</h4>
+                    <h5 class="mt-1 mb-1">Puis</h5>
+                    <h3>Cliquez sur le bouton rechercher</h3>
                 </div>
             </div>
         </div>
@@ -39,13 +44,12 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
-                    {#<h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/marque.png') }}" height="40" alt=""> Enregistrer une marque</h1>#}
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background: rgba(205,218,195,0.52)">
                     <div class="d-flex">
-                        <select class="input" name="famille" id="famille" style="font-size: 20px;"></select>
-                        <select class="input" name="categorie" id="categorie" style="font-size: 20px;"></select>
+                        <select class="me-2" name="famille" id="famille"></select>
+                        <select name="categorie" id="categorie"></select>
                     </div>
                     <hr>
                     <div class="d-flex mb-2">
@@ -66,9 +70,14 @@
     <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
     <script src="{{ asset('js/api/references/FamilleEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/MarqueEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
+    <script src="{{ asset('js/api/stock/MouvementsStock.js') }}"></script>
     <script>
 
         let id_equipement = ""
+        let nature = ""
         let photo_eq_url = "{{ asset('data/equipements/') }}"
         document.getElementById('equipement').value = ""
         document.getElementById('type_mvt').value = "0"
@@ -82,6 +91,8 @@
                 getAllFamilles(document.getElementById("famille"), 2)
                 getAllTypeEquipements(document.getElementById("categorie"), 2)
                 getAllEquipementTypes(document.getElementById('ul_eq'), 3)
+                nature = ""
+                id_equipement = ""
             }
         })
 
@@ -134,34 +145,136 @@
         function getEquipementDetails(id_equipement){
             getSingleEquipementType(id_equipement)
                 .then(eq => {
-                    let html = `
+                    nature = eq.nature;
+                    let html = ''
+                    html= `
                         <hr>
-                        <div class="bg-white container p-2"  style="border:1px solid black;">
-                        <div class="success-gradient  mx-auto p-2 mb-2 h3"">${eq.libelle}</div>
-                        <div class="row mx-auto">
-                            <div class="col-4">
+                        <div class="bg-light container"  style="border:1px solid lightgrey;">
+                        <div class="success-gradient  mx-auto p-2 mt-2 mb-2 h5">${eq.libelle}</div>
+                        <div class="row mx-auto" style="background: linear-gradient(#f6f5f5,lightgrey);">
+                            <div class="col-6">
                                 <div class="d-flex"><label class="underline mb-2" style="width: 150px;">Code</label> : <label class="fw-bold ms-2">${eq.code_eq}</label></div>
                                 <div class="d-flex"><label class="underline mb-2" style="width: 150px;">Nature</label> : <label class="fw-bold ms-2 text-primary">${eq.nature}</label></div>
                                 <div class="d-flex"><label class="underline mb-2" style="width: 150px;">Catégorie</label> : <label class="fw-bold ms-2">${eq.categorie}</label></div>
                                 <div class="d-flex"><label class="underline mb-2" style="width: 150px;">Criticité</label> : <label class="fw-bold ms-2">${eq.criticite}</label></div>
                             </div>
                             <div class="col-4">
-                                <img src="${photo_eq_url}${eq.photo}" alt="" style="height:150px;">
+                                <img class="m-2" src="${photo_eq_url}${eq.photo}" alt="" style="height:150px;border: 2px solid black;">
                             </div>
                         </div>
-                        <hr>
-                        <div class="mt-2 d-flex">
-                           <input class="input text-success text-center" id="nb_eq" type="number" style="width: 150px;font-size: 20px;">
-                            <button class="btn btn-success" id="btn-mvt" type="button" style="font-size: 20px;">Mouvementer</button>
-                        </div>
                     `
-                    document.getElementById("div_mvt").insertAdjacentHTML("afterend", html)
-                    document.getElementById("nb_eq").focus()
+                    if (eq.nature === "MOUVEMENTE [QUANTITE]"){
+
+                        html +=`<hr>
+                        <small class="fw-bold"><u>Mouvement le stock</u></small>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mt-2 d-flex" style="width: 400px;">
+                                   <input type="number" class="input fw-bold text-danger" id="nb_eq" style="width: 200px;" placeholder="Nombre de pièces">
+                                </div>
+                                <button class="btn btn-success mb-2 mt-2" id="saveMvt" style="border-radius: 0;width: 200px;">Ajouter au stock</button>
+                             </div>
+                            <div class="col-md-4" id="div_situation">
+
+                             </div>
+                        </div>`
+                        document.getElementById("div_mvt").innerHTML = html;
+                        document.getElementById("nb_eq").focus()
+                        ValidateOnKeypress(document.getElementById("nb_eq"), document.getElementById("saveMvt"), "")
+                    } else {
+                        html +=`<hr>
+                                <small class="fw-bold"><u>Mouvement le stock</u></small>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
+                                        <label for="serial_number" class="fw-bold span" style="width: 200px;">N° Série<span class="ms-2 text-danger fw-bold">*</span></label>
+                                        <input type="text" class="input fw-bold text-danger" id="serial_number" style="text-transform: uppercase;">
+                                    </div>
+                                    <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
+                                        <label for="date_entree" class="fw-bold span" style="width: 200px;">Date Entrée<span class="ms-2 text-danger fw-bold">*</span></label>
+                                        <input type="date" class="input fw-bold text-danger" id="date_entree">
+                                    </div>
+                                    <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
+                                        <label for="fournisseur" class="fw-bold span" style="width: 200px;">Fournisseur</label>
+                                        <select class="input fw-bold" id="fournisseur"></select>
+                                    </div>
+                                    <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
+                                        <label for="marque" class="fw-bold span" style="width: 200px;">Marque</label>
+                                        <select class="input fw-bold" id="marque"></select>
+                                    </div>
+                                    <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
+                                        <label for="modele" class="fw-bold span" style="width: 200px;">Modèle</label>
+                                        <input type="text" class="input fw-bold text-danger" id="modele" style="text-transform: uppercase;">
+                                    </div>
+                                    <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
+                                        <label for="marque" class="fw-bold span" style="width: 200px;">Etat</label>
+                                        <select class="input fw-bold" id="etat"></select>
+                                    </div>
+                                    <button class="btn btn-success mb-2" id="saveMvt"  style="border-radius: 0;">Ajouter au stock</button>
+                                </div>
+                        <div class="col-md-4" id="div_situation">
+
+                         </div>
+                    </div>`
+                        document.getElementById("div_mvt").innerHTML = html;
+                        getAllFournisseurs(document.getElementById("fournisseur"), 2)
+                        getAllMarques(document.getElementById("marque"), 2)
+                        getAllEtatEquipement(document.getElementById("etat"), 2)
+                        setTimeout(()=>{
+                            document.getElementById("serial_number").focus()
+                        }, 500)
+                        ValidateOnKeypress(document.getElementById("serial_number"), document.getElementById("saveMvt"), "")
+                    }
+                    if (eq.qte > 0){
+                        document.getElementById("div_situation").innerHTML  = `
+                        <h4 class="stock-success-gradient w-100 p-2 text-center">Disponible En Stock</h4>
+                         <h1 class="fw-bold text-success text-center mt-2 mb-3">${eq.qte}</h1>
+                        `
+                    } else {
+                        document.getElementById("div_situation").innerHTML  = `
+                        <h4 class="stock-error-gradient w-100 p-2 text-center">En Rupture</h4>
+                         <h1 class="fw-bold text-danger text-center mt-2 mb-3">${eq.qte}</h1>
+                        `
+                    }
                 })
                 .catch(err => {
                     console.error("Erreur :", err);
                 });
         }
 
+        $("body").on('click', '#saveMvt', function(){
+
+            let formMvt = new FormData();
+
+            formMvt.append('id_equipement', id_equipement)
+            formMvt.append('nature', nature)
+            formMvt.append('type_mvt', document.getElementById("type_mvt").value)
+
+            if (nature === "MOUVEMENTE [QUANTITE]"){
+                formMvt.append('nb_eq', document.getElementById("nb_eq").value)
+            } else {
+                formMvt.append('fournisseur', document.getElementById("fournisseur").value)
+                formMvt.append('marque', document.getElementById("marque").value)
+                formMvt.append('modele', document.getElementById("modele").value)
+                formMvt.append('numero_serie', document.getElementById("serial_number").value)
+                formMvt.append('date_entree', document.getElementById("date_entree").value)
+            }
+            saveMvt(formMvt);
+        })
+
+        function reinitialise_page(){
+            document.getElementById("type_mvt").value="0";
+            document.getElementById("equipement").value="";
+            document.getElementById("div_mvt").innerHTML= `
+            <div class="mx-auto text-center text-primary mt-4">
+                    <img src="{{ asset('images/stock.png') }}" height="92"  class="me-2" alt="">
+                    <h4 class="mt-3">Sélectionner un type de mouvement</h4>
+                    <h5 class="mt-1 mb-1">Puis</h5>
+                    <h3>Cliquez sur le bouton rechercher</h3>
+                </div>
+            `;
+            id_equipement="";
+           nature="";
+        }
     </script>
 {% endblock %}

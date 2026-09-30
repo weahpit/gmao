@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\References;
 
 use App\Entity\Criticite;
 use App\Entity\Equipement;
@@ -16,7 +16,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
-use function Symfony\Component\String\s;
 
 final class ApiEquipementController extends AbstractController
 {

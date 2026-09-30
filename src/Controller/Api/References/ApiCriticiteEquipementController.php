@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\References;
 
 use App\Entity\Criticite;
 use Doctrine\ORM\EntityManagerInterface;

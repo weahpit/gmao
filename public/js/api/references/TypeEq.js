@@ -1,7 +1,7 @@
-function getAllFamilles(ctrl_name, ctrl_type){
+function getAllTypeEq(ctrl_name, ctrl_type){
     let contentCtrl = ''
     $.ajax({
-        url : URL_APP + 'api/getAllFamilles',
+        url : URL_APP + 'api/getAllTypeEq',
         type : 'POST',
         success: function (response){
             let reponse = JSON.parse(response)
@@ -9,61 +9,61 @@ function getAllFamilles(ctrl_name, ctrl_type){
                 contentCtrl +=`
                 <table class="table table-hover">
                     <thead><tr>
-                            <th>Liste des Familles</th>
+                            <th>Type Equipement</th>
                     </tr></thead>
                     <tbody>
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
-                    contentCtrl +='<td><a href="#">' + reponse.data[i].famille + '</a></td>'
+                    contentCtrl +='<td><a href="#">' + reponse.data[i].type_eq + '</a></td>'
                     contentCtrl +='<tr>'
                 }
                 contentCtrl +='</tbody></table>';
             } else {
-                contentCtrl += '<option value="0">-- Familles --</option>'
+                contentCtrl += '<option value="0">-- Types équipements --</option>'
                 for (var i=0;i < reponse.data.length;i++) {
-                    contentCtrl += '<option value="' + reponse.data[i].id + '"  style="text-transform: uppercase;">' + reponse.data[i].famille + '</option>'
+                    contentCtrl += '<option value="' + reponse.data[i].id + '">' + reponse.data[i].type_eq + '</option>'
                 }
             }
             ctrl_name.innerHTML = contentCtrl
         },
         error : function (response){
-            showToast(response.msg, {title: 'Erreur sur Chargement des Familles', type: 'error', duration: 4000 })
+            showToast(response.msg, {title: 'Erreur sur Chargement des données {Type_Equipement}', type: 'error', duration: 4000 })
         }
     })
 }
-function saveFamille(formData, ctrl_name, ctrl_type){
-    fetch( URL_APP + "api/saveFamille", { method: "POST", body: formData })
+function saveTypeEq(formData, ctrl_name, ctrl_type){
+    fetch( URL_APP + "api/saveTypeEq", { method: "POST", body: formData })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
                 type : data.code,
                 duration: 4000,
-                title: 'Famille'
+                title: 'Type Equipement'
             })
             if (data.code === "success") {
-                clearForm("formFamille", "famille")
-                getAllFamilles(ctrl_name, ctrl_type)
+                getAllTypeEq(ctrl_name, ctrl_type)
+                clearForm("formType", "Type_eq")
             }
         })
-        .catch(err => showToast("❌ Erreur : " + err, {title: 'Famille', duration: 4000}));
+        .catch(err => showToast("❌ Erreur : " + err, {title: 'Type Equipement', duration: 4000}));
 }
-function deleteFamille(id_nature_equipement){
-    fetch( URL_APP + "api/deleteFamille", { method: "POST", body: id_nature_equipement })
+function deleteTypeEq(id_type_equipement){
+    fetch( URL_APP + "api/deleteTypeEq", { method: "POST", body: id_type_equipement })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
                 type : data.code,
                 duration: 4000,
-                title: 'Famille'
+                title: 'Type Equipement'
             })
         })
-        .catch(err => showToast("❌ Erreur : " + err, {title: 'Famille', duration: 4000}));
+        .catch(err => showToast("❌ Erreur : " + err, {title: 'Type Equipement', duration: 4000}));
 }
-function getSingleFamille(id_nature_equipement) {
+function getSingleTypeEq(id_type_equipement) {
     return new Promise((resolve, reject) => {
         $.ajax({
-            url:  URL_APP + 'api/getSingleFamille' + id_nature_equipement,
+            url:  URL_APP + 'api/getSingleTypeEq' + id_type_equipement,
             type: 'POST',
             success: function(response) {
                 if (response.code === "success") {
@@ -72,12 +72,12 @@ function getSingleFamille(id_nature_equipement) {
                     showToast(data.msg, {
                         type : data.code,
                         duration: 4000,
-                        title: 'Famille'
+                        title: 'Type Equipement'
                     })
                 }
             },
             error: function(err) {
-                showToast("❌ Erreur : " + err, {title: 'Famille', duration: 4000});
+                showToast("❌ Erreur : " + err, {title: 'Type Equipement', duration: 4000});
             }
         });
     });

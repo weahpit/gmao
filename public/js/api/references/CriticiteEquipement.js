@@ -15,7 +15,7 @@ function getAllCriticiteEquipement(ctrl_name, ctrl_type){
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
-                    contentCtrl +='<td><a href="' + reponse.data[i].id + '">' + reponse.data[i].criticite + '</a></td>'
+                    contentCtrl +='<td><a href="#">' + reponse.data[i].criticite + '</a></td>'
                     contentCtrl +='<tr>'
                 }
                 contentCtrl +='</tbody></table>';

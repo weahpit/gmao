@@ -57,8 +57,9 @@
         let idMarque = 0;
        getAllMarques(document.querySelector(".card-body"), 1)
        clearForm("formMarque", "marque")
+        ValidateOnKeypress(document.getElementById("marque"), document.getElementById("saveMarque"), "formMarque")
 
-       document.querySelector("#btn_add_mrq").addEventListener("click", function () {
+        document.querySelector("#btn_add_mrq").addEventListener("click", function () {
            clearForm("formMarque", "marque")
        })
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\References;
 
 use App\Entity\Fournisseur;
 use Doctrine\ORM\EntityManagerInterface;

@@ -60,7 +60,7 @@
   --banner-h: 56px;
   /*--font-body: 'DM Sans', system-ui, -apple-system, sans-serif;*/
   --font-body: 'Century Gothic', system-ui, -apple-system, sans-serif;
-  --font-brand: 'Instrument Serif', Georgia, serif;
+  --font-brand: 'Century Gothic', Georgia, serif;
 }
 
 html { font-size: 16px; }
@@ -614,6 +614,14 @@ select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csv
 
 textarea.input { min-height: 80px; resize: vertical; }
 
+select {
+    background: linear-gradient(#efefef, #e1e1e1);
+    font-size: 14px;
+    font-weight: lighter;
+    min-width:200px;
+    border: 1px solid lightgrey;
+}
+
 .form-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
 }
@@ -941,3 +949,23 @@ textarea.input { min-height: 80px; resize: vertical; }
     font-family: "Segoe UI", sans-serif;
 }
 
+.stock-success-gradient {
+    background: linear-gradient(135deg,
+    #d8eae9,   /* vert très pâle */ #d4e9e8,   /* vert doux */ #37d2e0 /* vert succès */
+    );
+    color: #279d95;          /* texte vert foncé */
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    font-family: "Segoe UI", sans-serif;
+}
+.stock-error-gradient {
+    background: linear-gradient(135deg,
+    #eaddd8,   /* vert très pâle */ #e9dad4,   /* vert doux */ #e04e37 /* vert succès */
+    );
+    color: #f10202;          /* texte vert foncé */
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    font-family: "Segoe UI", sans-serif;
+}

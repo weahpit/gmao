@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\References;
 
 use App\Entity\Famille;
-use App\Entity\Menu;
 use App\Entity\TypeEquipement;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

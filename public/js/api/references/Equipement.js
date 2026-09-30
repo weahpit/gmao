@@ -22,7 +22,7 @@ function getAllEquipements(ctrl_name, ctrl_type){
                 for (var i=0;i < reponse.data.length;i++){
                     var nom = reponse.data[i].nom
                     contentCtrl +='<tr style="font-size: 14px;">'
-                    contentCtrl +='<td class="text-danger fw-bold"><a href="' + reponse.data[i].id + '">' + reponse.data[i].code + '</a></td>'
+                    contentCtrl +='<td class="text-danger fw-bold"><a href="#">' + reponse.data[i].code + '</a></td>'
                     contentCtrl +='<td class="text-dark fw-bold">' + nom.toUpperCase() + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].marque + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].modele + '</td>'

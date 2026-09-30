@@ -320,7 +320,7 @@ function getSingleEquipementType(id_equipement_type) {
             .then(data => {
                 showToast(data.msg, {
                     type : data.code,
-                    duration: 2000,
+                    duration: 1000,
                     title: 'Equipement Type'
                 })
                 if (data.code === "success") {

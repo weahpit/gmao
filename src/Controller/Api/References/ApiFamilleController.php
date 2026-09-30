@@ -1,20 +1,21 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\References;
 
-use App\Entity\EtatEquipement;
+use App\Entity\Famille;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
-final class ApiEtatEquipementController extends AbstractController
+final class ApiFamilleController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em){}
 
-    #[Route('api/getAllEtatEquipement', name: 'app_api_get_etat_equipement')]
+    #[Route('api/getAllFamilles', name: 'app_api_get_famille')]
     public function index(): Response
         {
             if (!$this->getUser()){return $this->redirectToRoute("app_login");}
@@ -22,12 +23,12 @@ final class ApiEtatEquipementController extends AbstractController
             $data = array();
             if ($this->isGranted("ROLE_USER")){
                 try{
-                    // Liste des Etats d'équipements
-                    $etats = $this->em->getRepository(EtatEquipement::class)->findBy([], ['libelle'=>'ASC']);
-                    foreach ($etats as $etat){
+                    // Liste des Natures d'équipements
+                    $familles = $this->em->getRepository(Famille::class)->findBy([], ['libelle'=>'ASC']);
+                    foreach ($familles as $famille){
                         $data[] = array(
-                            'id'=>$etat->getId(),
-                            'etat'=>$etat->getLibelle()
+                            'id'=>$famille->getId(),
+                            'famille'=>$famille->getLibelle()
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -39,25 +40,25 @@ final class ApiEtatEquipementController extends AbstractController
             }
             return new JsonResponse(json_encode($reponse));
         }
-    #[Route('api/getSingleEtatEquipement/{$id_etat_equipement}', name: 'app_api_get_single_etat_equipement')]
-    public function app_api_get_single_etat_equipement(int $id_etat_equipement): Response
+    #[Route('api/getSingleFamille/{$id_famille}', name: 'app_api_get_single_famille')]
+    public function app_api_get_single_famille(int $id_famille): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
-                $etat_equipement = $this->em->getRepository(EtatEquipement::class)->find($id_etat_equipement);
+                $famille = $this->em->getRepository(Famille::class)->find($id_famille);
 
-            if ($etat_equipement){
+            if ($famille){
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
-                    'libelle'=>$etat_equipement->getLibelle()
+                    'famille'=>$famille->getLibelle()
                 );
             } else {
                 $reponse = array(
                     'code'=>'warning',
-                    'msg'=>'Merci de sélectionner une état dans la liste !'
+                    'msg'=>'Merci de sélectionner une famille  dans la liste !'
                 );
             }
 
@@ -69,34 +70,35 @@ final class ApiEtatEquipementController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/saveEtatEquipement', name: 'app_api_save_etat_equipement')]
-    public function app_api_save_etat_equipement(Request $request): Response
+    #[Route('api/saveFamille', name: 'app_api_save_famille')]
+    public function app_api_save_famille(Request $request): Response
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $id_etat_equipement = $request->request->get('id_etat_equipement');
-                $libelle = $request->request->get('etat');
+                $id_famille = $request->request->get('id_famille');
+                $libelle_famille = $request->request->get('famille');
 
-                if (!$libelle) {
-                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs obligatoires !'];
+                if (!$libelle_famille) {
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir la famille !'];
                 } else {
-                    $etat_equipement = $this->em->getRepository(EtatEquipement::class)->find($id_etat_equipement);
+                    $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_famille);
+                    $famille = $this->em->getRepository(Famille::class)->find($uuid);
                     $isNew = false;
-                    if (!$etat_equipement) {
-                        $etat_equipement = new EtatEquipement();
+                    if (!$famille) {
+                        $famille = new Famille();
                         $isNew = true;
                     }
 
-                    $etat_equipement->setLibelle(strtoupper($libelle));
+                    $famille->setLibelle(strtoupper($libelle_famille));
 
-                    $this->em->persist($etat_equipement);
+                    $this->em->persist($famille);
                     $this->em->flush();
 
                     $reponse = [
                         'code' => 'success',
-                        'msg' => $isNew ? 'Etat Equipement créé avec succès !' : 'Etat Equipement créé mise à jour avec succès !'
+                        'msg' => $isNew ? 'Famille créée avec succès !' : 'Famille  mise à jour avec succès !'
                     ];
                 }
             } catch (\Throwable $throwable) {
@@ -107,26 +109,27 @@ final class ApiEtatEquipementController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/deleteEtatEquipement/{$id_etat_equipement}', name: 'app_api_delete_etat_equipement')]
-    public function app_api_delete_etat_equipement(Request $request, int $id_etat_equipement): Response
+    #[Route('api/deleteFamille/{$id_famille}', name: 'app_api_delete_famille')]
+    public function app_api_delete_famille(Request $request, int $id_famille): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $etat_equipement = $this->em->getRepository(EtatEquipement::class)->find($id_etat_equipement);
+                $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_famille);
+                $famille = $this->em->getRepository(Famille::class)->find($uuid);
 
-                if ($etat_equipement){
-                    $this->em->remove($etat_equipement);
+                if ($famille){
+                    $this->em->remove($famille);
                     $this->em->flush();
                     $reponse = array(
                         'code'=>'success',
-                        'msg'=>'Etat Equipement supprimée avec succès !'
+                        'msg'=>'Famille supprimée avec succès !'
                     );
                 } else {
                     $reponse = array(
                         'code'=>'warning',
-                        'msg'=>'Merci de sélectionner une etat_equipement d\'équipements !'
+                        'msg'=>'Merci de sélectionner une famille d\'équipements !'
                     );
                 }
 

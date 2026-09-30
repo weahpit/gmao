@@ -1,21 +1,20 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\References;
 
-use App\Entity\Marque;
+use App\Entity\EtatEquipement;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Uid\Uuid;
 
-final class ApiMarqueController extends AbstractController
+final class ApiEtatEquipementController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em){}
 
-    #[Route('api/getAllMarques', name: 'app_api_get_marque')]
+    #[Route('api/getAllEtatEquipement', name: 'app_api_get_etat_equipement')]
     public function index(): Response
         {
             if (!$this->getUser()){return $this->redirectToRoute("app_login");}
@@ -23,12 +22,12 @@ final class ApiMarqueController extends AbstractController
             $data = array();
             if ($this->isGranted("ROLE_USER")){
                 try{
-                    // Liste des Natures d'équipements
-                    $marques = $this->em->getRepository(Marque::class)->findBy([], ['nom'=>'ASC']);
-                    foreach ($marques as $marque){
+                    // Liste des Etats d'équipements
+                    $etats = $this->em->getRepository(EtatEquipement::class)->findBy([], ['libelle'=>'ASC']);
+                    foreach ($etats as $etat){
                         $data[] = array(
-                            'id'=>$marque->getId(),
-                            'marque'=>$marque->getNom()
+                            'id'=>$etat->getId(),
+                            'etat'=>$etat->getLibelle()
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -40,25 +39,25 @@ final class ApiMarqueController extends AbstractController
             }
             return new JsonResponse(json_encode($reponse));
         }
-    #[Route('api/getSingleMarque/{$id_marque}', name: 'app_api_get_single_marque')]
-    public function app_api_get_single_marque(int $id_marque): Response
+    #[Route('api/getSingleEtatEquipement/{$id_etat_equipement}', name: 'app_api_get_single_etat_equipement')]
+    public function app_api_get_single_etat_equipement(int $id_etat_equipement): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
-                $marque = $this->em->getRepository(Marque::class)->find($id_marque);
+                $etat_equipement = $this->em->getRepository(EtatEquipement::class)->find($id_etat_equipement);
 
-            if ($marque){
+            if ($etat_equipement){
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
-                    'marque'=>$marque->getNom()
+                    'libelle'=>$etat_equipement->getLibelle()
                 );
             } else {
                 $reponse = array(
                     'code'=>'warning',
-                    'msg'=>'Merci de sélectionner une marque  dans la liste !'
+                    'msg'=>'Merci de sélectionner une état dans la liste !'
                 );
             }
 
@@ -70,35 +69,34 @@ final class ApiMarqueController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/saveMarque', name: 'app_api_save_marque')]
-    public function app_api_save_marque(Request $request): Response
+    #[Route('api/saveEtatEquipement', name: 'app_api_save_etat_equipement')]
+    public function app_api_save_etat_equipement(Request $request): Response
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $id_marque = $request->request->get('id_marque');
-                $libelle_marque = $request->request->get('marque');
+                $id_etat_equipement = $request->request->get('id_etat_equipement');
+                $libelle = $request->request->get('etat');
 
-                if (!$libelle_marque) {
-                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir la marque !'];
+                if (!$libelle) {
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs obligatoires !'];
                 } else {
-                    $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_marque);
-                    $marque = $this->em->getRepository(Marque::class)->find($uuid);
+                    $etat_equipement = $this->em->getRepository(EtatEquipement::class)->find($id_etat_equipement);
                     $isNew = false;
-                    if (!$marque) {
-                        $marque = new Marque();
+                    if (!$etat_equipement) {
+                        $etat_equipement = new EtatEquipement();
                         $isNew = true;
                     }
 
-                    $marque->setNom(strtoupper($libelle_marque));
+                    $etat_equipement->setLibelle(strtoupper($libelle));
 
-                    $this->em->persist($marque);
+                    $this->em->persist($etat_equipement);
                     $this->em->flush();
 
                     $reponse = [
                         'code' => 'success',
-                        'msg' => $isNew ? 'Marque créée avec succès !' : 'Marque  mise à jour avec succès !'
+                        'msg' => $isNew ? 'Etat Equipement créé avec succès !' : 'Etat Equipement créé mise à jour avec succès !'
                     ];
                 }
             } catch (\Throwable $throwable) {
@@ -109,27 +107,26 @@ final class ApiMarqueController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/deleteMarque/{$id_marque}', name: 'app_api_delete_marque')]
-    public function app_api_delete_marque(Request $request, int $id_marque): Response
+    #[Route('api/deleteEtatEquipement/{$id_etat_equipement}', name: 'app_api_delete_etat_equipement')]
+    public function app_api_delete_etat_equipement(Request $request, int $id_etat_equipement): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_marque);
-                $marque = $this->em->getRepository(Marque::class)->find($uuid);
+                $etat_equipement = $this->em->getRepository(EtatEquipement::class)->find($id_etat_equipement);
 
-                if ($marque){
-                    $this->em->remove($marque);
+                if ($etat_equipement){
+                    $this->em->remove($etat_equipement);
                     $this->em->flush();
                     $reponse = array(
                         'code'=>'success',
-                        'msg'=>'Marque supprimée avec succès !'
+                        'msg'=>'Etat Equipement supprimée avec succès !'
                     );
                 } else {
                     $reponse = array(
                         'code'=>'warning',
-                        'msg'=>'Merci de sélectionner une marque d\'équipements !'
+                        'msg'=>'Merci de sélectionner une etat_equipement d\'équipements !'
                     );
                 }
 

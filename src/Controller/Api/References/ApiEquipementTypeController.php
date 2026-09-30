@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Controller\Api;
+namespace App\Controller\Api\References;
 
 use App\Entity\Criticite;
 use App\Entity\EquipementType;
 use App\Entity\Famille;
 use App\Entity\NatureEquipement;
+use App\Entity\TypeEq;
 use App\Entity\TypeEquipement;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -142,7 +143,8 @@ final class ApiEquipementTypeController extends AbstractController
                     'categorie'=>$equipement_type->getCategorie()? $equipement_type->getCategorie()->getLibelle() : "",
                     'photo'=>$equipement_type->getPhoto(),
                     'code_eq'=>$equipement_type->getCode(),
-                    'criticite'=>$equipement_type->getCriticite()? $equipement_type->getCriticite()->getLibelle() : ""
+                    'criticite'=>$equipement_type->getCriticite()? $equipement_type->getCriticite()->getLibelle() : "",
+                    'qte'=>$equipement_type->getQte()? :0
                 );
             } else {
                 $reponse = array(
@@ -172,11 +174,13 @@ final class ApiEquipementTypeController extends AbstractController
                 $categorie = $request->request->get('categorie');
                 $criticite_id = $request->request->get('criticite_id');
                 $type_unicite_id = $request->request->get('type_unicite_id');
+                $type_eq = $request->request->get('type_eq');
                 $photo = $request->files->get('photo');
 
                 $criticite = $this->em->getRepository(Criticite::class)->find(Uuid::fromString($criticite_id));
                 $nature = $this->em->getRepository(NatureEquipement::class)->find(Uuid::fromString($type_unicite_id));
-                $typeEq = $this->em->getRepository(TypeEquipement::class)->find(Uuid::fromString($categorie));
+                $typeEquipement = $this->em->getRepository(TypeEquipement::class)->find(Uuid::fromString($categorie));
+                $typeEq = $this->em->getRepository(TypeEq::class)->find(Uuid::fromString($type_eq));
 
 
                 if (!$nomEquipement || !$CodeEquipement) {
@@ -195,7 +199,8 @@ final class ApiEquipementTypeController extends AbstractController
 
                     if ($criticite) { $equipement->setCriticite($criticite);}
                     if ($nature) { $equipement->setNatureEquipement($nature);;}
-                    if ($typeEq) { $equipement->setCategorie($typeEq);;}
+                    if ($typeEquipement) { $equipement->setCategorie($typeEquipement);;}
+                    if ($typeEq) { $equipement->setTypeEq($typeEq);;}
 
 
                     // Charger la photo de l'équipement

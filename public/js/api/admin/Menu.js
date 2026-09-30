@@ -16,7 +16,7 @@ function getAllMenus(ctrl_name, ctrl_type){
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
-                    contentCtrl +='<td><a href="' + reponse.data[i].id + '">' + reponse.data[i].menu + '</a></td>'
+                    contentCtrl +='<td><a href="#">' + reponse.data[i].menu + '</a></td>'
                     contentCtrl +='<td><span class="badge bg-warning p-2 text-dark">' + reponse.data[i].classname + '</span></td>'
                     contentCtrl +='<tr>'
                 }

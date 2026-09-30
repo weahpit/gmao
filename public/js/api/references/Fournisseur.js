@@ -1,7 +1,7 @@
 function getAllFournisseurs(ctrl_name, ctrl_type){
     let contentCtrl = ''
     $.ajax({
-        url : 'api/getAllFournisseurs',
+        url : URL_APP + 'api/getAllFournisseurs',
         type : 'POST',
         success: function (response){
             let reponse = JSON.parse(response)
@@ -43,7 +43,7 @@ function getAllFournisseurs(ctrl_name, ctrl_type){
     })
 }
 function saveFournisseur(formData, ctrl_name, ctrl_type){
-    fetch("api/saveFournisseur", { method: "POST", body: formData })
+    fetch(URL_APP +"api/saveFournisseur", { method: "POST", body: formData })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -59,7 +59,7 @@ function saveFournisseur(formData, ctrl_name, ctrl_type){
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Fournisseurs', duration: 4000}));
 }
 function deleteFournisseur(id_fournisseur){
-    fetch("api/deleteFournisseur", { method: "POST", body: id_fournisseur })
+    fetch(URL_APP +"api/deleteFournisseur", { method: "POST", body: id_fournisseur })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -73,7 +73,7 @@ function deleteFournisseur(id_fournisseur){
 function getSingleFournisseur(id_fournisseur) {
     return new Promise((resolve, reject) => {
         $.ajax({
-            url: 'api/getSingleFournisseur' + id_fournisseur,
+            url: URL_APP +'api/getSingleFournisseur' + id_fournisseur,
             type: 'POST',
             success: function(response) {
                 if (response.code === "success") {

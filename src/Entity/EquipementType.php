@@ -35,6 +35,29 @@ class EquipementType
     #[ORM\ManyToOne(inversedBy: 'equipementTypes')]
     private ?TypeEquipement $categorie = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?bool $sous_equipement = null;
+
+    #[ORM\ManyToOne(inversedBy: 'equipementTypes')]
+    private ?ZoneExploitation $zone = null;
+
+    #[ORM\ManyToOne(inversedBy: 'equipementTypes')]
+    private ?TypeEq $type_eq = null;
+
+    /**
+     * @var Collection<Uuid, MouvementEquipement>
+     */
+    #[ORM\OneToMany(targetEntity: MouvementEquipement::class, mappedBy: 'code_equipement_type')]
+    private Collection $mouvementEquipements;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $qte = null;
+
+    public function __construct()
+    {
+        $this->mouvementEquipements = new ArrayCollection();
+    }
+
 
     public function getId(): ?Uuid
     {
@@ -109,6 +132,84 @@ class EquipementType
     public function setCategorie(?TypeEquipement $categorie): static
     {
         $this->categorie = $categorie;
+
+        return $this;
+    }
+
+    public function isSousEquipement(): ?bool
+    {
+        return $this->sous_equipement;
+    }
+
+    public function setSousEquipement(?bool $sous_equipement): static
+    {
+        $this->sous_equipement = $sous_equipement;
+
+        return $this;
+    }
+
+    public function getZone(): ?ZoneExploitation
+    {
+        return $this->zone;
+    }
+
+    public function setZone(?ZoneExploitation $zone): static
+    {
+        $this->zone = $zone;
+
+        return $this;
+    }
+
+    public function getTypeEq(): ?TypeEq
+    {
+        return $this->type_eq;
+    }
+
+    public function setTypeEq(?TypeEq $type_eq): static
+    {
+        $this->type_eq = $type_eq;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<Uuid, MouvementEquipement>
+     */
+    public function getMouvementEquipements(): Collection
+    {
+        return $this->mouvementEquipements;
+    }
+
+    public function addMouvementEquipement(MouvementEquipement $mouvementEquipement): static
+    {
+        if (!$this->mouvementEquipements->contains($mouvementEquipement)) {
+            $this->mouvementEquipements->add($mouvementEquipement);
+            $mouvementEquipement->setCodeEquipementType($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMouvementEquipement(MouvementEquipement $mouvementEquipement): static
+    {
+        if ($this->mouvementEquipements->removeElement($mouvementEquipement)) {
+            // set the owning side to null (unless already changed)
+            if ($mouvementEquipement->getCodeEquipementType() === $this) {
+                $mouvementEquipement->setCodeEquipementType(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getQte(): ?float
+    {
+        return $this->qte;
+    }
+
+    public function setQte(?float $qte): static
+    {
+        $this->qte = $qte;
 
         return $this;
     }
