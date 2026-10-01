@@ -5,6 +5,8 @@
 {% block breadcrumb %}
     <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
     <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
     <span class="breadcrumb-item">Etat Equipement</span>
 {% endblock %}
 
@@ -16,12 +18,9 @@
     </a>
 </div>
 
-<!-- Table -->
-<div class="card">
     <div class="card-body">
 
     </div>
-</div>
 
     <!-- Modal Add/Edith Equipement-->
     <div class="modal fade" id="modalAddEtat" tabindex="-1" aria-labelledby="modalAddEtatLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">

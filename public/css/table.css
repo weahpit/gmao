@@ -46,7 +46,7 @@
 
 .dt-search input {
     width: 100%;
-    padding: 11px 16px 11px 42px;
+    padding: 2px 2px 2px 40px;
     border: 1.5px solid var(--cacao-200);
     border-radius: 12px;
     font-size: 14px;
@@ -121,13 +121,13 @@
 }
 
 .dt-wrapper tbody td {
-    padding: 13px 16px;
+    padding: 4px 5px;
     color: var(--cacao-800);
     border-bottom: 1px solid var(--cacao-100);
 }
 
 .dt-wrapper tbody tr { transition: background 0.18s ease; }
-.dt-wrapper tbody tr:nth-child(even) { background: var(--cacao-50); }
+/*.dt-wrapper tbody tr:nth-child(even) { background: var(--cacao-50); }*/
 .dt-wrapper tbody tr:hover { background: var(--cacao-100); }
 
 .dt-wrapper tbody td a { color: var(--cacao-600); font-weight: 600; text-decoration: none; }

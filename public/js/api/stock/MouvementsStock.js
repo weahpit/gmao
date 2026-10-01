@@ -5,7 +5,7 @@ function saveMvt(formData){
         .then(data => {
             showToast(data.msg, {
                 type : data.code,
-                duration: 8000,
+                duration: 500,
                 title: 'Mouvements Stock'
             })
             if (data.code === "success") {

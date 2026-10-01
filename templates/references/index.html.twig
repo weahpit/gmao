@@ -14,7 +14,7 @@
         {%  for menu in menus %}
             <div class="col-md-2 p-2">
                 {% if (menu.classnameMenu) %}
-                    <a href="{{ path(menu.classnameMenu) }}" target="_blank">
+                    <a href="{{ path(menu.classnameMenu) }}">
                         <div class="card bg-light text-center mx-auto" style="cursor: pointer;height: 150px;border-radius: 0;border: lightgrey 1px solid;">
                             <div class="card-title" style="height: 60px;background: #b4c8db;font-size: 13px;border-bottom: 3px solid darkblue;">{{ menu.nomMenu }}</div>
                             <div class="card-body"><img src="{{ asset('icons/SVG/database.svg') }}" class="py-auto" alt="" height="40" style="color: #2563EB;"></div>

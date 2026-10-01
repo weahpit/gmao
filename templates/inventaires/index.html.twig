@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion du stock — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Inventaires</span>
+{% endblock %}
+
+{% block body %}
+    <style>
+        table tbody td {
+            font-size: 11px;
+            border-bottom: lightgrey 1px solid;
+            padding: 2px 2px 2px 10px;
+        }
+        table thead tr {
+            font-size: 13px;
+            border-bottom: grey 2px solid;
+        }
+        .tr-danger {
+            background-color: #f5e0e0;
+            color: #c53030;
+        }
+
+        .tr-warning {
+            background-color: #f2ecc9;
+            color: #110f0f;
+        }
+
+        .tr-success {
+            background-color: #ffffff;
+            color: #110f0f;
+        }
+    </style>
+    <div class="page-header">
+        <h1 class="page-title"><img src="{{ asset('icons/inventory.png') }}" height="32" class="me-2" alt=""> Inventaires</h1>
+        <div class="d-flex">
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="" style="border: 1px solid #d2d0d0;background: radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius: 0;">
+        <div class="card-body" style="border: 1px solid #dedede;">
+            <div class="container pb-3">
+                <div class="d-flex p-1 text-center" style="background: linear-gradient(165deg, #567e64, #567e64);border: 1px solid #023902;color: white;">
+                    <label for="date">Inventaire à la date du </label>
+                    <input type="date" class="input ms-2" id="date_inventaire" style="width: 150px;">
+                    <button type="button" class="btn btn-success ms-2 p-0 fw-light d-flex justify-content-center align-items-center" id="btn-search" style="border: 1px solid lightgrey;border-radius: 0;width: 130px;"><i data-lucide="search" class="search"></i>Afficher</button>
+                </div>
+            </div>
+            <div class="mb-2" id="div_inventaire">
+
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/stock/MouvementsStock.js') }}"></script>
+    <script src="{{ asset('js/api/stock/InventairesStock.js') }}"></script>
+    <script>
+        let formData = new FormData();
+
+        $("#btn-search").on('click', function(){
+            if (!document.getElementById("date_inventaire").value) { showToast("Merci de saisir une date d'inventaire", {title : 'INVENTAIRES', duration: 3000, type:"error"})} else {
+                formData.append('date_inventaire', document.getElementById("date_inventaire").value)
+                getAllDataInventaire(document.getElementById('div_inventaire'), formData)
+            }
+
+        })
+
+    </script>
+{% endblock %}

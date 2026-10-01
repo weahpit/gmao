@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 final class ApiNatureEquipementController extends AbstractController
 {
@@ -76,13 +77,14 @@ final class ApiNatureEquipementController extends AbstractController
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $id_nature_equipement = $request->request->get('id_nature_equipement');
-                $libelle = $request->request->get('libelle_nature_equipement');
+                $id_nature_equipement = $request->request->get('id_nature');
+                $libelle = $request->request->get('nature');
 
                 if (!$libelle) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs obligatoires !'];
                 } else {
-                    $nature_equipement = $this->em->getRepository(NatureEquipement::class)->find($id_nature_equipement);
+                    $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_nature_equipement);
+                    $nature_equipement = $this->em->getRepository(NatureEquipement::class)->find($uuid);
                     $isNew = false;
                     if (!$nature_equipement) {
                         $nature_equipement = new NatureEquipement();

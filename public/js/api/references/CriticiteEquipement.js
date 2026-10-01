@@ -26,6 +26,7 @@ function getAllCriticiteEquipement(ctrl_name, ctrl_type){
                 }
             }
             ctrl_name.innerHTML = contentCtrl
+            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'Criticite.csv' })}
         },
         error : function (response){
             showToast(response.msg, {title: 'Erreur sur Chargement des données {Etat de Criticité}', type: 'error', duration: 4000 })
@@ -42,6 +43,7 @@ function saveCriticite(formData, ctrl_name, ctrl_type){
                 title: 'Criticite Equipement'
             })
             if (data.code === "success") {
+                clearForm("formCriticite", "criticite")
                 getAllCriticiteEquipement(ctrl_name, ctrl_type)
             }
         })

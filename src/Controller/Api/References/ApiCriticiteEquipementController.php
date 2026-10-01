@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 final class ApiCriticiteEquipementController extends AbstractController
 {
@@ -77,12 +78,13 @@ final class ApiCriticiteEquipementController extends AbstractController
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
                 $id_criticite_equipement = $request->request->get('id_criticite_equipement');
-                $libelle = $request->request->get('libelle_criticite_equipement');
+                $libelle = $request->request->get('criticite');
 
                 if (!$libelle) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs obligatoires !'];
                 } else {
-                    $criticite_equipement = $this->em->getRepository(Criticite::class)->find($id_criticite_equipement);
+                    $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_criticite_equipement);
+                    $criticite_equipement = $this->em->getRepository(Criticite::class)->find($uuid);
                     $isNew = false;
                     if (!$criticite_equipement) {
                         $criticite_equipement = new Criticite();

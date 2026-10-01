@@ -1,20 +1,71 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello CriticiteController!{% endblock %}
+{% block title %}Criticites — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Criticite</span>
+{% endblock %}
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-</style>
+    <div class="page-header">
+        <h1 class="page-title">Criticites équipements</h1>
+        <a href="#"  id="btn_add_mrq" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddCriticite">
+            <img src="{{ asset('icons/criticite.png') }}" class="me-2" alt="" height="16"> Nouveau Niveau de Criticité
+        </a>
+    </div>
 
-<div class="example-wrapper">
-    <h1>Hello {{ controller_name }}! ✅</h1>
+    <!-- Table -->
+        <div class="card-body">
 
-    This friendly message is coming from:
-    <ul>
-        <li>Your controller at <code>C:/DocsDev/Projets/CitracGmao/src/Controller/CriticiteController.php</code></li>
-        <li>Your template at <code>C:/DocsDev/Projets/CitracGmao/templates/criticite/index.html.twig</code></li>
-    </ul>
-</div>
+        </div>
+
+    <!-- Modal Add/Edith Equipement-->
+    <div class="modal fade" id="modalAddCriticite" tabindex="-1" aria-labelledby="modalAddCriticiteLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/criticite.png') }}" height="40" alt=""> Enregistrer une criticite</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formCriticite" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="criticite" style="width: 150px;">Nom</label>
+                            <input type="text" class="input" id="criticite" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveCriticite">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
+    <script>
+
+        let idCriticite = "0";
+        getAllCriticiteEquipement(document.querySelector(".card-body"), 1)
+        clearForm("formCriticite", "criticite")
+        ValidateOnKeypress(document.getElementById("criticite"), document.getElementById("saveCriticite"), "formCriticite")
+
+        document.querySelector("#btn_add_mrq").addEventListener("click", function () {
+            clearForm("formCriticite", "criticite")
+        })
+
+        document.querySelector("#saveCriticite").addEventListener("click", function () {
+            let FormDataCriticite = new FormData();
+            FormDataCriticite.append('id_criticite', idCriticite)
+            FormDataCriticite.append('criticite', document.querySelector("#criticite").value)
+            saveCriticite(FormDataCriticite, document.querySelector(".card-body"), 1)
+        })
+    </script>
 {% endblock %}

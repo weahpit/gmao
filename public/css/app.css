@@ -232,6 +232,95 @@ img { max-width: 100%; }
   gap: 12px;
 }
 
+
+/* --- Sidebar Submenus --- */
+.nav-group { display: flex; flex-direction: column; }
+
+/* Le déclencheur reprend exactement le style .nav-item (déjà appliqué via la classe),
+   on ajuste juste le fait que c'est un <button> */
+.nav-item.has-submenu {
+    width: 100%;
+    border: none;
+    background: none;
+    font-family: inherit;
+    text-align: left;
+}
+
+/* Chevron de dépliage */
+.nav-chevron {
+    width: 16px !important;
+    height: 16px !important;
+    margin-left: auto;
+    flex-shrink: 0;
+    color: rgba(255,255,255,.5);
+    transition: transform var(--transition);
+}
+/* Quand il y a un badge, le chevron se place après lui */
+.nav-item.has-submenu .nav-badge { margin-left: auto; }
+.nav-item.has-submenu .nav-badge + .nav-chevron { margin-left: 8px; }
+
+/* Rotation du chevron quand le groupe est ouvert */
+.nav-group.open .nav-chevron { transform: rotate(180deg); color: var(--gold-600); }
+
+/* Conteneur du sous-menu : fermé = hauteur 0 (animation douce) */
+.nav-submenu {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height .28s ease, opacity .2s ease;
+    margin-left: 14px;                 /* léger retrait */
+    padding-left: 12px;
+    border-left: 1px solid rgba(255,255,255,.1);
+}
+.nav-group.open .nav-submenu {
+    max-height: 500px;                 /* valeur haute suffisante */
+    opacity: 1;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+/* Sous-éléments */
+.nav-subitem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    color: rgba(255,255,255,.65);
+    font-size: .82rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all var(--transition);
+    position: relative;
+}
+.nav-subitem::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.3);
+    flex-shrink: 0;
+    transition: background var(--transition);
+}
+.nav-subitem:hover {
+    color: var(--white);
+    background: rgba(255,255,255,.06);
+}
+.nav-subitem:hover::before { background: var(--gold-400); }
+
+.nav-subitem.active {
+    color: var(--white);
+    background: var(--green-700);
+}
+.nav-subitem.active::before { background: var(--gold-600); }
+
+/* Si un sous-élément est actif, on peut mettre le parent en surbrillance légère */
+.nav-item.has-submenu.has-active {
+    color: var(--white);
+}
+
+
 .user-avatar {
   width: 34px;
   height: 34px;
@@ -969,3 +1058,79 @@ select {
     box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     font-family: "Segoe UI", sans-serif;
 }
+/* --- Sidebar Submenus --- */
+.nav-group { display: flex; flex-direction: column; }
+
+.nav-item.has-submenu {
+    width: 100%;
+    border: none;
+    background: none;
+    font-family: inherit;
+    text-align: left;
+}
+
+.nav-chevron {
+    width: 16px !important;
+    height: 16px !important;
+    margin-left: auto;
+    flex-shrink: 0;
+    color: rgba(255,255,255,.5);
+    transition: transform var(--transition);
+}
+.nav-item.has-submenu .nav-badge { margin-left: auto; }
+.nav-item.has-submenu .nav-badge + .nav-chevron { margin-left: 8px; }
+
+.nav-group.open .nav-chevron { transform: rotate(180deg); color: var(--gold-600); }
+
+.nav-submenu {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height .28s ease, opacity .2s ease;
+    margin-left: 14px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(255,255,255,.1);
+}
+.nav-group.open .nav-submenu {
+    max-height: 500px;
+    opacity: 1;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+.nav-subitem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    color: rgba(255,255,255,.65);
+    font-size: .82rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all var(--transition);
+    position: relative;
+}
+.nav-subitem::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.3);
+    flex-shrink: 0;
+    transition: background var(--transition);
+}
+.nav-subitem:hover {
+    color: var(--white);
+    background: rgba(255,255,255,.06);
+}
+.nav-subitem:hover::before { background: var(--gold-400); }
+
+.nav-subitem.active {
+    color: var(--white);
+    background: var(--green-700);
+}
+.nav-subitem.active::before { background: var(--gold-600); }
+
+.nav-item.has-submenu.has-active { color: var(--white); }

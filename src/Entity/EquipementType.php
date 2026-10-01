@@ -53,6 +53,9 @@ class EquipementType
     #[ORM\Column(nullable: true)]
     private ?float $qte = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $seuil = null;
+
     public function __construct()
     {
         $this->mouvementEquipements = new ArrayCollection();
@@ -210,6 +213,18 @@ class EquipementType
     public function setQte(?float $qte): static
     {
         $this->qte = $qte;
+
+        return $this;
+    }
+
+    public function getSeuil(): ?int
+    {
+        return $this->seuil;
+    }
+
+    public function setSeuil(?int $seuil): static
+    {
+        $this->seuil = $seuil;
 
         return $this;
     }

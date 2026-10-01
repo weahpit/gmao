@@ -63,6 +63,7 @@ final class ApiMouvementsStockController extends AbstractController
                                     $mvt->setTypeMvt($type_mvt);
                                     $mvt->setCreatedAt(new \DateTimeImmutable());
                                     $mvt->setValue($nb_eq);
+                                    $mvt->setCodeEquipementType($eq);
 
                                     $this->em->persist($mvt);
 
@@ -82,6 +83,7 @@ final class ApiMouvementsStockController extends AbstractController
                                         $mvt->setTypeMvt($type_mvt);
                                         $mvt->setCreatedAt(new \DateTimeImmutable());
                                         $mvt->setValue($nb_eq);
+                                        $mvt->setCodeEquipementType($eq);
 
                                         $this->em->persist($mvt);
                                         $this->em->flush();
@@ -144,6 +146,7 @@ final class ApiMouvementsStockController extends AbstractController
                                     $mvt->setTypeMvt($type_mvt);
                                     $mvt->setCreatedAt(new \DateTimeImmutable());
                                     $mvt->setValue(1);
+                                    $mvt->setCodeEquipementType($eq);
 
                                     $this->em->persist($mvt);
                                     $this->em->flush();
@@ -164,6 +167,7 @@ final class ApiMouvementsStockController extends AbstractController
                                         $mvt->setTypeMvt($type_mvt);
                                         $mvt->setCreatedAt(new \DateTimeImmutable());
                                         $mvt->setValue(1);
+                                        $mvt->setCodeEquipementType($eq);
 
                                         $this->em->persist($mvt);
                                         $this->em->flush();

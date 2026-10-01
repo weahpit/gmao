@@ -5,6 +5,8 @@
 {% block breadcrumb %}
     <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
     <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
     <span class="breadcrumb-item">Marque</span>
 {% endblock %}
 
@@ -64,11 +66,10 @@
        })
 
        document.querySelector("#saveMarque").addEventListener("click", function () {
-           let agree = "0";
-           let FormDataFournisseur = new FormData();
-           FormDataFournisseur.append('id_marque', idMarque)
-           FormDataFournisseur.append('marque', document.querySelector("#marque").value)
-           saveMarque(FormDataFournisseur, document.querySelector(".card-body"), 1)
+           let FormDataMarque = new FormData();
+           FormDataMarque.append('id_marque', idMarque)
+           FormDataMarque.append('marque', document.querySelector("#marque").value)
+           saveMarque(FormDataMarque, document.querySelector(".card-body"), 1)
        })
     </script>
 {% endblock %}

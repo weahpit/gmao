@@ -171,10 +171,10 @@ function enhanceTable(table, options = {}) {
             return /[",\n;]/.test(v) ? `"${v}"` : v;
         };
         const lines = [];
-        if (headers.length) lines.push(headers.map(escape).join(','));
+        if (headers.length) lines.push(headers.map(escape).join(';'));
         filtered.forEach(r => {
             const cols = Array.from(r.cells).map(td => escape(td.textContent.trim()));
-            lines.push(cols.join(','));
+            lines.push(cols.join(';'));
         });
         const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
