@@ -36,6 +36,7 @@ function getAllFournisseurs(ctrl_name, ctrl_type){
                 }
             }
             ctrl_name.innerHTML = contentCtrl
+            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'Fournisseurs.csv' })}
         },
         error : function (response){
             showToast(response.msg, {title: 'Fournisseur', type: 'error', duration: 3000})

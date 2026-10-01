@@ -26,6 +26,7 @@ function getAllNatureEquipement(ctrl_name, ctrl_type){
                 }
             }
             ctrl_name.innerHTML = contentCtrl
+            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'NaturesEquipements.csv' })}
         },
         error : function (response){
             showToast(response.msg, {title: 'Erreur sur Chargement des données {Nature_Equipement}', type: 'error', duration: 4000 })

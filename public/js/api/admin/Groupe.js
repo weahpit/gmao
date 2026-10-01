@@ -15,7 +15,7 @@ function getAllGroupes(ctrl_name, ctrl_type){
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
-                    contentCtrl +='<td><a href="#">' + reponse.data[i].groupe + '</a></td>'
+                    contentCtrl +='<td><a href="#"><img class="me-2" src="icons/group-users.png" height="16" alt="">' + reponse.data[i].groupe + '</a></td>'
                     contentCtrl +='<tr>'
                 }
                 contentCtrl +='</tbody></table>';
@@ -26,6 +26,7 @@ function getAllGroupes(ctrl_name, ctrl_type){
                 }
             }
             ctrl_name.innerHTML = contentCtrl
+            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'groupes.csv' })}
         },
         error : function (response){
             showToast(response.msg, {title: 'Erreur sur Chargement des Groupes', type: 'error', duration: 4000 })

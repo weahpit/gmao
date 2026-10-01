@@ -131,8 +131,7 @@
         });
 
         document.getElementById("type_mvt").addEventListener('change', ()=>{
-            document.getElementById('equipement').value = ""
-            id_equipement = "";
+            reinitialise_page()
         })
 
         $("body").on("click",".eq_li", function (){
@@ -172,7 +171,7 @@
                                 <div class="mt-2 d-flex" style="width: 400px;">
                                    <input type="number" class="input fw-bold text-danger" id="nb_eq" style="width: 200px;" placeholder="Nombre de pièces">
                                 </div>
-                                <button class="btn btn-success mb-2 mt-2" id="saveMvt" style="border-radius: 0;width: 200px;">Ajouter au stock</button>
+                                <button class="btn mb-2 mt-2  justify-content-center align-items-center" id="saveMvt" style="border-radius: 0;width: 200px;">Ajouter au stock</button>
                              </div>
                             <div class="col-md-4" id="div_situation">
 
@@ -210,7 +209,7 @@
                                         <label for="marque" class="fw-bold span" style="width: 200px;">Etat</label>
                                         <select class="input fw-bold" id="etat"></select>
                                     </div>
-                                    <button class="btn btn-success mb-2" id="saveMvt"  style="border-radius: 0;">Ajouter au stock</button>
+                                    <button class="btn mb-2  d-flex justify-content-center align-items-center" id="saveMvt"  style="border-radius: 0;">Ajouter au stock</button>
                                 </div>
                         <div class="col-md-4" id="div_situation">
 
@@ -236,6 +235,19 @@
                          <h1 class="fw-bold text-danger text-center mt-2 mb-3">${eq.qte}</h1>
                         `
                     }
+                    function getStateTypeMvt(){
+                        document.getElementById("saveMvt").style.color = "white"
+
+                        if (document.getElementById("type_mvt").value === "1"){
+                            document.getElementById("saveMvt").innerText = "Ajouter au Stock"
+                            $("#saveMvt").addClass('btn-success')
+                        } else {
+                            document.getElementById("saveMvt").innerText = "Retirer du Stock"
+                            $("#saveMvt").addClass("bg-danger")
+                        }
+                    }
+
+                    getStateTypeMvt();
                 })
                 .catch(err => {
                     console.error("Erreur :", err);
@@ -263,7 +275,6 @@
         })
 
         function reinitialise_page(){
-            document.getElementById("type_mvt").value="0";
             document.getElementById("equipement").value="";
             document.getElementById("div_mvt").innerHTML= `
             <div class="mx-auto text-center text-primary mt-4">
@@ -276,5 +287,6 @@
             id_equipement="";
            nature="";
         }
+
     </script>
 {% endblock %}

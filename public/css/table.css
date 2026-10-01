@@ -1,0 +1,213 @@
+/* ============================================================
+   Thème « Cacao Light » — table élégante
+   Palette : crème, beige, cacao, chocolat
+   ============================================================ */
+:root {
+    --cacao-50:  #faf6f1;   /* crème très clair (fond général) */
+    --cacao-100: #f3ebe2;   /* beige clair (en-têtes, hover léger) */
+    --cacao-200: #e7d8c9;   /* bordures douces */
+    --cacao-300: #857567;   /* bordures accentuées */
+    --cacao-400: #b9906b;   /* cacao moyen */
+    --cacao-500: #a9754f;   /* cacao */
+    --cacao-600: #8a5a3b;   /* chocolat */
+    --cacao-700: #ffffff;   /* chocolat foncé (texte) */
+    --cacao-800: #4a2d1a;   /* texte fort */
+    --cacao-muted: #a68c76; /* texte secondaire */
+}
+
+/* ===== Conteneur ===== */
+.dt-wrapper {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: linear-gradient(180deg, #fffdfb 0%, var(--cacao-50) 100%);
+    border-radius: 18px;
+    padding: 22px 24px;
+    border: 1px solid var(--cacao-200);
+    box-shadow:
+        0 12px 32px rgba(106, 66, 40, 0.10),
+        0 2px 6px rgba(106, 66, 40, 0.06);
+}
+
+/* ===== Barre d'outils ===== */
+.dt-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.dt-search {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+    max-width: 360px;
+}
+
+.dt-search input {
+    width: 100%;
+    padding: 11px 16px 11px 42px;
+    border: 1.5px solid var(--cacao-200);
+    border-radius: 12px;
+    font-size: 14px;
+    color: var(--cacao-800);
+    background: #fffdfb;
+    transition: all 0.25s ease;
+    outline: none;
+}
+
+.dt-search input::placeholder { color: var(--cacao-muted); }
+
+.dt-search input:focus {
+    border-color: var(--cacao-500);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(169, 117, 79, 0.15);
+}
+
+.dt-search::before {
+    content: "⌕";
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: var(--cacao-400);
+    pointer-events: none;
+}
+
+.dt-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--cacao-500), var(--cacao-600));
+    color: #fff7ef;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+    box-shadow: 0 4px 14px rgba(138, 90, 59, 0.35);
+}
+
+.dt-export:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(138, 90, 59, 0.45);
+}
+.dt-export:active { transform: translateY(0); }
+
+/* ===== Table ===== */
+.dt-wrapper table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+    background: #fffdfb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.dt-wrapper thead th {
+    text-align: left;
+    padding: 14px 16px;
+    background: linear-gradient(180deg, var(--cacao-300), #534d47);
+    color: white;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 11.5px;
+    letter-spacing: 0.6px;
+    border-bottom: 2px solid var(--cacao-300);
+}
+
+.dt-wrapper tbody td {
+    padding: 13px 16px;
+    color: var(--cacao-800);
+    border-bottom: 1px solid var(--cacao-100);
+}
+
+.dt-wrapper tbody tr { transition: background 0.18s ease; }
+.dt-wrapper tbody tr:nth-child(even) { background: var(--cacao-50); }
+.dt-wrapper tbody tr:hover { background: var(--cacao-100); }
+
+.dt-wrapper tbody td a { color: var(--cacao-600); font-weight: 600; text-decoration: none; }
+.dt-wrapper tbody td a:hover { color: var(--cacao-700); text-decoration: underline; }
+
+/* ===== En-têtes triables ===== */
+.dt-wrapper thead th.dt-sortable {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 28px;
+    position: relative;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.dt-wrapper thead th.dt-sortable:hover {
+    color: var(--cacao-600);
+    background: #e6d6c6;
+}
+
+.dt-wrapper thead th.dt-sortable::after {
+    content: "⇅";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--cacao-400);
+    transition: color 0.2s ease;
+}
+
+.dt-wrapper thead th.dt-sort-asc::after  { content: "↑"; color: var(--cacao-600); }
+.dt-wrapper thead th.dt-sort-desc::after { content: "↓"; color: var(--cacao-600); }
+
+/* ===== Pied : compteur + pagination ===== */
+.dt-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 18px;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.dt-count { font-size: 13px; color: var(--cacao-muted); }
+
+.dt-pagination { display: flex; gap: 6px; }
+
+.dt-pagination button {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1.5px solid var(--cacao-200);
+    border-radius: 10px;
+    background: #fffdfb;
+    color: var(--cacao-700);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dt-pagination button:hover:not(:disabled) {
+    border-color: var(--cacao-500);
+    color: var(--cacao-600);
+    background: var(--cacao-50);
+}
+
+.dt-pagination button.active {
+    background: linear-gradient(135deg, var(--cacao-500), var(--cacao-600));
+    border-color: transparent;
+    color: #fff7ef;
+    font-weight: 700;
+    box-shadow: 0 3px 10px rgba(138, 90, 59, 0.30);
+}
+
+.dt-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ===== Message vide ===== */
+.dt-empty {
+    text-align: center;
+    padding: 28px;
+    color: var(--cacao-muted);
+    font-size: 14px;
+}

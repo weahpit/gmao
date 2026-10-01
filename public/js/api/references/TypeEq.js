@@ -26,12 +26,14 @@ function getAllTypeEq(ctrl_name, ctrl_type){
                 }
             }
             ctrl_name.innerHTML = contentCtrl
+            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'TypesEquipements.csv' })}
         },
         error : function (response){
             showToast(response.msg, {title: 'Erreur sur Chargement des données {Type_Equipement}', type: 'error', duration: 4000 })
         }
     })
 }
+
 function saveTypeEq(formData, ctrl_name, ctrl_type){
     fetch( URL_APP + "api/saveTypeEq", { method: "POST", body: formData })
         .then(res => res.json())
