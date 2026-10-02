@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Directions — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Directions</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title"><img class="me-2" src="{{ asset('icons/direction.png') }}" alt=""> Directions</h1>
+        <a href="#"  id="btn_add_direction" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddDirection">
+            <i class="bi bi-plus text-white"></i> Nouvelle Direction
+        </a>
+    </div>
+
+    <!-- Table -->
+        <div class="card-body">
+
+        </div>
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddDirection" tabindex="-1" aria-labelledby="modalAddDirectionLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/direction.png') }}" height="40" alt=""> Enregistrer une direction</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formDirection" >
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="direction" style="width: 250px;">Nom de la Direction</label>
+                            <input type="text" class="input" id="direction" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveDirection">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Direction.js') }}"></script>
+    <script>
+
+        let idDirection = 0;
+        getAllDirections(document.querySelector(".card-body"), 1)
+        clearForm("formDirection", "direction")
+
+        ValidateOnKeypress(document.getElementById("direction"), document.getElementById("saveDirection"), "formDirection")
+
+        document.querySelector("#btn_add_direction").addEventListener("click", function () {
+            clearForm("formDirection", "direction")
+        })
+
+        document.querySelector("#saveDirection").addEventListener("click", function () {
+            let FormDataDirection= new FormData();
+            FormDataDirection.append('id_direction', idDirection)
+            FormDataDirection.append('direction', document.querySelector("#direction").value)
+            saveDirection(FormDataDirection, document.querySelector(".card-body"), 1)
+            setTimeout(()=>{
+                clearForm("formDirection", "direction") ;
+            }, 500)
+        })
+    </script>
+{% endblock %}

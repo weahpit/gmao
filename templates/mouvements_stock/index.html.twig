@@ -39,7 +39,7 @@
             </div>
         </div>
     </div>
-    <!-- Modal Add/Edith Equipement-->
+    <!-- Modal Add/Edit Equipement-->
     <div class="modal fade" id="modalAddEq" tabindex="-1" aria-labelledby="modalAddEqLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -74,10 +74,12 @@
     <script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
     <script src="{{ asset('js/api/stock/MouvementsStock.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Service.js') }}"></script>
     <script>
 
         let id_equipement = ""
         let nature = ""
+        let typeMvt = document.getElementById('type_mvt')
         let photo_eq_url = "{{ asset('data/equipements/') }}"
         document.getElementById('equipement').value = ""
         document.getElementById('type_mvt').value = "0"
@@ -162,22 +164,30 @@
                             </div>
                         </div>
                     `
-                    if (eq.nature === "MOUVEMENTE [QUANTITE]"){
-
+                    if (eq.nature === "QUANTITE"){
                         html +=`<hr>
                         <small class="fw-bold"><u>Mouvement le stock</u></small>
                         <div class="row">
                             <div class="col-md-8" >
                                 <div class="mt-2 d-flex" style="width: 400px;">
-                                   <input type="number" class="input fw-bold text-danger" id="nb_eq" style="width: 200px;" placeholder="Nombre de pièces">
-                                </div>
-                                <button class="btn mb-2 mt-2  justify-content-center align-items-center" id="saveMvt" style="border-radius: 0;width: 200px;">Ajouter au stock</button>
+                                   <input type="number" class=" ms-0 input fw-bold text-danger" id="nb_eq" style="width: 200px;" placeholder="Nombre de pièces">
+                                </div>`
+                        if (typeMvt.value === "2"){
+                            html +=`
+                                <div class="mt-2 d-flex" style="width: 400px;">
+                                   <select class="fw-bold" id="select_services" style="width: 200px;background: #e5f7f0;" ></select>
+                                </div>`
+                        }
+                        html += `
+                        <button class="btn mb-2 mt-2  justify-content-center align-items-center" id="saveMvt" style="border-radius: 0;width: 200px;">Ajouter au stock</button>
                              </div>
                             <div class="col-md-4" id="div_situation">
 
                              </div>
-                        </div>`
+                        </div>
+                        `
                         document.getElementById("div_mvt").innerHTML = html;
+
                         document.getElementById("nb_eq").focus()
                         ValidateOnKeypress(document.getElementById("nb_eq"), document.getElementById("saveMvt"), "")
                     } else {
@@ -208,7 +218,16 @@
                                     <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
                                         <label for="marque" class="fw-bold span" style="width: 200px;">Etat</label>
                                         <select class="input fw-bold" id="etat"></select>
-                                    </div>
+                                    </div>`
+
+                        if (typeMvt.value === "2"){
+                            html +=`
+                                <div class="mt-2 d-flex" style="width: 400px;">
+                                   <select class="fw-bold" id="select_services" style="width: 200px;background: #e5f7f0;" ></select>
+                                </div>`
+                        }
+
+                        html +=`
                                     <button class="btn mb-2  d-flex justify-content-center align-items-center" id="saveMvt"  style="border-radius: 0;">Ajouter au stock</button>
                                 </div>
                         <div class="col-md-4" id="div_situation">
@@ -216,14 +235,22 @@
                          </div>
                     </div>`
                         document.getElementById("div_mvt").innerHTML = html;
+
                         getAllFournisseurs(document.getElementById("fournisseur"), 2)
                         getAllMarques(document.getElementById("marque"), 2)
                         getAllEtatEquipement(document.getElementById("etat"), 2)
+
+
                         setTimeout(()=>{
                             document.getElementById("serial_number").focus()
                         }, 500)
                         ValidateOnKeypress(document.getElementById("serial_number"), document.getElementById("saveMvt"), "")
                     }
+
+                    if (typeMvt.value === "2"){
+                        getAllServices(document.getElementById("select_services"), 2)
+                    }
+
                     if (eq.qte > 0){
                         document.getElementById("div_situation").innerHTML  = `
                         <h4 class="stock-success-gradient w-100 p-2 text-center">Disponible En Stock</h4>
@@ -262,7 +289,7 @@
             formMvt.append('nature', nature)
             formMvt.append('type_mvt', document.getElementById("type_mvt").value)
 
-            if (nature === "MOUVEMENTE [QUANTITE]"){
+            if (nature === "QUANTITE"){
                 formMvt.append('nb_eq', document.getElementById("nb_eq").value)
             } else {
                 formMvt.append('fournisseur', document.getElementById("fournisseur").value)
@@ -270,6 +297,11 @@
                 formMvt.append('modele', document.getElementById("modele").value)
                 formMvt.append('numero_serie', document.getElementById("serial_number").value)
                 formMvt.append('date_entree', document.getElementById("date_entree").value)
+            }
+            if (typeMvt.value === "2"){
+                formMvt.append('services', document.getElementById("select_services").value)
+            } else {
+                formMvt.append('services', document.getElementById("0").value)
             }
             saveMvt(formMvt);
         })

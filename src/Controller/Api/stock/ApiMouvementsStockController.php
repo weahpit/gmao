@@ -8,6 +8,7 @@ use App\Entity\Fournisseur;
 use App\Entity\Marque;
 use App\Entity\MouvementEquipement;
 use App\Entity\NatureEquipement;
+use App\Entity\Services;
 use App\Services\Functions;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -38,6 +39,7 @@ final class ApiMouvementsStockController extends AbstractController
                 $etat = $request->request->get('etat');
                 $numero_serie = $request->request->get('numero_serie');
                 $date_entree = $request->request->get('date_entree');
+                $service = $request->request->get('services');
 
                $Nature = $this->em->getRepository(NatureEquipement::class)->findOneBy(['libelle'=>$nature]);
 
@@ -45,7 +47,7 @@ final class ApiMouvementsStockController extends AbstractController
                     $reponse = ['code' => 'warning', 'msg' => 'Aucun équipement ou Type Mouvement n\'a été sélectionné !'];
                     return new JsonResponse($reponse);
                 } else {
-                    if ($nature == "MOUVEMENTE [QUANTITE]"){
+                    if ($nature == "QUANTITE"){
                         if (!$nb_eq){
                             $reponse = ['code' => 'error', 'msg' => 'Merci de renseigner le nombre de pièces !'];
                             return new JsonResponse($reponse);
@@ -84,6 +86,14 @@ final class ApiMouvementsStockController extends AbstractController
                                         $mvt->setCreatedAt(new \DateTimeImmutable());
                                         $mvt->setValue($nb_eq);
                                         $mvt->setCodeEquipementType($eq);
+
+                                        if ($service != "0"){
+                                            $Serv = $this->em->getRepository(Services::class)->find(Uuid::fromString($service));
+                                            if ($Serv) { $mvt->setCodeService($Serv);}
+                                        } else {
+                                            $reponse = ['code' => 'error', 'msg' => 'Le service est obligatoire pour cette opération ...'];
+                                            return new JsonResponse($reponse);
+                                        }
 
                                         $this->em->persist($mvt);
                                         $this->em->flush();
@@ -168,6 +178,14 @@ final class ApiMouvementsStockController extends AbstractController
                                         $mvt->setCreatedAt(new \DateTimeImmutable());
                                         $mvt->setValue(1);
                                         $mvt->setCodeEquipementType($eq);
+
+                                        if ($service != "0"){
+                                            $Serv = $this->em->getRepository(Services::class)->find(Uuid::fromString($service));
+                                            if ($Serv) { $mvt->setCodeService($Serv);}
+                                        } else {
+                                            $reponse = ['code' => 'error', 'msg' => 'Le service est obligatoire pour cette opération ...'];
+                                            return new JsonResponse($reponse);
+                                        }
 
                                         $this->em->persist($mvt);
                                         $this->em->flush();

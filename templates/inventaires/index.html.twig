@@ -12,26 +12,54 @@
     <style>
         table tbody td {
             font-size: 11px;
-            border-bottom: lightgrey 1px solid;
+            border-bottom: #7e7d7d 1px solid;
             padding: 2px 2px 2px 10px;
         }
         table thead tr {
             font-size: 13px;
-            border-bottom: grey 2px solid;
+            border-bottom: grey 1px solid;
+            position: sticky;
+            top: 0;
         }
         .tr-danger {
-            background-color: #f5e0e0;
+            background: linear-gradient(45deg, #f6dfdf, #f9c7c7, #fd7171);
             color: #c53030;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .tr-warning {
-            background-color: #f2ecc9;
+            background: linear-gradient(45deg, #f2f1ea, #f8eca8, #fce66c);
             color: #110f0f;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .tr-success {
             background-color: #ffffff;
             color: #110f0f;
+        }
+
+        .selected {
+            background-color: rgb(83, 68, 43);
+            color: #FFFFFF;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+        tbody tr:nth-child(odd) {
+            background-color: #f9f9f9; /* lignes impaires */
+        }
+        tbody tr:nth-child(even) {
+            background-color: #e9ecef; /* lignes paires */
         }
     </style>
     <div class="page-header">
@@ -50,8 +78,42 @@
                     <button type="button" class="btn btn-success ms-2 p-0 fw-light d-flex justify-content-center align-items-center" id="btn-search" style="border: 1px solid lightgrey;border-radius: 0;width: 130px;"><i data-lucide="search" class="search"></i>Afficher</button>
                 </div>
             </div>
-            <div class="mb-2" id="div_inventaire">
+            <div class="mb-2" id="div_inventaire" >
 
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Show Mouvments Details-->
+    <div class="modal fade" id="modalShowDetail" tabindex="-1" aria-labelledby="modalAddFamilleLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl modal-center">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-100); line-height: 1.6; -webkit-font-smoothing: antialiased;color:#1c1b1b;">
+                    <div class="modal-title" id="lblDetails"></div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgb(210,209,209)">
+                    <div class="m-2 p-2" style="background: rgba(255,255,255,0.45)">
+                        <div class="d-flex" >
+                            <select class="mt-2 mb-2" name="critere" id="critere" style="width: 300px;">
+                                <option value="0">-- Tous les détails --</option>
+                                <option value="1">  Ce mois </option>
+                                <option value="2">  Ce trimestre  </option>
+                                <option value="3">  Cette année  </option>
+                            </select>
+                            <a class="ms-2 btn btn-outline-success" href="#" id="printDetails">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer me-2">
+                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                                    <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/>
+                                    <rect x="6" y="14" width="12" height="8" rx="1"/>
+                                </svg> Imprimer</a>
+                        </div>
+                        <div class="mt-2 mb-2 div_details" style="border: 1px solid lightgrey;height: 300px;background: #f8f7f7;overflow-y: scroll;">
+
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
     </div>
@@ -62,15 +124,47 @@
     <script src="{{ asset('js/api/stock/MouvementsStock.js') }}"></script>
     <script src="{{ asset('js/api/stock/InventairesStock.js') }}"></script>
     <script>
-        let formData = new FormData();
+
+        let idEquipement = "0";
 
         $("#btn-search").on('click', function(){
             if (!document.getElementById("date_inventaire").value) { showToast("Merci de saisir une date d'inventaire", {title : 'INVENTAIRES', duration: 3000, type:"error"})} else {
+                let formData = new FormData();
                 formData.append('date_inventaire', document.getElementById("date_inventaire").value)
                 getAllDataInventaire(document.getElementById('div_inventaire'), formData)
             }
-
         })
 
+        // Sélectionner toutes les lignes du tableau
+        document.querySelectorAll("tr").forEach(tr => {
+            tr.addEventListener("click", function() {
+                // Retirer la classe des autres lignes
+                document.querySelectorAll("tr").forEach(r => r.classList.remove("selected"));
+                // Ajouter la classe à la ligne cliquée
+                this.classList.remove("tr-warning");
+                this.classList.remove("tr-success");
+                this.classList.remove("tr-danger");
+                this.classList.add(" selected");
+            });
+        });
+
+        $('body').on('dblclick', '.tr', function(){
+            $("#modalShowDetail").modal('show')
+            document.getElementById("lblDetails").innerHTML = '<h6 class="fw-bold">Chargement...</h6>'
+            idEquipement = this.id;
+            let formData = new FormData();
+            formData.append('id_equipement', idEquipement);
+            formData.append('critere', document.getElementById("critere").value);
+            formData.append('date_inventaire', document.getElementById("date_inventaire").value);
+
+            getEquipementDetails(document.querySelector(".div_details"), formData)
+        })
+
+        $('#printDetails').on('click', function(){
+            printDetails(
+                document.getElementById("date_inventaire").value,
+                document.getElementById("critere").value,idEquipement
+            )
+        })
     </script>
 {% endblock %}

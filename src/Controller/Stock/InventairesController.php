@@ -3,12 +3,15 @@
 namespace App\Controller\Stock;
 
 use App\Entity\EquipementType;
+use App\Entity\MouvementEquipement;
+use App\Services\pdfService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 final class InventairesController extends AbstractController
 {
@@ -73,5 +76,131 @@ final class InventairesController extends AbstractController
             );
         }
         return new JsonResponse($reponse);
+    }
+
+    #[Route('api/getEquipementDetails', name: 'get_equipement_details')]
+    public function get_equipement_details(Request $request, EntityManagerInterface $entityManager): Response
+    {
+        if (!$this->getUser()){return  $this->redirectToRoute("app_login");}
+        try {
+            $reponse = array();
+            $data = array();
+
+            $date_inventaire = $request->request->get('date_inventaire');
+            $critere = $request->request->get('critere');
+            $id_equipement = $request->request->get('id_equipement');
+
+            $dateMvt = new  \DateTime($date_inventaire);
+
+            // Recherche de tous les équipements Types
+            $eq = $entityManager->getRepository(EquipementType::class)->find(Uuid::fromString($id_equipement));
+            if ($eq){
+
+                // Recherche les movements et compte suivant la nature de l'équipement ['Quantite' ou 'Serial']
+                $mvts = $entityManager->getRepository(MouvementEquipement::class)->findBy(['code_equipement_type'=>$eq], ['created_at'=>'DESC']);
+                // Parcours les moyuvements
+                foreach ($mvts as $mvt){
+                    $entree = "";
+                    $sorties = "";
+                    if (strtotime($mvt->getCreatedAt()->format('Y-m-d')) <= strtotime($dateMvt->format('Y-m-d'))){
+                        if ($mvt->getTypeMvt() == "1"){ // Entrée
+                            $entree = $mvt->getValue();
+                        } else {
+                            $sorties = $mvt->getValue();
+                        }
+                        $data[] = array(
+                            'id'=>$mvt->getId(),
+                            'service'=>$mvt->getCodeService() ? $mvt->getCodeService() ->getLibelle() : "",
+                            'entree'=>$entree,
+                            'sortie'=>$sorties,
+                            'date_mvt'=>$mvt->getCreatedAt() ? $mvt->getCreatedAt()->format("d/m/Y") : ""
+                        );
+                    }
+                }
+
+            }
+            $reponse = array(
+                'code'=>'success',
+                'msg'=>'Détails Mouvements extrait avec succès !',
+                'equipement'=>$eq->getNomEquipement(),
+                'photo'=>$eq->getPhoto() ? $eq->getPhoto() : "",
+                'qte'=>$eq->getQte() ?$eq->getQte() : 0 ,
+                'data'=>$data
+            );
+        } catch (\Throwable $throwable){
+            $reponse = array(
+                'code'=>'error',
+                'msg'=>"Une erreur s'est produite!  => ". $throwable->getMessage()
+            );
+        }
+        return new JsonResponse($reponse);
+    }
+    #[Route('api/getEquipementDetails/print', name: 'get_equipement_details_print')]
+    public function get_equipement_details_print(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        pdfService $servicePdf
+    ): Response {
+        if (!$this->getUser()) {
+            return $this->redirectToRoute("app_login");
+        }
+
+        try {
+            $data = [];
+
+            $date_inventaire = $request->request->get('date_inventaire');
+            $id_equipement   = $request->request->get('id_equipement');
+
+            $dateMvt = new \DateTime($date_inventaire);
+
+            $eq = $entityManager->getRepository(EquipementType::class)
+                ->find(Uuid::fromString($id_equipement));
+
+            // Si l'équipement n'existe pas : on retourne quand même une réponse.
+            if (!$eq) {
+                return new Response('Équipement introuvable.', 404);
+            }
+
+            $mvts = $entityManager->getRepository(MouvementEquipement::class)
+                ->findBy(['code_equipement_type' => $eq], ['created_at' => 'DESC']);
+
+            foreach ($mvts as $mvt) {
+                if (strtotime($mvt->getCreatedAt()->format('Y-m-d')) <= strtotime($dateMvt->format('Y-m-d'))) {
+                    $entree  = ($mvt->getTypeMvt() == "1") ? $mvt->getValue() : "";
+                    $sorties = ($mvt->getTypeMvt() != "1") ? $mvt->getValue() : "";
+
+                    $data[] = [
+                        'date_mvt' => $mvt->getCreatedAt() ? $mvt->getCreatedAt()->format("d/m/Y") : "",
+                        'entree'   => $entree,
+                        'sortie'   => $sorties,
+                        'service'  => $mvt->getCodeService() ? $mvt->getCodeService()->getLibelle() : "",
+                    ];
+                }
+            }
+
+            $entetes  = ['Date', 'Entrée', 'Sortie', 'Service'];
+            $largeurs = [45, 45, 45, 55]; // total ≈ 190 mm (portrait A4)
+
+            $contenu = $servicePdf->genererTableau(
+                'Détails Mouvement',
+                $entetes,
+                $largeurs,
+                $data,
+                'P',
+                $eq->getNomEquipement()
+            );
+
+            return new Response($contenu, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="mouvements.pdf"',
+            ]);
+
+        } catch (\Throwable $throwable) {
+            // On retourne une CHAÎNE, pas un tableau.
+            return new Response(
+                "Une erreur s'est produite ! => " . $throwable->getMessage(),
+                500
+            );
+        }
     }
 }

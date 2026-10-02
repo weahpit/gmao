@@ -30,6 +30,9 @@ class MouvementEquipement
     #[ORM\Column(nullable: true)]
     private ?float $qte = null;
 
+    #[ORM\ManyToOne(inversedBy: 'mouvementEquipements')]
+    private ?Services $code_service = null;
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -91,6 +94,18 @@ class MouvementEquipement
     public function setQte(?float $qte): static
     {
         $this->qte = $qte;
+
+        return $this;
+    }
+
+    public function getCodeService(): ?Services
+    {
+        return $this->code_service;
+    }
+
+    public function setCodeService(?Services $code_service): static
+    {
+        $this->code_service = $code_service;
 
         return $this;
     }

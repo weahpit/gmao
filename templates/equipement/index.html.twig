@@ -132,7 +132,7 @@
             let valeur = select.options[select.selectedIndex].text;
             document.querySelector(".stock").style.display = "none"
             document.querySelector(".serial").style.display = "none"
-            if (valeur === "MOUVEMENTE [QUANTITE]"){
+            if (valeur === "QUANTITE"){
                 document.querySelector(".stock").style.display = "inherit"
                 document.getElementById("stock_initial").focus()
             } else {
