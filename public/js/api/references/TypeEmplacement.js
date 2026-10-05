@@ -1,7 +1,7 @@
-function getAllTypeZoneExploitations(ctrl_name, ctrl_type){
+function getAllTypeEmplacements(ctrl_name, ctrl_type){
     let contentCtrl = ''
     $.ajax({
-        url : 'api/getAllTypeZoneExploitations',
+        url : 'api/getAllTypeEmplacements',
         type : 'POST',
         success: function (response){
             let reponse = JSON.parse(response)
@@ -9,20 +9,20 @@ function getAllTypeZoneExploitations(ctrl_name, ctrl_type){
                 contentCtrl +=`
                 <table class="table table-hover">
                     <thead><tr>
-                            <th>Type Zone Exploitation</th>
+                            <th>Type Emplacement</th>
                     </tr></thead>
                     <tbody>
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
-                    contentCtrl +='<td><a href="#">' + reponse.data[i].type_zone + '</a></td>'
+                    contentCtrl +='<td><a href="#">' + reponse.data[i].type_emplacement + '</a></td>'
                     contentCtrl +='<tr>'
                 }
                 contentCtrl +='</tbody></table>';
             } else {
                 contentCtrl += '<option value="0">-- Type Zones Exploitation --</option>'
                 for (var i=0;i < reponse.data.length;i++) {
-                    contentCtrl += '<option value="' + reponse.data[i].id + '">' + reponse.data[i].type_zone + '</option>'
+                    contentCtrl += '<option value="' + reponse.data[i].id + '">' + reponse.data[i].type_emplacement + '</option>'
                 }
             }
             ctrl_name.innerHTML = contentCtrl
@@ -33,8 +33,8 @@ function getAllTypeZoneExploitations(ctrl_name, ctrl_type){
         }
     })
 }
-function saveTypeZoneExploitation (formData, ctrl_name, ctrl_type){
-    fetch("api/saveTypeZoneExploitation ", { method: "POST", body: formData })
+function saveTypeEmplacement (formData, ctrl_name, ctrl_type){
+    fetch("api/saveTypeEmplacement ", { method: "POST", body: formData })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -43,13 +43,15 @@ function saveTypeZoneExploitation (formData, ctrl_name, ctrl_type){
                 title: 'Type Zone Exploitation '
             })
             if (data.code === "success") {
-                getAllTypeZoneExploitations(ctrl_name, ctrl_type)
+                clearForm("formTypeEmplacement", "type_emplacement")
+                getAllTypeEmplacements(ctrl_name, ctrl_type)
             }
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Type Zone Exploitation ', duration: 4000}));
 }
-function deleteTypeZoneExploitation (id_type_zone_exploitation ){
-    fetch("api/deleteTypeZoneExploitation ", { method: "POST", body: id_type_zone_exploitation  })
+
+function deleteTypeEmplacement (id_type_emplacement ){
+    fetch("api/deleteTypeEmplacement ", { method: "POST", body: id_type_emplacement  })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -60,10 +62,10 @@ function deleteTypeZoneExploitation (id_type_zone_exploitation ){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Type Zone Exploitation ', duration: 4000}));
 }
-function getSingleTypeZoneExploitation (id_type_zone_exploitation ) {
+function getSingleTypeEmplacement (id_type_emplacement ) {
     return new Promise((resolve, reject) => {
         $.ajax({
-            url: 'api/getSingleTypeZoneExploitation ' + id_type_zone_exploitation ,
+            url: 'api/getSingleTypeEmplacement ' + id_type_emplacement ,
             type: 'POST',
             success: function(response) {
                 if (response.code === "success") {

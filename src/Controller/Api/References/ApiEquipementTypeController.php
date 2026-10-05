@@ -175,6 +175,7 @@ final class ApiEquipementTypeController extends AbstractController
                 $criticite_id = $request->request->get('criticite_id');
                 $type_unicite_id = $request->request->get('type_unicite_id');
                 $type_eq = $request->request->get('type_eq');
+                $seuil = $request->request->get('seuil');
                 $photo = $request->files->get('photo');
 
                 $criticite = $this->em->getRepository(Criticite::class)->find(Uuid::fromString($criticite_id));
@@ -201,7 +202,7 @@ final class ApiEquipementTypeController extends AbstractController
                     if ($nature) { $equipement->setNatureEquipement($nature);;}
                     if ($typeEquipement) { $equipement->setCategorie($typeEquipement);;}
                     if ($typeEq) { $equipement->setTypeEq($typeEq);;}
-
+                    if ($seuil){$equipement->setSeuil($seuil);} else {$equipement->setSeuil(0);}
 
                     // Charger la photo de l'équipement
                     if ($photo) {

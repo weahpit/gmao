@@ -66,10 +66,13 @@
                                 <label for="type_unicite_id" class="fw-bold span">Nature</label><select class="input fw-bold" id="type_unicite_id"></select>
                             </div>
                         </div>
-                        <div class="row mt-3 p-1">
-                            <div class="col-md-6 mb-2 d-flex justify-content-start">
-                                <label for="type_eq" class="fw-bold span">Type</label><select class="input fw-bold" id="type_eq"></select>
-                            </div>
+                        <div class="row  mt-3 p-1">
+                                <div class="col-md-6 mb-2 d-flex justify-content-start">
+                                    <label for="type_eq" class="fw-bold span">Type</label><select class="input fw-bold" id="type_eq"></select>
+                                </div>
+                                <div class="col-md-6 mb-2 d-flex justify-content-start">
+                                    <label for="seuil" class="fw-bold span">Seuil</label><input class="input fw-bold text-danger" id="seuil"  value="0" type="number">
+                                </div>
                         </div>
                         <hr>
                         <div class="row">
@@ -158,6 +161,7 @@
             FormDataEquipement.append('categorie', document.querySelector("#categorie").value)
             FormDataEquipement.append('type_unicite_id', document.querySelector("#type_unicite_id").value)
             FormDataEquipement.append('type_eq', document.querySelector("#type_eq").value)
+            FormDataEquipement.append('seuil', document.querySelector("#seuil").value)
 
             FormDataEquipement.append("photo", eqUpload[0]);
             saveEquipementType(FormDataEquipement, document.querySelector(".card-body"), 1)

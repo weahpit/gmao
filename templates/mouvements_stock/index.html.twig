@@ -19,14 +19,14 @@
     <div class="" style="border: 1px solid #d2d0d0;background: radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius: 0;">
         <div class="card-body" style="border: 1px solid #dedede;">
             <div class="container pb-3">
-                <div class="d-flex p-1 text-center" style="background: #97c1a6;border: 1px solid #023902;">
-                    <select name="type_mvt" id="type_mvt">
+                <div class="d-flex p-2  justify-content-center align-items-center" style="background: #fffdfd;border: 2px solid #212020;border-radius: 25px;">
+                    <select name="type_mvt" id="type_mvt" style="height: 25px;border: 2px solid black;">
                         <option value="0">-- Sélectionnez un mouvement --</option>
                         <option value="1">-- Entrée --</option>
                         <option value="2">-- Sortie --</option>
                     </select>
-                    <input class="input" id="equipement" style="background: #d2d0d0;border: 1px solid black;font-weight: lighter;color: #0a0a0a;max-width: 300px;" disabled placeholder="sélectionnez un équipement">
-                    <button type="button" class="btn btn-primary ms-2 p-0 fw-light" id="btn-search" style="border: 1px solid lightgrey;border-radius: 0;width: 130px;"><img class="ms-2" src="{{ asset('icons/SVG/search.svg') }}" alt="" height="16" style="background: white;"> Rechercher</button>
+                    <input class="input" id="equipement" style="background: #ffffff;border: 2px solid black;font-weight: lighter;color: #0a0a0a;max-width: 300px;" disabled placeholder="sélectionnez un équipement">
+                    <button type="button" class="btn btn-primary ms-2 p-0 fw-light  justify-content-center align-items-center p-1" id="btn-search" style="border: 1px solid lightgrey;border-radius: 0;height: 25px;"><i data-lucide="search" class="lucide-search"></i></button>
                 </div>
             </div>
             <div class="mb-2" id="div_mvt">
@@ -301,7 +301,7 @@
             if (typeMvt.value === "2"){
                 formMvt.append('services', document.getElementById("select_services").value)
             } else {
-                formMvt.append('services', document.getElementById("0").value)
+                formMvt.append('services', "0")
             }
             saveMvt(formMvt);
         })

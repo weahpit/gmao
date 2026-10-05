@@ -349,6 +349,7 @@ function saveEquipementType(formData, ctrl_name, ctrl_type){
             })
             if (data.code === "success") {
                 clearForm("formEquipementType", "CodeEquipement")
+                document.getElementById("eqPreview").src = ""
                 getAllEquipementTypes(ctrl_name, ctrl_type)
             }
         })

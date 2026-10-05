@@ -182,7 +182,7 @@ final class InventairesController extends AbstractController
             $largeurs = [45, 45, 45, 55]; // total ≈ 190 mm (portrait A4)
 
             $contenu = $servicePdf->genererTableau(
-                'Détails Mouvement',
+                'Détails Mouvements',
                 $entetes,
                 $largeurs,
                 $data,

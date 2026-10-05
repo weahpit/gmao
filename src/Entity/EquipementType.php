@@ -56,9 +56,16 @@ class EquipementType
     #[ORM\Column(nullable: true)]
     private ?int $seuil = null;
 
+    /**
+     * @var Collection<int, Emplacement>
+     */
+    #[ORM\ManyToMany(targetEntity: Emplacement::class, inversedBy: 'equipementTypes')]
+    private Collection $emplacement;
+
     public function __construct()
     {
         $this->mouvementEquipements = new ArrayCollection();
+        $this->emplacement = new ArrayCollection();
     }
 
 
@@ -225,6 +232,30 @@ class EquipementType
     public function setSeuil(?int $seuil): static
     {
         $this->seuil = $seuil;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Emplacement>
+     */
+    public function getEmplacement(): Collection
+    {
+        return $this->emplacement;
+    }
+
+    public function addEmplacement(Emplacement $emplacement): static
+    {
+        if (!$this->emplacement->contains($emplacement)) {
+            $this->emplacement->add($emplacement);
+        }
+
+        return $this;
+    }
+
+    public function removeEmplacement(Emplacement $emplacement): static
+    {
+        $this->emplacement->removeElement($emplacement);
 
         return $this;
     }
