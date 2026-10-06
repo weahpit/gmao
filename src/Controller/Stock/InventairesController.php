@@ -114,7 +114,9 @@ final class InventairesController extends AbstractController
                             'service'=>$mvt->getCodeService() ? $mvt->getCodeService() ->getLibelle() : "",
                             'entree'=>$entree,
                             'sortie'=>$sorties,
-                            'date_mvt'=>$mvt->getCreatedAt() ? $mvt->getCreatedAt()->format("d/m/Y") : ""
+                            'date_mvt'=>$mvt->getCreatedAt() ? $mvt->getCreatedAt()->format("d/m/Y") : "",
+                            'emplacement'=>$mvt->getEmplacement() ? $mvt->getEmplacement() ->getLibelle() . " [" . $mvt->getPrecisionEmplacement() . "]": "",
+                            'bl'=>$mvt->getBonLivraison() ? $mvt->getBonLivraison() : ""
                         );
                     }
                 }
@@ -175,12 +177,14 @@ final class InventairesController extends AbstractController
                         'entree'   => $entree,
                         'sortie'   => $sorties,
                         'service'  => $mvt->getCodeService() ? $mvt->getCodeService()->getLibelle() : "",
+                        'emplacement'=>$mvt->getEmplacement() ? $mvt->getEmplacement() ->getLibelle() . " [" . $mvt->getPrecisionEmplacement() . "]": "",
+                        'bl'=>$mvt->getBonLivraison() ? $mvt->getBonLivraison() : ""
                     ];
                 }
             }
 
-            $entetes  = ['Date', 'Entrée', 'Sortie', 'Service'];
-            $largeurs = [45, 45, 45, 55]; // total ≈ 190 mm (portrait A4)
+            $entetes  = ['Date', 'Entrée', 'Sortie', 'Service', 'Emplacement','bl'];
+            $largeurs = [20, 20, 20, 30,45,10 ]; // total ≈ 190 mm (portrait A4)
 
             $contenu = $servicePdf->genererTableau(
                 'Détails Mouvements',

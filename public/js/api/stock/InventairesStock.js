@@ -38,11 +38,11 @@ function getAllDataInventaire(ctrl_name, formData){
                     }
 
 
-                    html += '<td class="text-dark fw-bold">' + donnees[i].nom  + '</u></td>'
-                    html += '<td class="text-center">' + donnees[i].actuel  + '</a></td>'
-                    html += '<td class="text-center">' + donnees[i].entree  + '</a></td>'
-                    html += '<td class="text-center">' + donnees[i].sortie  + '</a></td>'
-                    html += '<td class="text-center">' + donnees[i].seuil  + '</a></td>'
+                    html += '<td class="text-dark fw-light" style="font-size: 16px;" >' + donnees[i].nom  + '</u></td>'
+                    html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].actuel  + '</a></td>'
+                    html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].entree  + '</a></td>'
+                    html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].sortie  + '</a></td>'
+                    html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].seuil  + '</a></td>'
                     html +='</tr>'
                 }
 
@@ -69,10 +69,12 @@ function getEquipementDetails(ctrl_name, formData){
 
                     <table class="w-75" id="tblInventaires">
                             <thead><tr  style="background: linear-gradient(65deg, #c9c9c9, #afafaf)">
-                                <th class="text-center">date</th>
-                                <th class="text-center">entrée</th>
-                                <th class="text-center">sortie</th>
-                                <th class="text-center">service</th>
+                                <th class="text-center">Date</th>
+                                <th class="text-center">Entrée</th>
+                                <th class="text-center">Sortie</th>
+                                <th class="text-center">Service</th>
+                                <th class="text-center">Emplacement</th>
+                                <th class="text-center">BL</th>
                             </tr></thead>
                             <tbody>
                 `
@@ -83,6 +85,15 @@ function getEquipementDetails(ctrl_name, formData){
                     html += '<td class="text-center" style="border: 0; border-right: 1px solid lightgrey;font-size: 16px;">' + donnees[i].entree  + '</u></td>'
                     html += '<td class="text-center" style="border: 0; border-right: 1px solid lightgrey;font-size: 16px;">' + donnees[i].sortie  + '</a></td>'
                     html += '<td class="text-center" style="border: 0; border-right: 1px solid lightgrey;font-size: 16px;">' + donnees[i].service  + '</a></td>'
+                    html += '<td class="text-center" style="border: 0; border-right: 1px solid lightgrey;font-size: 16px;">' + donnees[i].emplacement  + '</a></td>'
+                    html += '<td class="text-center" style="border: 0; border-right: 1px solid lightgrey;font-size: 16px;">'
+                    if (donnees[i].bl !== ""){ html +=
+                        `<a href="data/stock/bons/bl/${donnees[i].bl}" target="_blank">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paperclip preview-icon"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>
+                        </a>
+                        `
+                    }
+                    html +='</td>'
                     html +='</tr>'
                 }
 
