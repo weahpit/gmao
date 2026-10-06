@@ -4,6 +4,7 @@ namespace App\Controller\Api\References;
 
 use App\Entity\Criticite;
 use App\Entity\Equipement;
+use App\Entity\EquipementType;
 use App\Entity\EtatEquipement;
 use App\Entity\Fournisseur;
 use App\Entity\Marque;
@@ -55,6 +56,44 @@ final class ApiEquipementController extends AbstractController
             }
             return new JsonResponse(json_encode($reponse));
         }
+
+    #[Route('api/getAllEquipementsByEquimentType/{idTypeEq}', name: 'app_api_get_equipement_by_type_eq')]
+    public function app_api_get_equipement_by_type_eq($idTypeEq): Response
+    {
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        $reponse = array();
+        $data = array();
+        if ($this->isGranted("ROLE_USER")){
+            try{
+                // Liste des Natures d'équipements
+                $eqType = $this->em->getRepository(EquipementType::class)->find(Uuid::fromString($idTypeEq));
+
+                $equipements = $this->em->getRepository(Equipement::class)->findBy(['code_equipement_type'=>$eqType], ['marque'=>'ASC','nom'=>'ASC']);
+                foreach ($equipements as $equipement){
+                    $data[] = array(
+                        'id'=>$equipement->getId(),
+                        'nom'=>strtoupper($equipement->getNom()),
+                        'marque'=>$equipement->getMarque()? $equipement->getMarque()->getNom() : "" ,
+                        'modele'=>$equipement->getModele(),
+                        'code'=>$equipement->getCode(),
+                        'etat'=>$equipement->getEtat()?$equipement->getEtat()->getLibelle() : "" ,
+                        'criticite'=>$equipement->getCriticite()? $equipement->getCriticite()->getLibelle() : "",
+                        'nature'=>$equipement->getNature()?$equipement->getNature()->getLibelle() : "",
+                        'adresse'=>$equipement->getCodeFournisseur() ? $equipement->getCodeFournisseur()->getSigle() : "",
+                        'categorie'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getLibelle() : "",
+                        'stockFinal'=>$equipement->getStockFinal()
+                    );
+                }
+                $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
+            } catch (\Throwable $throwable){
+                $reponse = array('code'=>'error', 'msg'=>'Erreur ! <br>'. $throwable->getMessage());
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse(json_encode($reponse));
+    }
+
     #[Route('api/getSingleEquipement/{$id_equipement}', name: 'app_api_get_single_equipement')]
     public function app_api_get_single_equipement(int $id_equipement): Response
     {

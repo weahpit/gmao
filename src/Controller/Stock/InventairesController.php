@@ -44,7 +44,8 @@ final class InventairesController extends AbstractController
                 $mvts = $eq->getMouvementEquipements();
                 // Parcours les moyuvements
                 foreach ($mvts as $mvt){
-                    if (strtotime($mvt->getCreatedAt()->format('Y-m-d')) <= strtotime($dateMvt->format('Y-m-d'))){
+                    $date_mvt = $mvt->getDateOperation() ? $mvt->getDateOperation()->format('Y-m-d'): $mvt->getCreatedAt()->format('Y-m-d');
+                    if (strtotime($date_mvt) <= strtotime($dateMvt->format('Y-m-d'))){
                         if ($mvt->getTypeMvt() == "1"){ // Entrée
                             $entree = $entree + $mvt->getValue();
                         } else {

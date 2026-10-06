@@ -10,17 +10,17 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-final class TypeEmplacementController extends AbstractController
+final class EmplacementController extends AbstractController
 {
     public function __construct(private ManagerRegistry $registry)
     {
     }
 
-    #[Route('/TypesEmplacements', name: 'app_type_emplacement')]
+    #[Route('/Emplacements', name: 'app_emplacement')]
     public function index(): Response
     {
         if (!$this->getUser()){return  $this->redirectToRoute("app_login");}
-        return $this->render('type_emplacement/index.html.twig',[
+        return $this->render('emplacement/index.html.twig',[
             'types'=>$this->registry->getRepository(TypeZoneExploitation::class)->findAll()
         ]);
     }

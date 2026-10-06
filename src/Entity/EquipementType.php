@@ -62,10 +62,17 @@ class EquipementType
     #[ORM\ManyToMany(targetEntity: Emplacement::class, inversedBy: 'equipementTypes')]
     private Collection $emplacement;
 
+    /**
+     * @var Collection<int, Equipement>
+     */
+    #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'code_equipement_type')]
+    private Collection $equipements;
+
     public function __construct()
     {
         $this->mouvementEquipements = new ArrayCollection();
         $this->emplacement = new ArrayCollection();
+        $this->equipements = new ArrayCollection();
     }
 
 
@@ -256,6 +263,36 @@ class EquipementType
     public function removeEmplacement(Emplacement $emplacement): static
     {
         $this->emplacement->removeElement($emplacement);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Equipement>
+     */
+    public function getEquipements(): Collection
+    {
+        return $this->equipements;
+    }
+
+    public function addEquipement(Equipement $equipement): static
+    {
+        if (!$this->equipements->contains($equipement)) {
+            $this->equipements->add($equipement);
+            $equipement->setCodeEquipementType($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEquipement(Equipement $equipement): static
+    {
+        if ($this->equipements->removeElement($equipement)) {
+            // set the owning side to null (unless already changed)
+            if ($equipement->getCodeEquipementType() === $this) {
+                $equipement->setCodeEquipementType(null);
+            }
+        }
 
         return $this;
     }

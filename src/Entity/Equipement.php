@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\EquipementRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
@@ -57,6 +59,20 @@ class Equipement
 
     #[ORM\ManyToOne(inversedBy: 'equipements')]
     private ?NatureEquipement $nature = null;
+
+    #[ORM\ManyToOne(inversedBy: 'equipements')]
+    private ?EquipementType $code_equipement_type = null;
+
+    /**
+     * @var Collection<int, MouvementEquipement>
+     */
+    #[ORM\OneToMany(targetEntity: MouvementEquipement::class, mappedBy: 'code_equipement')]
+    private Collection $mouvementEquipements;
+
+    public function __construct()
+    {
+        $this->mouvementEquipements = new ArrayCollection();
+    }
 
     public function getId(): ?Uuid
     {
@@ -227,6 +243,48 @@ class Equipement
     public function setNature(?NatureEquipement $nature): static
     {
         $this->nature = $nature;
+
+        return $this;
+    }
+
+    public function getCodeEquipementType(): ?EquipementType
+    {
+        return $this->code_equipement_type;
+    }
+
+    public function setCodeEquipementType(?EquipementType $code_equipement_type): static
+    {
+        $this->code_equipement_type = $code_equipement_type;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MouvementEquipement>
+     */
+    public function getMouvementEquipements(): Collection
+    {
+        return $this->mouvementEquipements;
+    }
+
+    public function addMouvementEquipement(MouvementEquipement $mouvementEquipement): static
+    {
+        if (!$this->mouvementEquipements->contains($mouvementEquipement)) {
+            $this->mouvementEquipements->add($mouvementEquipement);
+            $mouvementEquipement->setCodeEquipement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMouvementEquipement(MouvementEquipement $mouvementEquipement): static
+    {
+        if ($this->mouvementEquipements->removeElement($mouvementEquipement)) {
+            // set the owning side to null (unless already changed)
+            if ($mouvementEquipement->getCodeEquipement() === $this) {
+                $mouvementEquipement->setCodeEquipement(null);
+            }
+        }
 
         return $this;
     }

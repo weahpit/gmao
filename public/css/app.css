@@ -1134,3 +1134,26 @@ select {
 .nav-subitem.active::before { background: var(--gold-600); }
 
 .nav-item.has-submenu.has-active { color: var(--white); }
+
+/* Forcer la largeur */
+.choices {
+    width: 100%;   /* adapte selon ton design */
+    background-color: #f1eddc;
+}
+
+/* Ajuster la hauteur du champ */
+.choices__inner {
+    /*min-height: 45px;*/   /* augmente la hauteur */
+    font-size: 13px;    /* texte plus lisible */
+    padding: 2px 3px;  /* espace intérieur */
+    font-weight: bold;
+    color: black;
+    background-color: #f1eddc;
+}
+
+/* Ajuster les items sélectionnés */
+.choices__item {
+    font-size: 14px;
+    padding: 2px 4px;
+    background-color: #f1eddc;
+}

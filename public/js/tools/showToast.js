@@ -60,7 +60,7 @@ function showToast(message, options = {}) {
             flexDirection: 'column',
             gap: '10px',
             pointerEvents: 'none',
-            fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+            fontFamily: "'Century Gothic',system-ui, -apple-system, sans-serif",
             ...getPositionStyles(position),
         });
         document.body.appendChild(container);
@@ -164,10 +164,10 @@ function showToast(message, options = {}) {
         titleEl.textContent = title;
         Object.assign(titleEl.style, {
             fontWeight: '600',
-            fontSize: '14px',
+            fontSize: '16px',
             color: theme.text,
             marginBottom: '2px',
-            lineHeight: '1.4',
+            lineHeight: '1.2',
         });
         body.appendChild(titleEl);
     }
@@ -175,7 +175,7 @@ function showToast(message, options = {}) {
     const msgEl = document.createElement('div');
     msgEl.textContent = message;
     Object.assign(msgEl.style, {
-        fontSize: '13px',
+        fontSize: '15px',
         color: theme.text + 'cc',
         lineHeight: '1.5',
         wordBreak: 'break-word',

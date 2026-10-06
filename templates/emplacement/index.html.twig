@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Emplacements — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"></span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">Emplacements</h1>
+        <a href="#"  id="btn_add_emplacement" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAdd">
+            <img src="{{ asset('icons/_eq.png') }}" class="me-2" alt="" height="16"> Ajouter  un emplacement
+        </a>
+    </div>
+
+    <!-- Table -->
+        <div class="card-body">
+
+        </div>
+
+    <!-- Modal Add/Edit Emplacement-->
+    <div class="modal fade" id="modalAdd" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/emplacement.png') }}" height="40" alt=""> Enregistrer un emplacement</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formEmplacement" >
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="emplacement" style="width: 250px;">Emplacement</label>
+                            <input type="text" class="input" id="emplacement" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="zone" style="width: 165px;">Zone Exploitation</label>
+                            <select class="" id="zone"></select>
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="type_emplacement" style="width: 165px;">Type</label>
+                            <select class="" id="type_emplacement"></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveEmplacement">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/Emplacement.js') }}"></script>
+    <script src="{{ asset('js/api/references/TypeEmplacement.js') }}"></script>
+    <script src="{{ asset('js/api/references/Zoneexploitation.js') }}"></script>
+    <script>
+
+        let idEmplacement = "0";
+        getAllEmplacements(document.querySelector(".card-body"), 1)
+        getAllTypeEmplacements (document.querySelector("#type_emplacement"), 2)
+        getAllZonesExploitation(document.querySelector("#zone"), 2)
+        clearForm("formEmplacement", "emplacement")
+        ValidateOnKeypress(document.getElementById("emplacement"), document.getElementById("saveEmplacement"), "formEmplacement")
+        document.querySelector("#btn_add_emplacement").addEventListener("click", function () {
+            clearForm("formEmplacement", "emplacement")
+        })
+
+        document.querySelector("#saveEmplacement").addEventListener("click", function () {
+            let FormDataEmplacement = new FormData();
+            FormDataEmplacement.append('id_emplacement', idEmplacement)
+            FormDataEmplacement.append('emplacement', document.querySelector("#emplacement").value)
+            FormDataEmplacement.append('zone', document.querySelector("#zone").value)
+            FormDataEmplacement.append('type_emplacement', document.querySelector("#type_emplacement").value)
+            saveEmplacement(FormDataEmplacement, document.querySelector(".card-body"), 1)
+        })
+
+
+    </script>
+{% endblock %}

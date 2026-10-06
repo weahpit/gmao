@@ -68,17 +68,20 @@
     <script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/TypeEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+    <script src="{{ asset('js/api/references/Equipement.js') }}"></script>
     <script src="{{ asset('js/api/references/FamilleEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/MarqueEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
+    <script src="{{ asset('js/api/references/Emplacement.js') }}"></script>
     <script src="{{ asset('js/api/stock/MouvementsStock.js') }}"></script>
     <script src="{{ asset('js/api/admin/Service.js') }}"></script>
     <script>
 
         let id_equipement = ""
         let nature = ""
+        let choice_eq = ""
         let typeMvt = document.getElementById('type_mvt')
         let photo_eq_url = "{{ asset('data/equipements/') }}"
         document.getElementById('equipement').value = ""
@@ -153,7 +156,7 @@
                         <div class="bg-light container"  style="border:1px solid lightgrey;">
                         <div class="success-gradient  mx-auto p-2 mt-2 mb-2 h5">${eq.libelle}</div>
                         <div class="row mx-auto" style="background: linear-gradient(#f6f5f5,lightgrey);">
-                            <div class="col-6">
+                            <div class="col-5">
                                 <div class="d-flex"><label class=" mb-2" style="width: 150px;">Code</label> : <label class="fw-bold ms-2">${eq.code_eq}</label></div>
                                 <div class="d-flex"><label class=" mb-2" style="width: 150px;">Nature</label> : <label class="fw-bold ms-2 text-primary">${eq.nature}</label></div>
                                 <div class="d-flex"><label class=" mb-2" style="width: 150px;">Catégorie</label> : <label class="fw-bold ms-2">${eq.categorie}</label></div>
@@ -168,42 +171,103 @@
                         html +=`<hr>
                         <small class="fw-bold"><u>Mouvement le stock</u></small>
                         <div class="row">
-                            <div class="col-md-8" >
-                                <div class="mt-2 d-flex" style="width: 400px;">
-                                   <input type="number" class=" ms-0 input fw-bold text-danger" id="nb_eq" style="width: 200px;" placeholder="Nombre de pièces">
-                                </div>`
+                            <div class="col-md-5" >
+                                <div class="p-1 mb-2" style="background: #f2f1ea;width:410px;">
+                                    <div class="mt-2 d-flex" style="width: 400px;">
+                                       <input type="text" class=" ms-0 input fw-bold text-dark  text-center" id="numero_bon" style="width: 200px;background: linear-gradient(65deg, #dde7f6, #d8e3f3);font-size:16px;color: #05122d" placeholder="N° de Bon (BE)">
+                                    </div>
+                                    <div class="mt-2 d-flex" style="width: 400px;">
+                                       <input type="number" class=" ms-0 input fw-bold text-dark text-center" id="nb_eq" style="width: 200px;font-size:16px;" placeholder="Nombre de pièces">
+                                    </div>
+                                    <div class="mt-2" style="width: 200px;">
+                                            <span class="fw-bold span" >Date<span class="ms-2 text-danger fw-bold">*</span></span>
+                                            <input type="date" class="input fw-bold text-success" id="date_entree" style="width:200px;" placeholder="Date">
+                                    </div>
+                                </div>
+                                `
                         if (typeMvt.value === "2"){
                             html +=`
+                                <div class="mt-2 d-flex" style="width: 400px;" xmlns="http://www.w3.org/1999/html">
+                                   <select class="fw-bold" id="select_services" style="width: 100%;background: #e5f7f0;" ></select>
+                                </div>
                                 <div class="mt-2 d-flex" style="width: 400px;">
-                                   <select class="fw-bold" id="select_services" style="width: 200px;background: #e5f7f0;" ></select>
-                                </div>`
+                                   <select class="fw-bold" id="select_emplacement" style="width: 100%;background: #e5f7f0;" ></select>
+                                </div>
+                                <div class="mt-2 d-flex" style="width: 400px;">
+                                   <input class="fw-light italic input" id="precision_emplacement" style="width: 100%;background: #e5f7f0;" placeholder="Préciser si possible l'emplacement">
+                                </div>
+                                 <div class="mt-2 d-flex mb-2" style="width: 400px;">
+                                   <textarea class="fw-light input" id="observation" style="width: 100%;background: #e5f7f0;max-height: 150px;" placeholder="Avez-vous une observation sur cette opération ?"></textarea>
+                                </div>
+                                `
+                        } else {
+                            html +=`<hr><div class=" d-flex bg-warning ps-2" style="width: 200px;border-radius: 8px;border: 1px dashed lightgrey;">
+                                <input type="file" hidden id="fileUpload" accept="application/pdf">
+                                <button class="btn btn-light p-0" id="btn-upload" style="margin-left:-20px;" onclick="document.getElementById('fileUpload').click()" title="Charger le Bon de livraison"><img class="p-1" src="{{ asset('icons/telecharger.png') }}" height="32" alt=""></button>
+                                <label for="btn-upload" class="fw-bold text-dark ms-2 mt-1" for="fileUpload" style="cursor:pointer;">Bon de livraison</label>
+                            </div>`
                         }
                         html += `
                         <button class="btn mb-2 mt-2  justify-content-center align-items-center" id="saveMvt" style="border-radius: 0;width: 200px;">Ajouter au stock</button>
                              </div>
-                            <div class="col-md-4" id="div_situation">
+                        <div class="col-md-4 text-center" id="div_bl">
+                                <iframe id="pdfViewer" width="100%" height="400px"></iframe>
+                         </div>
+                            <div class="col-md-3" id="div_situation">
 
                              </div>
                         </div>
                         `
                         document.getElementById("div_mvt").innerHTML = html;
 
-                        document.getElementById("nb_eq").focus()
+                        document.getElementById("numero_bon").focus()
                         ValidateOnKeypress(document.getElementById("nb_eq"), document.getElementById("saveMvt"), "")
+                        ValidateOnKeypress(document.getElementById("numero_bon"), document.getElementById("saveMvt"), "")
+
+                        if (typeMvt.value === "2"){
+                            getAllServices(document.getElementById("select_services"), 2)
+                            getAllEmplacements(document.getElementById("select_emplacement"), 2)
+                        }
                     } else {
                         html +=`<hr>
                                 <small class="fw-bold"><u>Mouvement le stock</u></small>
                             <div class="row">
-                                <div class="col-md-8">
-                                    <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
-                                        <label for="serial_number" class="fw-bold span" style="width: 200px;">N° Série<span class="ms-2 text-danger fw-bold">*</span></label>
+                                <div class="col-md-5">
+                                <div class="p-1 mb-2" style="background: #dae2f0;width:410px;">
+                                    <div class="mb-1 d-flex justify-content-start" style="width: 400px;" id="div_serial_number">
+                                        <label for="serial_number" id="lbl_serial_number" class="fw-bold span" style="width: 200px;">N° Série<span class="ms-2 text-danger fw-bold">*</span></label>
                                         <input type="text" class="input fw-bold text-danger" id="serial_number" style="text-transform: uppercase;">
                                     </div>
                                     <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
-                                        <label for="date_entree" class="fw-bold span" style="width: 200px;">Date Entrée<span class="ms-2 text-danger fw-bold">*</span></label>
-                                        <input type="date" class="input fw-bold text-danger" id="date_entree">
+                                        <label for="serial_number" class="fw-bold span" style="width: 200px;">N° de Bon</label>
+                                        <input type="text" class=" ms-0 input fw-bold text-dark" id="numero_bon" style="text-transform: uppercase;border-bottom:3px solid darkblue ;font-size:16px">
                                     </div>
                                     <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
+                                        <label for="date_entree" class="fw-bold span" style="width: 200px;">Date<span class="ms-2 text-danger fw-bold">*</span></label>
+                                        <input type="date" class="input fw-bold text-danger" id="date_entree">
+                                    </div>
+                                </div>`
+
+                        if (typeMvt.value === "2"){
+                            html +=`
+                                <div class="mt-2 d-flex" style="width: 400px;" xmlns="http://www.w3.org/1999/html">
+                                   <select class="fw-bold" id="select_equipement" style="background: #e5f7f0;" ></select>
+                                </div>
+                                <div class="mt-2 d-flex" style="width: 400px;" xmlns="http://www.w3.org/1999/html">
+                                   <select class="fw-bold" id="select_services" style="width: 100%;background: #e5f7f0;" ></select>
+                                </div>
+                                <div class="mt-2 d-flex" style="width: 400px;">
+                                   <select class="fw-bold" id="select_emplacement" style="width: 100%;background: #e5f7f0;" ></select>
+                                </div>
+                                <div class="mt-2 d-flex" style="width: 400px;">
+                                   <input class="fw-light italic input" id="precision_emplacement" style="width: 100%;background: #e5f7f0;" placeholder="Préciser si possible l'emplacement">
+                                </div>
+                                 <div class="mt-2 d-flex mb-2" style="width: 400px;">
+                                   <textarea class="fw-ligh input" id="observation" style="width: 100%;background: #e5f7f0;max-height: 150px;" placeholder="Avez-vous une observation sur cette opération ?"></textarea>
+                                </div>`
+                        } else {
+                            html +=`
+                            <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
                                         <label for="fournisseur" class="fw-bold span" style="width: 200px;">Fournisseur</label>
                                         <select class="input fw-bold" id="fournisseur"></select>
                                     </div>
@@ -218,19 +282,21 @@
                                     <div class="mb-1 d-flex justify-content-start" style="width: 400px;">
                                         <label for="marque" class="fw-bold span" style="width: 200px;">Etat</label>
                                         <select class="input fw-bold" id="etat"></select>
-                                    </div>`
-
-                        if (typeMvt.value === "2"){
-                            html +=`
-                                <div class="mt-2 d-flex" style="width: 400px;">
-                                   <select class="fw-bold" id="select_services" style="width: 200px;background: #e5f7f0;" ></select>
-                                </div>`
+                                    </div>
+                                <div class=" d-flex bg-warning ps-2 mb-2 " style="width: 400px;border-radius: 8px;border: 1px dashed lightgrey;">
+                                <input type="file" hidden id="fileUpload" accept="application/pdf">
+                                <button class="btn btn-light p-0" id="btn-upload" style="margin-left:-20px;" onclick="document.getElementById('fileUpload').click()" title="Charger le Bon de livraison"><img class="p-1" src="{{ asset('icons/telecharger.png') }}" height="32" alt=""></button>
+                                <label for="btn-upload" class="fw-bold text-dark ms-2 mt-1" for="fileUpload" style="cursor:pointer;">Bon de livraison</label>
+                            </div><hr>`
                         }
 
                         html +=`
                                     <button class="btn mb-2  d-flex justify-content-center align-items-center" id="saveMvt"  style="border-radius: 0;">Ajouter au stock</button>
                                 </div>
-                        <div class="col-md-4" id="div_situation">
+                        <div class="col-md-4 text-center" id="div_bl">
+                                <iframe id="pdfViewer" width="100%" height="400px"></iframe>
+                         </div>
+                        <div class="col-md-3" id="div_situation">
 
                          </div>
                     </div>`
@@ -247,8 +313,49 @@
                         ValidateOnKeypress(document.getElementById("serial_number"), document.getElementById("saveMvt"), "")
                     }
 
+                    const today = new Date();
+                    const yyyy = today.getFullYear();
+                    const mm = String(today.getMonth() + 1).padStart(2, '0');
+                    const dd = String(today.getDate()).padStart(2, '0');
+
+                    // Format attendu par <input type="date"> → YYYY-MM-DD
+                    document.getElementById("date_entree").value = `${yyyy}-${mm}-${dd}`;
+
                     if (typeMvt.value === "2"){
                         getAllServices(document.getElementById("select_services"), 2)
+                        getAllEmplacements(document.getElementById("select_emplacement"), 2)
+                        getAllEquipementsByEquimentType(document.getElementById("select_equipement"), id_equipement, 2)
+                        if (document.getElementById("serial_number")){
+                            document.getElementById("serial_number").style.display = "none";
+                            document.getElementById("lbl_serial_number").style.display = "none";
+                        }
+
+                        document.getElementById("numero_bon").focus()
+                        setTimeout(()=>{
+                            const element = document.getElementById("select_equipement");
+                            const choices = new Choices(element, {
+                                removeItemButton: true,   // bouton pour retirer un choix
+                                searchPlaceholderValue: 'Rechercher Equipement...',
+                                noResultsText: 'Aucun résultat'
+                            });
+                            document.addEventListener("click", () => {
+                                let valeurs = choices.getValue(true);
+                                choice_eq = valeurs;
+                            });
+                        }, 3000)
+                    } else {
+                        const input = document.getElementById("fileUpload");
+                        const viewer = document.getElementById("pdfViewer");
+
+                        input.addEventListener("change", function() {
+                            const file = this.files[0];
+                            if (file && file.type === "application/pdf") {
+                                const fileURL = URL.createObjectURL(file);
+                                viewer.src = fileURL; // affiche le PDF dans l'iframe
+                            } else {
+                                alert("Veuillez sélectionner un fichier PDF.");
+                            }
+                        });
                     }
 
                     if (eq.qte > 0){
@@ -262,6 +369,9 @@
                          <h1 class="fw-bold text-danger text-center mt-2 mb-3">${eq.qte}</h1>
                         `
                     }
+
+
+
                     function getStateTypeMvt(){
                         document.getElementById("saveMvt").style.color = "white"
 
@@ -288,20 +398,31 @@
             formMvt.append('id_equipement', id_equipement)
             formMvt.append('nature', nature)
             formMvt.append('type_mvt', document.getElementById("type_mvt").value)
+            formMvt.append('numero_bon', document.getElementById("numero_bon").value)
+            formMvt.append('date_entree', document.getElementById("date_entree").value)
+
 
             if (nature === "QUANTITE"){
                 formMvt.append('nb_eq', document.getElementById("nb_eq").value)
             } else {
-                formMvt.append('fournisseur', document.getElementById("fournisseur").value)
-                formMvt.append('marque', document.getElementById("marque").value)
-                formMvt.append('modele', document.getElementById("modele").value)
-                formMvt.append('numero_serie', document.getElementById("serial_number").value)
-                formMvt.append('date_entree', document.getElementById("date_entree").value)
+                if (typeMvt.value === "1") {
+                    formMvt.append('fournisseur', document.getElementById("fournisseur").value)
+                    formMvt.append('marque', document.getElementById("marque").value)
+                    formMvt.append('modele', document.getElementById("modele").value)
+                    formMvt.append('numero_serie', document.getElementById("serial_number").value)
+                } else {
+                    formMvt.append('select_equipement', choice_eq)
+                }
             }
             if (typeMvt.value === "2"){
                 formMvt.append('services', document.getElementById("select_services").value)
+                formMvt.append('emplacement', document.getElementById("select_emplacement").value)
+                formMvt.append('precision_emplacement', document.getElementById("precision_emplacement").value)
+                formMvt.append('observation', document.getElementById("observation").value)
             } else {
+                let blUpload = document.getElementById("fileUpload").files;
                 formMvt.append('services', "0")
+                formMvt.append('bon_livraison', blUpload[0])
             }
             saveMvt(formMvt);
         })

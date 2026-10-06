@@ -32,9 +32,16 @@ class Emplacement
     #[ORM\ManyToOne(inversedBy: 'emplacements')]
     private ?ZoneExploitation $code_zone = null;
 
+    /**
+     * @var Collection<int, MouvementEquipement>
+     */
+    #[ORM\OneToMany(targetEntity: MouvementEquipement::class, mappedBy: 'emplacement')]
+    private Collection $mouvementEquipements;
+
     public function __construct()
     {
         $this->equipementTypes = new ArrayCollection();
+        $this->mouvementEquipements = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -101,6 +108,36 @@ class Emplacement
     public function setCodeZone(?ZoneExploitation $code_zone): static
     {
         $this->code_zone = $code_zone;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MouvementEquipement>
+     */
+    public function getMouvementEquipements(): Collection
+    {
+        return $this->mouvementEquipements;
+    }
+
+    public function addMouvementEquipement(MouvementEquipement $mouvementEquipement): static
+    {
+        if (!$this->mouvementEquipements->contains($mouvementEquipement)) {
+            $this->mouvementEquipements->add($mouvementEquipement);
+            $mouvementEquipement->setEmplacement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMouvementEquipement(MouvementEquipement $mouvementEquipement): static
+    {
+        if ($this->mouvementEquipements->removeElement($mouvementEquipement)) {
+            // set the owning side to null (unless already changed)
+            if ($mouvementEquipement->getEmplacement() === $this) {
+                $mouvementEquipement->setEmplacement(null);
+            }
+        }
 
         return $this;
     }
