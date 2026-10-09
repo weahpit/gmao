@@ -60,6 +60,12 @@
                         <i data-lucide="chevron-down" class="nav-chevron"></i>
                     </button>
                     <div class="nav-submenu">
+                        <a href="{{ path('app_maintenance_alerte_anomalie') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
+                            <span class="nav-label">Signaler Anomalie</span>
+                        </a>
+                        <a href="{{ path('app_demande_intervention') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
+                            <span class="nav-label">Demande d'Intervention</span>
+                        </a>
                         <a href="#" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
                             <span class="nav-label">Ordres de travail</span>
                         </a>
@@ -117,7 +123,7 @@
                             <i data-lucide="chevron-down" class="nav-chevron"></i>
                         </button>
                         <div class="nav-submenu">
-                            <a href="#" class="nav-subitem">
+                            <a href="{{ path('app_users') }}" class="nav-subitem">
                                 <span class="nav-label">Utilisateurs</span>
                             </a>
                             <a href="#" class="nav-subitem">

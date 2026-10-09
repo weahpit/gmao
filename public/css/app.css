@@ -1157,3 +1157,49 @@ select {
     padding: 2px 4px;
     background-color: #f1eddc;
 }
+
+.btn-tooltip {
+    position: relative;
+    padding: 2px 3px;
+    background: linear-gradient(135deg, #928a86, #625b52);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.btn-tooltip:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+.btn-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 130%;
+    left: 75%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.btn-tooltip:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+.container {
+    margin-left: 5%;
+    width: 90%;
+    background: linear-gradient(135deg, #f6f6f6, #ffffff);
+}

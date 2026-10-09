@@ -68,11 +68,18 @@ class EquipementType
     #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'code_equipement_type')]
     private Collection $equipements;
 
+    /**
+     * @var Collection<int, AlerteAnomalie>
+     */
+    #[ORM\OneToMany(targetEntity: AlerteAnomalie::class, mappedBy: 'code_equipement')]
+    private Collection $alerteAnomalies;
+
     public function __construct()
     {
         $this->mouvementEquipements = new ArrayCollection();
         $this->emplacement = new ArrayCollection();
         $this->equipements = new ArrayCollection();
+        $this->alerteAnomalies = new ArrayCollection();
     }
 
 
@@ -291,6 +298,36 @@ class EquipementType
             // set the owning side to null (unless already changed)
             if ($equipement->getCodeEquipementType() === $this) {
                 $equipement->setCodeEquipementType(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, AlerteAnomalie>
+     */
+    public function getAlerteAnomalies(): Collection
+    {
+        return $this->alerteAnomalies;
+    }
+
+    public function addAlerteAnomaly(AlerteAnomalie $alerteAnomaly): static
+    {
+        if (!$this->alerteAnomalies->contains($alerteAnomaly)) {
+            $this->alerteAnomalies->add($alerteAnomaly);
+            $alerteAnomaly->setCodeEquipement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAlerteAnomaly(AlerteAnomalie $alerteAnomaly): static
+    {
+        if ($this->alerteAnomalies->removeElement($alerteAnomaly)) {
+            // set the owning side to null (unless already changed)
+            if ($alerteAnomaly->getCodeEquipement() === $this) {
+                $alerteAnomaly->setCodeEquipement(null);
             }
         }
 

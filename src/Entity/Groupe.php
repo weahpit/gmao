@@ -34,9 +34,16 @@ class Groupe
     #[ORM\OneToMany(targetEntity: Permission::class, mappedBy: 'code_groupe')]
     private Collection $permissions;
 
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'code_groupe')]
+    private Collection $users;
+
     public function __construct()
     {
         $this->permissions = new ArrayCollection();
+        $this->users = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -109,6 +116,36 @@ class Groupe
             // set the owning side to null (unless already changed)
             if ($permission->getCodeGroupe() === $this) {
                 $permission->setCodeGroupe(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getUsers(): Collection
+    {
+        return $this->users;
+    }
+
+    public function addUser(User $user): static
+    {
+        if (!$this->users->contains($user)) {
+            $this->users->add($user);
+            $user->setCodeGroupe($this);
+        }
+
+        return $this;
+    }
+
+    public function removeUser(User $user): static
+    {
+        if ($this->users->removeElement($user)) {
+            // set the owning side to null (unless already changed)
+            if ($user->getCodeGroupe() === $this) {
+                $user->setCodeGroupe(null);
             }
         }
 

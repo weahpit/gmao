@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Alertes— CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Alertes Pannes</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title"><img src="{{ asset('icons/warning.png') }}" height="32" class="me-2" alt=""> Alertes Anomalies</h1>
+        <div class="d-flex">
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="container mt-2 p-2" style="border: 1px solid #e0dfdf;">
+        <h3 class="fw-bold mb-3 text-dark">Signalez une anomalie</h3>
+        <div class="container">
+            <form action="#" id="formAlerte">
+            <div class="p-2 mb-3" style="background: linear-gradient(125deg, #e0eeeb, #e7edee);border-bottom: 2px solid darkgreen;">
+                <button type="button" class="btn btn-success ms-2 btn-send-alerte">Envoyez l'alerte</button>
+            </div>
+                <div class="mb-3">
+                    <label class="fw-bold" for="sujet">Sujet</label>
+                    <input  class="w-100 input fw-bold text-dark" type="text" id="sujet">
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold" for="equipement">Equipement</label>
+                    <select class="input w-100" id="equipement"></select>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold" for="zone">Zone</label>
+                    <select class="input w-100" id="zone"></select>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold" for="preciser_emplacement">Préciser l'emplacement</label>
+                    <input  class="w-100 input" type="text" id="preciser_emplacement">
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold" for="description">Qu'avez-vous constaté ?</label>
+                    <textarea class="w-100 input" id="description" style="min-height: 200px;"></textarea>
+                </div>
+                <div class="mb-3">
+                    <a class="btn btn-outline-secondary border boder-1 border-secondary" href="#" onclick="document.getElementById('photo').click()">
+                        <img class="p-1" src="{{ asset('icons/telecharger.png') }}" alt="" height="24"><label style="cursor:pointer;" for="sujet">Charger une photo</label>
+                    </a>
+                    <input class="w-100 input" type="file" id="photo" hidden="hidden">
+                    <div class="mx-auto p-1 text-center">
+                        <img src="" alt="" id="previewPhoto" style="max-height: 300px;">
+                    </div>
+                </div>
+                <div class="p-2 mb-3" style="background: linear-gradient(125deg, #e0eeeb, #e7edee);border-top: 2px solid darkgreen;">
+                    <button type="button" class="btn btn-success ms-2 btn-send-alerte">Envoyez l'alerte</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+    <script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
+    <script src="{{ asset('js/api/maintenance/AlerteAnomalie.js') }}"></script>
+    <script>
+        let idAlerte = ""
+        getAllEquipementTypes(document.getElementById("equipement"), 2)
+        getAllZonesExploitation(document.getElementById("zone"), 2)
+
+        uploadImage(document.getElementById('photo'), document.getElementById('previewPhoto'));
+        clearForm("formAlerte", "sujet")
+        $(".btn-send-alerte").on("click", function () {
+
+            let photoUpload = document.getElementById("photo").files;
+
+            let FormDataAlerte = new FormData();
+            FormDataAlerte.append('id_alerte', idAlerte)
+            FormDataAlerte.append('sujet', document.querySelector("#sujet").value)
+            FormDataAlerte.append('description', document.querySelector("#description").value)
+            FormDataAlerte.append('zone', document.querySelector("#zone").value)
+            FormDataAlerte.append('equipement', document.querySelector("#equipement").value)
+            FormDataAlerte.append('emplacement', document.querySelector("#preciser_emplacement").value)
+            FormDataAlerte.append("photo", photoUpload[0]);
+
+            saveAlerteAnomalie(FormDataAlerte)
+        })
+    </script>
+{% endblock %}

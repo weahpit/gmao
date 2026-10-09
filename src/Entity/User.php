@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -51,6 +53,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(nullable: true)]
     private ?bool $active = null;
+
+    #[ORM\ManyToOne(inversedBy: 'users')]
+    private ?Groupe $code_groupe = null;
+
+    #[ORM\ManyToOne(inversedBy: 'users')]
+    private ?Poste $code_poste = null;
+
+    #[ORM\ManyToOne(inversedBy: 'users')]
+    private ?Services $code_service = null;
+
+    #[ORM\ManyToOne(inversedBy: 'users')]
+    private ?Directions $code_direction = null;
+
+    /**
+     * @var Collection<int, Notification>
+     */
+    #[ORM\OneToMany(targetEntity: Notification::class, mappedBy: 'destinataire')]
+    private Collection $notifications;
+
+    public function __construct()
+    {
+        $this->notifications = new ArrayCollection();
+    }
 
     public function getId(): ?Uuid
     {
@@ -195,6 +220,84 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setActive(?bool $active): static
     {
         $this->active = $active;
+
+        return $this;
+    }
+
+    public function getCodeGroupe(): ?Groupe
+    {
+        return $this->code_groupe;
+    }
+
+    public function setCodeGroupe(?Groupe $code_groupe): static
+    {
+        $this->code_groupe = $code_groupe;
+
+        return $this;
+    }
+
+    public function getCodePoste(): ?Poste
+    {
+        return $this->code_poste;
+    }
+
+    public function setCodePoste(?Poste $code_poste): static
+    {
+        $this->code_poste = $code_poste;
+
+        return $this;
+    }
+
+    public function getCodeService(): ?Services
+    {
+        return $this->code_service;
+    }
+
+    public function setCodeService(?Services $code_service): static
+    {
+        $this->code_service = $code_service;
+
+        return $this;
+    }
+
+    public function getCodeDirection(): ?Directions
+    {
+        return $this->code_direction;
+    }
+
+    public function setCodeDirection(?Directions $code_direction): static
+    {
+        $this->code_direction = $code_direction;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Notification>
+     */
+    public function getNotifications(): Collection
+    {
+        return $this->notifications;
+    }
+
+    public function addNotification(Notification $notification): static
+    {
+        if (!$this->notifications->contains($notification)) {
+            $this->notifications->add($notification);
+            $notification->setDestinataire($this);
+        }
+
+        return $this;
+    }
+
+    public function removeNotification(Notification $notification): static
+    {
+        if ($this->notifications->removeElement($notification)) {
+            // set the owning side to null (unless already changed)
+            if ($notification->getDestinataire() === $this) {
+                $notification->setDestinataire(null);
+            }
+        }
 
         return $this;
     }

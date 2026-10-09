@@ -1,0 +1,191 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Utilisateurs — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Utilisateurs</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title"><img class="me-2" src="{{ asset('icons/users.png') }}" alt=""> Gestion des utilisateurs</h1>
+        <a href="#"  id="btn_add_user" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#modalAddUser">
+            <i class="bi bi-plus text-white"></i> Nouvel Utilisateur
+        </a>
+    </div>
+
+    <!-- Table -->
+    <div class="card-body">
+
+    </div>
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddUser" tabindex="-1" aria-labelledby="modalAddUserLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/user.png') }}" height="40" alt=""> Enregistrer un utilisateur</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formUser"  style="height: 400px;overflow-y: scroll;">
+                        <div class="container">
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="matricule" style="width: 250px;">Matricule</label>
+                            <input type="text" class="input" id="matricule" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="nom" style="width: 250px;">Nom</label>
+                            <input type="text" class="input" id="nom" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="nom" style="width: 250px;">Prénoms</label>
+                            <input type="text" class="input" id="prenoms" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="nom" style="width: 250px;">Email</label>
+                            <input type="email" class="input" id="email">
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="nom" style="width: 250px;">Mot de passe</label>
+                            <input type="password" class="input" id="mdp" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="nom" style="width: 250px;">Confirmer Mot de passe</label>
+                            <input type="password" class="input" id="confirm_mdp" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="nom" style="width: 250px;">Mobile</label>
+                            <input type="text" class="input" id="mobile" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="groupe" style="width: 250px;">Groupe</label>
+                            <select class="" id="groupe" style="width: 100%"></select>
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="service" style="width: 250px;">Service</label>
+                            <select class="" id="service" style="width: 100%"></select>
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="poste" style="width: 250px;">Poste</label>
+                            <select class="" id="poste" style="width: 100%"></select>
+                        </div>
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="admin" style="width: 250px;">Est-il ADMIN ?</label>
+                            <input type="checkbox" class="input" id="admin" style="text-transform: uppercase;">
+                        </div>
+                            <hr>
+                        </div>
+
+                        <div class="row container p-2" style="border: 1px solid lightgrey;background : linear-gradient(155deg,#f2f4f7, #d5e1f6)">
+                            <div class="col-md-4 mb-2 mx-auto text-center">
+                                <span class="fw-bold d-block mb-2">Insérer une photo</span>
+
+                                <!-- Bouton personnalisé -->
+                                <label for="photoUpload" class="btn mb-2" style="cursor: pointer;background: var(--green-200);">
+                                    <img class="p-1" src="{{ asset('icons/telecharger.png') }}" alt="">
+                                    <small>cliquez ici</small>
+                                </label>
+                                <input type="file" id="photoUpload" accept="image/*" hidden>
+                                <small class="text-danger d-block mb-2">
+                                    Photo de moins de 200Ko
+                                </small>
+                            </div>
+                            <div class="col-md-8 mb-2 mx-auto text-center">
+                                <img id="photoPreview" class="mt-2"
+                                     style="height:150px;border:2px dashed #000;object-fit:inherit;"
+                                     src="" alt="Aperçu de la photo">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveUser">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ShowPhoto-->
+    <div class="modal fade" id="modalPhoto" tabindex="-1" aria-labelledby="modalPhotoLabel" aria-hidden="true" data-bs-keyboard="false">
+        <div class="modal-dialog modal-center">
+            <div class="modal-content">
+                <div class="modal-body text-center m-2" style="background: white;border: 1px solid lightgrey;box-shadow: 4px 4px #e4e4e4">
+                    <img class="mx-auto" src="" alt="" id="imgPhoto">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Users.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Groupe.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Service.js') }}"></script>
+    <script src="{{ asset('js/api/admin/poste.js') }}"></script>
+    <script>
+
+        let idUser = 0;
+        getAllUsers(document.querySelector(".card-body"), 1)
+        getAllGroupes(document.getElementById("groupe"), 2)
+        getAllServices(document.getElementById("service"), 2)
+
+        $("#service").on('change', function(){
+            getAllPostesByService(document.getElementById('poste'), 2, this.value)
+        })
+
+        clearForm("formUser", "matricule")
+        uploadImage(document.getElementById('photoUpload'), document.getElementById('photoPreview'));
+
+        ValidateOnKeypress(document.getElementById("matricule"), document.getElementById("saveUser"), "formUser")
+
+        document.querySelector("#btn_add_user").addEventListener("click", function () {
+            clearForm("formUser", "matricule")
+        })
+
+        document.querySelector("#saveUser").addEventListener("click", function () {
+
+            if ((document.getElementById('mdp').value === document.getElementById('confirm_mdp').value) &&
+                document.getElementById('mdp').value !== "" &&
+                document.getElementById('confirm_mdp').value !== "" ){
+                let FormDataUser= new FormData();
+
+            let photoUpload = document.getElementById("photoUpload").files;
+
+            FormDataUser.append('id_user', idUser)
+            FormDataUser.append('nom', document.getElementById("matricule").value)
+            FormDataUser.append('nom', document.getElementById("nom").value)
+            FormDataUser.append('prenoms', document.getElementById("prenoms").value)
+            FormDataUser.append('email', document.getElementById("email").value)
+            FormDataUser.append('mobile', document.getElementById("mobile").value)
+            FormDataUser.append('groupe', document.getElementById("groupe").value)
+            FormDataUser.append('service', document.getElementById("service").value)
+            FormDataUser.append('poste', document.getElementById("poste").value)
+            FormDataUser.append('mdp', document.getElementById("mdp").value)
+            FormDataUser.append('confirm_mdp', document.getElementById("confirm_mdp").value)
+            FormDataUser.append("photo", photoUpload[0]);
+            if (document.querySelector("#admin").checked === true) {
+                FormDataUser.append('admin', "OUI");
+            } else {
+                FormDataUser.append('admin', "NON");
+            }
+            saveUser(FormDataUser, document.querySelector(".card-body"), 1)
+            setTimeout(()=>{
+                clearForm("formUser", "matricule") ;
+            }, 500)
+            } else {
+                showToast("Les mots de passe ne sont pas conformes !", {title : 'Gestion des Utilisateurs', type:'warning'})
+            }
+        })
+
+        $("body").on( "click", ".thumbnail", function(){
+            let id = this.id;
+            $("#modalPhoto").modal('show')
+            document.getElementById("imgPhoto").src = "data/users/photos/" + id
+        })
+    </script>
+{% endblock %}

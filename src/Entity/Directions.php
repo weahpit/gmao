@@ -26,9 +26,16 @@ class Directions
     #[ORM\OneToMany(targetEntity: Services::class, mappedBy: 'code_direction')]
     private Collection $services;
 
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'code_direction')]
+    private Collection $users;
+
     public function __construct()
     {
         $this->services = new ArrayCollection();
+        $this->users = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -72,6 +79,36 @@ class Directions
             // set the owning side to null (unless already changed)
             if ($service->getCodeDirection() === $this) {
                 $service->setCodeDirection(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getUsers(): Collection
+    {
+        return $this->users;
+    }
+
+    public function addUser(User $user): static
+    {
+        if (!$this->users->contains($user)) {
+            $this->users->add($user);
+            $user->setCodeDirection($this);
+        }
+
+        return $this;
+    }
+
+    public function removeUser(User $user): static
+    {
+        if ($this->users->removeElement($user)) {
+            // set the owning side to null (unless already changed)
+            if ($user->getCodeDirection() === $this) {
+                $user->setCodeDirection(null);
             }
         }
 

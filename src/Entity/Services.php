@@ -29,9 +29,23 @@ class Services
     #[ORM\OneToMany(targetEntity: MouvementEquipement::class, mappedBy: 'code_service')]
     private Collection $mouvementEquipements;
 
+    /**
+     * @var Collection<int, Poste>
+     */
+    #[ORM\OneToMany(targetEntity: Poste::class, mappedBy: 'code_service')]
+    private Collection $postes;
+
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'code_service')]
+    private Collection $users;
+
     public function __construct()
     {
         $this->mouvementEquipements = new ArrayCollection();
+        $this->postes = new ArrayCollection();
+        $this->users = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -87,6 +101,66 @@ class Services
             // set the owning side to null (unless already changed)
             if ($mouvementEquipement->getCodeService() === $this) {
                 $mouvementEquipement->setCodeService(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Poste>
+     */
+    public function getPostes(): Collection
+    {
+        return $this->postes;
+    }
+
+    public function addPoste(Poste $poste): static
+    {
+        if (!$this->postes->contains($poste)) {
+            $this->postes->add($poste);
+            $poste->setCodeService($this);
+        }
+
+        return $this;
+    }
+
+    public function removePoste(Poste $poste): static
+    {
+        if ($this->postes->removeElement($poste)) {
+            // set the owning side to null (unless already changed)
+            if ($poste->getCodeService() === $this) {
+                $poste->setCodeService(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getUsers(): Collection
+    {
+        return $this->users;
+    }
+
+    public function addUser(User $user): static
+    {
+        if (!$this->users->contains($user)) {
+            $this->users->add($user);
+            $user->setCodeService($this);
+        }
+
+        return $this;
+    }
+
+    public function removeUser(User $user): static
+    {
+        if ($this->users->removeElement($user)) {
+            // set the owning side to null (unless already changed)
+            if ($user->getCodeService() === $this) {
+                $user->setCodeService(null);
             }
         }
 
