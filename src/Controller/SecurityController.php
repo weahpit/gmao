@@ -30,12 +30,18 @@ class SecurityController extends AbstractController
     {
         throw new \LogicException('This method can be blank - it will be intercepted by the logout key on your firewall.');
     }
-    #[Route('api/login', name: 'app_api_login')]
+    #[Route('/api/login', name: 'api_login', methods: ['POST'])]
     public function apiLogin(#[CurrentUser] ?User $user): JsonResponse
     {
+        // json_login authentifie AVANT le contrôleur ; en cas d'échec il renvoie
+        // automatiquement un 401 JSON. Ici on n'arrive que si succès.
         if (!$user) {
-            return new JsonResponse(['code' => 'error', 'msg' => 'Identifiants invalides'], 401);
+            return $this->json(['code' => 'error', 'msg' => 'Identifiants invalides'], 401);
         }
-        return new JsonResponse(['code' => 'success', 'msg' => 'Connecté', 'user' => $user->getEmail()]);
+        return $this->json([
+            'code' => 'success',
+            'msg'  => 'Connexion réussie',
+            'data' => ['id' => (string) $user->getId(), 'email' => $user->getEmail()],
+        ]);
     }
 }
