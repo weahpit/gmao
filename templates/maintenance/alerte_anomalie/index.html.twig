@@ -11,8 +11,9 @@
 {% block body %}
     <div class="page-header">
         <h1 class="page-title"><img src="{{ asset('icons/warning.png') }}" height="32" class="me-2" alt=""> Alertes Anomalies</h1>
-        <div class="d-flex">
-        </div>
+        <a href="{{ path('get_alertes_maintenance') }}"  id="btn_show_alertes" class="btn btn-primary" >
+            Voir les alertes
+        </a>
     </div>
 
     <!-- Table -->

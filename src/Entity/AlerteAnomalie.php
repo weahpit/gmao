@@ -34,6 +34,12 @@ class AlerteAnomalie
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $preciser_emplacement = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $created_at = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $created_by = null;
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -107,6 +113,30 @@ class AlerteAnomalie
     public function setPreciserEmplacement(?string $preciser_emplacement): static
     {
         $this->preciser_emplacement = $preciser_emplacement;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    public function getCreatedBy(): ?string
+    {
+        return $this->created_by;
+    }
+
+    public function setCreatedBy(?string $created_by): static
+    {
+        $this->created_by = $created_by;
 
         return $this;
     }

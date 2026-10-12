@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr" class="h-full">
 <head>
@@ -196,7 +197,9 @@
 <script src="{{ asset('js/tools/table.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+
     document.addEventListener('DOMContentLoaded', function () {
+        {% if not (app.user) %} document.location.href =  {{ path('app_login') }} {%endif %}
         const ACCORDION = true;   // true = un seul sous-menu ouvert à la fois
 
         const triggers = document.querySelectorAll('.nav-item.has-submenu');

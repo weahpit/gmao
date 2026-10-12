@@ -14,5 +14,9 @@ final class AlerteAnomalieController extends AbstractController
         return $this->render('maintenance/alerte_anomalie/index.html.twig', [
             'controller_name' => 'AlerteAnomalieController',
         ]);
+    }#[Route('/getAlertesMaintenance', name: 'get_alertes_maintenance')]
+    public function get_alertes_maintenance(): Response
+    {
+        return $this->render('maintenance/alerte_anomalie/list.html.twig');
     }
 }

@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20261008102749 extends AbstractMigration
+final class Version20261012093457 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -20,12 +20,14 @@ final class Version20261008102749 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('CREATE TABLE notification (id UUID NOT NULL, libelle VARCHAR(255) DEFAULT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, created_by VARCHAR(255) NOT NULL, reference VARCHAR(255) NOT NULL, type_notification VARCHAR(100) DEFAULT NULL, PRIMARY KEY (id))');
+        $this->addSql('ALTER TABLE alerte_anomalie ADD created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL');
+        $this->addSql('ALTER TABLE alerte_anomalie ADD created_by VARCHAR(255) DEFAULT NULL');
     }
 
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('DROP TABLE notification');
+        $this->addSql('ALTER TABLE alerte_anomalie DROP created_at');
+        $this->addSql('ALTER TABLE alerte_anomalie DROP created_by');
     }
 }

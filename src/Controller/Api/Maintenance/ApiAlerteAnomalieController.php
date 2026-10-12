@@ -20,13 +20,11 @@ final class ApiAlerteAnomalieController extends AbstractController
     #[Route('api/getAllAlertes', name: 'app_api_get_alerte')]
     public function index(): Response
         {
-            if (!$this->getUser()){return $this->redirectToRoute("app_login");}
             $reponse = array();
             $data = array();
-            if ($this->isGranted("ROLE_USER")){
                 try{
                     // Liste des Natures d'équipements
-                    $alertes = $this->em->getRepository(AlerteAnomalie::class)->findBy([], ['nom'=>'ASC']);
+                    $alertes = $this->em->getRepository(AlerteAnomalie::class)->findBy([], ['created_at'=>'DESC']);
                     foreach ($alertes as $alerte){
                         $data[] = array(
                             'id'=>$alerte->getId(),
@@ -42,9 +40,7 @@ final class ApiAlerteAnomalieController extends AbstractController
                 } catch (\Throwable $throwable){
                     $reponse = array('code'=>'error', 'msg'=>'Erreur ! <br>'. $throwable->getMessage());
                 }
-            } else {
-                $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
-            }
+
             return new JsonResponse(json_encode($reponse));
         }
     #[Route('api/getSingleAlerte/{$id_alerte}', name: 'app_api_get_single_alerte')]

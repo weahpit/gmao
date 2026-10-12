@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Alertes— CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Alertes Pannes</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title"><img src="{{ asset('icons/warning.png') }}" height="32" class="me-2" alt=""> Alertes Anomalies</h1>
+        <div class="d-flex">
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="card-body">
+
+        </div>
+    </div>
+
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+    <script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
+    <script src="{{ asset('js/api/maintenance/AlerteAnomalie.js') }}"></script>
+    <script>
+
+        let idMarque = 0;
+        getAllAlerteAnomalie(document.querySelector(".card-body"), 1)
+    </script>
+{% endblock %}

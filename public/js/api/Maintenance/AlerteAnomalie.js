@@ -1,7 +1,7 @@
 function getAllAlerteAnomalie(ctrl_name, ctrl_type){
     let contentCtrl = ''
     $.ajax({
-        url : URL_APP + 'api/getAllAlerteAnomalie',
+        url : URL_APP + 'api/getAllAlertes',
         type : 'POST',
         success: function (response){
             let reponse = JSON.parse(response)
@@ -13,6 +13,7 @@ function getAllAlerteAnomalie(ctrl_name, ctrl_type){
                             <th>Equipement</th>
                             <th>Zone</th>
                             <th>Emplacement</th>
+                            <th class="text-center">Photo</th>
                     </tr></thead>
                     <tbody>
                 `
@@ -22,6 +23,12 @@ function getAllAlerteAnomalie(ctrl_name, ctrl_type){
                     contentCtrl +='<td>' + reponse.data[i].equipement + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].zone + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].emplacement + '</td>'
+                    if (reponse.data[i].photo){
+                        contentCtrl +='<td class="text-center"><a class="btn btn-outline-light" href="data/maintenance/alertes/anomalies/' + reponse.data[i].photo + '" target="_blank"><img src="/icons/photo.png" alt=""></a></td>'
+                    } else {
+                        contentCtrl +='<td><img src="/icons/rien.png" alt=""></td>'
+                    }
+
                     contentCtrl +='<tr>'
                 }
                 contentCtrl +='</tbody></table>';
