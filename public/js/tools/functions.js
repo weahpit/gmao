@@ -52,4 +52,41 @@ function ValidateOnKeypress(input, buttonAction, form){
     })
 }
 
+function couleurAleatoireElegante() {
+    // Palette élégante : tons doux et raffinés
+    const palette = [
+        "#d9d5f0", // Slate Blue
+        "#ced4d9", // Steel Blue
+        "#e1ebf7", // Slate Gray
+        "#B0C4DE", // Light Steel Blue
+        "#d7f6f6", // Dark Slate Gray
+        "#e4f3ca", // Dark Olive Green
+        "#f0d2be", // Saddle Brown
+        "#efe4cd",  // Champagne Gold
+        "#c6e2fa",
+        "#b7f6e9",
+        "#f9c624",
+        "#65d7c0",
+        "#b1daac"
+    ];
 
+    // Choisir une couleur au hasard
+    const index = Math.floor(Math.random() * palette.length);
+    return palette[index];
+}
+
+function executer(fn, render_type) {
+    return new Promise((resolve, reject) => {
+        try {
+            fn(render_type)
+                .then(data => {
+                    resolve(data); // renvoie les données ou le rendu
+                })
+                .catch(err => {
+                    reject("Erreur lors de l'exécution du widget : " + err);
+                });
+        } catch (err) {
+            reject("Exception : " + err.message);
+        }
+    });
+}

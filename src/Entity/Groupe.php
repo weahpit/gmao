@@ -40,10 +40,17 @@ class Groupe
     #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'code_groupe')]
     private Collection $users;
 
+    /**
+     * @var Collection<Uuid, Widget>
+     */
+    #[ORM\ManyToMany(targetEntity: Widget::class, mappedBy: 'code_groupe')]
+    private Collection $widgets;
+
     public function __construct()
     {
         $this->permissions = new ArrayCollection();
         $this->users = new ArrayCollection();
+        $this->widgets = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -147,6 +154,33 @@ class Groupe
             if ($user->getCodeGroupe() === $this) {
                 $user->setCodeGroupe(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<Uuid, Widget>
+     */
+    public function getWidgets(): Collection
+    {
+        return $this->widgets;
+    }
+
+    public function addWidget(Widget $widget): static
+    {
+        if (!$this->widgets->contains($widget)) {
+            $this->widgets->add($widget);
+            $widget->addCodeGroupe($this);
+        }
+
+        return $this;
+    }
+
+    public function removeWidget(Widget $widget): static
+    {
+        if ($this->widgets->removeElement($widget)) {
+            $widget->removeCodeGroupe($this);
         }
 
         return $this;

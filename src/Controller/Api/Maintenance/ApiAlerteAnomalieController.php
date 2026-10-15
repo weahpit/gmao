@@ -121,6 +121,8 @@ final class ApiAlerteAnomalieController extends AbstractController
                         $alerte->setPhoto($filename);
                     }
 
+                    $alerte->setCreatedAt(new \DateTimeImmutable());
+
                     $this->em->persist($alerte);
                     $this->em->flush();
 
@@ -145,7 +147,7 @@ final class ApiAlerteAnomalieController extends AbstractController
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
                 $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_alerte);
-                $alerte = $this->em->getRepository(Alerte::class)->find($uuid);
+                $alerte = $this->em->getRepository(AlerteAnomalie::class)->find($uuid);
 
                 if ($alerte){
                     $this->em->remove($alerte);

@@ -15,29 +15,66 @@ class AlerteAnomalieRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, AlerteAnomalie::class);
     }
+    public function countByDayOfCurrentMonthNative(): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
 
-//    /**
-//     * @return AlerteAnomalie[] Returns an array of AlerteAnomalie objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('a')
-//            ->andWhere('a.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('a.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+        $sql = "
+        SELECT DATE_PART('day', created_at) AS day, COUNT(id) AS total
+        FROM alerte_anomalie
+        WHERE created_at BETWEEN :start AND :end
+        GROUP BY day
+        ORDER BY day ASC
+    ";
 
-//    public function findOneBySomeField($value): ?AlerteAnomalie
-//    {
-//        return $this->createQueryBuilder('a')
-//            ->andWhere('a.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+        $start = new \DateTimeImmutable('first day of this month midnight');
+        $end   = new \DateTimeImmutable('last day of this month 23:59:59');
+
+        $rows = $conn->executeQuery($sql, [
+            'start' => $start->format('Y-m-d H:i:s'),
+            'end'   => $end->format('Y-m-d H:i:s'),
+        ])->fetchAllAssociative();
+
+        // ⚡ Compléter les jours manquants
+        $daysInMonth = (int)$end->format('t'); // nombre de jours du mois
+        $result = [];
+        for ($i = 1; $i <= $daysInMonth; $i++) {
+            $result[$i] = 0;
+        }
+        foreach ($rows as $row) {
+            $result[(int)$row['day']] = (int)$row['total'];
+        }
+
+        // Transformer en tableau [{day:1,total:0}, ...]
+        $final = [];
+        foreach ($result as $day => $total) {
+            $final[] = ['day' => $day, 'total' => $total];
+        }
+
+        return $final;
+    }
+
+    public function countByZoneOfCurrentMonth(): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+
+        $sql = "
+        SELECT zone_exploitation.nom as zone, COUNT(alerte_anomalie.id) AS total
+        FROM alerte_anomalie, zone_exploitation
+        WHERE zone_exploitation.id = alerte_anomalie.zone_id and created_at BETWEEN :start AND :end
+        GROUP BY zone_exploitation.nom
+        ORDER BY zone_exploitation.nom ASC
+    ";
+
+        $start = new \DateTimeImmutable('first day of this month midnight');
+        $end   = new \DateTimeImmutable('last day of this month 23:59:59');
+
+        $rows = $conn->executeQuery($sql, [
+            'start' => $start->format('Y-m-d H:i:s'),
+            'end'   => $end->format('Y-m-d H:i:s'),
+        ])->fetchAllAssociative();
+
+        return $rows;
+    }
+
 }

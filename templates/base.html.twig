@@ -44,7 +44,7 @@
             <div class="nav-section">
                 <span class="nav-section-title">Principal</span>
 
-                <a href="#" class="nav-item {{ app.request.attributes.get('_route') starts with 'dashboard' ? 'active' }}">
+                <a href="{{ path('app_dashboard') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'dashboard' ? 'active' }}">
                     <i data-lucide="layout-dashboard"></i>
                     <span class="nav-label">Tableau de bord</span>
                 </a>
@@ -196,6 +196,7 @@
 <script src="{{ asset('js/tools/showToast.js') }}"></script>
 <script src="{{ asset('js/tools/table.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
 
     document.addEventListener('DOMContentLoaded', function () {

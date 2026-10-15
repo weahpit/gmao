@@ -1,4 +1,4 @@
-function getAllGroupes(ctrl_name, ctrl_type){
+function getAllGroupes(ctrl_name, ctrl_type, value=false){
     let contentCtrl = ''
     $.ajax({
         url : URL_APP + 'api/getAllGroupes',
@@ -20,7 +20,10 @@ function getAllGroupes(ctrl_name, ctrl_type){
                 }
                 contentCtrl +='</tbody></table>';
             } else {
-                contentCtrl += '<option value="0">-- Groupes --</option>'
+                if (value === true){
+                    contentCtrl += '<option value="0">-- Groupes --</option>'
+                }
+
                 for (var i=0;i < reponse.data.length;i++) {
                     contentCtrl += '<option value="' + reponse.data[i].id + '"  style="text-transform: uppercase;">' + reponse.data[i].groupe + '</option>'
                 }

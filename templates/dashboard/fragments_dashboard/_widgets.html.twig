@@ -1,0 +1,16 @@
+<div class="row div_dashboard p-2"></div>
+
+<script>
+    let id_groupe = "0"
+    {%  if (app.user) %}
+        {% if (app.user.codeGroupe) %}
+            id_groupe = "{{  app.user.codeGroupe.id }}"
+         {% endif %}
+    {% endif %}
+
+    getTdbByGroupe(id_groupe, document.querySelector(".div_dashboard"))
+
+    setInterval(()=>{
+        getTdbByGroupe(id_groupe, document.querySelector(".div_dashboard"))
+    }, 30000)
+</script>

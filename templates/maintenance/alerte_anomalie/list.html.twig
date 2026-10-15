@@ -26,12 +26,12 @@
     <script src="{{ asset('js/external/jquery.js') }}"></script>
     <script src="{{ asset('js/tools/functions.js') }}"></script>
     <script src="{{ asset('js/tools/showToast.js') }}"></script>
-    <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
-    <script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
-    <script src="{{ asset('js/api/maintenance/AlerteAnomalie.js') }}"></script>
+    <script src="{{ asset('js/api/Maintenance/AlerteAnomalie.js') }}"></script>
     <script>
 
-        let idMarque = 0;
         getAllAlerteAnomalie(document.querySelector(".card-body"), 1)
+        setInterval(()=>{
+            getAllAlerteAnomalie(document.querySelector(".card-body"), 1)
+        }, 3000)
     </script>
 {% endblock %}
