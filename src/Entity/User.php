@@ -73,7 +73,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $notifications;
 
     /**
-     * @var Collection<int, CAppTdb>
+     * @var Collection<Uuid, CAppTdb>
      */
     #[ORM\OneToMany(targetEntity: CAppTdb::class, mappedBy: 'code_user')]
     private Collection $cAppTdbs;
@@ -310,7 +310,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return Collection<int, CAppTdb>
+     * @return Collection<Uuid, CAppTdb>
      */
     public function getCAppTdbs(): Collection
     {
@@ -338,5 +338,4 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
-
 }

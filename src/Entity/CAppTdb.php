@@ -3,62 +3,30 @@
 namespace App\Entity;
 
 use App\Repository\CAppTdbRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: CAppTdbRepository::class)]
 class CAppTdb
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
-
-    /**
-     * @var Collection<int, Widget>
-     */
-    #[ORM\ManyToMany(targetEntity: Widget::class, inversedBy: 'cAppTdbs')]
-    private Collection $code_widget;
+    #[ORM\Column(type: 'uuid', unique: true)]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    private ?Uuid $id = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $ordre = null;
 
     #[ORM\ManyToOne(inversedBy: 'cAppTdbs')]
-    private ?user $code_user = null;
+    private ?Widget $code_gadget = null;
 
-    public function __construct()
-    {
-        $this->code_widget = new ArrayCollection();
-    }
+    #[ORM\ManyToOne(inversedBy: 'cAppTdbs')]
+    private ?User $code_user = null;
 
-    public function getId(): ?int
+    public function getId(): ?Uuid
     {
         return $this->id;
-    }
-
-    /**
-     * @return Collection<int, Widget>
-     */
-    public function getCodeWidget(): Collection
-    {
-        return $this->code_widget;
-    }
-
-    public function addCodeWidget(Widget $codeWidget): static
-    {
-        if (!$this->code_widget->contains($codeWidget)) {
-            $this->code_widget->add($codeWidget);
-        }
-
-        return $this;
-    }
-
-    public function removeCodeWidget(Widget $codeWidget): static
-    {
-        $this->code_widget->removeElement($codeWidget);
-
-        return $this;
     }
 
     public function getOrdre(): ?int
@@ -73,15 +41,28 @@ class CAppTdb
         return $this;
     }
 
-    public function getCodeUser(): ?user
+    public function getCodeGadget(): ?Widget
+    {
+        return $this->code_gadget;
+    }
+
+    public function setCodeGadget(?Widget $code_gadget): static
+    {
+        $this->code_gadget = $code_gadget;
+
+        return $this;
+    }
+
+    public function getCodeUser(): ?User
     {
         return $this->code_user;
     }
 
-    public function setCodeUser(?user $code_user): static
+    public function setCodeUser(?User $code_user): static
     {
         $this->code_user = $code_user;
 
         return $this;
     }
+
 }

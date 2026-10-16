@@ -3,6 +3,7 @@
 namespace App\Controller\Api\Admin;
 
 use App\Controller\GroupeController;
+use App\Entity\CAppTdb;
 use App\Entity\Groupe;
 use App\Entity\Widget;
 use App\Entity\Services;
@@ -63,24 +64,40 @@ final class ApiWidgetController extends AbstractController
             $reponse = array();
             $data = array();
 
+            /*try{
+                // Liste des Widgets
+                $UuidGroupe = Uuid::fromString($id_groupe);
+                $groupe = $this->em->getRepository(Groupe::class)->find($UuidGroupe);
+                $widgets = $this->em->getRepository(Widget::class)->findBy([], ['id'=>'ASC']);
+                //dd($widgets);
+                foreach ($widgets as $widget){
+                    // vérifie si le groupe est presents dans les goupes du widget
+                    if ($widget->getCodeGroupe()->contains($groupe)){
+                        $data[] = array(
+                            'id'=>$widget->getId(),
+                            'widget'=>$widget->getLibelle(),
+                            'reference'=>$widget->getReference(),
+                            'width'=>$widget->getWidth() ? $widget->getWidth()  : 0,
+                            'app_js'=>$widget->getAppJs(),
+                            'render_type'=>$widget->getRenderType()
+                        );
+                    }
+                }*/
                 try{
                     // Liste des Widgets
                     $UuidGroupe = Uuid::fromString($id_groupe);
                     $groupe = $this->em->getRepository(Groupe::class)->find($UuidGroupe);
-                    $widgets = $this->em->getRepository(Widget::class)->findBy([], ['id'=>'ASC']);
+                    $widgets = $this->em->getRepository(CAppTdb::class)->findBy(['code_user'=>$this->getUser()], ['ordre'=>'ASC']);
                     //dd($widgets);
                     foreach ($widgets as $widget){
-                        // vérifie si le groupe est presents dans les goupes du widget
-                        if ($widget->getCodeGroupe()->contains($groupe)){
                             $data[] = array(
                                 'id'=>$widget->getId(),
-                                'widget'=>$widget->getLibelle(),
-                                'reference'=>$widget->getReference(),
-                                'width'=>$widget->getWidth() ? $widget->getWidth()  : 0,
-                                'app_js'=>$widget->getAppJs(),
-                                'render_type'=>$widget->getRenderType()
+                                'widget'=>$widget->getCodeGadget()->getLibelle(),
+                                'reference'=>$widget->getCodeGadget()->getReference(),
+                                'width'=>$widget->getCodeGadget()->getWidth() ? $widget->getCodeGadget()->getWidth()  : 0,
+                                'app_js'=>$widget->getCodeGadget()->getAppJs(),
+                                'render_type'=>$widget->getCodeGadget()->getRenderType()
                             );
-                        }
                     }
 
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);

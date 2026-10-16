@@ -41,8 +41,9 @@ class Widget
     /**
      * @var Collection<int, CAppTdb>
      */
-    #[ORM\ManyToMany(targetEntity: CAppTdb::class, mappedBy: 'code_widget')]
+    #[ORM\OneToMany(targetEntity: CAppTdb::class, mappedBy: 'code_gadget')]
     private Collection $cAppTdbs;
+
 
     public function __construct()
     {
@@ -151,7 +152,7 @@ class Widget
     {
         if (!$this->cAppTdbs->contains($cAppTdb)) {
             $this->cAppTdbs->add($cAppTdb);
-            $cAppTdb->addCodeWidget($this);
+            $cAppTdb->setCodeGadget($this);
         }
 
         return $this;
@@ -160,7 +161,10 @@ class Widget
     public function removeCAppTdb(CAppTdb $cAppTdb): static
     {
         if ($this->cAppTdbs->removeElement($cAppTdb)) {
-            $cAppTdb->removeCodeWidget($this);
+            // set the owning side to null (unless already changed)
+            if ($cAppTdb->getCodeGadget() === $this) {
+                $cAppTdb->setCodeGadget(null);
+            }
         }
 
         return $this;

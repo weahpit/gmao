@@ -43,11 +43,91 @@
             background: #f8f9fa;   /* couleur de fond */
             z-index: 2;            /* reste au-dessus */
         }
+        .gadget-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .gadget-item {
+            display: flex;
+            align-items: center;
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .gadget-item:hover {
+            background: #eef2ff;
+            border-color: #6366f1;
+        }
+
+        .gadget-item input[type="checkbox"] {
+            display: none;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #6366f1;
+            border-radius: 4px;
+            margin-right: 10px;
+            position: relative;
+        }
+
+        .gadget-item input[type="checkbox"]:checked + .checkmark {
+            background: #6366f1;
+        }
+
+        .gadget-item input[type="checkbox"]:checked + .checkmark::after {
+            content: "✔";
+            color: white;
+            font-size: 14px;
+            position: absolute;
+            top: -2px;
+            left: 3px;
+        }
+
+        .label {
+            font-weight: 500;
+            color: #374151;
+        }
 
     </style>
 
     <div class="page-header">
         <h1 class="page-title"><img src="{{ asset('icons/tdb.png') }}" class="me-2" alt="" height="64"> Mon tableau de bord</h1>
+        <div class="dropdown">
+            <a href="#"  id="btn_add_emplacement" class="btn btn-light  dropdown-toggle"  role="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 20px;border: 1px solid lightgrey;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings preview-icon"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>
+                Personnalisez votre tableau de bord
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item me-2" href="#" data-bs-toggle = "modal" data-bs-target="#reorganiseModal"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-line-dot-top-vertical preview-icon"><path d="M12 9v12"/><circle cx="12" cy="6" r="3"/></svg>Ré-Ordonner les widgets</a></li>
+                <li><a class="dropdown-item me-2" href="#"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-line-dot-top-vertical preview-icon"><path d="M12 9v12"/><circle cx="12" cy="6" r="3"/></svg>Activer / Désactiver les widgets</a></li>
+            </ul>
+        </div>
+    </div>
+
+    {# Modal Réorganise les gadgets #}
+    <div class="modal fade" id="reorganiseModal" tabindex="-1" aria-labelledby="modalAddEqLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg modal-center">
+            <div class="modal-content" style="border-radius: 0;">
+                <div class="modal-header" style="background: #ececec;color:black;">
+                    <h4>Réorganiser vos widgets</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="fw-bold">Ordonnez vos gadgets par priorité</h6>
+                    <p>le sens d'ordre se fait de la gauche vers la droite et du haut vers le bas</p>
+                    <div class="p-2 border border-1 border-secondary mt-2 mb-2 div_order" style="min-height: 200px;max-height: 400px;overflow-y: scroll;"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="{{ asset('js/external/jquery.js') }}"></script>
@@ -58,6 +138,14 @@
     <script src="{{ asset('js/api/admin/Tdb/AlertesAnomalies.js') }}"></script>
 
     <hr>
+    <script>
+        let id_groupe = "0"
+        {%  if (app.user) %}
+            {% if (app.user.codeGroupe) %}
+                id_groupe = "{{  app.user.codeGroupe.id }}"
+            {% endif %}
+        {% endif %}
+    </script>
     {% include 'dashboard/fragments_dashboard/_points_cles.html.twig' %}
 
     <div class="p-2" style="border: #b9b9b9 1px solid;min-height: 500px;background: linear-gradient(135deg, #efefef, #f8f9fd);/*max-height: 700px;overflow-y: scroll;*/">
@@ -65,6 +153,20 @@
     </div>
 
     <script>
+        getDisplayedTdbByGroupe(document.querySelector(".div_order"))
 
+        document.querySelectorAll('.gadget-item input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', () => {
+                console.log("Sélectionné :", cb.value, cb.checked);
+            });
+        });
+        $("body").on('click', '.btn-down', function(){
+            let id_groupe = this.id;
+            setOrderedDown(id_groupe, document.querySelector(".div_order"))
+        })
+        $("body").on('click', '.btn-up', function(){
+            let id_groupe = this.id;
+            setOrderedUp(id_groupe, document.querySelector(".div_order"))
+        })
     </script>
 {% endblock %}
