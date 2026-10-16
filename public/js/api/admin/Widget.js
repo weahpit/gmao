@@ -16,7 +16,7 @@ function getAllWidgets(ctrl_name, ctrl_type){
                     <tbody>
                 `
                 for (var i=0;i < reponse.data.length;i++){
-                    contentCtrl +='<tr>'
+                    contentCtrl +='<tr class="wgt" id="' + reponse.data[i].id + '">'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].widget + '</a></td>'
                     contentCtrl +='<td class="text-center fw-bold">' + reponse.data[i].width + '</td>'
                     contentCtrl +='<td class="text-center fw-bold">';
@@ -91,6 +91,8 @@ function saveWidget(formData, ctrl_name, ctrl_type){
             })
             if (data.code === "success") {
                 clearForm("formWidget", "widget")
+                choices.removeActiveItems();
+                output.textContent = range.value;
                 document.getElementById("groupe").value = null;
                 getAllWidgets(ctrl_name, ctrl_type)
             }
@@ -109,26 +111,15 @@ function deleteWidget(id_nature_equipement){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Widget', duration: 4000}));
 }
-function getSingleWidget(id_nature_equipement) {
+function getSingleWidget(formData) {
     return new Promise((resolve, reject) => {
-        $.ajax({
-            url:  URL_APP + 'api/getSingleWidget' + id_nature_equipement,
-            type: 'POST',
-            success: function(response) {
-                if (response.code === "success") {
-                    resolve(response); // renvoie l'objet au .then()
-                } else {
-                    showToast(data.msg, {
-                        type : data.code,
-                        duration: 4000,
-                        title: 'Widget'
-                    })
-                }
-            },
-            error: function(err) {
-                showToast("❌ Erreur : " + err, {title: 'Widget', duration: 4000});
-            }
-        });
+        fetch( URL_APP + "api/getSingleWidget", { method: "POST", body: formData })
+            .then(res => res.json())
+            .then(data => {
+                resolve(data); // renvoie l'objet au .then()
+            })
+            .catch(err => showToast("❌ Erreur : " + err, {title: 'Widget', duration: 4000}));
+
     });
 }
 function getParentWidget(ctrl_name){

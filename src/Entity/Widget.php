@@ -38,9 +38,16 @@ class Widget
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $app_js = null;
 
+    /**
+     * @var Collection<int, CAppTdb>
+     */
+    #[ORM\ManyToMany(targetEntity: CAppTdb::class, mappedBy: 'code_widget')]
+    private Collection $cAppTdbs;
+
     public function __construct()
     {
         $this->code_groupe = new ArrayCollection();
+        $this->cAppTdbs = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -128,6 +135,33 @@ class Widget
     public function setAppJs(?string $app_js): static
     {
         $this->app_js = $app_js;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, CAppTdb>
+     */
+    public function getCAppTdbs(): Collection
+    {
+        return $this->cAppTdbs;
+    }
+
+    public function addCAppTdb(CAppTdb $cAppTdb): static
+    {
+        if (!$this->cAppTdbs->contains($cAppTdb)) {
+            $this->cAppTdbs->add($cAppTdb);
+            $cAppTdb->addCodeWidget($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCAppTdb(CAppTdb $cAppTdb): static
+    {
+        if ($this->cAppTdbs->removeElement($cAppTdb)) {
+            $cAppTdb->removeCodeWidget($this);
+        }
 
         return $this;
     }

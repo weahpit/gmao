@@ -72,9 +72,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Notification::class, mappedBy: 'destinataire')]
     private Collection $notifications;
 
+    /**
+     * @var Collection<int, CAppTdb>
+     */
+    #[ORM\OneToMany(targetEntity: CAppTdb::class, mappedBy: 'code_user')]
+    private Collection $cAppTdbs;
+
     public function __construct()
     {
         $this->notifications = new ArrayCollection();
+        $this->cAppTdbs = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -296,6 +303,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($notification->getDestinataire() === $this) {
                 $notification->setDestinataire(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, CAppTdb>
+     */
+    public function getCAppTdbs(): Collection
+    {
+        return $this->cAppTdbs;
+    }
+
+    public function addCAppTdb(CAppTdb $cAppTdb): static
+    {
+        if (!$this->cAppTdbs->contains($cAppTdb)) {
+            $this->cAppTdbs->add($cAppTdb);
+            $cAppTdb->setCodeUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCAppTdb(CAppTdb $cAppTdb): static
+    {
+        if ($this->cAppTdbs->removeElement($cAppTdb)) {
+            // set the owning side to null (unless already changed)
+            if ($cAppTdb->getCodeUser() === $this) {
+                $cAppTdb->setCodeUser(null);
             }
         }
 

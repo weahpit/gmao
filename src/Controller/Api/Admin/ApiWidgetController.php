@@ -35,7 +35,7 @@ final class ApiWidgetController extends AbstractController
                         $groupes = $widget->getCodeGroupe();
                         $data_groupe = array();
                         foreach ($groupes as  $groupe){
-                            $data_groupe[] = array('groupe'=>$groupe->getNomGroupe());
+                            $data_groupe[] = array('id'=>$groupe->getId(), 'groupe'=>$groupe->getNomGroupe());
                         }
                         $data[] = array(
                             'id'=>$widget->getId(),
@@ -90,21 +90,32 @@ final class ApiWidgetController extends AbstractController
 
             return new JsonResponse(json_encode($reponse));
         }
-    #[Route('api/getSingleWidget/{$id_widget}', name: 'app_api_get_single_widget')]
-    public function app_api_get_single_widget(int $id_widget): Response
+    #[Route('api/getSingleWidget', name: 'app_api_get_single_widget')]
+    public function app_api_get_single_widget(Request $request): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
-                $widget = $this->em->getRepository(Widget::class)->find($id_widget);
+                $id_widget = $request->request->get('id_widget');
+                $UuidWidget = Uuid::fromString($id_widget);
+                $widget = $this->em->getRepository(Widget::class)->find($UuidWidget);
 
             if ($widget){
+                $groupes = $widget->getCodeGroupe();
+                $data_groupe = array();
+
+                foreach ($groupes as  $groupe){
+                    $data_groupe[] = array('id'=>$groupe->getId(), 'groupe'=>$groupe->getNomGroupe());
+                }
+
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
+                    'id'=>$widget->getId(),
                     'widget'=>$widget->getLibelle(),
-                    'width'=>$widget->getWidth() ? $widget->getWidth()  : 0,
+                    'width'=>$widget->getWidth() ? $widget->getWidth() : 0,
+                    'groupes'=>$data_groupe,
                     'app_js'=>$widget->getAppJs(),
                     'render_type'=>$widget->getRenderType()
                 );
@@ -134,25 +145,35 @@ final class ApiWidgetController extends AbstractController
                 $libelle_widget = $request->request->get('widget');
                 $width = $request->request->get('width');
                 $code_groupe = $request->request->get('groupe');
-                $reference = $request->request->get('reference');
                 $render_type = $request->request->get('render_type');
                 $app_js = $request->request->get('app_js');
 
-                if (!$libelle_widget || !$width || !$reference || !$render_type || !$app_js) {
+                if (!$libelle_widget || !$width || !$render_type || !$app_js) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs!'];
                 } else {
-                        $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_widget);
+                        if ($id_widget == "0"){
+                            $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_widget);
+                        } else{
+                            $uuid = Uuid::fromString($id_widget);
+                        }
 
                     $widget = $this->em->getRepository(Widget::class)->find($uuid);
                     $isNew = false;
                     if (!$widget) {
                         $widget = new Widget();
                         $isNew = true;
+                    } else {
+                        $groupes = $widget->getCodeGroupe();
+                        if ($groupes){
+                            // Supprimer les groupes
+                            foreach ($groupes as $grp){
+                                $widget->removeCodeGroupe($grp);
+                            }
+                        }
                     }
 
                     $widget->setLibelle($libelle_widget);
                     $widget->setWidth((int) $width);
-                    $widget->setReference($reference);
                     $widget->setRenderType($render_type);
                     $widget->setAppJs($app_js);
 
@@ -161,8 +182,8 @@ final class ApiWidgetController extends AbstractController
                     foreach ($liste_groupe as $id_groupe){
                         $uuid_groupe = Uuid::fromString($id_groupe);
                         $groupe = $this->em->getRepository(Groupe::class)->find($uuid_groupe);
-// stock_alertes_pdr
-// derniers_mouvements_stocks
+            // stock_alertes_pdr
+            // derniers_mouvements_stocks
                         if ($groupe){
                             $widget->addCodeGroupe($groupe);
                         }
@@ -207,6 +228,31 @@ final class ApiWidgetController extends AbstractController
                         'msg'=>'Merci de sélectionner un widget !'
                     );
                 }
+
+            } catch (\Throwable $throwable) {
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+    #[Route('api/deleteWidgets', name: 'app_api_delete_widgets')]
+    public function app_api_delete_widgets(Request $request): Response
+    {
+        $reponse = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN")) {
+            try {
+                $widgets = $this->em->getRepository(Widget::class)->findAll();
+
+                foreach ($widgets as $widget){
+                    foreach ($widget->getCodeGroupe() as $groupe) {
+                        $groupe->removeWidget($widget);
+                    }
+                    $this->em->remove($widget);
+                }
+                $this->em->flush();
 
             } catch (\Throwable $throwable) {
                 $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
