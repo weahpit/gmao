@@ -24,6 +24,16 @@ class CAppTdb
     #[ORM\ManyToOne(inversedBy: 'cAppTdbs')]
     private ?User $code_user = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?bool $visible = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $width = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $render_type = null;
+
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -61,6 +71,42 @@ class CAppTdb
     public function setCodeUser(?User $code_user): static
     {
         $this->code_user = $code_user;
+
+        return $this;
+    }
+
+    public function isVisible(): ?bool
+    {
+        return $this->visible;
+    }
+
+    public function setVisible(?bool $visible): static
+    {
+        $this->visible = $visible;
+
+        return $this;
+    }
+
+    public function getWidth(): ?int
+    {
+        return $this->width;
+    }
+
+    public function setWidth(?int $width): static
+    {
+        $this->width = $width;
+
+        return $this;
+    }
+
+    public function getRenderType(): ?string
+    {
+        return $this->render_type;
+    }
+
+    public function setRenderType(?string $render_type): static
+    {
+        $this->render_type = $render_type;
 
         return $this;
     }

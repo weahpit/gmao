@@ -30,14 +30,15 @@ final class ApiCAppTdbController extends AbstractController
                 try{
                     // Liste des Widgets
 
-                    $widgets = $this->em->getRepository(CAppTdb::class)->findBy(['code_user'=>$this->getUser()], ['ordre'=>'ASC']);
+                    $widgets = $this->em->getRepository(CAppTdb::class)->findBy(['code_user'=>$this->getUser(), 'visible'=>true], ['ordre'=>'ASC']);
                     //dd($widgets);
                     foreach ($widgets as $widget){
                         // vérifie si le groupe est presents dans les goupes du widget
                             $data[] = array(
                                 'id'=>$widget->getId(),
                                 'ordre'=>$widget->getOrdre(),
-                                'widget'=>$widget->getCodeGadget()?$widget->getCodeGadget()->getLibelle() : ""
+                                'widget'=>$widget->getCodeGadget()?$widget->getCodeGadget()->getLibelle() : "",
+                                'visible'=>$widget->isVisible() ? 'OUI' : 'NON'
                             );
                     }
 
@@ -48,6 +49,35 @@ final class ApiCAppTdbController extends AbstractController
 
             return new JsonResponse(json_encode($reponse));
         }
+    #[Route('api/getCustomWidgetsTdb', name: 'getCustomWidgetsTdb')]
+    public function getCustomWidgetsTdb(): Response
+    {
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        $reponse = array();
+        $data = array();
+
+        try{
+            // Liste des Widgets
+
+            $widgets = $this->em->getRepository(CAppTdb::class)->findBy(['code_user'=>$this->getUser()], ['ordre'=>'ASC']);
+            //dd($widgets);
+            foreach ($widgets as $widget){
+                // vérifie si le groupe est presents dans les goupes du widget
+                $data[] = array(
+                    'id'=>$widget->getId(),
+                    'ordre'=>$widget->getOrdre(),
+                    'widget'=>$widget->getCodeGadget()?$widget->getCodeGadget()->getLibelle() : "",
+                    'visible'=>$widget->isVisible() ? 'OUI' : 'NON'
+                );
+            }
+
+            $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
+        } catch (\Throwable $throwable){
+            $reponse = array('code'=>'error', 'msg'=>'Erreur ! <br>'. $throwable->getMessage());
+        }
+
+        return new JsonResponse(json_encode($reponse));
+    }
 
     #[Route('api/setOrderedDown/{id_gadget}', name: 'setOrderedDown')]
     public function setOrderedDown($id_gadget): Response
@@ -103,6 +133,30 @@ final class ApiCAppTdbController extends AbstractController
                     $this->em->flush();
                     $reponse = array('code'=>'success', 'msg'=>'Succès');
                 }
+            }
+        } catch (\Throwable $throwable){
+            $reponse = array('code'=>'error', 'msg'=>'Erreur ! <br>'. $throwable->getMessage());
+        }
+        return new JsonResponse(json_encode($reponse));
+    }
+
+    #[Route('api/setGadgetVisible/{id_gadget}/{value}', name: 'setGadgetVisible')]
+    public function setGadgetVisible($id_gadget, string $value): Response
+    {
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        $reponse = array();
+        try{
+            // Liste des Widgets
+            $gadget = $this->em->getRepository(CAppTdb::class)->find(Uuid::fromString($id_gadget));
+
+            if ($gadget){
+                if ($value == "1"){ $visible = true;} else {$visible = false;}
+
+                $gadget->setVisible($visible);
+                $this->em->persist($gadget);
+                $this->em->flush();
+
+                $reponse = array('code'=>'error', 'msg'=>'Gadget mis à jour avec succès !');
             }
         } catch (\Throwable $throwable){
             $reponse = array('code'=>'error', 'msg'=>'Erreur ! <br>'. $throwable->getMessage());

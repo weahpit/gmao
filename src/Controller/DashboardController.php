@@ -37,7 +37,8 @@ final class DashboardController extends AbstractController
 
                 if ($widgets){
                     // Vérifie que l'utilisateur a une personnalisation de widgets
-                    // (Si OUI recupere les widgets en cours. Si NON, On les recréé)
+                    // (Si OUI récupère les widgets en cours. Si NON, On les recréé)
+
                     $customWidgets = $user->getCAppTdbs();
                     // dd($customWidgets->count());
                     if ($customWidgets->count() == 0){
@@ -49,13 +50,52 @@ final class DashboardController extends AbstractController
                             $customW->setOrdre($i);
                             $customW->setCodeGadget($widget);
                             $customW->setCodeUser($user);
+                            $customW->setVisible(true);
+                            $customW->setWidth($widget->getWidth());
+                            $customW->setRenderType($widget->getRenderType());
 
                             $this->em->persist($customW);
                         }
 
-                        $this->em->flush();
                         $reponse = array('code'=>'success', 'msg'=>'La liste des gadgets a été mise à jour !');
+                    } else {
+                        // S'assurer des nouveaux gadgets
+                        foreach ($widgets as $widget){ // Parcours les widgets du groupe
+                           /*recherche si le widget appartient aux customs widgets*/
+                            $customW = $this->em->getRepository(CAppTdb::class)->findOneBy(['code_user'=>$user, 'code_gadget'=>$widget]);
+                            if (!$customW){
+                                $customW = new CAppTdb();
+                                $customW->setOrdre($customWidgets->count() + 1);
+                                $customW->setCodeGadget($widget);
+                                $customW->setCodeUser($user);
+                                $customW->setVisible(true);
+                                $customW->setWidth($widget->getWidth());
+                                $customW->setRenderType($widget->getRenderType());
+                                $this->em->persist($customW);
+                            }
+                        }
+
+                        // Vérifie  si le gadget customisé a été retiré de votre liste personnalisée
+                            foreach ($customWidgets as $customWidget){
+                                // Vérifie si CustomWidget appartient aux widget du groupe
+                                if (! $widgets->contains($customWidget->getCodeGadget())){
+                                    $this->em->remove($customWidget);
+                                }
+                            }
+
+                        }
+
+                    // Réorganisation générale des gadgets dans votre liste
+
+                    $customW = $this->em->getRepository(CAppTdb::class)->findBy(['code_user'=>$user], ['visible'=>'DESC','ordre'=>'ASC']);
+                    $j = 1;
+                    foreach ($customW as $value){
+                        $counter = (int) $j+1;
+                        $value->setOrdre($j++);
+                        $this->em->persist($value);
                     }
+
+                    $this->em->flush();
                 }
 
             } else {

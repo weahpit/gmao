@@ -67,7 +67,7 @@
         }
 
         .gadget-item input[type="checkbox"] {
-            display: none;
+            /*display: none;*/
         }
 
         .checkmark {
@@ -108,7 +108,7 @@
             </a>
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item me-2" href="#" data-bs-toggle = "modal" data-bs-target="#reorganiseModal"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-line-dot-top-vertical preview-icon"><path d="M12 9v12"/><circle cx="12" cy="6" r="3"/></svg>Ré-Ordonner les widgets</a></li>
-                <li><a class="dropdown-item me-2" href="#"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-line-dot-top-vertical preview-icon"><path d="M12 9v12"/><circle cx="12" cy="6" r="3"/></svg>Activer / Désactiver les widgets</a></li>
+                <li><a class="dropdown-item me-2" href="#" data-bs-toggle = "modal" data-bs-target="#afficheWidgetModal"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-line-dot-top-vertical preview-icon"><path d="M12 9v12"/><circle cx="12" cy="6" r="3"/></svg>Activer / Désactiver les widgets</a></li>
             </ul>
         </div>
     </div>
@@ -124,8 +124,61 @@
                 <div class="modal-body">
                     <h6 class="fw-bold">Ordonnez vos gadgets par priorité</h6>
                     <p>le sens d'ordre se fait de la gauche vers la droite et du haut vers le bas</p>
-                    <div class="p-2 border border-1 border-secondary mt-2 mb-2 div_order" style="min-height: 200px;max-height: 400px;overflow-y: scroll;"></div>
+                    <div class="p-2 mt-2 mb-2 div_order" style="min-height: 200px;max-height: 400px;overflow-y: scroll;border: 1px solid lightgrey;box-shadow: 3px 3px #e3e3e3;background: #eeeeee;"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+
+    {# Modal Affiche les gadgets #}
+    <div class="modal fade" id="afficheWidgetModal" tabindex="-1" aria-labelledby="modalAddEqLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg modal-center">
+            <div class="modal-content" style="border-radius: 0;">
+                <div class="modal-header" style="background: #ececec;color:black;">
+                    <h4>Afficher vos widgets</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="fw-bold">Décidez des gadgets que vous voulez afficher sur votre tableau de bord</h6>
+                    <div class="p-2 mt-2 mb-2 div_display_widgets" style="min-height: 200px;max-height: 400px;overflow-y: scroll;border: 1px solid lightgrey;box-shadow: 3px 3px #e3e3e3;background: #eeeeee;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalEditWidget" tabindex="-1" aria-labelledby="modalAddWidgetLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h4 class="modal-title fs-5" id="lblWidget"></h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="#" id="formWidget">
+                    <div class="modal-body" style="background: rgba(248,252,248,0.52)">
+                        <h5 class="text-danger mb-2">Personnaliser le gadget...</h5>
+                        <div class="p-1 mb-2" style="border:  1px solid #e4f8e4;background: rgba(200,215,173,0.85);">
+                            <div class="d-flex justify-content-start">
+                                <label class="fw-bold span " for="width" style="width: 150px;">Largeur<span id="rangeValue" class="badge bg-primary ms-2"></span></label>
+                                <input type="range" class="form-range text-success" min="1" max="12" step="1" id="width" value="3">
+                            </div>
+                            <small class="text-dark">Choisir une valeur (1 à 12)</small>
+                        </div>
+
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="render_type" style="width: 150px;">Type Rendu</label>
+                            <select name="render_type" id="render_type" class="input">
+                                <option value="1">Table</option>
+                                <option value="2">Graphique</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                        <button type="button" class="btn btn-primary" id="saveWidget">Enregistrer</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -154,6 +207,7 @@
 
     <script>
         getDisplayedTdbByGroupe(document.querySelector(".div_order"))
+        getCustomWidgetsTdb(document.querySelector(".div_display_widgets"))
 
         document.querySelectorAll('.gadget-item input[type="checkbox"]').forEach(cb => {
             cb.addEventListener('change', () => {
@@ -168,5 +222,54 @@
             let id_groupe = this.id;
             setOrderedUp(id_groupe, document.querySelector(".div_order"))
         })
+
+        $("body").on('change', '.chk', function(){
+            let id_element = this.id;
+            let value = "0";
+            if (this.checked === true) { value ="1" }
+            setGadgetVisible(id_element, value, id_groupe, document.querySelector(".div_order"))
+        })
+
+
+        $("body").on('click','.edit_widget', function (){
+            idWidget = this.id;
+
+            const range = document.getElementById('width');
+            const output = document.getElementById('rangeValue');
+            output.textContent = range.value;
+            range.addEventListener('input', () => {
+                output.textContent = range.value;
+            });
+
+            $("#modalEditWidget").modal('show')
+
+            let formWidget = new FormData()
+            formWidget.append('id_widget', idWidget)
+
+            getSingleCustomWidget(formWidget)
+                .then(wd => {
+                    document.getElementById("lblWidget").innerHTML=`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid-circles preview-icon"><circle cx="17.5" cy="17.5" r="3.5"/><circle cx="17.5" cy="6.5" r="3.5"/><circle cx="6.5" cy="17.5" r="3.5"/><circle cx="6.5" cy="6.5" r="3.5"/></svg>
+                    ${wd.widget}
+                    `
+                    document.getElementById("width").value = wd.width
+                    document.getElementById("render_type").value = wd.render_type
+
+                    output.textContent = range.value;
+                })
+                .catch(err => {
+                    console.error("Erreur :", err);
+                });
+        })
+
+        document.querySelector("#saveWidget").addEventListener("click", function () {
+            let FormDataWidget= new FormData();
+            FormDataWidget.append('id_widget', idWidget)
+            FormDataWidget.append('width', document.querySelector("#width").value)
+            FormDataWidget.append('render_type', document.querySelector("#render_type").value)
+            saveCustomWidget(FormDataWidget, document.querySelector(".div_order"), 1)
+        })
+
+
     </script>
 {% endblock %}

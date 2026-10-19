@@ -87,7 +87,7 @@ final class ApiWidgetController extends AbstractController
                     // Liste des Widgets
                     $UuidGroupe = Uuid::fromString($id_groupe);
                     $groupe = $this->em->getRepository(Groupe::class)->find($UuidGroupe);
-                    $widgets = $this->em->getRepository(CAppTdb::class)->findBy(['code_user'=>$this->getUser()], ['ordre'=>'ASC']);
+                    $widgets = $this->em->getRepository(CAppTdb::class)->findBy(['code_user'=>$this->getUser(), 'visible'=>true], ['ordre'=>'ASC']);
                     //dd($widgets);
                     foreach ($widgets as $widget){
                             $data[] = array(
@@ -96,7 +96,7 @@ final class ApiWidgetController extends AbstractController
                                 'reference'=>$widget->getCodeGadget()->getReference(),
                                 'width'=>$widget->getCodeGadget()->getWidth() ? $widget->getCodeGadget()->getWidth()  : 0,
                                 'app_js'=>$widget->getCodeGadget()->getAppJs(),
-                                'render_type'=>$widget->getCodeGadget()->getRenderType()
+                                'render_type'=>$widget->getRenderType()
                             );
                     }
 
@@ -151,6 +151,43 @@ final class ApiWidgetController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
+
+    #[Route('api/getSingleCustomWidget', name: 'getSingleCustomWidget')]
+    public function getSingleCustomWidget(Request $request): Response
+    {
+        $reponse = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_USER")) {
+            try {
+                $id_widget = $request->request->get('id_widget');
+                $UuidWidget = Uuid::fromString($id_widget);
+                $widget = $this->em->getRepository(CAppTdb::class)->find($UuidWidget);
+
+                if ($widget){
+                    $reponse = array(
+                        'code'=>'success',
+                        'msg'=>'Success',
+                        'id'=>$widget->getId(),
+                        'widget'=>$widget->getCodeGadget()?$widget->getCodeGadget()->getLibelle() : "",
+                        'width'=>$widget->getWidth(),
+                        'render_type'=>$widget->getRenderType()
+                    );
+                } else {
+                    $reponse = array(
+                        'code'=>'warning',
+                        'msg'=>'Merci de sélectionner un widget  dans la liste !'
+                    );
+                }
+
+            } catch (\Throwable $throwable) {
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
     #[Route('api/saveWidget', name: 'app_api_save_widget')]
     public function app_api_save_widget(Request $request): Response
     {
@@ -222,6 +259,57 @@ final class ApiWidgetController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
+
+    #[Route('api/saveCustomWidget', name: 'app_api_save_custom_widget')]
+    public function app_api_save_custom_widget(Request $request): Response
+    {
+        $reponse = [];
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_USER")) {
+            try {
+                $id_widget = $request->request->get('id_widget');
+                $width = $request->request->get('width');
+                $render_type = $request->request->get('render_type');
+
+                if ( !$width || !$render_type) {
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs!'];
+                } else {
+                    if ($id_widget == "0"){
+                        $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_widget);
+                    } else{
+                        $uuid = Uuid::fromString($id_widget);
+                    }
+
+                    $widget = $this->em->getRepository(CAppTdb::class)->find($uuid);
+
+                    if ($widget) {
+                        $widget->setWidth((int) $width);
+                        $widget->setRenderType($render_type);
+
+                        $this->em->persist($widget);
+                        $this->em->flush();
+
+                        $reponse = [
+                            'code' => 'success',
+                            'msg' =>'Widget mis à jour avec succès !'
+                        ];
+                    }else {
+                        $reponse = [
+                            'code' => 'error',
+                            'msg' =>'Ce gadget ne fait pas partir de vos gadgets !'
+                        ];
+                    }
+
+                }
+            } catch (\Throwable $throwable) {
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
     #[Route('api/deleteWidget/{$id_widget}', name: 'app_api_delete_widget')]
     public function app_api_delete_widget(Request $request, int $id_widget): Response
     {
