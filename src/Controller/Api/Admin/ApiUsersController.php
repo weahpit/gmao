@@ -42,7 +42,8 @@ final class ApiUsersController extends AbstractController
                             'poste'=>$user->getCodePoste() ?$user->getCodePoste()->getLibelle() : "",
                             'service'=>$user->getCodeService() ?$user->getCodeService()->getLibelle() : "",
                             'direction'=>$user->getCodeDirection() ?$user->getCodeDirection()->getLibelle() : "",
-                            'actif'=>$user->isActive() ? "OUI" : "NON"
+                            'actif'=>$user->isActive() ? "OUI" : "NON",
+                            'admin'=>$user->isAdmin() ? "OUI" : "NON"
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -55,13 +56,16 @@ final class ApiUsersController extends AbstractController
             return new JsonResponse(json_encode($reponse));
         }
 
-    #[Route('api/getSingleUser/{$id_user}', name: 'app_api_get_single_users')]
-    public function app_api_get_single_users(int $id_user): Response
+    #[Route('api/getSingleUser', name: 'app_api_get_single_user')]
+    public function app_api_get_single_user(Request $request): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
+
+
+                $id_user = $request->request->get('id_user');
                 $uuid = Uuid::fromString($id_user);
                 $user = $this->em->getRepository(User::class)->find($uuid);
 
@@ -76,11 +80,12 @@ final class ApiUsersController extends AbstractController
                     'mobile'=>$user->getMobile(),
                     'matricule'=>$user->getMatricule(),
                     'photo'=>$user->getPhoto(),
-                    'groupe'=>$user->getCodeGroupe() ?$user->getCodeGroupe()->getNomGroupe() : "",
-                    'poste'=>$user->getCodePoste() ?$user->getCodePoste()->getLibelle() : "",
-                    'service'=>$user->getCodeService() ?$user->getCodeService()->getLibelle() : "",
-                    'direction'=>$user->getCodeDirection() ?$user->getCodeDirection()->getLibelle() : "",
+                    'groupe'=>$user->getCodeGroupe() ?$user->getCodeGroupe()->getId() : "",
+                    'poste'=>$user->getCodePoste() ?$user->getCodePoste()->getId() : "",
+                    'service'=>$user->getCodeService() ?$user->getCodeService()->getId() : "",
+                    'direction'=>$user->getCodeDirection() ?$user->getCodeDirection()->getId() : "",
                     'actif'=>$user->isActive() ? "OUI" : "NON",
+                    'admin'=>$user->isAdmin() ? "OUI" : "NON"
                 );
             } else {
                 $reponse = array(
@@ -125,15 +130,22 @@ final class ApiUsersController extends AbstractController
 
                     if (!$nom || !$prenoms || !$email || !$mobile || !$Groupe){
                         $reponse = ['code' => 'warning', 'msg' => 'Merci de renseigner toutes les valeurs obligatoires !'];
-                    }elseif (($mdp != $confirm_mdp) || $confirm_mdp == "" || $mdp == ""){
-                        $reponse = ['code' => 'warning', 'msg' => 'Les mots de passe ne sont pas conformes !'];
                     } else {
-                        $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_user);
+                        $uuid = Uuid::fromString($id_user);
                         $users = $this->em->getRepository(User::class)->find($uuid);
                         $isNew = false;
+
                         if (!$users) {
-                            $users = new User();
-                            $isNew = true;
+                            if (($mdp != $confirm_mdp) || $confirm_mdp == "" || $mdp == ""){
+                                $reponse = ['code' => 'warning', 'msg' => 'Les mots de passe ne sont pas conformes !'];
+                                return new JsonResponse($reponse);
+                            } else {
+                                $users = new User();
+                                $isNew = true;
+                                $users->setPassword(password_hash($mdp, PASSWORD_BCRYPT));
+                                $users->setActive(true);
+                            }
+
                         }
 
                         $users->setMatricule(strtoupper($matricule));
@@ -141,7 +153,7 @@ final class ApiUsersController extends AbstractController
                         $users->setPrenoms(strtoupper($prenoms));
                         $users->setEmail(strtolower($email));
                         $users->setMobile(strtoupper($mobile));
-                        $users->setActive(true);
+
                         $users->setCodeGroupe($Groupe);
 
                         if ($Service){$users->setCodeService($Service);}
@@ -151,9 +163,15 @@ final class ApiUsersController extends AbstractController
                             $photo->move($this->getParameter('photo_users'), $filename);
                             $users->setPhoto($filename);
                         }
-                        $users->setPassword(password_hash($mdp, PASSWORD_BCRYPT));
 
-                        if ($admin == "OUI"){ $users->setRoles(['ROLE_USER','ROLE_ADMIN']); } else { $users->setRoles(['ROLE_USER']); }
+                        // dd($admin);
+                        if ($admin == "OUI"){
+                            $users->setRoles(['ROLE_USER','ROLE_ADMIN']);
+                            $users->setAdmin(true);
+                        } else {
+                            $users->setRoles(['ROLE_USER']);
+                            $users->setAdmin(false);
+                        }
 
                         $this->em->persist($users);
                         $this->em->flush();

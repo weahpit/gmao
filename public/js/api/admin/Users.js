@@ -7,7 +7,7 @@ function getAllUsers(ctrl_name, ctrl_type){
             let reponse = JSON.parse(response)
             if (ctrl_type === 1){
                 contentCtrl +=`
-                <table class="table table-hover">
+                <table class="table table-hover w-100">
                     <thead><tr>
                             <th></th>
                             <th>Mle</th>
@@ -24,9 +24,9 @@ function getAllUsers(ctrl_name, ctrl_type){
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     if (reponse.data[i].actif ==="NON"){
-                        contentCtrl +='<tr style="background-color: #f9e6e6;color: #c53030;font-weight: bold;">'
+                        contentCtrl +='<tr style="background-color: #f9e6e6;color: #c53030;font-weight: bold;" class="edit_user" id="' + reponse.data[i].id + '">'
                     } else {
-                        contentCtrl +='<tr>'
+                        contentCtrl +='<tr class="edit_user" id="' + reponse.data[i].id + '">'
                     }
 
                     if (reponse.data[i].photo){
@@ -34,6 +34,7 @@ function getAllUsers(ctrl_name, ctrl_type){
                     } else {
                         contentCtrl +='<td><img src="icons/user.png" alt="" height="40"></td>'
                     }
+
                     contentCtrl +='<td>' + reponse.data[i].matricule + '</td>'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].nom + '</a></td>'
                     contentCtrl +='<td>' + reponse.data[i].prenoms + '</td>'
@@ -80,13 +81,15 @@ function saveUser(formData, ctrl_name, ctrl_type){
             })
             if (data.code === "success") {
                 clearForm("formUser", "user")
+                document.getElementById('photoPreview').src = ""
+                $('#modalAddUser .btn-close').click()
                 getAllUsers(ctrl_name, ctrl_type)
             }
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'User', duration: 4000}));
 }
-function deleteUser(id_nature_equipement){
-    fetch( URL_APP + "api/deleteUser", { method: "POST", body: id_nature_equipement })
+function deleteUser(id_user){
+    fetch( URL_APP + "api/deleteUser", { method: "POST", body: id_user })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -97,26 +100,15 @@ function deleteUser(id_nature_equipement){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'User', duration: 4000}));
 }
-function getSingleUser(id_nature_equipement) {
+function getSingleUser(formData) {  // api/getSingleUser
     return new Promise((resolve, reject) => {
-        $.ajax({
-            url:  URL_APP + 'api/getSingleUser' + id_nature_equipement,
-            type: 'POST',
-            success: function(response) {
-                if (response.code === "success") {
-                    resolve(response); // renvoie l'objet au .then()
-                } else {
-                    showToast(data.msg, {
-                        type : data.code,
-                        duration: 4000,
-                        title: 'User'
-                    })
-                }
-            },
-            error: function(err) {
-                showToast("❌ Erreur : " + err, {title: 'User', duration: 4000});
-            }
-        });
+        fetch( URL_APP + "api/getSingleUser", { method: "POST", body: formData })
+            .then(res => res.json())
+            .then(data => {
+                resolve(data); // renvoie l'objet au .then()
+            })
+            .catch(err => showToast("❌ Erreur : " + err, {title: 'Widget', duration: 4000}));
+
     });
 }
 function getParentUser(ctrl_name){

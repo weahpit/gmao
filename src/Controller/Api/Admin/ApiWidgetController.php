@@ -99,30 +99,30 @@ final class ApiWidgetController extends AbstractController
                 $UuidWidget = Uuid::fromString($id_widget);
                 $widget = $this->em->getRepository(Widget::class)->find($UuidWidget);
 
-            if ($widget){
-                $groupes = $widget->getCodeGroupe();
-                $data_groupe = array();
+                if ($widget){
+                    $groupes = $widget->getCodeGroupe();
+                    $data_groupe = array();
 
-                foreach ($groupes as  $groupe){
-                    $data_groupe[] = array('id'=>$groupe->getId(), 'groupe'=>$groupe->getNomGroupe());
+                    foreach ($groupes as  $groupe){
+                        $data_groupe[] = array('id'=>$groupe->getId(), 'groupe'=>$groupe->getNomGroupe());
+                    }
+
+                    $reponse = array(
+                        'code'=>'success',
+                        'msg'=>'Success',
+                        'id'=>$widget->getId(),
+                        'widget'=>$widget->getLibelle(),
+                        'width'=>$widget->getWidth() ? $widget->getWidth() : 0,
+                        'groupes'=>$data_groupe,
+                        'app_js'=>$widget->getAppJs(),
+                        'render_type'=>$widget->getRenderType()
+                    );
+                } else {
+                    $reponse = array(
+                        'code'=>'warning',
+                        'msg'=>'Merci de sélectionner un widget  dans la liste !'
+                    );
                 }
-
-                $reponse = array(
-                    'code'=>'success',
-                    'msg'=>'Success',
-                    'id'=>$widget->getId(),
-                    'widget'=>$widget->getLibelle(),
-                    'width'=>$widget->getWidth() ? $widget->getWidth() : 0,
-                    'groupes'=>$data_groupe,
-                    'app_js'=>$widget->getAppJs(),
-                    'render_type'=>$widget->getRenderType()
-                );
-            } else {
-                $reponse = array(
-                    'code'=>'warning',
-                    'msg'=>'Merci de sélectionner un widget  dans la liste !'
-                );
-            }
 
             } catch (\Throwable $throwable) {
                 $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];

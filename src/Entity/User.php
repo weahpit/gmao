@@ -78,6 +78,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: CAppTdb::class, mappedBy: 'code_user')]
     private Collection $cAppTdbs;
 
+    #[ORM\Column(nullable: true)]
+    private ?bool $admin = null;
+
     public function __construct()
     {
         $this->notifications = new ArrayCollection();
@@ -335,6 +338,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
                 $cAppTdb->setCodeUser(null);
             }
         }
+
+        return $this;
+    }
+
+    public function isAdmin(): ?bool
+    {
+        return $this->admin;
+    }
+
+    public function setAdmin(?bool $admin): static
+    {
+        $this->admin = $admin;
 
         return $this;
     }

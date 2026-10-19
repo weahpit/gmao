@@ -129,7 +129,7 @@
     <script src="{{ asset('js/api/admin/poste.js') }}"></script>
     <script>
 
-        let idUser = 0;
+        let idUser = "0";
         getAllUsers(document.querySelector(".card-body"), 1)
         getAllGroupes(document.getElementById("groupe"), 2)
         getAllServices(document.getElementById("service"), 2)
@@ -149,15 +149,15 @@
 
         document.querySelector("#saveUser").addEventListener("click", function () {
 
-            if ((document.getElementById('mdp').value === document.getElementById('confirm_mdp').value) &&
+            /*if ((document.getElementById('mdp').value === document.getElementById('confirm_mdp').value) &&
                 document.getElementById('mdp').value !== "" &&
-                document.getElementById('confirm_mdp').value !== "" ){
+                document.getElementById('confirm_mdp').value !== "" ){*/
                 let FormDataUser= new FormData();
 
             let photoUpload = document.getElementById("photoUpload").files;
 
             FormDataUser.append('id_user', idUser)
-            FormDataUser.append('nom', document.getElementById("matricule").value)
+            FormDataUser.append('matricule', document.getElementById("matricule").value)
             FormDataUser.append('nom', document.getElementById("nom").value)
             FormDataUser.append('prenoms', document.getElementById("prenoms").value)
             FormDataUser.append('email', document.getElementById("email").value)
@@ -177,9 +177,45 @@
             setTimeout(()=>{
                 clearForm("formUser", "matricule") ;
             }, 500)
-            } else {
+            /*} {
                 showToast("Les mots de passe ne sont pas conformes !", {title : 'Gestion des Utilisateurs', type:'warning'})
-            }
+            }*/
+        })
+
+        $("body").on('click','.edit_user', function (){
+            idUser = this.id;
+
+            $("#modalAddUser").modal('show')
+            let formUser = new FormData()
+            formUser.append('id_user', idUser)
+
+            getSingleUser(formUser)
+                .then(wd => {
+
+                    document.getElementById('mdp').disabled = true;
+                    document.getElementById('confirm_mdp').disabled = true;
+
+                    document.getElementById("matricule").value = wd.matricule
+                    document.getElementById("nom").value = wd.nom
+                    document.getElementById("prenoms").value = wd.prenoms
+                    document.getElementById("email").value = wd.email
+                    document.getElementById("mobile").value = wd.mobile
+                    document.getElementById("groupe").value = wd.groupe
+                    document.getElementById("service").value = wd.service
+                    setTimeout(()=>{
+                        getAllPostesByService(document.getElementById('poste'), 2, wd.service)
+
+                        setTimeout(()=>{
+                        document.getElementById("poste").value = wd.poste
+                        }, 500)
+                    }, 1000)
+
+                    document.getElementById("admin").checked = (wd.admin === "OUI");
+                    if (wd.photo) { document.getElementById('photoPreview').src ='data/users/photos/' +wd.photo  } else { document.getElementById('photoPreview').src ='icons/user.png';  }
+                })
+                .catch(err => {
+                    console.error("Erreur :", err);
+                });
         })
 
         $("body").on( "click", ".thumbnail", function(){
