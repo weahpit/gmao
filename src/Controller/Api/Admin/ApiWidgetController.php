@@ -64,37 +64,18 @@ final class ApiWidgetController extends AbstractController
             $reponse = array();
             $data = array();
 
-            /*try{
-                // Liste des Widgets
-                $UuidGroupe = Uuid::fromString($id_groupe);
-                $groupe = $this->em->getRepository(Groupe::class)->find($UuidGroupe);
-                $widgets = $this->em->getRepository(Widget::class)->findBy([], ['id'=>'ASC']);
-                //dd($widgets);
-                foreach ($widgets as $widget){
-                    // vérifie si le groupe est presents dans les goupes du widget
-                    if ($widget->getCodeGroupe()->contains($groupe)){
-                        $data[] = array(
-                            'id'=>$widget->getId(),
-                            'widget'=>$widget->getLibelle(),
-                            'reference'=>$widget->getReference(),
-                            'width'=>$widget->getWidth() ? $widget->getWidth()  : 0,
-                            'app_js'=>$widget->getAppJs(),
-                            'render_type'=>$widget->getRenderType()
-                        );
-                    }
-                }*/
                 try{
                     // Liste des Widgets
                     $UuidGroupe = Uuid::fromString($id_groupe);
                     $groupe = $this->em->getRepository(Groupe::class)->find($UuidGroupe);
                     $widgets = $this->em->getRepository(CAppTdb::class)->findBy(['code_user'=>$this->getUser(), 'visible'=>true], ['ordre'=>'ASC']);
-                    //dd($widgets);
+
                     foreach ($widgets as $widget){
                             $data[] = array(
                                 'id'=>$widget->getId(),
                                 'widget'=>$widget->getCodeGadget()->getLibelle(),
                                 'reference'=>$widget->getCodeGadget()->getReference(),
-                                'width'=>$widget->getCodeGadget()->getWidth() ? $widget->getCodeGadget()->getWidth()  : 0,
+                                'width'=>$widget->getWidth(),
                                 'app_js'=>$widget->getCodeGadget()->getAppJs(),
                                 'render_type'=>$widget->getRenderType()
                             );
@@ -274,12 +255,8 @@ final class ApiWidgetController extends AbstractController
                 if ( !$width || !$render_type) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs!'];
                 } else {
-                    if ($id_widget == "0"){
-                        $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_widget);
-                    } else{
-                        $uuid = Uuid::fromString($id_widget);
-                    }
 
+                    $uuid = Uuid::fromString($id_widget);
                     $widget = $this->em->getRepository(CAppTdb::class)->find($uuid);
 
                     if ($widget) {
