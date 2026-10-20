@@ -90,3 +90,12 @@ function executer(fn, render_type) {
         }
     });
 }
+
+function afficheParValeur(select, valeur){
+    for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].text === valeur) {
+            select.selectedIndex = i; // sélectionne l'option
+            break;
+        }
+    }
+}

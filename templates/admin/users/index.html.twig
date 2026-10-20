@@ -50,11 +50,11 @@
                         </div>
                         <div class="d-flex justify-content-start mb-3">
                             <label class="fw-bold span " for="nom" style="width: 250px;">Mot de passe</label>
-                            <input type="password" class="input" id="mdp" style="text-transform: uppercase;">
+                            <input type="password" class="input" id="mdp" style="">
                         </div>
                         <div class="d-flex justify-content-start mb-3">
                             <label class="fw-bold span " for="nom" style="width: 250px;">Confirmer Mot de passe</label>
-                            <input type="password" class="input" id="confirm_mdp" style="text-transform: uppercase;">
+                            <input type="password" class="input" id="confirm_mdp" style="">
                         </div>
                         <div class="d-flex justify-content-start mb-3">
                             <label class="fw-bold span " for="nom" style="width: 250px;">Mobile</label>
@@ -126,7 +126,7 @@
     <script src="{{ asset('js/api/admin/Users.js') }}"></script>
     <script src="{{ asset('js/api/admin/Groupe.js') }}"></script>
     <script src="{{ asset('js/api/admin/Service.js') }}"></script>
-    <script src="{{ asset('js/api/admin/poste.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Poste.js') }}"></script>
     <script>
 
         let idUser = "0";
@@ -145,6 +145,8 @@
 
         document.querySelector("#btn_add_user").addEventListener("click", function () {
             clearForm("formUser", "matricule")
+            document.getElementById('mdp').disabled = false;
+            document.getElementById('confirm_mdp').disabled = false;
         })
 
         document.querySelector("#saveUser").addEventListener("click", function () {

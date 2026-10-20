@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\Maintenance\FicheIntervention;
 use App\Repository\EquipementRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -69,9 +70,16 @@ class Equipement
     #[ORM\OneToMany(targetEntity: MouvementEquipement::class, mappedBy: 'code_equipement')]
     private Collection $mouvementEquipements;
 
+    /**
+     * @var Collection<int, FicheIntervention>
+     */
+    #[ORM\OneToMany(targetEntity: FicheIntervention::class, mappedBy: 'equipement')]
+    private Collection $ficheInterventions;
+
     public function __construct()
     {
         $this->mouvementEquipements = new ArrayCollection();
+        $this->ficheInterventions = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -283,6 +291,36 @@ class Equipement
             // set the owning side to null (unless already changed)
             if ($mouvementEquipement->getCodeEquipement() === $this) {
                 $mouvementEquipement->setCodeEquipement(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, FicheIntervention>
+     */
+    public function getFicheInterventions(): Collection
+    {
+        return $this->ficheInterventions;
+    }
+
+    public function addFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if (!$this->ficheInterventions->contains($ficheIntervention)) {
+            $this->ficheInterventions->add($ficheIntervention);
+            $ficheIntervention->setEquipement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if ($this->ficheInterventions->removeElement($ficheIntervention)) {
+            // set the owning side to null (unless already changed)
+            if ($ficheIntervention->getEquipement() === $this) {
+                $ficheIntervention->setEquipement(null);
             }
         }
 

@@ -1,0 +1,156 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Équipements — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Fiches Intervention</span>
+{% endblock %}
+
+{% block body %}
+    <style>
+        table {
+            width: 100%;
+        }
+        thead tr{
+            background: linear-gradient(125deg, #e2e2e2, #d9d4d4);
+            font-weight: bold;
+            border-bottom: 2px solid #232323;
+            font-size: 14px;
+        }
+        thead tr th{
+            padding-left: 5px;
+        }
+        tbody tr td{
+            padding-left: 5px;
+        }
+        tbody tr {
+            background: white;
+            padding: 10px;
+            border-bottom: 1px solid lightgrey;
+            font-size: 12px;
+        }
+    </style>
+    <div class="page-header">
+        <h1 class="page-title"><img class="me-2" src="{{ asset('icons/fiche_intervention.png') }}" alt="" height="48">Fiches Intervention</h1>
+        <div class="d-flex">
+            <a href="#"  id="btn_add_fi" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddFiche">
+                <i data-lucide="plus"></i> Générer la fiche
+            </a>
+        </div>
+    </div>
+    <hr>
+
+    <div class="" id="div_interventions" style="border:1px solid lightgrey;min-height: 300px;background: #9c9c9c;padding: 4px;">
+
+    </div>
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddFiche" tabindex="-1" aria-labelledby="modalAddFicheLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('images/machine.png') }}" height="40" alt="" style="background: #FFFFFF;border-radius: 4px;"> Générer la fiche d'Intervention</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: var(--green-100)">
+                    <form id="formFI" style="font-size: 13px;">
+                            <div class="mb-2 d-flex justify-content-start">
+                                <label style="width: 250px;" class="span" for="reference">Référence</label>
+                                <input type="text" class="input fw-bold" id="reference" style="text-transform: uppercase;color: #ea5e00" disabled>
+                            </div>
+                            <div class="mb-2 d-flex justify-content-start">
+                                <label style="width: 250px;"  for="date_debut" class="span">Date</label>
+                                <input type="text" class="input fw-bold" id="date_debut" disabled style="color: #2563EB;">
+                            </div>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width: 250px;"  for="statut" class="span">Statut</label>
+                            <select class="input fw-bold" id="statut" disabled style="color: #2563EB;"></select>
+                        </div>
+                        <hr>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width: 250px;"  for="sujet" class="span">Motif / Sujet <span class="text-danger ms-1">*</span></label>
+                            <input type="text" class="input fw-bold" id="sujet" style="text-transform: uppercase;">
+                        </div>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width: 250px;"  for="nom_demandeur" class="span">Nom du demandeur</label>
+                            <input type="text" class="input fw-bold" id="nom_demandeur" style="text-transform: uppercase;">
+                        </div>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width: 250px;"  for="service_demandeur" class="span">Service Demandeur</label>
+                            <select class="input fw-bold" id="service_demandeur"></select>
+                        </div>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width: 250px;"  for="type_intervention" class="span">Type <span class="text-danger ms-1">*</span></label>
+                            <select class="input fw-bold" id="type_intervention"></select>
+                        </div>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width: 250px;"  for="origine_intervention" class="span">Origine<span class="text-danger ms-1">*</span></label>
+                            <select class="input fw-bold" id="origine_intervention"></select>
+                        </div>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width: 250px;"  for="zone_exploitation" class="span">Zone d'Exploitation<span class="text-danger ms-1">*</span></label>
+                            <select class="input fw-bold" id="zone_exploitation"></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <small class="fw-bold p-1 bg-light">(<span class="text-danger ms-1">*</span>) Valeurs obligatoires</small>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="genererFI">Générer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/Maintenance/FicheIntervention.js') }}"></script>
+    <script src="{{ asset('js/api/Maintenance/TypeIntervention.js') }}"></script>
+    <script src="{{ asset('js/api/Maintenance/StatutIntervention.js') }}"></script>
+    <script src="{{ asset('js/api/Maintenance/OrigineIntervention.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Service.js') }}"></script>
+    <script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
+    <script>
+        let idFicheIntervention = "0"
+        getAllFichesIntervention(document.getElementById('div_interventions'), 1)
+
+        document.getElementById('btn_add_fi').addEventListener('click', ()=>{
+            let dateJour = new Date()
+            clearForm("formFI", "sujet")
+            document.getElementById('date_debut').value = dateJour.toLocaleString();
+            getAllServices(document.getElementById('service_demandeur'), 2)
+            getAllZonesExploitation(document.getElementById('zone_exploitation'), 2)
+            getAllTypeIntervention(document.getElementById('type_intervention'), 2)
+            getAllStatutIntervention(document.getElementById('statut'), 2)
+            getAllOrigineIntervention(document.getElementById('origine_intervention'), 2)
+
+            getNumeroRef(document.getElementById('reference'))
+
+            setTimeout(()=>{
+                afficheParValeur(document.getElementById('statut'), "OUVERT")
+                document.getElementById("sujet").focus()
+            }, 2000)
+        })
+
+        document.querySelector("#genererFI").addEventListener("click", function () {
+
+            let FormDataFI= new FormData();
+            /*FormDataFI.append('idFicheIntervention', idFicheIntervention)*/
+            FormDataFI.append('reference', document.querySelector("#reference").value)
+            FormDataFI.append('sujet', document.querySelector("#sujet").value)
+            FormDataFI.append('statut', document.querySelector("#statut").value)
+            FormDataFI.append('nom_demandeur', document.querySelector("#nom_demandeur").value)
+            FormDataFI.append('service_demandeur', document.querySelector("#service_demandeur").value)
+            FormDataFI.append('type_intervention', document.querySelector("#type_intervention").value)
+            FormDataFI.append('origine_intervention', document.querySelector("#origine_intervention").value)
+            FormDataFI.append('zone_exploitation', document.querySelector("#zone_exploitation").value)
+
+            genererFicheIntervention(FormDataFI, document.querySelector("#div_interventions"), 1)
+        })
+
+
+    </script>
+{% endblock %}

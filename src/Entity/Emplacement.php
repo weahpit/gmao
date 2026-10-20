@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\Maintenance\FicheIntervention;
 use App\Repository\EmplacemenbtRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -38,10 +39,17 @@ class Emplacement
     #[ORM\OneToMany(targetEntity: MouvementEquipement::class, mappedBy: 'emplacement')]
     private Collection $mouvementEquipements;
 
+    /**
+     * @var Collection<int, FicheIntervention>
+     */
+    #[ORM\OneToMany(targetEntity: FicheIntervention::class, mappedBy: 'emplacement')]
+    private Collection $ficheInterventions;
+
     public function __construct()
     {
         $this->equipementTypes = new ArrayCollection();
         $this->mouvementEquipements = new ArrayCollection();
+        $this->ficheInterventions = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -136,6 +144,36 @@ class Emplacement
             // set the owning side to null (unless already changed)
             if ($mouvementEquipement->getEmplacement() === $this) {
                 $mouvementEquipement->setEmplacement(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, FicheIntervention>
+     */
+    public function getFicheInterventions(): Collection
+    {
+        return $this->ficheInterventions;
+    }
+
+    public function addFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if (!$this->ficheInterventions->contains($ficheIntervention)) {
+            $this->ficheInterventions->add($ficheIntervention);
+            $ficheIntervention->setEmplacement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if ($this->ficheInterventions->removeElement($ficheIntervention)) {
+            // set the owning side to null (unless already changed)
+            if ($ficheIntervention->getEmplacement() === $this) {
+                $ficheIntervention->setEmplacement(null);
             }
         }
 

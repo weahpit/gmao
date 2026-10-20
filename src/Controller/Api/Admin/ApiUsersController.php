@@ -124,18 +124,13 @@ final class ApiUsersController extends AbstractController
                 $confirm_mdp = $request->request->get('confirm_mdp');
                 $photo = $request->files->get('photo');
 
-                $Groupe = $this->em->getRepository(Groupe::class)->find(Uuid::fromString($groupe));
-                $Service = $this->em->getRepository(Services::class)->find(Uuid::fromString($service));
-                $Poste = $this->em->getRepository(Poste::class)->find(Uuid::fromString($poste));
-
-                    if (!$nom || !$prenoms || !$email || !$mobile || !$Groupe){
+                    if (!$nom || !$prenoms || !$email || !$mobile){
                         $reponse = ['code' => 'warning', 'msg' => 'Merci de renseigner toutes les valeurs obligatoires !'];
                     } else {
-                        $uuid = Uuid::fromString($id_user);
-                        $users = $this->em->getRepository(User::class)->find($uuid);
+
                         $isNew = false;
 
-                        if (!$users) {
+                        if ($id_user === "0") {
                             if (($mdp != $confirm_mdp) || $confirm_mdp == "" || $mdp == ""){
                                 $reponse = ['code' => 'warning', 'msg' => 'Les mots de passe ne sont pas conformes !'];
                                 return new JsonResponse($reponse);
@@ -146,6 +141,10 @@ final class ApiUsersController extends AbstractController
                                 $users->setActive(true);
                             }
 
+                        } else {
+                            $uuid = Uuid::fromString($id_user);
+                            $users = $this->em->getRepository(User::class)->find($uuid);
+
                         }
 
                         $users->setMatricule(strtoupper($matricule));
@@ -154,10 +153,27 @@ final class ApiUsersController extends AbstractController
                         $users->setEmail(strtolower($email));
                         $users->setMobile(strtoupper($mobile));
 
-                        $users->setCodeGroupe($Groupe);
+                            if ($groupe){
+                                $Groupe = $this->em->getRepository(Groupe::class)->find(Uuid::fromString($groupe));
+                                if ($Groupe){
+                                    $users->setCodeGroupe($Groupe);
+                                }
+                            }
 
-                        if ($Service){$users->setCodeService($Service);}
-                        if ($Poste){$users->setCodePoste($Poste);}
+                            if ($service){
+                                $Service = $this->em->getRepository(Services::class)->find(Uuid::fromString($service));
+                                if ($Service){
+                                    $users->setCodeService($Service);
+                                }
+                            }
+
+                            if ($poste){
+                                $Poste = $this->em->getRepository(Poste::class)->find(Uuid::fromString($poste));
+                                if ($Poste){
+                                    $users->setCodePoste($Poste);
+                                }
+                            }
+
                         if ($photo) {
                             $filename = uniqid().'.'.$photo->guessExtension();
                             $photo->move($this->getParameter('photo_users'), $filename);
@@ -182,7 +198,7 @@ final class ApiUsersController extends AbstractController
                         ];
                     }
             } catch (\Throwable $throwable) {
-                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getTraceAsString()];
             }
         } else {
             $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');

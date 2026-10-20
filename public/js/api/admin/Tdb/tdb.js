@@ -5,16 +5,16 @@ function getTdbByGroupe(id_groupe, ctrl_name){
         type : 'POST',
         success: function (response){
             let reponse = JSON.parse(response)
-                for (var i=0;i < reponse.data.length;i++){
-                    contentCtrl +='<div class="col-md-' + reponse.data[i].width+ ' p-2 bg-white m-1" id="div_' + reponse.data[i].reference + '" style="border: 1px solid #d9d9d9;box-shadow: 2px 2px lightgrey">'
-                    contentCtrl += '<div class="d-flex justify-content-between align-items-center" id="h5_' + reponse.data[i].reference + '">'
-                        + '<h6 class="p-1 ps-2 fw-bold" style="border-radius: 4px;">' + reponse.data[i].widget + '</h6>'
-                        + '<a class="btn ms-2 edit_widget" href="#" id="' + reponse.data[i].id + '" title="Paramétrer votre widget"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings preview-icon"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></a>'
-                        + '</div>';
+            for (var i=0;i < reponse.data.length;i++){
+                contentCtrl +='<div class="col-md-' + reponse.data[i].width+ ' p-2 bg-white m-1" id="div_' + reponse.data[i].reference + '" style="border: 1px solid #d9d9d9;box-shadow: 2px 2px lightgrey;max-height: 250px;">'
+                contentCtrl += '<div class="d-flex justify-content-between align-items-center" id="h5_' + reponse.data[i].reference + '">'
+                    + '<h6 class="p-1 ps-2 fw-bold" style="border-radius: 4px;">' + reponse.data[i].widget + '</h6>'
+                    + '<a class="btn ms-2 edit_widget" href="#" id="' + reponse.data[i].id + '" title="Paramétrer votre widget"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings preview-icon"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></a>'
+                    + '</div>';
 
-                    contentCtrl +='<div class="p-2" style="border-radius: 25px;background: linear-gradient(98deg, #efefef, #f8f2ee);max-height: 250px;min-height: 150px;overflow-y: scroll;" id="value_' + reponse.data[i].id + '"></div>'
-                    contentCtrl +='</div>'
-                }
+                contentCtrl +='<div class="p-2" style="border-radius: 25px;background: linear-gradient(98deg, #efefef, #f8f2ee);max-height: 200px;min-height: 150px;overflow-y: scroll;" id="value_' + reponse.data[i].id + '"></div>'
+                contentCtrl +='</div>'
+            }
             ctrl_name.innerHTML = contentCtrl
             setTimeout(()=>{
                 for (var i=0; i < reponse.data.length; i++){

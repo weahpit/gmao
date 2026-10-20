@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\Maintenance\FicheIntervention;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -81,10 +82,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?bool $admin = null;
 
+    /**
+     * @var Collection<int, FicheIntervention>
+     */
+    #[ORM\ManyToMany(targetEntity: FicheIntervention::class, mappedBy: 'code_technicien')]
+    private Collection $ficheInterventions;
+
     public function __construct()
     {
         $this->notifications = new ArrayCollection();
         $this->cAppTdbs = new ArrayCollection();
+        $this->ficheInterventions = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -352,5 +360,37 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->admin = $admin;
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, FicheIntervention>
+     */
+    public function getFicheInterventions(): Collection
+    {
+        return $this->ficheInterventions;
+    }
+
+    public function addFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if (!$this->ficheInterventions->contains($ficheIntervention)) {
+            $this->ficheInterventions->add($ficheIntervention);
+            $ficheIntervention->addCodeTechnicien($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if ($this->ficheInterventions->removeElement($ficheIntervention)) {
+            $ficheIntervention->removeCodeTechnicien($this);
+        }
+
+        return $this;
+    }
+
+    public function __toString(): string
+    {
+        return  $this->nom . " " . $this->prenoms;
     }
 }

@@ -22,7 +22,7 @@ function loadAlertesChart(render_type) {
                     let totals = response.map(r => r.total);
 
                     let options = {
-                        chart: { type: 'bar', height: 250, toolbar: { show: false } },
+                        chart: { type: 'bar', height: 175, toolbar: { show: false } },
                         title: { text: 'Alertes anomalies - Ce mois', align: 'center' },
                         xaxis: { categories: days, title: { text: 'Jour du mois' } },
                         yaxis: { title: { text: 'Nombre d\'alertes' }, min: 0 },
@@ -67,7 +67,7 @@ function getAnomaliesZone(render_type) {
                     let totals = response.map(r => r.total);
 
                     let options = {
-                        chart: { type: 'pie', height: 300 },
+                        chart: { type: 'pie', height: 175 },
                         title: {
                             text: 'Répartition des anomalies par zone',
                             align: 'center',

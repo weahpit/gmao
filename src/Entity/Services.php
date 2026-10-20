@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\Maintenance\FicheIntervention;
 use App\Repository\ServicesRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -41,11 +42,18 @@ class Services
     #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'code_service')]
     private Collection $users;
 
+    /**
+     * @var Collection<int, FicheIntervention>
+     */
+    #[ORM\OneToMany(targetEntity: FicheIntervention::class, mappedBy: 'service_demandeur')]
+    private Collection $ficheInterventions;
+
     public function __construct()
     {
         $this->mouvementEquipements = new ArrayCollection();
         $this->postes = new ArrayCollection();
         $this->users = new ArrayCollection();
+        $this->ficheInterventions = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -161,6 +169,36 @@ class Services
             // set the owning side to null (unless already changed)
             if ($user->getCodeService() === $this) {
                 $user->setCodeService(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, FicheIntervention>
+     */
+    public function getFicheInterventions(): Collection
+    {
+        return $this->ficheInterventions;
+    }
+
+    public function addFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if (!$this->ficheInterventions->contains($ficheIntervention)) {
+            $this->ficheInterventions->add($ficheIntervention);
+            $ficheIntervention->setServiceDemandeur($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if ($this->ficheInterventions->removeElement($ficheIntervention)) {
+            // set the owning side to null (unless already changed)
+            if ($ficheIntervention->getServiceDemandeur() === $this) {
+                $ficheIntervention->setServiceDemandeur(null);
             }
         }
 
