@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Équipements — CITRAC GMAO{% endblock %}
+{% block title %}Fiches Intervention — CITRAC GMAO{% endblock %}
 
 {% block breadcrumb %}
     <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
@@ -10,87 +10,114 @@
 
 {% block body %}
     <style>
-        table {
-            width: 100%;
+        /* ---- Tableau des fiches ---- */
+        #div_interventions { background: #9c9c9c; }
+        .fi-table { width: 100%; border-collapse: collapse; background: #fff; }
+        .fi-table thead tr {
+            background: linear-gradient(125deg, #5F4A2D, #7a5f3a);
+            color: #fff; font-weight: bold; font-size: 13px;
         }
-        thead tr{
-            background: linear-gradient(125deg, #e2e2e2, #d9d4d4);
-            font-weight: bold;
-            border-bottom: 2px solid #232323;
-            font-size: 14px;
+        .fi-table thead th { padding: 8px 6px; text-align: left; white-space: nowrap; }
+        .fi-table tbody td { padding: 7px 6px; font-size: 12px; border-bottom: 1px solid #ece6db; vertical-align: middle; }
+        .fi-table tbody tr:nth-child(even) { background: #faf8f4; }
+        .fi-table tbody tr:hover { background: #fdf4e3; }
+        .fi-ref { font-weight: 700; color: #C8953A; }
+
+        /* ---- Badge statut ---- */
+        .fi-badge {
+            display: inline-block; padding: 2px 9px; border-radius: 999px;
+            font-size: 11px; font-weight: 700; white-space: nowrap;
         }
-        thead tr th{
-            padding-left: 5px;
+
+        /* ---- Barre de progression ---- */
+        .fi-progress-wrap { min-width: 140px; }
+        .fi-progress {
+            position: relative; height: 16px; border-radius: 999px;
+            background: #ece6db; overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.12);
         }
-        tbody tr td{
-            padding-left: 5px;
+        .fi-progress-bar {
+            height: 100%; border-radius: 999px; width: 0;
+            background: linear-gradient(90deg, #C8953A, #e0b25c);
+            transition: width .6s ease;
         }
-        tbody tr {
-            background: white;
-            padding: 10px;
-            border-bottom: 1px solid lightgrey;
-            font-size: 12px;
+        .fi-progress-label {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700; color: #3e3023;
+            text-shadow: 0 1px 1px rgba(255,255,255,.6);
         }
+        .fi-step { font-size: 10px; color: #8a7a63; margin-top: 2px; }
+
+        .fi-btn-print {
+            border: 1px solid #C8953A; background: #fff; color: #5F4A2D;
+            border-radius: 6px; padding: 3px 8px; font-size: 11px; cursor: pointer;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+        }
+        .fi-btn-print:hover { background: #C8953A; color: #fff; }
+        .fi-empty, .fi-loading { padding: 30px; text-align: center; color: #fff; font-size: 14px; }
     </style>
+
     <div class="page-header">
         <h1 class="page-title"><img class="me-2" src="{{ asset('icons/fiche_intervention.png') }}" alt="" height="48">Fiches Intervention</h1>
         <div class="d-flex">
-            <a href="#"  id="btn_add_fi" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddFiche">
+            <a href="#" id="btn_add_fi" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddFiche">
                 <i data-lucide="plus"></i> Générer la fiche
             </a>
         </div>
     </div>
     <hr>
 
-    <div class="" id="div_interventions" style="border:1px solid lightgrey;min-height: 300px;background: #9c9c9c;padding: 4px;">
-
+    <input type="text" class="input mb-1" id="searchFI" style="width: 250px;" placeholder="Rechercher une fiche">
+    <div id="div_interventions" style="border:1px solid lightgrey;min-height:300px;padding:4px;">
+        <div class="fi-loading">Chargement des fiches…</div>
     </div>
 
-    <!-- Modal Add/Edit Equipement-->
-    <div class="modal fade" id="modalAddFiche" tabindex="-1" aria-labelledby="modalAddFicheLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+    <!-- Modal Générer la fiche -->
+    <div class="modal fade" id="modalAddFiche" tabindex="-1" aria-labelledby="modalAddFicheLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('images/machine.png') }}" height="40" alt="" style="background: #FFFFFF;border-radius: 4px;"> Générer la fiche d'Intervention</h1>
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('images/machine.png') }}" height="40" alt="" style="background:#FFFFFF;border-radius:4px;"> Générer la fiche d'Intervention</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="background: var(--green-100)">
-                    <form id="formFI" style="font-size: 13px;">
-                            <div class="mb-2 d-flex justify-content-start">
-                                <label style="width: 250px;" class="span" for="reference">Référence</label>
-                                <input type="text" class="input fw-bold" id="reference" style="text-transform: uppercase;color: #ea5e00" disabled>
-                            </div>
-                            <div class="mb-2 d-flex justify-content-start">
-                                <label style="width: 250px;"  for="date_debut" class="span">Date</label>
-                                <input type="text" class="input fw-bold" id="date_debut" disabled style="color: #2563EB;">
-                            </div>
+                    <form id="formFI" style="font-size:13px;">
                         <div class="mb-2 d-flex justify-content-start">
-                            <label style="width: 250px;"  for="statut" class="span">Statut</label>
-                            <select class="input fw-bold" id="statut" disabled style="color: #2563EB;"></select>
+                            <label style="width:250px;" class="span" for="reference">Référence</label>
+                            <input type="text" class="input fw-bold" id="reference" style="text-transform:uppercase;color:#ea5e00" disabled>
+                        </div>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width:250px;" for="date_debut" class="span">Date</label>
+                            <input type="text" class="input fw-bold" id="date_debut" disabled style="color:#2563EB;">
+                        </div>
+                        <div class="mb-2 d-flex justify-content-start">
+                            <label style="width:250px;" for="statut" class="span">Statut</label>
+                            <select class="input fw-bold" id="statut" disabled style="color:#2563EB;"></select>
                         </div>
                         <hr>
                         <div class="mb-2 d-flex justify-content-start">
-                            <label style="width: 250px;"  for="sujet" class="span">Motif / Sujet <span class="text-danger ms-1">*</span></label>
-                            <input type="text" class="input fw-bold" id="sujet" style="text-transform: uppercase;">
+                            <label style="width:250px;" for="sujet" class="span">Motif / Sujet <span class="text-danger ms-1">*</span></label>
+                            <input type="text" class="input fw-bold" id="sujet" style="text-transform:uppercase;">
                         </div>
                         <div class="mb-2 d-flex justify-content-start">
-                            <label style="width: 250px;"  for="nom_demandeur" class="span">Nom du demandeur</label>
-                            <input type="text" class="input fw-bold" id="nom_demandeur" style="text-transform: uppercase;">
+                            <label style="width:250px;" for="nom_demandeur" class="span">Nom du demandeur</label>
+                            <input type="text" class="input fw-bold" id="nom_demandeur" style="text-transform:uppercase;">
                         </div>
                         <div class="mb-2 d-flex justify-content-start">
-                            <label style="width: 250px;"  for="service_demandeur" class="span">Service Demandeur</label>
+                            <label style="width:250px;" for="service_demandeur" class="span">Service Demandeur</label>
                             <select class="input fw-bold" id="service_demandeur"></select>
                         </div>
                         <div class="mb-2 d-flex justify-content-start">
-                            <label style="width: 250px;"  for="type_intervention" class="span">Type <span class="text-danger ms-1">*</span></label>
+                            <label style="width:250px;" for="type_intervention" class="span">Type <span class="text-danger ms-1">*</span></label>
                             <select class="input fw-bold" id="type_intervention"></select>
                         </div>
                         <div class="mb-2 d-flex justify-content-start">
-                            <label style="width: 250px;"  for="origine_intervention" class="span">Origine<span class="text-danger ms-1">*</span></label>
+                            <label style="width:250px;" for="origine_intervention" class="span">Origine<span class="text-danger ms-1">*</span></label>
                             <select class="input fw-bold" id="origine_intervention"></select>
                         </div>
                         <div class="mb-2 d-flex justify-content-start">
-                            <label style="width: 250px;"  for="zone_exploitation" class="span">Zone d'Exploitation<span class="text-danger ms-1">*</span></label>
+                            <label style="width:250px;" for="zone_exploitation" class="span">Zone d'Exploitation<span class="text-danger ms-1">*</span></label>
                             <select class="input fw-bold" id="zone_exploitation"></select>
                         </div>
                     </form>
@@ -114,43 +141,98 @@
     <script src="{{ asset('js/api/admin/Service.js') }}"></script>
     <script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
     <script>
-        let idFicheIntervention = "0"
-        getAllFichesIntervention(document.getElementById('div_interventions'), 1)
+        let idFicheIntervention = "0";
 
-        document.getElementById('btn_add_fi').addEventListener('click', ()=>{
-            let dateJour = new Date()
-            clearForm("formFI", "sujet")
+        // Chargement initial
+        loadFichesIntervention();
+
+        document.getElementById('btn_add_fi').addEventListener('click', () => {
+            let dateJour = new Date();
+            clearForm("formFI", "sujet");
             document.getElementById('date_debut').value = dateJour.toLocaleString();
-            getAllServices(document.getElementById('service_demandeur'), 2)
-            getAllZonesExploitation(document.getElementById('zone_exploitation'), 2)
-            getAllTypeIntervention(document.getElementById('type_intervention'), 2)
-            getAllStatutIntervention(document.getElementById('statut'), 2)
-            getAllOrigineIntervention(document.getElementById('origine_intervention'), 2)
-
-            getNumeroRef(document.getElementById('reference'))
-
-            setTimeout(()=>{
-                afficheParValeur(document.getElementById('statut'), "OUVERT")
-                document.getElementById("sujet").focus()
-            }, 2000)
-        })
+            getAllServices(document.getElementById('service_demandeur'), 2);
+            getAllZonesExploitation(document.getElementById('zone_exploitation'), 2);
+            getAllTypeIntervention(document.getElementById('type_intervention'), 2);
+            getAllStatutIntervention(document.getElementById('statut'), 2);
+            getAllOrigineIntervention(document.getElementById('origine_intervention'), 2);
+            getNumeroRef(document.getElementById('reference'));
+            setTimeout(() => {
+                afficheParValeur(document.getElementById('statut'), "OUVERT");
+                document.getElementById("sujet").focus();
+            }, 2000);
+        });
 
         document.querySelector("#genererFI").addEventListener("click", function () {
+            let FormDataFI = new FormData();
+            FormDataFI.append('reference', document.querySelector("#reference").value);
+            FormDataFI.append('sujet', document.querySelector("#sujet").value);
+            FormDataFI.append('statut', document.querySelector("#statut").value);
+            FormDataFI.append('nom_demandeur', document.querySelector("#nom_demandeur").value);
+            FormDataFI.append('service_demandeur', document.querySelector("#service_demandeur").value);
+            FormDataFI.append('type_intervention', document.querySelector("#type_intervention").value);
+            FormDataFI.append('origine_intervention', document.querySelector("#origine_intervention").value);
+            FormDataFI.append('zone_exploitation', document.querySelector("#zone_exploitation").value);
 
-            let FormDataFI= new FormData();
-            /*FormDataFI.append('idFicheIntervention', idFicheIntervention)*/
-            FormDataFI.append('reference', document.querySelector("#reference").value)
-            FormDataFI.append('sujet', document.querySelector("#sujet").value)
-            FormDataFI.append('statut', document.querySelector("#statut").value)
-            FormDataFI.append('nom_demandeur', document.querySelector("#nom_demandeur").value)
-            FormDataFI.append('service_demandeur', document.querySelector("#service_demandeur").value)
-            FormDataFI.append('type_intervention', document.querySelector("#type_intervention").value)
-            FormDataFI.append('origine_intervention', document.querySelector("#origine_intervention").value)
-            FormDataFI.append('zone_exploitation', document.querySelector("#zone_exploitation").value)
+            // On conserve votre fonction de création existante…
+            genererFicheIntervention(FormDataFI, document.querySelector("#div_interventions"), 1);
+            // …puis on recharge le tableau enrichi (barre de progression)
+            setTimeout(loadFichesIntervention, 1200);
+        });
 
-            genererFicheIntervention(FormDataFI, document.querySelector("#div_interventions"), 1)
-        })
+        function renderFichesTable(data) {
+            const $div = $('#div_interventions');
+            if (!data.length) {
+                $div.html('<div class="fi-empty">Aucune fiche d\'intervention pour le moment.</div>');
+                return;
+            }
 
+            let html = ''
+                + '<table class="fi-table">'
+                + '<thead><tr>'
+                +   '<th>Référence</th>'
+                +   '<th>Date création</th>'
+                +   '<th>Type</th>'
+                +   '<th>Zone</th>'
+                +   '<th>Service</th>'
+                +   '<th>Statut</th>'
+                +   '<th style="min-width:150px;">Progression</th>'
+                +   '<th style="text-align:center;">Action</th>'
+                + '</tr></thead><tbody id="resultsTableBody">';
 
+            data.forEach(function (f) {
+                const p = progressionFromStatut(f.statut);
+                const printUrl = "{{ path('app_maintenance_fiche_intervention_pdf', {id: '__ID__'}) }}".replace('__ID__', encodeURIComponent(f.id));
+
+                html += '<tr>'
+                    + '<td class="fi-ref">' + esc(f.reference) + '</td>'
+                    + '<td>' + esc(f.date_creation) + '</td>'
+                    + '<td>' + esc(f.type_intervention) + '</td>'
+                    + '<td>' + esc(f.zone) + '</td>'
+                    + '<td>' + esc(f.service) + '</td>'
+                    + '<td><span class="fi-badge" style="color:' + p.badge + ';background:' + p.bg + ';">' + esc(p.label) + '</span></td>'
+                    + '<td>'
+                    +   '<div class="fi-progress-wrap">'
+                    +     '<div class="fi-progress">'
+                    +       '<div class="fi-progress-bar" style="width:' + p.pct + '%;background:' + p.color + ';"></div>'
+                    +       '<div class="fi-progress-label">' + p.pct + '%</div>'
+                    +     '</div>'
+                    +   '</div>'
+                    + '</td>'
+                    + '<td style="text-align:center;">'
+                    +   '<a class="fi-btn-print" href="' + printUrl + '" target="_blank" title="Imprimer la fiche">'
+                    +     '<i data-lucide="printer"></i> PDF'
+                    +   '</a>'
+                    + '</td>'
+                    + '</tr>';
+            });
+
+            html += '</tbody></table>';
+            $div.html(html);
+
+            // Re-render des icônes Lucide (sprite hors-ligne)
+            if (typeof lucideRender === 'function') { lucideRender(); }
+            else if (window.lucide && typeof window.lucide.createIcons === 'function') { window.lucide.createIcons(); }
+            searchValueFromTable(document.getElementById("searchFI"), "#resultsTableBody tr")
+        }
     </script>
 {% endblock %}

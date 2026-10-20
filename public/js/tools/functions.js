@@ -99,3 +99,19 @@ function afficheParValeur(select, valeur){
         }
     }
 }
+
+function searchValueFromTable(textboxSearch, tbodyTr){
+    textboxSearch.addEventListener("keyup", function() {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll(tbodyTr); // tbodyTr = #resultsTableBody tr
+
+        rows.forEach(row => {
+            let text = row.textContent.toLowerCase();
+            if (text.includes(filter)) {
+                row.style.display = "";   // afficher la ligne
+            } else {
+                row.style.display = "none"; // masquer la ligne
+            }
+        });
+    });
+}

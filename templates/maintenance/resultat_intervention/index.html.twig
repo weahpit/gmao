@@ -1,0 +1,74 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Resultats Interventions — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Resultats Interventions</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">Resultats Interventions</h1>
+        <a href="#"  id="btn_add_resultat_intervention" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddResultatIntervention">
+            <img src="{{ asset('icons/resultat_intervention.png') }}" class="me-2" alt="" height="16"> Ajouter une resultat
+        </a>
+    </div>
+
+    <!-- Table -->
+
+        <div class="card-body">
+
+        </div>
+
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddResultatIntervention" tabindex="-1" aria-labelledby="modalAddResultatInterventionLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/resultat_intervention.png') }}" height="40" alt=""> Enregistrer une resultat</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formResultatIntervention" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="resultat_intervention" style="width: 150px;">Libellé</label>
+                            <input type="text" class="input" id="libelle" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveResultatIntervention">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/Maintenance/ResultatIntervention.js') }}"></script>
+    <script>
+
+        let idResultatIntervention = "0";
+        getAllResultatIntervention(document.querySelector(".card-body"), 1)
+        clearForm("formResultatIntervention", "libelle")
+        ValidateOnKeypress(document.getElementById("libelle"), document.getElementById("saveResultatIntervention"), "formResultatIntervention")
+
+        document.querySelector("#btn_add_resultat_intervention").addEventListener("click", function () {
+            clearForm("formResultatIntervention", "libelle")
+        })
+
+        document.querySelector("#saveResultatIntervention").addEventListener("click", function () {
+            let agree = "0";
+            let FormDataResultatIntervention = new FormData();
+            FormDataResultatIntervention.append('id_resultat_intervention', idResultatIntervention)
+            FormDataResultatIntervention.append('libelle', document.querySelector("#libelle").value)
+            saveResultatIntervention(FormDataResultatIntervention, document.querySelector(".card-body"), 1)
+        })
+    </script>
+{% endblock %}
