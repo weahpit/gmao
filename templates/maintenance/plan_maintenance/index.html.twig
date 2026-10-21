@@ -171,6 +171,9 @@
     <script src="{{ asset('js/external/jquery.js') }}"></script>
     <script src="{{ asset('js/tools/functions.js') }}"></script>
     <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+    <script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
+    <script src="{{ asset('js/api/Maintenance/TypeIntervention.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // ---------- Outils ----------
@@ -309,6 +312,10 @@
             document.getElementById('pm_actif').checked=true;
             document.getElementById('pm_modal_title').textContent='Nouveau plan de maintenance';
             pmToggleJour();
+
+            getAllZonesExploitation(document.getElementById("pm_zone"), 2)
+            getAllEquipementTypes(document.getElementById("pm_equipement_type"), 2)
+            getAllTypeIntervention(document.getElementById("pm_type_intervention"), 2)
         });
 
         // ---------- Édition ----------
