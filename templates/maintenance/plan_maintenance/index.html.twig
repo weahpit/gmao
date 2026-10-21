@@ -1,0 +1,387 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Plans de maintenance préventive — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Maintenance</span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Plans préventifs</span>
+{% endblock %}
+
+{% block body %}
+    <style>
+        .pm-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .pm-tabs { display:flex; gap:4px; margin:10px 0; }
+        .pm-tab { border:1px solid #C8953A; background:#fff; color:#5F4A2D; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; }
+        .pm-tab.active { background:#5F4A2D; color:#fff; border-color:#5F4A2D; }
+
+        .pm-table { width:100%; border-collapse:collapse; background:#fff; }
+        .pm-table thead tr { background:linear-gradient(125deg,#5F4A2D,#7a5f3a); color:#fff; font-size:13px; }
+        .pm-table thead th { padding:8px 6px; text-align:left; white-space:nowrap; }
+        .pm-table tbody td { padding:7px 6px; font-size:12px; border-bottom:1px solid #ece6db; vertical-align:middle; }
+        .pm-table tbody tr:nth-child(even) { background:#faf8f4; }
+        .pm-table tbody tr:hover { background:#fdf4e3; }
+        .pm-ref { font-weight:700; color:#C8953A; }
+        .pm-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; }
+        .pm-badge.on { color:#2e7d32; background:#e6f4ea; }
+        .pm-badge.off { color:#b91c1c; background:#fde7e7; }
+        .pm-prog { min-width:120px; }
+        .pm-prog-bar-wrap { height:14px; border-radius:999px; background:#ece6db; overflow:hidden; }
+        .pm-prog-bar { height:100%; background:linear-gradient(90deg,#C8953A,#e0b25c); }
+        .pm-icon-btn { border:none; background:transparent; cursor:pointer; color:#5F4A2D; padding:2px 5px; }
+        .pm-icon-btn:hover { color:#C8953A; }
+
+        /* --- Planning annuel --- */
+        .pm-grid-wrap { overflow-x:auto; border:1px solid #ece6db; background:#fff; }
+        .pm-grid { border-collapse:collapse; font-size:10px; min-width:100%; }
+        .pm-grid th, .pm-grid td { border:1px solid #e6ddce; padding:2px 3px; text-align:center; white-space:nowrap; }
+        .pm-grid thead .pm-month { background:#5F4A2D; color:#fff; font-weight:700; }
+        .pm-grid thead .pm-week { background:#f0e9db; color:#7a6a53; font-weight:600; font-size:9px; }
+        .pm-grid .pm-row-head { position:sticky; left:0; background:#fbf8f2; text-align:left; font-weight:600; color:#4a3a28; min-width:230px; max-width:260px; }
+        .pm-grid .pm-cell-on { } /* couleur appliquée en ligne */
+        .pm-legend { display:flex; gap:14px; align-items:center; margin:8px 2px; font-size:12px; color:#5F4A2D; }
+        .pm-legend .dot { display:inline-block; width:14px; height:14px; border-radius:3px; margin-right:5px; vertical-align:middle; }
+        .pm-empty, .pm-loading { padding:26px; text-align:center; color:#8a7a63; }
+    </style>
+
+    <div class="page-header">
+        <h1 class="page-title"><i data-lucide="calendar-clock" class="me-2"></i>Plans de maintenance préventive</h1>
+        <div class="pm-toolbar">
+            <label for="pm_annee" class="fw-bold" style="font-size:13px;">Année</label>
+            <select id="pm_annee" class="input" style="width:100px;"></select>
+            <button id="pm_btn_programmer" class="btn btn-outline-secondary" title="Créer les fiches d'intervention pour les échéances arrivées à terme">
+                <i data-lucide="play"></i> Lancer la programmation
+            </button>
+            <button id="pm_btn_add" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPlan">
+                <i data-lucide="plus"></i> Nouveau plan
+            </button>
+        </div>
+    </div>
+    <hr>
+
+    <div class="pm-tabs">
+        <button class="pm-tab active" data-view="liste"><i data-lucide="list"></i> Liste des plans</button>
+        <button class="pm-tab" data-view="planning"><i data-lucide="calendar-range"></i> Planning annuel</button>
+    </div>
+
+    <div id="pm_view_liste">
+        <div id="pm_table_zone"><div class="pm-loading">Chargement…</div></div>
+    </div>
+
+    <div id="pm_view_planning" style="display:none;">
+        <div class="pm-legend">
+            <span><span class="dot" style="background:#C8953A;"></span>Date d'entretien systématique programmée</span>
+        </div>
+        <div id="pm_grid_zone" class="pm-grid-wrap"><div class="pm-loading">Chargement du planning…</div></div>
+    </div>
+
+    <!-- Modal plan -->
+    <div class="modal fade" id="modalPlan" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background:var(--green-700);color:#f1f1f1;">
+                    <h1 class="modal-title fs-5"><i data-lucide="calendar-clock" class="me-2"></i> <span id="pm_modal_title">Nouveau plan de maintenance</span></h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background:rgba(205,218,195,0.35)">
+                    <form id="formPlan" style="font-size:13px;">
+                        <input type="hidden" id="id_plan" value="0">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="fw-bold span" for="pm_reference">Réf. / Checklist</label>
+                                <input type="text" class="input w-100" id="pm_reference" placeholder="AQ-SM-EN-004" style="text-transform:uppercase;">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="fw-bold span" for="pm_libelle">Intervention / Libellé <span class="text-danger">*</span></label>
+                                <input type="text" class="input w-100" id="pm_libelle" placeholder="checklist entretien long ligne 1" style="text-transform:uppercase;">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold span" for="pm_zone">Zone d'exploitation</label>
+                                <select class="input w-100" id="pm_zone"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold span" for="pm_equipement_type">Équipement (type)</label>
+                                <select class="input w-100" id="pm_equipement_type"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold span" for="pm_type_intervention">Type d'intervention</label>
+                                <select class="input w-100" id="pm_type_intervention"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold span" for="pm_couleur">Couleur (planning)</label>
+                                <input type="color" class="input" id="pm_couleur" value="#C8953A" style="width:70px;height:34px;padding:2px;">
+                            </div>
+                            <hr class="mt-2">
+                            <div class="col-md-4">
+                                <label class="fw-bold span" for="pm_periodicite">Périodicité <span class="text-danger">*</span></label>
+                                <select class="input w-100" id="pm_periodicite">
+                                    <option value="JOURNALIERE">Journalière</option>
+                                    <option value="HEBDOMADAIRE" selected>Hebdomadaire</option>
+                                    <option value="MENSUELLE">Mensuelle</option>
+                                    <option value="TRIMESTRIELLE">Trimestrielle</option>
+                                    <option value="SEMESTRIELLE">Semestrielle</option>
+                                    <option value="ANNUELLE">Annuelle</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="fw-bold span" for="pm_intervalle">Tous les (intervalle)</label>
+                                <input type="number" min="1" class="input w-100" id="pm_intervalle" value="1">
+                            </div>
+                            <div class="col-md-4" id="pm_jour_wrap">
+                                <label class="fw-bold span" for="pm_jour_semaine">Jour de la semaine</label>
+                                <select class="input w-100" id="pm_jour_semaine">
+                                    <option value="">—</option>
+                                    <option value="1">Lundi</option>
+                                    <option value="2">Mardi</option>
+                                    <option value="3">Mercredi</option>
+                                    <option value="4">Jeudi</option>
+                                    <option value="5">Vendredi</option>
+                                    <option value="6">Samedi</option>
+                                    <option value="7">Dimanche</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="fw-bold span" for="pm_date_debut">Date de début <span class="text-danger">*</span></label>
+                                <input type="date" class="input w-100" id="pm_date_debut">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="fw-bold span" for="pm_date_fin">Date de fin (optionnelle)</label>
+                                <input type="date" class="input w-100" id="pm_date_fin">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="pm_actif" checked>
+                                    <label class="form-check-label fw-bold" for="pm_actif">Plan actif</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background:linear-gradient(#dbf0ce,#b4d6c9)">
+                    <small class="fw-bold p-1 bg-light">(<span class="text-danger">*</span>) obligatoire — les échéances sont programmées automatiquement à l'enregistrement</small>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary" id="pm_save">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // ---------- Outils ----------
+        function pmEsc(v){return (v==null?'':String(v)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+        function pmParse(raw){ let r=raw; if(typeof r==='string'){try{r=JSON.parse(r);}catch(e){}} return r; }
+        function pmIcons(){ if(typeof lucideRender==='function'){lucideRender();} else if(window.lucide&&window.lucide.createIcons){window.lucide.createIcons();} }
+        function pmToast(res){
+            if(typeof showToast==='function'){ showToast(res.msg, res.code); }
+            else { Swal.fire({icon:(res.code==='success'?'success':(res.code==='error'?'error':'warning')), html:res.msg, timer:2500, showConfirmButton:false}); }
+        }
+
+        // Remplit un <select> depuis une API (double-encodage géré)
+        function pmFillSelect(url, el, labelKey, placeholder){
+            $.ajax({url:url, method:'GET', dataType:'json'}).done(function(raw){
+                const res = pmParse(raw);
+                el.innerHTML = '<option value="">'+ (placeholder||'—') +'</option>';
+                if(res && res.code==='success' && Array.isArray(res.data)){
+                    res.data.forEach(function(it){
+                        const label = it[labelKey] != null ? it[labelKey] : (it.libelle||it.nom||'');
+                        el.innerHTML += '<option value="'+ pmEsc(it.id) +'">'+ pmEsc(label) +'</option>';
+                    });
+                }
+            });
+        }
+
+        // ---------- Année ----------
+        (function initAnnee(){
+            const sel = document.getElementById('pm_annee');
+            const y = new Date().getFullYear();
+            for(let a=y-1; a<=y+2; a++){ sel.innerHTML += '<option value="'+a+'" '+(a===y?'selected':'')+'>'+a+'</option>'; }
+        })();
+
+        // ---------- Onglets ----------
+        document.querySelectorAll('.pm-tab').forEach(function(tab){
+            tab.addEventListener('click', function(){
+                document.querySelectorAll('.pm-tab').forEach(t=>t.classList.remove('active'));
+                tab.classList.add('active');
+                const v = tab.getAttribute('data-view');
+                document.getElementById('pm_view_liste').style.display   = (v==='liste')?'':'none';
+                document.getElementById('pm_view_planning').style.display= (v==='planning')?'':'none';
+                if(v==='planning'){ loadPlanning(); }
+                pmIcons();
+            });
+        });
+
+        // ---------- Liste des plans ----------
+        const PERIODE_LABEL = {JOURNALIERE:'Journalière',HEBDOMADAIRE:'Hebdomadaire',MENSUELLE:'Mensuelle',TRIMESTRIELLE:'Trimestrielle',SEMESTRIELLE:'Semestrielle',ANNUELLE:'Annuelle'};
+
+        function loadPlans(){
+            const $z = $('#pm_table_zone');
+            $z.html('<div class="pm-loading">Chargement…</div>');
+            $.ajax({url:URL_APP + 'api/getAllPlansMaintenance', method:'GET', dataType:'json'}).done(function(raw){
+                const res = pmParse(raw);
+                if(!res || res.code!=='success' || !Array.isArray(res.data)){ $z.html('<div class="pm-empty">'+ pmEsc(res&&res.msg?res.msg:'Chargement impossible.') +'</div>'); return; }
+                if(!res.data.length){ $z.html('<div class="pm-empty">Aucun plan de maintenance. Cliquez sur « Nouveau plan ».</div>'); return; }
+                let h='<table class="pm-table"><thead><tr>'
+                    +'<th>Réf.</th><th>Intervention</th><th>Zone</th><th>Périodicité</th><th>Début</th><th>Avancement</th><th>Statut</th><th style="text-align:center;">Actions</th>'
+                    +'</tr></thead><tbody>';
+                res.data.forEach(function(p){
+                    const total = (p.nb_a_faire||0)+(p.nb_fait||0);
+                    const pct = total? Math.round((p.nb_fait/total)*100):0;
+                    const per = PERIODE_LABEL[p.periodicite]||p.periodicite||'';
+                    const perTxt = (p.intervalle&&p.intervalle>1)? per+' (x'+p.intervalle+')' : per;
+                    h+='<tr>'
+                        +'<td class="pm-ref">'+ pmEsc(p.reference) +'</td>'
+                        +'<td>'+ pmEsc(p.libelle) +'</td>'
+                        +'<td>'+ pmEsc(p.zone) +'</td>'
+                        +'<td>'+ pmEsc(perTxt) +'</td>'
+                        +'<td>'+ pmEsc(p.date_debut) +'</td>'
+                        +'<td><div class="pm-prog"><div class="pm-prog-bar-wrap"><div class="pm-prog-bar" style="width:'+pct+'%;"></div></div>'
+                            +'<div style="font-size:10px;color:#8a7a63;">'+ (p.nb_fait||0) +'/'+ total +' échéances</div></td>'
+                        +'<td><span class="pm-badge '+(p.actif?'on':'off')+'">'+(p.actif?'Actif':'Inactif')+'</span></td>'
+                        +'<td style="text-align:center;white-space:nowrap;">'
+                            +'<button class="pm-icon-btn pm-edit" data-id="'+ pmEsc(p.id) +'" title="Modifier"><i data-lucide="pencil"></i></button>'
+                            +'<button class="pm-icon-btn pm-del" data-id="'+ pmEsc(p.id) +'" data-lib="'+ pmEsc(p.libelle) +'" title="Supprimer"><i data-lucide="trash-2"></i></button>'
+                        +'</td>'
+                        +'</tr>';
+                });
+                h+='</tbody></table>';
+                $z.html(h); pmIcons();
+            }).fail(function(){ $z.html('<div class="pm-empty">Erreur réseau.</div>'); });
+        }
+
+        // ---------- Planning annuel ----------
+        function loadPlanning(){
+            const annee = document.getElementById('pm_annee').value;
+            const $z = $('#pm_grid_zone');
+            $z.html('<div class="pm-loading">Chargement du planning…</div>');
+            $.ajax({url:URL_APP + 'api/getPlanningAnnuel/'+annee, method:'GET', dataType:'json'}).done(function(raw){
+                const res = pmParse(raw);
+                if(!res || res.code!=='success'){ $z.html('<div class="pm-empty">'+ pmEsc(res&&res.msg?res.msg:'Chargement impossible.') +'</div>'); return; }
+                if(!res.plans.length){ $z.html('<div class="pm-empty">Aucun plan à afficher.</div>'); return; }
+                // En-tête mois (regroupé) + semaines
+                let moisRow='<tr><th class="pm-row-head" rowspan="2">Intervention</th>';
+                let i=0;
+                while(i<res.weeks.length){
+                    let span=1;
+                    while(i+span<res.weeks.length && res.weeks[i+span].mois===res.weeks[i].mois){ span++; }
+                    moisRow+='<th class="pm-month" colspan="'+span+'">'+ pmEsc(res.weeks[i].mois) +'</th>';
+                    i+=span;
+                }
+                moisRow+='</tr>';
+                let weekRow='<tr>';
+                res.weeks.forEach(function(w){ weekRow+='<th class="pm-week">'+ pmEsc(w.label) +'</th>'; });
+                weekRow+='</tr>';
+
+                let body='';
+                res.plans.forEach(function(p){
+                    body+='<tr><td class="pm-row-head" title="'+ pmEsc(p.reference) +'"><strong>'+ pmEsc(p.zone||'') +'</strong> '+ pmEsc(p.libelle) +'</td>';
+                    p.flags.forEach(function(on){
+                        body+= on ? '<td style="background:'+ pmEsc(p.couleur) +';"></td>' : '<td></td>';
+                    });
+                    body+='</tr>';
+                });
+
+                $z.html('<table class="pm-grid"><thead>'+moisRow+weekRow+'</thead><tbody>'+body+'</tbody></table>');
+            }).fail(function(){ $z.html('<div class="pm-empty">Erreur réseau.</div>'); });
+        }
+
+        document.getElementById('pm_annee').addEventListener('change', function(){
+            if(document.getElementById('pm_view_planning').style.display!=='none'){ loadPlanning(); }
+        });
+
+        // ---------- Jour de semaine : visible seulement pour hebdo ----------
+        function pmToggleJour(){
+            const per = document.getElementById('pm_periodicite').value;
+            document.getElementById('pm_jour_wrap').style.display = (per==='HEBDOMADAIRE')?'':'none';
+        }
+        document.getElementById('pm_periodicite').addEventListener('change', pmToggleJour);
+
+        // ---------- Ajout ----------
+        document.getElementById('pm_btn_add').addEventListener('click', function(){
+            document.getElementById('formPlan').reset();
+            document.getElementById('id_plan').value='0';
+            document.getElementById('pm_couleur').value='#C8953A';
+            document.getElementById('pm_actif').checked=true;
+            document.getElementById('pm_modal_title').textContent='Nouveau plan de maintenance';
+            pmToggleJour();
+        });
+
+        // ---------- Édition ----------
+        $(document).on('click', '.pm-edit', function(){
+            const id = $(this).data('id');
+            $.ajax({url:URL_APP + 'api/getSinglePlanMaintenance/'+id, method:'GET', dataType:'json'}).done(function(res){
+                res = pmParse(res);
+                if(!res || res.code!=='success'){ pmToast(res||{code:'error',msg:'Introuvable'}); return; }
+                document.getElementById('id_plan').value=id;
+                document.getElementById('pm_reference').value=res.reference||'';
+                document.getElementById('pm_libelle').value=res.libelle||'';
+                document.getElementById('pm_periodicite').value=res.periodicite||'HEBDOMADAIRE';
+                document.getElementById('pm_intervalle').value=res.intervalle||1;
+                document.getElementById('pm_jour_semaine').value=res.jour_semaine||'';
+                document.getElementById('pm_date_debut').value=res.date_debut||'';
+                document.getElementById('pm_date_fin').value=res.date_fin||'';
+                document.getElementById('pm_couleur').value=res.couleur||'#C8953A';
+                document.getElementById('pm_actif').checked=!!res.actif;
+                // sélections (après remplissage)
+                setTimeout(function(){
+                    if(res.zone) document.getElementById('pm_zone').value=res.zone;
+                    if(res.equipement_type) document.getElementById('pm_equipement_type').value=res.equipement_type;
+                    if(res.type_intervention) document.getElementById('pm_type_intervention').value=res.type_intervention;
+                }, 400);
+                document.getElementById('pm_modal_title').textContent='Modifier le plan';
+                pmToggleJour();
+                new bootstrap.Modal(document.getElementById('modalPlan')).show();
+            });
+        });
+
+        // ---------- Suppression ----------
+        $(document).on('click', '.pm-del', function(){
+            const id=$(this).data('id'); const lib=$(this).data('lib');
+            Swal.fire({title:'Supprimer ce plan ?', html:'<b>'+pmEsc(lib)+'</b><br>Les échéances non réalisées seront supprimées.', icon:'warning', showCancelButton:true, confirmButtonText:'Supprimer', cancelButtonText:'Annuler', confirmButtonColor:'#b91c1c'})
+                .then(function(r){ if(r.isConfirmed){
+                    $.ajax({url:URL_APP + 'api/deletePlanMaintenance/'+id, method:'GET', dataType:'json'}).done(function(res){ res=pmParse(res); pmToast(res); if(res.code==='success'){ loadPlans(); } });
+                }});
+        });
+
+        // ---------- Enregistrement ----------
+        document.getElementById('pm_save').addEventListener('click', function(){
+            const fd=new FormData();
+            fd.append('id_plan', document.getElementById('id_plan').value);
+            fd.append('reference', document.getElementById('pm_reference').value);
+            fd.append('libelle', document.getElementById('pm_libelle').value);
+            fd.append('zone', document.getElementById('pm_zone').value);
+            fd.append('equipement_type', document.getElementById('pm_equipement_type').value);
+            fd.append('type_intervention', document.getElementById('pm_type_intervention').value);
+            fd.append('periodicite', document.getElementById('pm_periodicite').value);
+            fd.append('intervalle', document.getElementById('pm_intervalle').value);
+            fd.append('jour_semaine', document.getElementById('pm_jour_semaine').value);
+            fd.append('date_debut', document.getElementById('pm_date_debut').value);
+            fd.append('date_fin', document.getElementById('pm_date_fin').value);
+            fd.append('couleur', document.getElementById('pm_couleur').value);
+            fd.append('actif', document.getElementById('pm_actif').checked?'1':'0');
+            $.ajax({url:URL_APP + 'api/savePlanMaintenance', method:'POST', data:fd, processData:false, contentType:false, dataType:'json'})
+                .done(function(res){ res=pmParse(res); pmToast(res); if(res.code==='success'){ bootstrap.Modal.getInstance(document.getElementById('modalPlan'))?.hide(); loadPlans(); if(document.getElementById('pm_view_planning').style.display!=='none'){ loadPlanning(); } } })
+                .fail(function(){ pmToast({code:'error',msg:'Erreur réseau.'}); });
+        });
+
+        // ---------- Lancer la programmation (générer les fiches dues) ----------
+        document.getElementById('pm_btn_programmer').addEventListener('click', function(){
+            Swal.fire({title:'Lancer la programmation ?', text:'Les fiches d\'intervention des échéances arrivées à terme vont être créées.', icon:'question', showCancelButton:true, confirmButtonText:'Lancer', cancelButtonText:'Annuler', confirmButtonColor:'#5F4A2D'})
+                .then(function(r){ if(r.isConfirmed){
+                    $.ajax({url:URL_APP + 'api/genererFichesPreventivesDues', method:'GET', dataType:'json'}).done(function(res){ res=pmParse(res); pmToast(res); loadPlans(); }).fail(function(){ pmToast({code:'error',msg:'Erreur réseau.'}); });
+                }});
+        });
+
+        // ---------- Init ----------
+        pmFillSelect('api/getAllZonesExploitation', document.getElementById('pm_zone'), 'zone_exploitation', 'Toutes zones');
+        pmFillSelect('api/getAllEquipementTypes', document.getElementById('pm_equipement_type'), 'nom', 'Aucun');
+        pmFillSelect('api/getAllTypeIntervention', document.getElementById('pm_type_intervention'), 'libelle', 'Aucun');
+        loadPlans();
+        pmIcons();
+    </script>
+{% endblock %}

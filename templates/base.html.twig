@@ -71,7 +71,7 @@
                             <span class="nav-label">Ordres de travail</span>
                         </a>
 
-                        <a href="#" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'preventive' ? 'active' }}">
+                        <a href="{{ path('preventive_plan_maintenance') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'preventive' ? 'active' }}">
                             <span class="nav-label">Plans préventifs</span>
                         </a>
                     </div>

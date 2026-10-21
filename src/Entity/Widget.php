@@ -23,7 +23,7 @@ class Widget
     #[ORM\Column(nullable: true)]
     private ?int $width = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $reference = null;
 
     /**
