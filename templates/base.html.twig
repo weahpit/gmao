@@ -91,15 +91,22 @@
                         <i data-lucide="chevron-down" class="nav-chevron"></i>
                     </button>
                     <div class="nav-submenu">
-                        <a href="{{ path('app_mouvements_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock' ? 'active' }}">
-                            <span class="nav-label">Mouvementer le stock</span>
+                        <a href="{{ path('app_mouvements_stock_entree') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_entree' ? 'active' }}">
+                            <span class="nav-label">Entrée</span>
+                        </a>
+                        <a href="{{ path('app_mouvements_stock_sortie') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_sortie' ? 'active' }}">
+                            <span class="nav-label">Sortie</span>
                         </a>
                         <a href="{{ path('app_inventaires') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_inventaires' ? 'active' }}">
                             <span class="nav-label">Inventaire</span>
                         </a>
+                        <a href="{{ path('app_mouvements_operations_jour') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_operations_jour' ? 'active' }}">
+                            <span class="nav-label">Opérations journalières</span>
+                        </a>
+                        {#
                         <a href="#" class="nav-subitem">
                             <span class="nav-label">Alertes stock</span>
-                        </a>
+                        </a>#}
                     </div>
                 </div>
             </div>

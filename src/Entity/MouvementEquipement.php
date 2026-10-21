@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: MouvementEquipementRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class MouvementEquipement
 {
     #[ORM\Id]
@@ -54,6 +55,12 @@ class MouvementEquipement
 
     #[ORM\ManyToOne(inversedBy: 'mouvementEquipements')]
     private ?Equipement $code_equipement = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $stock_avant = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $stock_apres = null;
 
     public function getId(): ?Uuid
     {
@@ -214,5 +221,39 @@ class MouvementEquipement
         $this->code_equipement = $code_equipement;
 
         return $this;
+    }
+
+    public function getStockAvant(): ?float
+    {
+        return $this->stock_avant;
+    }
+
+    public function setStockAvant(?float $stock_avant): static
+    {
+        $this->stock_avant = $stock_avant;
+
+        return $this;
+    }
+
+    public function getStockApres(): ?float
+    {
+        return $this->stock_apres;
+    }
+
+    public function setStockApres(?float $stock_apres): static
+    {
+        $this->stock_apres = $stock_apres;
+
+        return $this;
+    }
+
+    #[ORM\PrePersist]
+    public function prePersist(): void
+    {
+        $this->created_at =
+            new \DateTimeImmutable();
+
+        $this->date_operation =
+            new \DateTime();
     }
 }

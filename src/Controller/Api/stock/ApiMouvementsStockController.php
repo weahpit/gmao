@@ -10,6 +10,7 @@ use App\Entity\Marque;
 use App\Entity\MouvementEquipement;
 use App\Entity\NatureEquipement;
 use App\Entity\Services;
+use App\Repository\EquipementTypeRepository;
 use App\Services\Functions;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -283,4 +284,345 @@ final class ApiMouvementsStockController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
+
+    #[Route('api/getArticlesFromStock', name: 'app_get_articles_from_stock')]
+    public function app_get_articles_from_stock(): Response
+    {
+        $reponse = array();
+        $data = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
+            try {
+            $equipementsType = $this->em->getRepository(EquipementType::class)->findAll();
+            foreach ($equipementsType as$equipement){
+                $data[] = array(
+                    'id'=>$equipement->getId(),
+                    'nom'=>$equipement->getNomEquipement(),
+                    'qte'=>$equipement->getQte()
+                );
+            }
+                $reponse = ['code' => "success", 'msg' => 'Success', 'data'=>$data];
+        }catch (\Throwable  $throwable){
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
+    #[Route('/api/saveStockOperation', name: 'api_save_stock_operation', methods: ['POST'])]
+    public function saveStockOperation(
+        Request $request,
+        EntityManagerInterface $em,
+        EquipementTypeRepository $equipementRepository
+    ): JsonResponse {
+
+        $articles = json_decode(
+            $request->request->get('articles', '[]'),
+            true
+        );
+
+        $typeOperation =
+            $request->request->get('type_operation');
+
+        if (empty($articles)) {
+
+            return $this->json([
+                'code' => 'error',
+                'msg'  => 'Aucun article sélectionné.'
+            ], 400);
+        }
+
+        $connection = $em->getConnection();
+        $connection->beginTransaction();
+
+        try {
+
+            foreach ($articles as $item) {
+
+                $equipement =
+                    $equipementRepository->find(
+                        $item['article_id']
+                    );
+
+                if (!$equipement) {
+
+                    throw new \Exception(
+                        sprintf(
+                            'Equipement introuvable (%s)',
+                            $item['article_id']
+                        )
+                    );
+                }
+
+                $quantite = (float)$item['quantite'];
+
+                if ($quantite <= 0) {
+                    throw new \Exception(
+                        'Quantité invalide.'
+                    );
+                }
+
+                /*
+                 * Stock actuel
+                 */
+                $stockAvant = (float)$equipement->getQte();
+
+                /*
+                 * ENTREE
+                 */
+                if ($typeOperation === '1') {
+
+                    $stockApres =
+                        $stockAvant + $quantite;
+
+                    $typeMvt = '1';
+                }
+                /*
+                 * SORTIE
+                 */
+                else {
+
+                    if ($quantite > $stockAvant) {
+
+                        throw new \Exception(
+                            sprintf(
+                                'Stock insuffisant pour %s (Disponible : %.2f)',
+                                $equipement->getNom(),
+                                $stockAvant
+                            )
+                        );
+                    }
+
+                    $stockApres =
+                        $stockAvant - $quantite;
+
+                    $typeMvt = '2';
+                }
+
+                /*
+                 * Mise à jour stock équipement
+                 */
+                $equipement->setQte(
+                    $stockApres
+                );
+
+                /*
+                 * Création mouvement
+                 */
+                $mouvement =
+                    new MouvementEquipement();
+
+                $mouvement
+                    /*->setCodeEquipement(
+                        $equipement
+                    )*/
+                    ->setCodeEquipementType(
+                        $equipement
+                    )
+                    ->setTypeMvt(
+                        $typeMvt
+                    )
+                    ->setQte(
+                        $quantite
+                    )
+                    ->setValue(
+                        $quantite
+                    )
+                    ->setStockAvant(
+                        $stockAvant
+                    )
+                    ->setStockApres(
+                        $stockApres
+                    )
+                    ->setObservation(
+                        $item['mention'] ?? null
+                    )
+                    ->setCreatedAt(
+                        new \DateTimeImmutable()
+                    )
+                    ->setDateOperation(
+                        new \DateTime()
+                    );
+
+                /*
+                 * Service (optionnel)
+                 */
+                if (
+                    isset($item['code_service'])
+                    && $item['code_service']
+                ) {
+
+                    $service =
+                        $em->getReference(
+                            Services::class,
+                            $item['code_service']
+                        );
+
+                    $mouvement
+                        ->setCodeService(
+                            $service
+                        );
+                }
+
+                /*
+                 * Emplacement (optionnel)
+                 */
+                if (
+                    isset($item['emplacement'])
+                    && $item['emplacement']
+                ) {
+
+                    $emplacement =
+                        $em->getReference(
+                            Emplacement::class,
+                            $item['emplacement']
+                        );
+
+                    $mouvement
+                        ->setEmplacement(
+                            $emplacement
+                        );
+                }
+
+                /*
+                 * Numéro de bon
+                 */
+                if (
+                    !empty(
+                    $item['numero_bon']
+                    )
+                ) {
+
+                    $mouvement
+                        ->setNumeroBon(
+                            $item['numero_bon']
+                        );
+                }
+
+                /*
+                 * Upload document
+                 */
+                $fileKey =
+                    'file_' .
+                    $item['article_id'];
+
+                if (
+                    $request
+                        ->files
+                        ->has($fileKey)
+                ) {
+
+                    $file =
+                        $request
+                            ->files
+                            ->get($fileKey);
+
+                    $extension =
+                        $file->guessExtension();
+
+                    $fileName =
+                        uniqid(
+                            'mvt_',
+                            true
+                        ) .
+                        '.' .
+                        $extension;
+
+                    $file->move(
+                        $this->getParameter(
+                            'bon_livraison'
+                        ),
+                        $fileName
+                    );
+
+                    $mouvement
+                        ->setBonLivraison(
+                            $fileName
+                        );
+                }
+
+                /*
+                 * Valeur financière
+                 * (facultatif)
+                 */
+                if (
+                    method_exists(
+                        $equipement,
+                        'getPrixUnitaire'
+                    )
+                ) {
+
+                    $mouvement
+                        ->setValue(
+                            $quantite *
+                            $equipement
+                                ->getPrixUnitaire()
+                        );
+                }
+
+                $em->persist(
+                    $mouvement
+                );
+            }
+
+            $em->flush();
+
+            $connection->commit();
+
+            return $this->json([
+                'code' => 'success',
+                'msg'  => 'Mouvement enregistré avec succès.'
+            ]);
+
+        } catch (\Exception $e) {
+
+            $connection->rollBack();
+
+            return $this->json([
+                'code' => 'error',
+                'msg'  => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('api/getMouvementsByDate', name: 'getMouvementsByDate')]
+    public function getMouvementsByDate(Request $request): Response
+    {
+        $reponse = array();
+        $data = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
+            try {
+                $date_inventaire = $request->request->get('date_inventaire');
+                $dateMvt = new  \DateTime($date_inventaire);
+
+                $Mvts = $this->em->getRepository(MouvementEquipement::class)->findBy(['date_operation'=>$dateMvt]);
+                foreach ($Mvts as$Mvt){
+                    $data[] = array(
+                        'id'=>$Mvt->getId(),
+                        'type_mvt'=>$Mvt->getTypeMvt(),
+                        'qte'=>$Mvt->getQte(),
+                        'eqType'=>$Mvt->getCodeEquipementType()?$Mvt->getCodeEquipementType()->getNomEquipement() : "" ,
+                        'photo'=>$Mvt->getCodeEquipementType()?$Mvt->getCodeEquipementType()->getPhoto() : "" ,
+                        'service'=>$Mvt->getCodeService()?$Mvt->getCodeService()->getLibelle() : "" ,
+                        'emplacement'=>$Mvt->getEmplacement() ?$Mvt->getEmplacement()->getLibelle() : "" ,
+                        'emplacement2'=>$Mvt->getPrecisionEmplacement() ? $Mvt->getPrecisionEmplacement() : "",
+                        'bl'=>$Mvt->getBonLivraison()? $Mvt->getBonLivraison() : "",
+                        'numero_bon'=>$Mvt->getNumeroBon() ,
+                        'stock_avant'=>$Mvt->getStockAvant() ,
+                        'stock_apres'=>$Mvt->getStockApres()
+                    );
+                }
+                $reponse = ['code' => "success", 'msg' => 'Success', 'data'=>$data];
+            }catch (\Throwable  $throwable){
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
 }

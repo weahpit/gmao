@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion du stock — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Opérations d'entrée</span>
+{% endblock %}
+
+{% block body %}
+    <link rel="stylesheet" href="{{ asset('css/MvtsStocks/table.css') }}">
+
+    <div class="page-header">
+         <h1 class="page-title"><img src="{{ asset('images/arrow.png') }}" height="32" class="me-2" alt="">Opérations d'entrée</h1>
+        <div class="d-flex">
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="" style="border: 1px solid #d2d0d0;background: radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius: 0;">
+        <div class="table-responsive" id="div_entree" style="border: 1px solid #dedede;">
+
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/stock/MouvementsStock.js') }}"></script>
+
+    <script>
+        getArticlesFromStock(document.getElementById("div_entree"), 1, "1")
+
+        document.addEventListener('change', function(e){
+
+            if(e.target.classList.contains('chk_input')){
+
+                e.target.closest('tr')
+                    .classList.toggle(
+                    'selected',
+                    e.target.checked
+                );
+            }
+        });
+    </script>
+{% endblock %}
