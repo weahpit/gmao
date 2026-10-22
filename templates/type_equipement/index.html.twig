@@ -38,6 +38,7 @@
                         <div class="d-flex justify-content-start mb-3">
                             <label class="fw-bold span " for="typeEquipement" style="width: 150px;">Nom</label>
                             <input type="text" class="input" id="typeEquipement" style="text-transform: uppercase;">
+                            <input type="text" class="input" id="initial" style="text-transform: uppercase;width: 100px;" placeholder="Initial">
                         </div>
                         <div class="d-flex justify-content-start">
                             <label class="fw-bold span " for="code_famille" style="width: 150px;">Famille</label>
@@ -77,11 +78,10 @@
            let FormDataType = new FormData();
            FormDataType.append('id_type', idType)
            FormDataType.append('type_equipement', document.querySelector("#typeEquipement").value)
+           FormDataType.append('initial', document.querySelector("#initial").value)
            FormDataType.append('code_famille', document.querySelector("#code_famille").value)
            saveTypeEquipement(FormDataType, document.querySelector(".card-body"), 1)
-           setTimeout(()=>{
-               clearForm("formType", "typeEquipement") ;
-           }, 500)
+
        })
     </script>
 {% endblock %}

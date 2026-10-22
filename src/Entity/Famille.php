@@ -32,6 +32,9 @@ class Famille
     #[ORM\OneToMany(targetEntity: TypeEquipement::class, mappedBy: 'code_famille')]
     private Collection $typeEquipements;
 
+    #[ORM\Column(length: 3, nullable: true)]
+    private ?string $initial = null;
+
     public function __construct()
     {
         $this->categories = new ArrayCollection();
@@ -111,6 +114,18 @@ class Famille
                 $typeEquipement->setCodeFamille(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getInitial(): ?string
+    {
+        return $this->initial;
+    }
+
+    public function setInitial(?string $initial): static
+    {
+        $this->initial = $initial;
 
         return $this;
     }

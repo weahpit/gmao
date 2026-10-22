@@ -21,6 +21,9 @@ class Categorie
     #[ORM\ManyToOne(inversedBy: 'categories')]
     private ?Famille $code_famille = null;
 
+    #[ORM\Column(length: 3, nullable: true)]
+    private ?string $initial = null;
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -46,6 +49,18 @@ class Categorie
     public function setCodeFamille(?Famille $code_famille): static
     {
         $this->code_famille = $code_famille;
+
+        return $this;
+    }
+
+    public function getInitial(): ?string
+    {
+        return $this->initial;
+    }
+
+    public function setInitial(?string $initial): static
+    {
+        $this->initial = $initial;
 
         return $this;
     }

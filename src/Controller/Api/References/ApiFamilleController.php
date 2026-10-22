@@ -28,7 +28,8 @@ final class ApiFamilleController extends AbstractController
                     foreach ($familles as $famille){
                         $data[] = array(
                             'id'=>$famille->getId(),
-                            'famille'=>$famille->getLibelle()
+                            'famille'=>$famille->getLibelle(),
+                            'initial'=>$famille->getInitial()
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -53,7 +54,8 @@ final class ApiFamilleController extends AbstractController
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
-                    'famille'=>$famille->getLibelle()
+                    'famille'=>$famille->getLibelle(),
+                    'initial'=>$famille->getInitial()
                 );
             } else {
                 $reponse = array(
@@ -79,9 +81,12 @@ final class ApiFamilleController extends AbstractController
             try {
                 $id_famille = $request->request->get('id_famille');
                 $libelle_famille = $request->request->get('famille');
+                $initial = $request->request->get('initial');
 
-                if (!$libelle_famille) {
+                if (!$libelle_famille || !$initial) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir la famille !'];
+                } else if (strlen($initial) > 3) {
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir au plus 03 caratères pour l\'nitial !'];
                 } else {
                     $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_famille);
                     $famille = $this->em->getRepository(Famille::class)->find($uuid);
@@ -92,6 +97,7 @@ final class ApiFamilleController extends AbstractController
                     }
 
                     $famille->setLibelle(strtoupper($libelle_famille));
+                    $famille->setInitial(strtoupper($initial));
 
                     $this->em->persist($famille);
                     $this->em->flush();

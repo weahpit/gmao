@@ -126,14 +126,22 @@
     <script>
 
         let idEquipement = "0";
+        document.getElementById("date_inventaire").value = new Date().toISOString().split('T')[0];
+        getData()
 
         $("#btn-search").on('click', function(){
+            getData()
+        })
+
+        function getData(){
             if (!document.getElementById("date_inventaire").value) { showToast("Merci de saisir une date d'inventaire", {title : 'INVENTAIRES', duration: 3000, type:"error"})} else {
                 let formData = new FormData();
                 formData.append('date_inventaire', document.getElementById("date_inventaire").value)
                 getAllDataInventaire(document.getElementById('div_inventaire'), formData)
             }
-        })
+        }
+
+
 
         // Sélectionner toutes les lignes du tableau
         document.querySelectorAll("tr").forEach(tr => {

@@ -9,6 +9,7 @@ use App\Entity\EtatEquipement;
 use App\Entity\Fournisseur;
 use App\Entity\Marque;
 use App\Entity\NatureEquipement;
+use App\Entity\TypeEq;
 use App\Entity\TypeEquipement;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -207,6 +208,144 @@ final class ApiEquipementController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
+
+
+
+
+
+
+    #[Route('api/saveEquipementWithReference', name: 'saveEquipementWithReference')]
+    public function saveEquipementWithReference(Request $request): Response
+    {
+        $reponse = [];
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN")) {
+            try {
+                $type_ajout= $request->request->get('type_ajout');
+                $id_equipement = $request->request->get('selectEq');
+                $CodeEquipement = $request->request->get('code');
+                $nomEquipement = $request->request->get('nom');
+                $fournisseur  = $request->request->get('fournisseur');
+                $marque= $request->request->get('marque');
+                $modele = $request->request->get('modele');
+                $date_entree = $request->request->get('date_entree');
+                $type_eq = $request->request->get('type_eq');
+                $categorie = $request->request->get('categorie');
+                $criticite = $request->request->get('criticite');
+                $seuil = $request->request->get('seuil');
+                $photo = $request->files->get('photo');
+
+
+                if ($type_ajout === "0"){
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de cliquer sur Nouvel article ou Sélectionnez un article !'];
+                } else{
+                    if ($type_ajout === "1"){ // Nouvel article
+                        if (!$CodeEquipement || !$nomEquipement || ! $categorie || ! $type_eq ){
+                            $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs !'];
+                        } else{
+                            // Vérifie si une occurrence a été apportée
+                            if (!$modele){
+                                $reponse = ['code' => 'warning', 'msg' => 'Inscrivez au moins la référence !'];
+                            } else {
+                                $nouvelEq = new  EquipementType();
+                                $nouvelEq->setCode($CodeEquipement);
+                                $nouvelEq->setSeuil($seuil);
+                                $nouvelEq->setNomEquipement(strtoupper($nomEquipement));
+                                $nouvelEq->setQte(0);
+
+                                if ($categorie){
+                                    $Categorie = $this->em->getRepository(TypeEquipement::class)->find(Uuid::fromString($categorie));
+                                    if ($Categorie){ $nouvelEq->setCategorie($Categorie);}
+                                }
+
+                                if ($criticite){
+                                    $Criticite = $this->em->getRepository(Criticite::class)->find(Uuid::fromString($criticite));
+                                    if ($Criticite){ $nouvelEq->setCriticite($Criticite);}
+                                }
+
+                                 if ($type_eq){
+                                     $TypeEq = $this->em->getRepository(TypeEq::class)->find(Uuid::fromString($type_eq));
+                                    if ($TypeEq){ $nouvelEq->setTypeEq($TypeEq);}
+                                }
+                                // Charger la photo de l'équipement
+                                if ($photo) {
+                                    $filename = uniqid().'.'.$photo->guessExtension();
+                                    $photo->move($this->getParameter('photo_equipement'), $filename);
+                                    $nouvelEq->setPhoto($filename);
+                                }
+
+                                $this->em->persist($nouvelEq);
+
+
+                                // Enregistrement de l'occurrence
+
+                                $nouvelleOccurrence = new Equipement();
+                                $nouvelleOccurrence->setCodeEquipementType($nouvelEq);
+                                $nouvelleOccurrence->setModele($modele);
+                                $nouvelleOccurrence->setDateEntree(new \DateTime());
+                                $nouvelleOccurrence->setCode($CodeEquipement);
+                                $nouvelleOccurrence->setNom($nouvelEq->getNomEquipement());
+
+                                if ($fournisseur){
+                                    $Fournisseur = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($fournisseur));
+                                    if ($Fournisseur){ $nouvelleOccurrence->setCodeFournisseur($Fournisseur);}
+                                }
+
+                                if ($marque){
+                                    $Marque = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($marque));
+                                    if ($Marque){ $nouvelleOccurrence->setMarque($Marque);}
+                                }
+
+                                $this->em->persist($nouvelleOccurrence);
+
+                                $this->em->flush();
+                                $reponse = ['code' => 'success', 'msg' => 'Article Ajouté avec succès !'];
+                            }
+                        }
+
+                    } else{ // Mise à jour
+                        // Recherche de l'équipement
+                        $EquipementType = $this->em->getRepository(EquipementType::class)->find(Uuid::fromString($id_equipement));
+
+                        if ($EquipementType){
+                            // Enregistrement de l'occurrence
+
+                            $nouvelleOccurrence = new Equipement();
+                            $nouvelleOccurrence->setCodeEquipementType($EquipementType);
+                            if ($EquipementType->getCode()){ $nouvelleOccurrence->setCode($EquipementType->getCode());}
+
+                            $nouvelleOccurrence->setModele($modele);
+                            $nouvelleOccurrence->setDateEntree(new \DateTime());
+
+                            $nouvelleOccurrence->setNom($EquipementType->getNomEquipement());
+                            if ($fournisseur){
+                                $Fournisseur = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($fournisseur));
+                                if ($Fournisseur){ $nouvelleOccurrence->setCodeFournisseur($Fournisseur);}
+                            }
+
+                            if ($marque){
+                                $Marque = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($marque));
+                                if ($Marque){ $nouvelleOccurrence->setMarque($Marque);}
+                            }
+
+                            $this->em->persist($nouvelleOccurrence);
+                            $this->em->flush();
+                            $reponse = ['code' => 'success', 'msg' => 'Article mis à jour avec succès !'];
+                        } else {
+                            $reponse = ['code' => 'error', 'msg' => 'Erreur constatée lors de l\'enregistrement de l\'article !'];
+                        }
+                    }
+                }
+
+            } catch (\Throwable $throwable) {
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
     #[Route('api/deleteEquipement/{$id_equipement}', name: 'app_api_delete_equipement')]
     public function app_api_delete_equipement(Request $request, int $id_equipement): Response
     {

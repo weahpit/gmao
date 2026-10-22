@@ -135,12 +135,14 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                     <tr>
                                         <th></th>
                                         <th>Article</th>
+                                        <th>Catégorie</th>
+                                        <th>Références</th>
                                         <th>Stock</th>
                                         <th class="text-center">Qté</th>
                                         <th>Mention</th>
                                         `;
                                         if (type_operation === "1"){
-                                            html +=`<th>Pièce jointe</th>`
+                                            html +=`<th>PJ</th>`
                                         }
 
                 html +=`</tr>
@@ -165,11 +167,20 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                             </td>
 
                             <td>
-                                <div class="article-name" style="color: black;">
+                                <div class="article-name" style="color: black;max-width: 400px;">
                                     ${article.nom}
                                 </div>
                             </td>
-
+                            <td>
+                                <div class="article-name" style="color: black;max-width: 300px;">
+                                    ${article.categorie}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="article-name" style="color: black;max-width: 300px;">
+                                    ${article.reference}
+                                </div>
+                            </td>
                             <td>
                                 <span class="stock-badge">
                                     ${article.qte}

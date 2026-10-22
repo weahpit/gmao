@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20261020182208 extends AbstractMigration
+final class Version20261022150453 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -20,12 +20,12 @@ final class Version20261020182208 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE widget ALTER reference DROP NOT NULL');
+        $this->addSql('ALTER TABLE equipement ADD qte INT DEFAULT NULL');
     }
 
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE widget ALTER reference SET NOT NULL');
+        $this->addSql('ALTER TABLE equipement DROP qte');
     }
 }

@@ -183,6 +183,24 @@ function saveEquipementType(formData, ctrl_name, ctrl_type){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'EquipementType', duration: 4000}));
 }
+
+function saveEquipementWithReference(formData){
+    fetch( URL_APP + "api/saveEquipementWithReference", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+            showToast(data.msg, {
+                type : data.code,
+                duration: 4000,
+                title: 'Equipement'
+            })
+            if (data.code === "success") {
+                document.getElementById("btn_add_eq").click()
+                getArticlesFromStock(document.getElementById("div_entree"), 1, "1")
+            }
+        })
+        .catch(err => showToast("❌ Erreur : " + err, {title: 'Equipement', duration: 4000}));
+}
+
 function deleteEquipementType(id_equipement_type_type_type){
     fetch( URL_APP + "api/deleteEquipementType", { method: "POST", body: id_equipement_type_type_type })
         .then(res => res.json())

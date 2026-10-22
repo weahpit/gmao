@@ -19,7 +19,7 @@
     --border:#d4dbe6;
 
     --bg:#f4f6f9;
-    --surface:#edeff3;
+    --surface: #f8f9fa;
     --surface-2:#ffffff;
 
     --radius-sm:12px;
@@ -214,7 +214,7 @@
     color:var(--text);
 
 
-    background: white;
+/*    background: white;*/
 
     border-bottom:1px solid var(--border);
 

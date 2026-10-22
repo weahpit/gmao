@@ -30,7 +30,8 @@ final class ApiTypeEquipementController extends AbstractController
                         $data[] = array(
                             'id'=>$type->getId(),
                             'categorie'=>$type->getLibelle(),
-                            'famille'=>$type->getCodeFamille()? $type->getCodeFamille()->getLibelle():""
+                            'famille'=>$type->getCodeFamille()? $type->getCodeFamille()->getLibelle():"",
+                            'initial'=>$type->getInitial()
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -60,7 +61,8 @@ final class ApiTypeEquipementController extends AbstractController
                             $data[] = array(
                                 'id'=>$type->getId(),
                                 'categorie'=>$type->getLibelle(),
-                                'famille'=>$type->getCodeFamille()? $type->getCodeFamille()->getLibelle():""
+                                'famille'=>$type->getCodeFamille()? $type->getCodeFamille()->getLibelle():"",
+                                'initial'=>$type->getInitial()
                             );
                         }
                         $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -89,7 +91,8 @@ final class ApiTypeEquipementController extends AbstractController
                     'code'=>'success',
                     'msg'=>'Success',
                     'libelle'=>$type_equipement->getLibelle(),
-                    'famille'=>$type_equipement->getCodeFamille()? $type_equipement->getCodeFamille()->getLibelle():""
+                    'famille'=>$type_equipement->getCodeFamille()? $type_equipement->getCodeFamille()->getLibelle():"",
+                    'initial'=>$type_equipement->getInitial()
                 );
             } else {
                 $reponse = array(
@@ -116,9 +119,12 @@ final class ApiTypeEquipementController extends AbstractController
                 $id_type_equipement =Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string) $request->request->get('id_type')) ;
                 $libelle = $request->request->get('type_equipement');
                 $code_famille = $request->request->get('code_famille');
+                $initial = $request->request->get('initial');
 
-                if (!$libelle && Uuid::isValid($code_famille)) {
+                if (!$libelle ||!Uuid::isValid($code_famille) || !$initial) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs obligatoires !'];
+                } else if (strlen($initial) > 3) {
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir au plus 03 caratères pour l\'nitial !'];
                 } else {
                     $type_equipement = $this->em->getRepository(TypeEquipement::class)->find($id_type_equipement);
                     $isNew = false;
@@ -131,6 +137,7 @@ final class ApiTypeEquipementController extends AbstractController
                     $uuid_famille = Uuid::fromString($code_famille);
                     $famille = $this->em->getRepository(Famille::class)->find($uuid_famille);
                     $type_equipement->setCodeFamille($famille);
+                    $type_equipement->setInitial(strtoupper($initial));
 
                     $this->em->persist($type_equipement);
                     $this->em->flush();

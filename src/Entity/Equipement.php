@@ -76,6 +76,9 @@ class Equipement
     #[ORM\OneToMany(targetEntity: FicheIntervention::class, mappedBy: 'equipement')]
     private Collection $ficheInterventions;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $qte = null;
+
     public function __construct()
     {
         $this->mouvementEquipements = new ArrayCollection();
@@ -323,6 +326,18 @@ class Equipement
                 $ficheIntervention->setEquipement(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getQte(): ?int
+    {
+        return $this->qte;
+    }
+
+    public function setQte(?int $qte): static
+    {
+        $this->qte = $qte;
 
         return $this;
     }

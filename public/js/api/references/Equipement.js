@@ -129,6 +129,7 @@ function saveEquipement(formData, ctrl_name, ctrl_type){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Equipement', duration: 4000}));
 }
+
 function deleteEquipement(id_equipement){
     fetch( URL_APP + "api/deleteEquipement", { method: "POST", body: id_equipement })
         .then(res => res.json())

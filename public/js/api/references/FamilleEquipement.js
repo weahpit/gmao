@@ -10,12 +10,14 @@ function getAllFamilles(ctrl_name, ctrl_type){
                 <table class="table table-hover">
                     <thead><tr>
                             <th>Liste des Familles</th>
+                            <th>Initial</th>
                     </tr></thead>
                     <tbody>
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].famille + '</a></td>'
+                    contentCtrl +='<td>' + reponse.data[i].initial + '</td>'
                     contentCtrl +='<tr>'
                 }
                 contentCtrl +='</tbody></table>';

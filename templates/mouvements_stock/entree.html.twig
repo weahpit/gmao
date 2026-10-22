@@ -13,8 +13,10 @@
 
     <div class="page-header">
          <h1 class="page-title"><img src="{{ asset('images/arrow.png') }}" height="32" class="me-2" alt="">Opérations d'entrée</h1>
-        <div class="d-flex">
-        </div>
+        <a href="#"  id="btn_add_eq" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalAddArticle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
+             Ajouter Article
+        </a>
     </div>
 
     <!-- Table -->
@@ -24,13 +26,194 @@
         </div>
     </div>
 
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddArticle" tabindex="-1" aria-labelledby="modalAddEquipementLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-100)">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-box preview-icon"><path d="M14 2v5a1 1 0 001 1h5"/><path d="M14.692 22H18a2 2 0 002-2V8a2.4 2.4 0 00-.706-1.706l-3.588-3.588A2.4 2.4 0 0014 2H6a2 2 0 00-2 2v3.804"/><path d="M2.264 13.752 7 16.5l4.737-2.748"/><path d="M2.995 13.014A2 2 0 002 14.744v3.516a2 2 0 00.996 1.73l3 1.74a2 2 0 002.008 0l3-1.74A2 2 0 0012 18.26v-3.517a2 2 0 00-.995-1.73l-3-1.742a2 2 0 00-1.892-.064z"/><path d="M7 16.5V22"/></svg> Enregistrer un nouvel article</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="">
+                    <div class="m-2 p-1" style="border: 1px solid #aaaaaa;border-radius: 10px;background-color: #cfcece;">
+                        <input type="radio" class="btn-check" name="options-outlined" id="add-article" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="add-article">Nouvel article</label>
+
+                        <input type="radio" class="btn-check" name="options-outlined" id="select-article" autocomplete="off" checked>
+                        <label class="btn btn-outline-success" for="select-article">Sélectionnez un article</label>
+
+                    </div>
+                    <form id="formEquipementType">
+                        <div class="m-2 p-2" style="border: 1px solid lightgrey;background-color: #f7f7f7;" id="bloc-add-article">
+                            <h6 class="fw-bold text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package preview-icon"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>
+                                Ajouter L'article
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-7">
+                                    <div class="row p-1" style="">
+                                        <div class="col-md-6 d-flex justify-content-start">
+                                            <label class="fw-bold span" for="CodeEquipement">Code <span class="fw-bold text-danger ms-2">*</span></label>
+                                            <input type="text" class="input fw-bold text-danger" id="CodeEquipement" style="text-transform: uppercase;" readonly>
+                                        </div>
+                                        <div class="col-md-6 d-flex justify-content-start">
+                                            <label class="fw-bold span " for="nomEquipement" style="width: 150px;">Nom<span class="fw-bold text-danger ms-2">*</span></label>
+                                            <input type="text" class="input" id="nomEquipement" style="text-transform: uppercase;">
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2 p-1">
+                                        <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                            <label for="famille" class="fw-bold span">Famille<span class="fw-bold text-danger ms-2">*</span></label>
+                                            <select class="input fw-bold" id="famille"></select>
+                                        </div>
+                                        <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                            <label for="categorie" class="fw-bold span">Catégorie <span class="fw-bold text-danger ms-2">*</span></label>
+                                            <select class="input fw-bold" id="categorie"></select>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2 p-1">
+                                        <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                            <label for="criticite" class="fw-bold span">Criticité</label><select class="input fw-bold" id="criticite"></select>
+                                        </div>
+                                        <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                            <label for="seuil" class="fw-bold span">Seuil</label><input class="input fw-bold text-danger" id="seuil"  value="0" type="number">
+                                        </div>
+                                       {# <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                            <label for="nature" class="fw-bold span">Nature<span class="fw-bold text-danger ms-2">*</span></label><select class="input fw-bold" id="nature"></select>
+                                        </div>#}
+                                    </div>
+                                    <div class="row  mt-2 p-1">
+                                        <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                            <label for="type_eq" class="fw-bold span">Type<span class="fw-bold text-danger ms-2">*</span></label><select class="input fw-bold" id="type_eq"></select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-5" style="border-left: 1px solid lightgrey;">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-1 mx-auto text-center">
+                                            <span class="fw-bold d-block mb-1">Insérer un logo</span>
+
+                                            <!-- Bouton personnalisé -->
+                                            <label for="eqUpload" class="btn mb-1" style="cursor: pointer;background: var(--green-200);">
+                                                <img class="p-1" src="{{ asset('icons/telecharger.png') }}" alt="">
+                                                <small>cliquez ici</small>
+                                            </label>
+                                            <input type="file" id="eqUpload" accept="image/*" hidden>
+                                            <small class="text-danger d-block mb-1">
+                                                Image de moins de 200Ko
+                                            </small>
+                                        </div>
+                                        <div class="col-md-8 mb-1 mx-auto text-center">
+                                            <img id="eqPreview" class="p-2"
+                                                 style="height:150px;border:2px dashed #000;object-fit:inherit;"
+                                                 src="" alt="Aperçu du logo">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                        <div class="m-2 p-2" style="border: 1px solid lightgrey;background-color: #f7f7f7;" id="bloc-select-article">
+                            <h6 class="fw-bold text-primary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package preview-icon"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg> Sélectionnez un article Modèle</h6>
+                            <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                <label for="eqType" class="fw-bold span">articles</label>
+                                <select class="input fw-bold" id="eqType"></select>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="m-2 p-2"  style="border: 1px solid lightgrey;background-color: #f4fdf9;" >
+                            <h6 class="fw-bold text-success"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package-plus preview-icon"><path d="M12 22V12"/><path d="M16 17h6"/><path d="M19 14v6"/><path d="M21 10.535V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 8.997 5.148"/></svg> Ajouter des occurences</h6>
+                            <div class="">
+                                <form action="#" id="formReference" >
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="fournisseur" class="fw-bold span">Fournisseur</label><select class="input fw-bold" id="fournisseur" style="background-color: #f4fdf9;" disabled></select>
+                                    </div>
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="marque" class="fw-bold span">Marque</label><select class="input fw-bold" id="marque" style="background-color: #f4fdf9;" disabled></select>
+                                    </div>
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="modele" class="fw-bold span">Reference</label><input class="input fw-bold" id="modele" style="background-color: #f4fdf9;text-transform: uppercase;" disabled>
+                                    </div>
+                                </form>
+
+                            </div>
+                        </div>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveEquipement">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ asset('js/external/jquery.js') }}"></script>
     <script src="{{ asset('js/tools/functions.js') }}"></script>
     <script src="{{ asset('js/tools/showToast.js') }}"></script>
     <script src="{{ asset('js/api/stock/MouvementsStock.js') }}"></script>
+    <script src="{{ asset('js/api/stock/requetesStock.js') }}"></script>
+    <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
+    <script src="{{ asset('js/api/references/MarqueEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+
+    <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+    <script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/TypeEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
+    <script src="{{ asset('js/api/references/TypeEq.js') }}"></script>
+    <script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+    <script src="{{ asset('js/api/references/FamilleEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
 
     <script>
+        let type_ajout = 0
+        let code = document.getElementById('CodeEquipement');
+        let eqType = document.getElementById('eqType');
+        let nom = document.getElementById('nomEquipement');
+        let famille = document.getElementById('famille');
+        let categorie = document.getElementById('categorie');
+       /* let nature = document.getElementById('nature');*/
+        let type_eq = document.getElementById('type_eq');
+        let seuil = document.getElementById('seuil');
+        let criticite = document.getElementById('criticite');
+
+        let fournisseur = document.getElementById('fournisseur');
+        let marque = document.getElementById('marque');
+        let modele = document.getElementById('modele');
+
+
+
         getArticlesFromStock(document.getElementById("div_entree"), 1, "1")
+
+        getAllFournisseurs(document.getElementById('fournisseur'), 2)
+        getAllMarques(document.getElementById('marque'), 2)
+        /*getAllNatureEquipement(document.getElementById('nature'), 2)*/
+        getAllEquipementTypes(document.getElementById('eqType'), 2)
+        getAllTypeEq(document.getElementById("type_eq"), 2)
+
+        uploadImage(document.getElementById('eqUpload'), document.getElementById('eqPreview'));
+
+        getAllTypeEquipements(document.getElementById("categorie"), 2)
+        getAllCriticiteEquipement(document.getElementById("criticite"), 2)
+        getAllFamilles(document.getElementById("famille"), 2)
+
+        document.getElementById("famille").addEventListener('change', ()=>{
+            let value = document.getElementById("famille").value;
+            getTypeEquipementByFamille(document.getElementById("categorie"),2, value)
+            getCode()
+        })
+
+        document.getElementById("categorie").addEventListener('change', ()=>{
+            getCode()
+        })
+
+        document.getElementById("btn_add_eq").addEventListener('click', ()=>{
+            toggleArticlesMode()
+        })
 
         document.addEventListener('change', function(e){
 
@@ -43,5 +226,121 @@
                 );
             }
         });
+
+        document.querySelectorAll('.input').forEach(element => {
+            element.addEventListener('change', function () {
+                ActiveOuDescativeReferences()
+            });
+        });
+
+        document.getElementById("saveEquipement").addEventListener('click', ()=>{
+            let eqUpload = document.getElementById("eqUpload").files;
+
+            let formDataEquipement = new FormData();
+            formDataEquipement.append('type_ajout', type_ajout)
+            formDataEquipement.append('selectEq', eqType.value)
+            formDataEquipement.append('code', code.value)
+            formDataEquipement.append('nom', nom.value)
+            formDataEquipement.append('categorie', categorie.value)
+            formDataEquipement.append('criticite', criticite.value)
+           /* formDataEquipement.append('nature', nature)*/
+            formDataEquipement.append('type_eq', type_eq.value)
+            formDataEquipement.append('seuil', seuil.value)
+            formDataEquipement.append('fournisseur', fournisseur.value)
+            formDataEquipement.append('marque', marque.value)
+            formDataEquipement.append('modele', modele.value)
+
+            formDataEquipement.append("photo", eqUpload[0]);
+            saveEquipementWithReference(formDataEquipement)
+        })
+
+        const addArticleRadio = document.getElementById('add-article');
+        const selectArticleRadio = document.getElementById('select-article');
+
+        const addBlock = document.getElementById('bloc-add-article');
+        const selectBlock = document.getElementById('bloc-select-article');
+
+        addArticleRadio.checked = true;
+
+
+        function toggleArticlesMode(){
+            if (addArticleRadio.checked) {
+                addBlock.style.display = 'block';
+                selectBlock.style.display = 'none';
+                clearForm("formEquipementType", "nomEquipement")
+                seuil.value = 0;
+                type_ajout = 1
+            }
+
+            if (selectArticleRadio.checked) {
+                addBlock.style.display = 'none';
+                selectBlock.style.display = 'block';
+                clearForm("formReference", "fournisseur")
+                type_ajout = 2
+            }
+        }
+
+        addArticleRadio.addEventListener('change', toggleArticlesMode);
+        selectArticleRadio.addEventListener('change', toggleArticlesMode);
+
+
+
+        function getCode(){
+            document.getElementById('CodeEquipement').value = "";
+            if (
+                document.getElementById('famille').value !== "0"  ||
+                document.getElementById('famille').value !== ""  ||
+                document.getElementById('categorie').value !== "0"  ||
+                document.getElementById('categorie').value !== ""
+            ){
+                let formData = new FormData
+
+                formData.append('code_famille', document.getElementById('famille').value)
+                formData.append('code_categorie', document.getElementById('categorie').value)
+                getCodeArticle(formData, document.getElementById('CodeEquipement'));
+            }
+
+        }
+
+        function ActiveOuDescativeReferences(){
+            if (
+                code.value &&
+                nom.value &&
+                categorie.value &&
+                categorie.value !== "0" &&
+                famille.value &&
+                famille.value !== "0" &&
+               /* nature.value &&*/
+               /* nature.value !== "0" &&*/
+                type_eq.value
+            ){
+                activeReference()
+            }  else if (eqType.value !== "0" && eqType.value ) {
+                activeReference()
+            } else {
+                desactiveReference()
+            }
+        }
+
+        function activeReference(){
+            fournisseur.style.backgroundColor = "#ffffff"
+            marque.style.backgroundColor = "#ffffff"
+            modele.style.backgroundColor = "#ffffff"
+            fournisseur.disabled = false;
+            marque.disabled = false;
+            modele.disabled = false;
+        }
+
+        function desactiveReference(){
+            fournisseur.style.backgroundColor = "#f4fdf9"
+            marque.style.backgroundColor = "#f4fdf9"
+            modele.style.backgroundColor = "#f4fdf9"
+            fournisseur.disabled = true;
+            marque.disabled = true;
+            modele.disabled = true;
+        }
+
+
+
     </script>
 {% endblock %}

@@ -36,6 +36,7 @@
                         <div class="d-flex justify-content-start">
                             <label class="fw-bold span " for="famille" style="width: 150px;">Nom</label>
                             <input type="text" class="input" id="famille" style="text-transform: uppercase;">
+                            <input type="text" class="input" id="initial" style="text-transform: uppercase;width: 100px;" placeholder="Initial">
                         </div>
                     </form>
                 </div>
@@ -65,10 +66,11 @@
 
         document.querySelector("#saveFamille").addEventListener("click", function () {
             let agree = "0";
-            let FormDataFournisseur = new FormData();
-            FormDataFournisseur.append('id_famille', idFamille)
-            FormDataFournisseur.append('famille', document.querySelector("#famille").value)
-            saveFamille(FormDataFournisseur, document.querySelector(".card-body"), 1)
+            let FormDataFamille = new FormData();
+            FormDataFamille.append('id_famille', idFamille)
+            FormDataFamille.append('famille', document.querySelector("#famille").value)
+            FormDataFamille.append('initial', document.querySelector("#initial").value)
+            saveFamille(FormDataFamille, document.querySelector(".card-body"), 1)
         })
     </script>
 {% endblock %}

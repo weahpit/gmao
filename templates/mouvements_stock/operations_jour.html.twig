@@ -74,7 +74,7 @@
             <div class="container pb-3">
                 <div class="d-flex p-1 text-center" style="background: linear-gradient(165deg, #567e64, #567e64);border: 1px solid #023902;color: white;">
                     <label for="date">Date de l'opération</label>
-                    <input type="date" class="input ms-2" id="date_inventaire" style="width: 150px;">
+                    <input type="date" class="input ms-2" id="date_operation" style="width: 150px;">
                     <button type="button" class="btn btn-success ms-2 p-0 fw-light d-flex justify-content-center align-items-center" id="btn-search" style="border: 1px solid lightgrey;border-radius: 0;width: 130px;"><i data-lucide="search" class="search"></i>Afficher</button>
                 </div>
             </div>
@@ -91,7 +91,7 @@
     <script src="{{ asset('js/tools/showToast.js') }}"></script>
     <script src="{{ asset('js/api/stock/RequetesStock.js') }}"></script>
     <script>
-        document.getElementById("date_inventaire").value = new Date().toISOString().split('T')[0];
+        document.getElementById("date_operation").value = new Date().toISOString().split('T')[0];
         getData()
 
         $("#btn-search").on('click', function(){
@@ -99,9 +99,9 @@
         })
 
         function getData(){
-            if (!document.getElementById("date_inventaire").value) { showToast("Merci de saisir une date d'inventaire", {title : 'INVENTAIRES', duration: 3000, type:"error"})} else {
+            if (!document.getElementById("date_operation").value) { showToast("Merci de saisir une date Opération valide", {title : 'Movements Stock', duration: 3000, type:"error"})} else {
                 let formData = new FormData();
-                formData.append('date_inventaire', document.getElementById("date_inventaire").value)
+                formData.append('date_operation', document.getElementById("date_operation").value)
                 getMouvementsByDate(document.getElementById('div_operations'), formData)
             }
         }

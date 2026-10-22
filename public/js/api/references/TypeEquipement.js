@@ -10,6 +10,7 @@ function getAllTypeEquipements(ctrl_name, ctrl_type){
                 <table class="table table-hover">
                     <thead><tr>
                             <th>catégorie</th>
+                            <th>Initial</th>
                             <th>Famille</th>
                     </tr></thead>
                     <tbody>
@@ -17,6 +18,7 @@ function getAllTypeEquipements(ctrl_name, ctrl_type){
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].categorie + '</a></td>'
+                    contentCtrl +='<td>' + reponse.data[i].initial + '</td>'
                     contentCtrl +='<td><span class="badge p-2 bg-primary fw-light">' + reponse.data[i].famille + '</span></td>'
                     contentCtrl +='<tr>'
                 }
@@ -48,6 +50,7 @@ function getTypeEquipementByFamille(ctrl_name, ctrl_type, value){
                 <table class="table table-hover">
                     <thead><tr>
                             <th>catégorie</th>
+                            <th>Initial</th>
                             <th>Famille</th>
                     </tr></thead>
                     <tbody>
@@ -55,6 +58,7 @@ function getTypeEquipementByFamille(ctrl_name, ctrl_type, value){
                 for (var i=0;i < reponse.data.length;i++){
                     contentCtrl +='<tr>'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].categorie + '</a></td>'
+                    contentCtrl +='<td>' + reponse.data[i].initial + '</td>'
                     contentCtrl +='<td><span class="badge p-2 bg-primary fw-light">' + reponse.data[i].famille + '</span></td>'
                     contentCtrl +='<tr>'
                 }
@@ -84,6 +88,7 @@ function saveTypeEquipement(formData, ctrl_name, ctrl_type){
             })
             if (data.code === "success") {
                 getAllTypeEquipements(ctrl_name, ctrl_type)
+                clearForm("formType", "typeEquipement") ;
             }
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Type Equipement', duration: 4000}));
