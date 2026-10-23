@@ -571,11 +571,9 @@ final class ApiMouvementsStockController extends AbstractController
 
                     $fileName =
                         uniqid(
-                            'mvt_',
-                            true
+                            'mvt_'
                         ) .
-                        '.' .
-                        $extension;
+                        '.' .$extension;
 
                     $file->move(
                         $this->getParameter(
@@ -645,7 +643,7 @@ final class ApiMouvementsStockController extends AbstractController
                 $date_inventaire = $request->request->get('date_operation');
                 $dateMvt = new  \DateTime($date_inventaire);
 
-                $Mvts = $this->em->getRepository(MouvementEquipement::class)->findBy(['date_operation'=>$dateMvt]);
+                $Mvts = $this->em->getRepository(MouvementEquipement::class)->findBy(['date_operation'=>$dateMvt], ['created_at'=>'DESC']);
                 foreach ($Mvts as$Mvt){
                     $data[] = array(
                         'id'=>$Mvt->getId(),
@@ -659,7 +657,9 @@ final class ApiMouvementsStockController extends AbstractController
                         'bl'=>$Mvt->getBonLivraison()? $Mvt->getBonLivraison() : "",
                         'numero_bon'=>$Mvt->getNumeroBon() ? $Mvt->getNumeroBon() : "" ,
                         'stock_avant'=>$Mvt->getStockAvant() ? $Mvt->getStockAvant() : "",
-                        'stock_apres'=>$Mvt->getStockApres() ? $Mvt->getStockApres() : ""
+                        'stock_apres'=>$Mvt->getStockApres() ? $Mvt->getStockApres() : "",
+                        'created_at'=>$Mvt->getCreatedAt()->format('H:i:s'),
+                        'mention'=>$Mvt->getObservation()
                     );
                 }
                 $reponse = ['code' => "success", 'msg' => 'Success', 'data'=>$data];

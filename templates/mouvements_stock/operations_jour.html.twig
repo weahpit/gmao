@@ -62,6 +62,7 @@
             background-color: #e9ecef; /* lignes paires */
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/MvtsStocks/table.css') }}">
     <div class="page-header">
         <h1 class="page-title"><img src="{{ asset('icons/inventory.png') }}" height="32" class="me-2" alt=""> Opérations Journalières sur Mouvements Stock</h1>
         <div class="d-flex">
@@ -84,13 +85,14 @@
         </div>
     </div>
 
-
+    <script>let chemin = "{{ asset('data/stock/bons/bl/') }}"</script>
 
     <script src="{{ asset('js/external/jquery.js') }}"></script>
     <script src="{{ asset('js/tools/functions.js') }}"></script>
     <script src="{{ asset('js/tools/showToast.js') }}"></script>
     <script src="{{ asset('js/api/stock/RequetesStock.js') }}"></script>
     <script>
+
         document.getElementById("date_operation").value = new Date().toISOString().split('T')[0];
         getData()
 

@@ -13,16 +13,45 @@
 
     <div class="page-header">
          <h1 class="page-title"><img src="{{ asset('images/arrow.png') }}" height="32" class="me-2" alt="">Opérations d'entrée</h1>
-        <a href="#"  id="btn_add_eq" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalAddArticle">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
-             Ajouter Article
-        </a>
+        <!-- Example single danger button -->
+        <div class="btn-group">
+            <button type="button" class="btn dropdown-toggle" style="background: linear-gradient(129deg, #c2f1ed, #b6efdd);border: 1px solid #509b80" data-bs-toggle="dropdown" aria-expanded="false">
+                Actions rapides
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="#" id="btn_add_eq" data-bs-toggle="modal" data-bs-target="#modalAddArticle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
+                        Nouvel Article
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" id="btn_add_frn" data-bs-toggle="modal" data-bs-target="#modalAddFournisseur">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
+                        Fournisseurs
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" id="btn_add_mrq" data-bs-toggle="modal" data-bs-target="#modalAddMarque">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
+                        Marques
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" id="btn_add_cat" data-bs-toggle="modal" data-bs-target="#modalAddType">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
+                        Catégories Articles
+                    </a>
+                </li>
+            </ul>
+        </div>
+
     </div>
 
     <!-- Table -->
     <div class="" style="border: 1px solid #d2d0d0;background: radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius: 0;">
         <div class="table-responsive" id="div_entree" style="border: 1px solid #dedede;">
-
+            <h5 class="text-center fw-bold text-priimary mt-5">Chargement des articles ...</h5>
         </div>
     </div>
 
@@ -150,6 +179,156 @@
         </div>
     </div>
 
+
+
+    <!-- Modal Add/Edit Fournisseur-->
+    <div class="modal fade" id="modalAddFournisseur" tabindex="-1" aria-labelledby="modalAddFournisseurLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('images/broyeur.png') }}" height="40" alt=""> Enregistrer un fournisseur</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(187,187,187,0.19)">
+                    <form id="formFournisseur">
+                        <div class="row p-1" style="background: #94c0af">
+                            <div class="col-md-3 d-flex justify-content-start">
+                                <label class="fw-bold span" for="CodeFournisseur">Code</label>
+                                <input type="text" class="input fw-bold text-danger" id="CodeFournisseur" style="text-transform: uppercase;">
+                            </div>
+                            <div class="col-md-5 d-flex justify-content-start">
+                                <label class="fw-bold span " for="rsFournisseur" style="width: 200px;">Raison sociale</label>
+                                <input type="text" class="input" id="rsFournisseur" style="text-transform: uppercase;">
+                            </div>
+                            <div class="col-md-4 d-flex justify-content-start">
+                                <label for="sigleFournisseur" class="fw-bold span" style="width: 50px;">sigle</label>
+                                <input type="text" class="input" id="sigleFournisseur" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="mb-3 mt-3 d-flex justify-content-start">
+                            <label for="emailFournisseur" class="fw-bold span">Email</label>
+                            <input type="email" class="input" id="emailFournisseur" style="">
+                        </div>
+                        <div class="mb-3 mt-3 d-flex justify-content-start">
+                            <label for="siteFournisseur" class="fw-bold span">Site web</label>
+                            <input type="url" class="input" id="siteFournisseur" placeholder="https://monsite.com">
+                        </div>
+                        <div class="row mt-3 p-1">
+                            <div class="col-md-4 mb-3 d-flex justify-content-start">
+                                <label for="telFournisseur" class=" span fw-bold ">Tél.</label>
+                                <input type="text" class="input" id="telFournisseur" style="text-transform: uppercase;">
+                            </div>
+                            <div class="col-md-4 mb-3 d-flex justify-content-start">
+                                <label for="mobileFournisseur" class=" span fw-bold ">Mobile.</label>
+                                <input type="text" class="input" id="mobileFournisseur" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="mb-3 d-flex justify-content-start">
+                            <label for="adresseFournisseur" class="fw-bold span">Adresse</label>
+                            <input type="text" class="input" id="adresseFournisseur">
+                        </div>
+                        <div class="mb-3 d-flex justify-content-start">
+                            <label for="bpFournisseur" class="fw-bold span">Boîte Postale</label>
+                            <input type="text" class="input" id="bpFournisseur">
+                        </div>
+                        <div class="row mt-3 p-1">
+                            <div class="col-md-2 mb-3 d-flex justify-content-start">
+                                <input type="checkbox" class="btn-check" id="btn-check-agree" autocomplete="off">
+                                <label class="btn btn-outline-success iddleToggleRadio" for="btn-check-agree" id="lblAgree" style="">Agréé ?</label><br>
+                            </div>
+                            <div class="col-md-4 mb-3 d-flex justify-content-start">
+                                <label for="rccimFournisseur" class=" span fw-bold ">RCCIM</label>
+                                <input type="text" class="input" id="rccimFournisseur" style="text-transform: uppercase;">
+                            </div>
+                            <div class="col-md-4 mb-3 d-flex justify-content-start">
+                                <label for="ccFournisseur" class=" span fw-bold ">CC</label>
+                                <input type="text" class="input" id="ccFournisseur" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <hr>
+                        <span><u>Personne à contacter</u></span>
+                        <div class="row p-1">
+                            <div class="col-md-7 mb-3 d-flex justify-content-start">
+                                <label for="nomContactFournisseur" class=" span fw-bold " style="width: 200px;">Nom et Prénoms</label>
+                                <input type="text" class="input" id="nomContactFournisseur" style="text-transform: uppercase;">
+                            </div>
+                            <div class="col-md-5 mb-3 d-flex justify-content-start">
+                                <label for="mobileContactFournisseur" class=" span fw-bold ">Mobile</label>
+                                <input type="text" class="input" id="mobileContactFournisseur" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="mb-3 d-flex justify-content-start">
+                            <label style="width: 200px;" for="notesFournisseur" class=" span fw-bold ">Notes</label>
+                            <textarea class="input" id="notesFournisseur"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveFournisseur">Enregistrer</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddMarque" tabindex="-1" aria-labelledby="modalAddMarqueLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/marque.png') }}" height="40" alt=""> Enregistrer une marque</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formMarque" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="libelle_marque" style="width: 150px;">Nom</label>
+                            <input type="text" class="input" id="libelle_marque" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveMarque">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddType" tabindex="-1" aria-labelledby="modalAddTypeLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/type.png') }}" height="40" alt=""> Enregistrer une catégorie</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formType" >
+                        <div class="d-flex justify-content-start mb-3">
+                            <label class="fw-bold span " for="typeEquipement" style="width: 150px;">Nom</label>
+                            <input type="text" class="input" id="typeEquipement" style="text-transform: uppercase;">
+                            <input type="text" class="input" id="initial" style="text-transform: uppercase;width: 100px;" placeholder="Initial">
+                        </div>
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="code_famille" style="width: 150px;">Famille</label>
+                            <select name="code_famille" class="input" id="code_famille"></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveType">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
     <script src="{{ asset('js/external/jquery.js') }}"></script>
     <script src="{{ asset('js/tools/functions.js') }}"></script>
     <script src="{{ asset('js/tools/showToast.js') }}"></script>
@@ -169,6 +348,9 @@
     <script src="{{ asset('js/api/references/FamilleEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
     <script src="{{ asset('js/api/stock/RequetesStock.js') }}"></script>
+    <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
+    <script src="{{ asset('js/api/references/MarqueEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/TypeEquipement.js') }}"></script>
 
     <script>
         let type_ajout = 0
@@ -186,21 +368,25 @@
         let marque = document.getElementById('marque');
         let modele = document.getElementById('modele');
 
+        getValues()
 
-
+        function getValues(){
+            getAllFournisseurs(document.getElementById('fournisseur'), 2)
+            getAllMarques(document.getElementById('marque'), 2)
+            /*getAllNatureEquipement(document.getElementById('nature'), 2)*/
+            getAllEquipementTypes(document.getElementById('eqType'), 2)
+            getAllTypeEq(document.getElementById("type_eq"), 2)
+            getAllTypeEquipements(document.getElementById("categorie"), 2)
+            getAllCriticiteEquipement(document.getElementById("criticite"), 2)
+            getAllFamilles(document.getElementById("famille"), 2)
+        }
         getArticlesFromStock(document.getElementById("div_entree"), 1, "1")
 
-        getAllFournisseurs(document.getElementById('fournisseur'), 2)
-        getAllMarques(document.getElementById('marque'), 2)
-        /*getAllNatureEquipement(document.getElementById('nature'), 2)*/
-        getAllEquipementTypes(document.getElementById('eqType'), 2)
-        getAllTypeEq(document.getElementById("type_eq"), 2)
+
 
         uploadImage(document.getElementById('eqUpload'), document.getElementById('eqPreview'));
 
-        getAllTypeEquipements(document.getElementById("categorie"), 2)
-        getAllCriticiteEquipement(document.getElementById("criticite"), 2)
-        getAllFamilles(document.getElementById("famille"), 2)
+
 
         document.getElementById("famille").addEventListener('change', ()=>{
             let value = document.getElementById("famille").value;
@@ -214,6 +400,7 @@
 
         document.getElementById("btn_add_eq").addEventListener('click', ()=>{
             toggleArticlesMode()
+            getValues()
         })
 
         document.addEventListener('change', function(e){
@@ -342,6 +529,70 @@
         }
 
 
+        /* Enregistrement Fournisseur */
+        let idFournisseur = "0";
+        clearForm("formFournisseur", "CodeFournisseur")
+        ValidateOnKeypress(document.querySelector("#CodeFournisseur"), document.querySelector("#saveFournisseur"),"formFournisseur")
 
+        document.querySelector("#saveFournisseur").addEventListener("click", function () {
+            let agree = "0";
+            let FormDataFournisseur = new FormData();
+            FormDataFournisseur.append('id_fournisseur', idFournisseur)
+            FormDataFournisseur.append('code_fournisseur', document.querySelector("#CodeFournisseur").value)
+            FormDataFournisseur.append('rs_fournisseur', document.querySelector("#rsFournisseur").value)
+            FormDataFournisseur.append('sigle_fournisseur', document.querySelector("#sigleFournisseur").value)
+            FormDataFournisseur.append('email_fournisseur', document.querySelector("#emailFournisseur").value)
+            FormDataFournisseur.append('site_fournisseur', document.querySelector("#siteFournisseur").value)
+            FormDataFournisseur.append('tel_fournisseur', document.querySelector("#telFournisseur").value)
+            FormDataFournisseur.append('mobile_fournisseur', document.querySelector("#mobileFournisseur").value)
+            FormDataFournisseur.append('adresse_fournisseur', document.querySelector("#adresseFournisseur").value)
+            FormDataFournisseur.append('bp_fournisseur', document.querySelector("#bpFournisseur").value)
+            FormDataFournisseur.append('rccim_fournisseur', document.querySelector("#rccimFournisseur").value)
+            FormDataFournisseur.append('cc_fournisseur', document.querySelector("#ccFournisseur").value)
+            FormDataFournisseur.append('nom_contact_fournisseur', document.querySelector("#nomContactFournisseur").value)
+            FormDataFournisseur.append('mobile_contact_fournisseur', document.querySelector("#mobileContactFournisseur").value)
+            FormDataFournisseur.append('notes_fournisseur', document.querySelector("#notesFournisseur").value)
+
+            if (document.querySelector("#btn-check-agree").checked === true) { agree = "1";}
+            FormDataFournisseur.append('agree_fournisseur', agree)
+
+            saveFournisseur(FormDataFournisseur, document.querySelector(".div_fournisseur"), 1)
+        })
+
+
+        /* Enregistrement Marques */
+        let idMarque = 0;
+        clearForm("formMarque", "libelle_marque")
+        ValidateOnKeypress(document.getElementById("libelle_marque"), document.getElementById("saveMarque"), "formMarque")
+        document.querySelector("#saveMarque").addEventListener("click", function () {
+            let FormDataMarque = new FormData();
+            FormDataMarque.append('id_marque', idMarque)
+            FormDataMarque.append('marque', document.querySelector("#libelle_marque").value)
+            saveMarque(FormDataMarque, document.querySelector(".card-body"), 1)
+        })
+
+
+
+
+        let idType = 0;
+
+        getAllFamilles(document.querySelector("#code_famille"), 2)
+        clearForm("formType", "typeEquipement")
+
+        ValidateOnKeypress(document.querySelector("#typeEquipement"), document.querySelector("#saveType"),"formType")
+        ValidateOnKeypress(document.querySelector("#code_famille"), document.querySelector("#saveType"),"formType")
+
+        /* Enregistrement Catégories Equipements */
+        document.querySelector("#saveType").addEventListener("click", function () {
+            let FormDataType = new FormData();
+            FormDataType.append('id_type', idType)
+            FormDataType.append('type_equipement', document.querySelector("#typeEquipement").value)
+            FormDataType.append('initial', document.querySelector("#initial").value)
+            FormDataType.append('code_famille', document.querySelector("#code_famille").value)
+            saveTypeEquipement(FormDataType, document.querySelector(".card-body"), 1)
+        })
     </script>
+
+
+
 {% endblock %}
