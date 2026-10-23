@@ -86,9 +86,14 @@
                                             <label class="fw-bold span" for="CodeEquipement">Code <span class="fw-bold text-danger ms-2">*</span></label>
                                             <input type="text" class="input fw-bold text-danger" id="CodeEquipement" style="text-transform: uppercase;" readonly>
                                         </div>
-                                        <div class="col-md-6 d-flex justify-content-start">
-                                            <label class="fw-bold span " for="nomEquipement" style="width: 150px;">Nom<span class="fw-bold text-danger ms-2">*</span></label>
-                                            <input type="text" class="input" id="nomEquipement" style="text-transform: uppercase;">
+                                        <div class="col-md-6">
+                                            <div class="d-flex justify-content-start">
+                                                <label class="fw-bold span " for="nomEquipement" style="width: 150px;">Nom<span class="fw-bold text-danger ms-2">*</span></label>
+                                                <input type="text" class="input" id="nomEquipement" style="text-transform: uppercase;">
+                                            </div>
+                                            <div id="div_error_nom" style="display: none">
+                                                <small class="text-danger fw-bold" id="nomError"></small>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="row mt-1 p-1">
@@ -399,6 +404,7 @@
         })
 
         document.getElementById("btn_add_eq").addEventListener('click', ()=>{
+            document.getElementById('nomError').innerText = ""
             toggleArticlesMode()
             getValues()
         })
@@ -420,6 +426,12 @@
                 ActiveOuDescativeReferences()
             });
         });
+
+        document.getElementById("nomEquipement").addEventListener('change', ()=>{
+            let formDataDoublon = new FormData();
+            formDataDoublon.append('nom', document.getElementById("nomEquipement").value)
+            RechercheDoublonArticle(formDataDoublon, document.getElementById('nomError'))
+        })
 
         document.getElementById("saveEquipement").addEventListener('click', ()=>{
             let eqUpload = document.getElementById("eqUpload").files;

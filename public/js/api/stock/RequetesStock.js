@@ -247,3 +247,17 @@ function initTablePagination() {
 
     renderTable();
 }
+
+function RechercheDoublonArticle(formData, inputError){
+    fetch( URL_APP + "api/RechercheDoublonArticle", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('div_error_nom').style.display = "none"
+            inputError.innerText = ""
+            if (data.code === "error") {
+                document.getElementById('div_error_nom').style.display = "block"
+                inputError.innerText = data.msg
+            }
+        })
+        .catch(err => showToast("❌ Erreur : " + err, {title: 'Marque', duration: 4000}));
+}

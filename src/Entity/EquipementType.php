@@ -7,9 +7,14 @@ use App\Repository\EquipementTypeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: EquipementTypeRepository::class)]
+#[UniqueEntity(
+    fields: ['nom_equipement'],
+    message: 'Cette désignation existe déjà.'
+)]
 class EquipementType
 {
     #[ORM\Id]
@@ -18,7 +23,8 @@ class EquipementType
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+
+    #[ORM\Column(length: 255, unique: true, nullable: true, )]
     private ?string $nom_equipement = null;
 
     #[ORM\ManyToOne(inversedBy: 'equipementTypes')]

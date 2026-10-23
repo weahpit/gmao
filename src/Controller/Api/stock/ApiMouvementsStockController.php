@@ -719,4 +719,30 @@ final class ApiMouvementsStockController extends AbstractController
         return new JsonResponse($reponse);
     }
 
+    #[Route('api/RechercheDoublonArticle', name: 'RechercheDoublonArticle')]
+    public function RechercheDoublonArticle(Request $request): Response
+    {
+        $reponse = array();
+        $data = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
+            try {
+                $nom = trim(strtoupper($request->request->get('nom')));
+
+                $valeur = $this->em->getRepository(EquipementType::class)->findOneBy(['nom_equipement'=>$nom]);
+                if ($valeur){
+                    $reponse = ['code' => "error", 'msg' => 'ce nom existe déjà'];
+                } else {
+                    $reponse = ['code' => "success", 'msg' => 'success'];
+                }
+
+            }catch (\Throwable  $throwable){
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
 }

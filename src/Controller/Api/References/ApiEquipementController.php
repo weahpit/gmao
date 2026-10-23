@@ -247,60 +247,67 @@ final class ApiEquipementController extends AbstractController
                             if (!$modele){
                                 $reponse = ['code' => 'warning', 'msg' => 'Inscrivez au moins la référence !'];
                             } else {
-                                $nouvelEq = new  EquipementType();
-                                $nouvelEq->setCode($CodeEquipement);
-                                $nouvelEq->setSeuil($seuil);
-                                $nouvelEq->setNomEquipement(strtoupper($nomEquipement));
-                                $nouvelEq->setQte(0);
 
-                                if ($categorie){
-                                    $Categorie = $this->em->getRepository(TypeEquipement::class)->find(Uuid::fromString($categorie));
-                                    if ($Categorie){ $nouvelEq->setCategorie($Categorie);}
+                                $valeur = $this->em->getRepository(EquipementType::class)->findOneBy(['nom_equipement'=>trim(strtoupper($nomEquipement))]);
+                                if ($valeur){
+                                    $reponse = ['code' => "error", 'msg' => 'ce nom existe déjà'];
+                                } else {
+                                    $nouvelEq = new  EquipementType();
+                                    $nouvelEq->setCode($CodeEquipement);
+                                    $nouvelEq->setSeuil($seuil);
+                                    $nouvelEq->setNomEquipement(trim(strtoupper($nomEquipement)));
+                                    $nouvelEq->setQte(0);
+
+                                    if ($categorie){
+                                        $Categorie = $this->em->getRepository(TypeEquipement::class)->find(Uuid::fromString($categorie));
+                                        if ($Categorie){ $nouvelEq->setCategorie($Categorie);}
+                                    }
+
+                                    if ($criticite){
+                                        $Criticite = $this->em->getRepository(Criticite::class)->find(Uuid::fromString($criticite));
+                                        if ($Criticite){ $nouvelEq->setCriticite($Criticite);}
+                                    }
+
+                                    if ($type_eq){
+                                        $TypeEq = $this->em->getRepository(TypeEq::class)->find(Uuid::fromString($type_eq));
+                                        if ($TypeEq){ $nouvelEq->setTypeEq($TypeEq);}
+                                    }
+                                    // Charger la photo de l'équipement
+                                    if ($photo) {
+                                        $filename = uniqid().'.'.$photo->guessExtension();
+                                        $photo->move($this->getParameter('photo_equipement'), $filename);
+                                        $nouvelEq->setPhoto($filename);
+                                    }
+
+                                    $this->em->persist($nouvelEq);
+
+
+                                    // Enregistrement de l'occurrence
+
+                                    $nouvelleOccurrence = new Equipement();
+                                    $nouvelleOccurrence->setCodeEquipementType($nouvelEq);
+                                    $nouvelleOccurrence->setModele($modele);
+                                    $nouvelleOccurrence->setDateEntree(new \DateTime());
+                                    $nouvelleOccurrence->setCode($CodeEquipement);
+                                    $nouvelleOccurrence->setNom($nouvelEq->getNomEquipement());
+                                    if ($nouvelEq->getCategorie()){$nouvelleOccurrence->setTypeUnicite($nouvelEq->getCategorie());}
+                                    if ($fournisseur){
+                                        $Fournisseur = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($fournisseur));
+                                        if ($Fournisseur){ $nouvelleOccurrence->setCodeFournisseur($Fournisseur);}
+                                    }
+
+                                    if ($marque){
+                                        $Marque = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($marque));
+                                        if ($Marque){ $nouvelleOccurrence->setMarque($Marque);}
+                                    }
+
+                                    $this->em->persist($nouvelleOccurrence);
+
+                                    $this->em->flush();
+                                    $reponse = ['code' => 'success', 'msg' => 'Article Ajouté avec succès !'];
+
                                 }
-
-                                if ($criticite){
-                                    $Criticite = $this->em->getRepository(Criticite::class)->find(Uuid::fromString($criticite));
-                                    if ($Criticite){ $nouvelEq->setCriticite($Criticite);}
                                 }
-
-                                 if ($type_eq){
-                                     $TypeEq = $this->em->getRepository(TypeEq::class)->find(Uuid::fromString($type_eq));
-                                    if ($TypeEq){ $nouvelEq->setTypeEq($TypeEq);}
-                                }
-                                // Charger la photo de l'équipement
-                                if ($photo) {
-                                    $filename = uniqid().'.'.$photo->guessExtension();
-                                    $photo->move($this->getParameter('photo_equipement'), $filename);
-                                    $nouvelEq->setPhoto($filename);
-                                }
-
-                                $this->em->persist($nouvelEq);
-
-
-                                // Enregistrement de l'occurrence
-
-                                $nouvelleOccurrence = new Equipement();
-                                $nouvelleOccurrence->setCodeEquipementType($nouvelEq);
-                                $nouvelleOccurrence->setModele($modele);
-                                $nouvelleOccurrence->setDateEntree(new \DateTime());
-                                $nouvelleOccurrence->setCode($CodeEquipement);
-                                $nouvelleOccurrence->setNom($nouvelEq->getNomEquipement());
-                                if ($nouvelEq->getCategorie()){$nouvelleOccurrence->setTypeUnicite($nouvelEq->getCategorie());}
-                                if ($fournisseur){
-                                    $Fournisseur = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($fournisseur));
-                                    if ($Fournisseur){ $nouvelleOccurrence->setCodeFournisseur($Fournisseur);}
-                                }
-
-                                if ($marque){
-                                    $Marque = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($marque));
-                                    if ($Marque){ $nouvelleOccurrence->setMarque($Marque);}
-                                }
-
-                                $this->em->persist($nouvelleOccurrence);
-
-                                $this->em->flush();
-                                $reponse = ['code' => 'success', 'msg' => 'Article Ajouté avec succès !'];
-                            }
                         }
 
                     } else{ // Mise à jour
