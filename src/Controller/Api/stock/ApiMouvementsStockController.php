@@ -430,8 +430,7 @@ final class ApiMouvementsStockController extends AbstractController
                 /*
                  * Création mouvement
                  */
-                $mouvement =
-                    new MouvementEquipement();
+                $mouvement = new MouvementEquipement();
 
                 $mouvement
                     /*->setCodeEquipement(
@@ -467,6 +466,28 @@ final class ApiMouvementsStockController extends AbstractController
                         new \DateTime()
                     );
 
+
+                if ($typeOperation === '2') {
+                    $serviceDemandeur = $item['service_demandeur'];
+                    $demandeur = $item['demandeur'];
+                    if ($serviceDemandeur && $demandeur){
+                        $Service = $em->getRepository(Services::class)->find(Uuid::fromString($serviceDemandeur));
+                        if ($Service){
+                            $mouvement->setCodeService($Service);
+                        } else {
+                            return $this->json([
+                                'code' => 'error',
+                                'msg'  => 'Le service demandeur est obligatoire'
+                            ], 500);
+                        }
+                    $mouvement->setDemandeur(strtoupper($demandeur));
+                    } else {
+                        return $this->json([
+                            'code' => 'error',
+                            'msg'  => 'Le service et le demandeur sont obligatoires !'
+                        ], 500);
+                    }
+                }
                 /*
                  * Service (optionnel)
                  */
@@ -486,7 +507,12 @@ final class ApiMouvementsStockController extends AbstractController
                             $service
                         );
                 }
-
+                if ($this->getUser()){ $mouvement->setCreatedBy($this->getUser()); } else {
+                    return $this->json([
+                        'code' => 'error',
+                        'msg'  => 'Vous n\'êtes pas connecté au système !'
+                    ], 500);
+                }
                 /*
                  * Emplacement (optionnel)
                  */

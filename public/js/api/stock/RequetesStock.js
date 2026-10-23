@@ -34,7 +34,11 @@ function getMouvementsByDate(ctrl_name, formData){
                         html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].service  + '</a></td>'
                         html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].emplacement  + ' [' + donnees[i].emplacement2  + ']</a></td>'
                         html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].numero_bon  + '</a></td>'
-                        if (donnees[i].bl !== ""|| donnees[i].bl !== "null"){ html +=
+
+                        if (donnees[i].bl === "") {
+                            html += `<td>-</td>`
+                        }else {
+                            html +=
                             `<td><a href="data/stock/bons/bl/${donnees[i].bl}" target="_blank">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paperclip preview-icon"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>
                         </a></td>
@@ -50,12 +54,7 @@ function getMouvementsByDate(ctrl_name, formData){
                         html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].service  + '</a></td>'
                         html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].emplacement  + ' [' + donnees[i].emplacement2  + ']</a></td>'
                         html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].numero_bon  + '</a></td>'
-                        if (donnees[i].bl !== ""|| donnees[i].bl !== "null"){ html +=
-                            `<td class=" text-danger"><a href="data/stock/bons/bl/${donnees[i].bl}" target="_blank">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paperclip preview-icon"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>
-                        </a></td>
-                        `
-                        }
+                        html += `<td></td>`
                         html += '<td class="text-center fw-bold text-danger" style="font-size: 16px;">' + donnees[i].stock_avant  + '</a></td>'
                         html += '<td class="text-center fw-bold text-danger" style="font-size: 16px;">' + donnees[i].stock_apres  + '</a></td>'
 

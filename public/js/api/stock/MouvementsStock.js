@@ -139,13 +139,18 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                         <th>Références</th>
                                         <th>Stock</th>
                                         <th class="text-center">Qté</th>
-                                        <th>Mention</th>
                                         `;
                                         if (type_operation === "1"){
                                             html +=`<th>PJ</th>`
+                                        } else{
+                                            html +=`
+                                                    <th>Service</th>
+                                                    <th>Demandeur</th>
+                                                `
                                         }
 
-                html +=`</tr>
+                html +=`<th>Mention</th>
+                                </tr>
                                 </thead>
 
                                 <tbody id="tbodyMvt">
@@ -167,7 +172,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                             </td>
 
                             <td>
-                                <div class="article-name" style="color: black;max-width: 400px;">
+                                <div class="article-name" style="color: black;max-width: 400px;min-width: 300px;">
                                     ${article.nom}
                                 </div>
                             </td>
@@ -201,7 +206,8 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                 html +=`
                                         <td class="text-center">
                                             <input
-                                                class="qte_input modern-input"
+                                                class="qte_input modern-input text-center"
+                                                style="width:75px;"
                                                 type="number"
                                                 disabled
                                                 min="1"
@@ -215,14 +221,6 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                 `
                         }
 
-                    html +=`<td>
-                                <input
-                                    class="mention_input modern-input"
-                                    type="text"
-                                    disabled
-                                    id="mention_${article.id}"
-                                >
-                            </td>`
                         if (type_operation === "1"){
                             html +=`
                                 <td>
@@ -250,11 +248,39 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                 </td>
                             `;
 
+                        } else {
+
+                            html +=`
+                            <td>
+                                <select
+                                    class="service_input modern-input input"
+                                    style="min-width: 150px;"
+                                    disabled
+                                    id="service_${article.id}"
+                                >
+                                <small class="stock-error" id="error_s_${article.id}"></small>
+                            </td>
+                            <td>
+                                <input
+                                    class="demandeur_input modern-input"
+                                    style="min-width: 150px;text-transform: uppercase;"
+                                    type="text"
+                                    disabled
+                                    id="demandeur_${article.id}"
+                                >
+                            </td>
+                            `
                         }
 
-
-
-                        `</tr>
+                    html +=`<td>
+                                <input
+                                    class="mention_input modern-input"
+                                    style="min-width: 200px;"
+                                    type="text"
+                                    disabled
+                                    id="mention_${article.id}"
+                                >
+                            </td></tr>
                     `;
                 });
 
@@ -312,6 +338,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                             const mentionCtrl =
                                 document.getElementById(`mention_${id}`);
 
+
                             const errorCtrl =
                                 document.getElementById(`error_${id}`);
 
@@ -321,6 +348,18 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                             qteCtrl.disabled = !this.checked;
                             mentionCtrl.disabled = !this.checked;
 
+                            if (type_operation === "2"){
+                                const serviceCtrl =
+                                    document.getElementById(`service_${id}`);
+
+                                const demandeurCtrl =
+                                    document.getElementById(`demandeur_${id}`);
+
+                                serviceCtrl.disabled = !this.checked;
+                                demandeurCtrl.disabled = !this.checked;
+
+                                getAllServices(serviceCtrl, 2)
+                            }
                             row.classList.toggle(
                                 'selected',
                                 this.checked
@@ -338,6 +377,10 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                     errorCtrl.textContent = '';
                                 }
 
+                                if (type_operation === "2"){
+                                    document.getElementById(`service_${id}`).value = "0";
+                                    document.getElementById(`demandeur_${id}`).value = "";
+                                }
                                 row.classList.remove('row-error');
                             }
                         });
@@ -401,7 +444,22 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                             }
                         });
                     });
+                    document.querySelectorAll('.service_input').forEach(input => {
+                        input.addEventListener('input', function () {
+                            const service = this.value;
+                            const row = this.closest('tr');
+                            const errorCtrl = document.getElementById(`error_s_${id}`);
+                            if (service === "0" || service === null) {
 
+                                errorCtrl.textContent ='Le service est obligatoire.';
+
+                                this.classList.add('input-error');
+                                row?.classList.add('row-error');
+
+                                return;
+                            }
+                        })
+                    })
 
                     document
                         .querySelectorAll('input[type="file"]')
@@ -738,13 +796,37 @@ function getSelectedArticles(type_operation) {
             const fileCtrl =
                 document.getElementById(`file_${id}`);
 
+        const serviceCtrl =
+            document.getElementById(`service_${id}`);
 
+        const demandeurCtrl =
+            document.getElementById(`demandeur_${id}`);
 
         const stock =
             parseFloat(chk.dataset.stock || 0);
 
         const qte =
             parseFloat(qteCtrl.value || 0);
+
+        if (type_operation === "2"){
+            if (serviceCtrl.value === "0" || serviceCtrl.value === null || demandeurCtrl.value === "" ) {
+
+                showToast(
+                    'Veuillez sélectionnez un service et saisir un demandeur SVP .',
+                    {
+                        title: 'Enregistrement des données',
+                        type: 'error'
+                    }
+                );
+
+                serviceCtrl.focus();
+
+                hasError = true;
+
+                return;
+            }
+        }
+
 
         if (qte <= 0) {
 
@@ -776,7 +858,6 @@ function getSelectedArticles(type_operation) {
                 }
             );
 
-            qteCtrl.focus();
 
             hasError = true;
 
@@ -801,11 +882,13 @@ function getSelectedArticles(type_operation) {
                 article_nom: articleNom,
                 stock: stock,
                 quantite: qte,
+                service_demandeur: serviceCtrl.value,
+                demandeur: demandeurCtrl.value,
                 mention: mentionCtrl.value.trim(),
                 fichier: null
             });
         }
-
+        setTimeout(()=>{qteCtrl.focus();}, 1000)
 
     });
 

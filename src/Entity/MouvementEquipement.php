@@ -62,6 +62,12 @@ class MouvementEquipement
     #[ORM\Column(nullable: true)]
     private ?float $stock_apres = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $demandeur = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $created_by = null;
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -255,5 +261,30 @@ class MouvementEquipement
 
         $this->date_operation =
             new \DateTime();
+
+    }
+
+    public function getDemandeur(): ?string
+    {
+        return $this->demandeur;
+    }
+
+    public function setDemandeur(?string $demandeur): static
+    {
+        $this->demandeur = $demandeur;
+
+        return $this;
+    }
+
+    public function getCreatedBy(): ?string
+    {
+        return $this->created_by;
+    }
+
+    public function setCreatedBy(?string $created_by): static
+    {
+        $this->created_by = $created_by;
+
+        return $this;
     }
 }
