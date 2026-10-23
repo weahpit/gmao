@@ -135,6 +135,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                     <tr>
                                         <th></th>
                                         <th>Article</th>
+                                        <th>Code</th>
                                         <th>Catégorie</th>
                                         <th>Références</th>
                                         <th>Stock</th>
@@ -174,6 +175,11 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                             <td>
                                 <div class="article-name" style="color: black;max-width: 400px;min-width: 300px;">
                                     ${article.nom}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="article-name text-success" style="color: black;width: 120px;">
+                                    ${article.code}
                                 </div>
                             </td>
                             <td>

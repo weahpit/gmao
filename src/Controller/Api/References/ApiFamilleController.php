@@ -77,7 +77,7 @@ final class ApiFamilleController extends AbstractController
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
-        if ($this->isGranted("ROLE_ADMIN")) {
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
                 $id_famille = $request->request->get('id_famille');
                 $libelle_famille = $request->request->get('famille');

@@ -87,7 +87,7 @@ final class ApiFournisseurController extends AbstractController
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
-        if ($this->isGranted("ROLE_ADMIN")) {
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
                 $id_fournisseur = $request->request->get('id_fournisseur');
                 $code_fournisseur = $request->request->get('code_fournisseur');

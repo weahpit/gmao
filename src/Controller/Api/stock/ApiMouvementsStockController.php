@@ -304,6 +304,7 @@ final class ApiMouvementsStockController extends AbstractController
                             $data[] = array(
                                 'id'=>$occurence->getId(),
                                 'nom'=>$occurence->getNom(),
+                                'code'=>$occurence->getCode(),
                                 'reference'=>$occurence->getModele(),
                                 'qte'=>$occurence->getQte() ? $occurence->getQte() : 0,
                                 'categorie'=>$equipement->getCategorie() ? $equipement->getCategorie()->getLibelle() : ""
@@ -690,10 +691,10 @@ final class ApiMouvementsStockController extends AbstractController
                 if ($famille && $categorie){
                     $valeur = $famille->getInitial() . "-" . $categorie->getInitial();
                     /*recherche les equipements repondant a la famille et a la categorie*/
-                    $eqs = $this->em->getRepository(EquipementType::class)->findBy(['categorie'=>$categorie]);
-                    $count_eqs = $this->em->getRepository(EquipementType::class)->count(['categorie'=>$categorie]);
-
-                    if ($eqs){
+                    $eqs = $this->em->getRepository(Equipement::class)->findBy(['type_unicite'=>$categorie]);
+                    $count_eqs = $this->em->getRepository(Equipement::class)->count(['type_unicite'=>$categorie]);
+                    //dd($count_eqs);
+                    if (!$eqs){
                         $valeur = $valeur . "001";
                     } else {
                         if (strlen($count_eqs + 1) == 1){

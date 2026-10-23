@@ -130,7 +130,7 @@ final class ApiEquipementController extends AbstractController
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
-        if ($this->isGranted("ROLE_ADMIN")) {
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
                 $id_equipement = $request->request->get('idEquipement');
                 $CodeEquipement = $request->request->get('CodeEquipement');
@@ -219,7 +219,7 @@ final class ApiEquipementController extends AbstractController
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
-        if ($this->isGranted("ROLE_ADMIN")) {
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
                 $type_ajout= $request->request->get('type_ajout');
                 $id_equipement = $request->request->get('selectEq');
@@ -285,7 +285,7 @@ final class ApiEquipementController extends AbstractController
                                 $nouvelleOccurrence->setDateEntree(new \DateTime());
                                 $nouvelleOccurrence->setCode($CodeEquipement);
                                 $nouvelleOccurrence->setNom($nouvelEq->getNomEquipement());
-
+                                if ($nouvelEq->getCategorie()){$nouvelleOccurrence->setTypeUnicite($nouvelEq->getCategorie());}
                                 if ($fournisseur){
                                     $Fournisseur = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($fournisseur));
                                     if ($Fournisseur){ $nouvelleOccurrence->setCodeFournisseur($Fournisseur);}

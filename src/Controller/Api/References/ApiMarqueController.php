@@ -75,7 +75,7 @@ final class ApiMarqueController extends AbstractController
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
-        if ($this->isGranted("ROLE_ADMIN")) {
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
                 $id_marque = $request->request->get('id_marque');
                 $libelle_marque = $request->request->get('marque');
