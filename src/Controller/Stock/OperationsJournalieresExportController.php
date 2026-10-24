@@ -135,7 +135,7 @@ final class OperationsJournalieresExportController extends AbstractController
             ];
         }
 
-        $titre     = 'Opérations Journalières - Mouvements de Stock';
+        $titre     = 'Operations Journalieres - Mouvements de Stock';
         $sousTitre = 'Date : ' . $dateMvt->format('d/m/Y');
 
         return [$entetes, $largeurs, $lignes, $titre, $sousTitre];

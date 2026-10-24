@@ -113,6 +113,43 @@ class CitracPdf extends Fpdf
 
         return $converti !== false ? $converti : $texte;
     }
+
+    /**
+     * Calcule le nombre de lignes qu'occupera une chaine dans une cellule
+     * de largeur $w (en mm), avec la police courante. Permet de dessiner
+     * des lignes de tableau a hauteur variable (retour a la ligne auto).
+     */
+    public function NbLines(float $w, ?string $txt): int
+    {
+        $cw = $this->CurrentFont['cw'] ?? [];
+        if ($w == 0) {
+            $w = $this->w - $this->rMargin - $this->x;
+        }
+        $wmax = ($w - 2 * $this->cMargin) * 1000 / $this->FontSize;
+        $s = str_replace("\r", '', (string) $txt);
+        $nb = strlen($s);
+        if ($nb > 0 && $s[$nb - 1] === "\n") {
+            $nb--;
+        }
+        $sep = -1; $i = 0; $j = 0; $l = 0; $nl = 1;
+        while ($i < $nb) {
+            $c = $s[$i];
+            if ($c === "\n") { $i++; $sep = -1; $j = $i; $l = 0; $nl++; continue; }
+            if ($c === ' ') { $sep = $i; }
+            $l += $cw[$c] ?? 0;
+            if ($l > $wmax) {
+                if ($sep === -1) {
+                    if ($i == $j) { $i++; }
+                } else {
+                    $i = $sep + 1;
+                }
+                $sep = -1; $j = $i; $l = 0; $nl++;
+            } else {
+                $i++;
+            }
+        }
+        return max(1, $nl);
+    }
 }
 
 /**
@@ -171,25 +208,51 @@ class pdfService
     {
         $this->pdf->SetFont('Arial', '', 9);
         $this->pdf->SetTextColor(0, 0, 0);
+        $this->pdf->SetDrawColor(200, 200, 200);
 
+        $hauteurLigne = 5; // hauteur d'UNE ligne de texte (mm)
         $alterne = false;
+
         foreach ($lignes as $ligne) {
-            // Grâce à SetAutoPageBreak, FPDF ajoute une page et rappelle Header()
-            // automatiquement. On réimprime juste l'en-tête des colonnes.
-            if ($this->pdf->GetY() > ($this->pdf->GetPageHeight() - 25)) {
+            $cellules = array_values($ligne);
+
+            // 1) Nombre de lignes max necessaire sur toute la rangee
+            $nbLignesMax = 1;
+            foreach ($cellules as $i => $valeur) {
+                $largeur = $largeurs[$i] ?? 20;
+                $n = $this->pdf->NbLines($largeur, $this->pdf->txt((string) $valeur));
+                if ($n > $nbLignesMax) {
+                    $nbLignesMax = $n;
+                }
+            }
+            $hauteur = $nbLignesMax * $hauteurLigne;
+
+            // 2) Saut de page si la rangee ne tient pas
+            if ($this->pdf->GetY() + $hauteur > ($this->pdf->GetPageHeight() - 20)) {
                 $this->pdf->AddPage();
                 $this->ecrireEntete($entetes, $largeurs);
                 $this->pdf->SetFont('Arial', '', 9);
                 $this->pdf->SetTextColor(0, 0, 0);
+                $this->pdf->SetDrawColor(200, 200, 200);
             }
 
+            // 3) Dessin de la rangee : cadre + fond a hauteur fixe, texte en MultiCell
             $this->pdf->SetFillColor(245, 240, 235);
-            foreach (array_values($ligne) as $i => $valeur) {
-                $this->pdf->Cell(
-                    $largeurs[$i], 7, $this->pdf->txt((string) $valeur), 1, 0, 'L', $alterne
-                );
+            $x0 = $this->pdf->GetX();
+            $y0 = $this->pdf->GetY();
+            $x  = $x0;
+
+            foreach ($cellules as $i => $valeur) {
+                $largeur = $largeurs[$i] ?? 20;
+                // 'DF' = cadre + remplissage (lignes paires), 'D' = cadre seul
+                $this->pdf->Rect($x, $y0, $largeur, $hauteur, $alterne ? 'DF' : 'D');
+                $this->pdf->SetXY($x, $y0);
+                $this->pdf->MultiCell($largeur, $hauteurLigne, $this->pdf->txt((string) $valeur), 0, 'L', false);
+                $x += $largeur;
             }
-            $this->pdf->Ln();
+
+            // 4) Repositionnement pour la rangee suivante
+            $this->pdf->SetXY($x0, $y0 + $hauteur);
             $alterne = !$alterne;
         }
     }
