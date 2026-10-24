@@ -111,8 +111,8 @@ final class OperationsJournalieresExportController extends AbstractController
             ->findBy(['date_operation' => $dateMvt], ['created_at' => 'DESC']);
 
         // En-têtes + largeurs (mm) pour une page A4 paysage (zone utile ~ 277 mm)
-        $entetes  = ['Article', 'Nature', 'Qté', 'Service', 'Emplacement', 'N° Bon', 'Stock avant', 'Stock après', 'Heure', 'Observations'];
-        $largeurs = [45,        18,       12,    32,        40,            22,       20,            20,           16,      52];
+        $entetes  = ['Article', 'Nature', 'Qté', 'Service', /*'Emplacement', */'N° Bon', 'Stock avant', 'Stock après', 'Heure', 'Observations'];
+        $largeurs = [60,        18,       12,    32,        /*40, */           22,       20,            20,           16,      52];
 
         $lignes = [];
         foreach ($mvts as $mvt) {
@@ -126,7 +126,7 @@ final class OperationsJournalieresExportController extends AbstractController
                 $nature,
                 $mvt->getQte() ?: 0,
                 $mvt->getCodeService() ? $mvt->getCodeService()->getLibelle() : '',
-                trim($emplacement . $precision),
+               /* trim($emplacement . $precision),*/
                 $mvt->getNumeroBon() ?: '',
                 $mvt->getStockAvant() ?: '',
                 $mvt->getStockApres() ?: '',

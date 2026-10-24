@@ -29,7 +29,7 @@ function getMouvementsByDate(ctrl_name, formData){
                                         <th class="text-center"> Nature</th>
                                         <th class="text-center">Qté</th>
                                         <th class="text-center">Service</th>
-                                        <th class="text-center">Emplacement</th>
+                                        <!--<th class="text-center">Emplacement</th>-->
                                         <th class="text-center">N° Bon</th>
                                         <th class="text-center">PJ</th>
                                         <th class="text-center">Stock Avant</th>
@@ -47,7 +47,7 @@ function getMouvementsByDate(ctrl_name, formData){
                         html += '<td class="text-center" style="font-size: 16px;" >ENTREE</td>'
                         html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].qte  + '</a></td>'
                         html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].service  + '</a></td>'
-                        html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].emplacement  + ' [' + donnees[i].emplacement2  + ']</a></td>'
+                        /*html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].emplacement  + ' [' + donnees[i].emplacement2  + ']</a></td>'*/
                         html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].numero_bon  + '</a></td>'
 
                         if (donnees[i].bl === "") {
@@ -69,7 +69,7 @@ function getMouvementsByDate(ctrl_name, formData){
                         html += '<td class="text-center text-danger" style="font-size: 16px;" >SORTIE</td>'
                         html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].qte  + '</a></td>'
                         html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].service  + '</a></td>'
-                        html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].emplacement  + ' [' + donnees[i].emplacement2  + ']</a></td>'
+                        /*html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].emplacement  + ' [' + donnees[i].emplacement2  + ']</a></td>'*/
                         html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].numero_bon  + '</a></td>'
                         html += `<td></td>`
                         html += '<td class="text-center fw-bold text-danger" style="font-size: 16px;">' + donnees[i].stock_avant  + '</a></td>'

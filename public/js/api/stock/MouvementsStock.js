@@ -138,8 +138,8 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                         <th>Code</th>
                                         <th>Catégorie</th>
                                         <th>Références</th>
-                                        <th>Stock</th>
-                                        <th class="text-center">Qté</th>
+                                        <th class="text-center"><div style="width: 100px;">En Stock</div></th>
+                                        <th class="text-center"><div style="width: 100px;">Qté</div></th>
                                         `;
                                         if (type_operation === "1"){
                                             html +=`<th>PJ</th>`
@@ -192,7 +192,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                     ${article.reference}
                                 </div>
                             </td>
-                            <td>
+                            <td class="text-center mx-auto">
                                 <span class="stock-badge">
                                     ${article.qte}
                                 </span>
@@ -389,6 +389,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                 }
                                 row.classList.remove('row-error');
                             }
+                            qteCtrl.focus()
                         });
                     });
 
@@ -501,29 +502,47 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                 }
 
 
-                document
-                    .getElementById('btnSubmitStock')
-                    ?.addEventListener('click', function(){
+                document.getElementById('btnSubmitStock')
+                    ?.addEventListener('click', function () {
 
-                        const articles =
-                            getSelectedArticles(type_operation);
+                        const articles = getSelectedArticles(type_operation);
 
-                        if(!articles){
+                        if (!articles) {
                             return;
                         }
+
+                        const listeArticles = articles
+                            .map(article => `
+            <li>
+                <strong>
+                    ${article.article_nom.length > 20
+                                                ? article.article_nom.slice(0, 20) + '...'
+                                                : article.article_nom}
+                </strong>
+                ${article.quantite ? ` - <span class="text-danger">Qté : ${article.quantite}</span>` : ''}
+            </li>
+        `)
+                            .join('');
 
                         Swal.fire({
 
                             title: 'Confirmer l’opération ?',
 
                             html: `
-                                <div class="text-start">
-                                    <p>
-                                        Vous allez enregistrer
-                                        <b>${articles.length}</b> article(s).
-                                    </p>
-                                </div>
-                            `,
+            <div class="text-start">
+                <p>
+                    Vous allez enregistrer
+                    <b>${articles.length}</b> article(s).
+                </p>
+
+                <div class="mt-3">
+                    <strong>Articles à envoyer :</strong>
+                    <ul class="mt-2">
+                        ${listeArticles}
+                    </ul>
+                </div>
+            </div>
+        `,
 
                             icon: 'question',
 
