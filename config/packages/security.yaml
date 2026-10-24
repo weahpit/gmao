@@ -59,6 +59,13 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
+    # Hierarchie des roles : un ADMIN herite de PDR et USER, etc.
+    # (evite d'avoir a cocher plusieurs roles pour un meme utilisateur)
+    role_hierarchy:
+        ROLE_ADMIN:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_USER]
+        ROLE_PDR:        ROLE_USER
+        ROLE_TECHNICIAN: ROLE_USER
+
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         # used to reload user from session & other features (e.g. switch_user)
@@ -108,15 +115,27 @@ security:
             # switch_user: true
 
     # Note: Only the *first* matching rule is applied
+    # STRATEGIE : « deny by default ». Tout est verrouillé sauf ce qui est
+    # explicitement public. L'ordre compte : la PREMIERE regle qui matche gagne.
     access_control:
-        # IMPORTANT : /api/login doit rester accessible sans etre deja connecte
-        # (c'est json_login qui authentifie cette requete). On le place AVANT
-        # une eventuelle regle qui protegerait ^/api.
-        - { path: ^/api/login, roles: PUBLIC_ACCESS }
-        # Decommentez pour verrouiller toutes vos routes API (recommande en prod) :
-        # - { path: ^/api, roles: ROLE_USER }
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        # 1) Routes PUBLIQUES (accessibles sans etre connecte)
+        - { path: ^/Authentification, roles: PUBLIC_ACCESS }   # page de connexion web
+        - { path: ^/api/login,        roles: PUBLIC_ACCESS }   # login JSON (app mobile)
+
+        # 2) Zones STRICTEMENT reservees aux administrateurs
+        #    (ces controleurs n'avaient aucune garde -> on les protege ici)
+        - { path: ^/AdminSys,       roles: ROLE_ADMIN }   # gestionnaire de base
+        - { path: ^/adminSecurity,  roles: ROLE_ADMIN }   # export SQL de la base
+        - { path: ^/SupprimeTables, roles: ROLE_ADMIN }   # suppression de tables (!)
+        - { path: ^/Directions,     roles: ROLE_ADMIN }
+        - { path: ^/users,          roles: ROLE_ADMIN }   # gestion des utilisateurs
+        - { path: ^/groupe,         roles: ROLE_ADMIN }
+        - { path: ^/poste,          roles: ROLE_ADMIN }
+        - { path: ^/widget,         roles: ROLE_ADMIN }
+
+        # 3) TOUT LE RESTE exige une session authentifiee (deny by default).
+        #    getRoles() garantit ROLE_USER a chaque utilisateur connecte.
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:

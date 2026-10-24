@@ -3,7 +3,11 @@ framework:
     secret: '%env(APP_SECRET)%'
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    session:
+        # Durcissement du cookie de session :
+        cookie_secure: auto      # cookie en HTTPS uniquement des que le site est en https
+        cookie_samesite: lax     # limite l'envoi du cookie en cross-site (anti-CSRF)
+        cookie_httponly: true    # inaccessible au JavaScript (anti-vol de session via XSS)
 
     #esi: true
     #fragments: true

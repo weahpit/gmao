@@ -77,6 +77,8 @@
                     <label for="date">Date de l'opération</label>
                     <input type="date" class="input ms-2" id="date_operation" style="width: 150px;">
                     <button type="button" class="btn btn-success ms-2 p-0 fw-light d-flex justify-content-center align-items-center" id="btn-search" style="border: 1px solid lightgrey;border-radius: 0;width: 130px;"><i data-lucide="search" class="search"></i>Afficher</button>
+                    <button type="button" class="btn btn-light ms-2 p-0 fw-light d-flex justify-content-center align-items-center gap-1" id="btn-print" title="Imprimer en PDF" style="border: 1px solid lightgrey;border-radius: 0;width: 130px;"><i data-lucide="printer" class="printer"></i>Imprimer</button>
+                    <button type="button" class="btn btn-warning ms-2 p-0 fw-light d-flex justify-content-center align-items-center gap-1" id="btn-email" title="Envoyer par email" style="border: 1px solid lightgrey;border-radius: 0;width: 130px;"><i data-lucide="mail" class="mail"></i>Envoyer</button>
                 </div>
             </div>
             <div class="mb-2" id="div_operations" >
@@ -107,5 +109,64 @@
                 getMouvementsByDate(document.getElementById('div_operations'), formData)
             }
         }
+
+        function dateValide(){
+            let d = document.getElementById("date_operation").value;
+            if (!d) { showToast("Merci de saisir une date Opération valide", {title:'Opérations Stock', duration: 3000, type:"error"}); return null; }
+            return d;
+        }
+
+        /* --- Impression PDF : on reçoit un binaire -> blob -> nouvel onglet --- */
+        $("#btn-print").on('click', function(){
+            let d = dateValide(); if (!d) return;
+            let formData = new FormData();
+            formData.append('date_operation', d);
+            fetch(URL_APP + "api/operations-journalieres/pdf", { method: "POST", body: formData })
+                .then(res => { if(!res.ok) throw new Error('HTTP ' + res.status); return res.blob(); })
+                .then(blob => {
+                    let url = window.URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+                })
+                .catch(err => showToast("❌ Impression impossible : " + err.message, {title:'Opérations Stock', duration: 4000, type:"error"}));
+        });
+
+        /* --- Envoi par email : SweetAlert2 demande l'adresse --- */
+        $("#btn-email").on('click', function(){
+            let d = dateValide(); if (!d) return;
+            Swal.fire({
+                title: 'Envoyer par email',
+                html: '<p class="mb-2">Opérations du <b>' + d + '</b> (PDF en pièce jointe)</p>' +
+                      '<input id="swal-email" class="swal2-input" type="email" placeholder="destinataire@exemple.com">' +
+                      '<textarea id="swal-message" class="swal2-textarea" placeholder="Message (optionnel)"></textarea>',
+                confirmButtonText: 'Envoyer',
+                confirmButtonColor: '#53442b',
+                showCancelButton: true,
+                cancelButtonText: 'Annuler',
+                focusConfirm: false,
+                preConfirm: () => {
+                    let email = document.getElementById('swal-email').value.trim();
+                    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+                        Swal.showValidationMessage('Adresse email invalide');
+                        return false;
+                    }
+                    return { email: email, message: document.getElementById('swal-message').value.trim() };
+                }
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                let formData = new FormData();
+                formData.append('date_operation', d);
+                formData.append('destinataire', result.value.email);
+                formData.append('message', result.value.message);
+                Swal.showLoading();
+                fetch(URL_APP + "api/operations-journalieres/email", { method: "POST", body: formData })
+                    .then(res => res.json())
+                    .then(data => {
+                        showToast(data.msg, { type: data.code, duration: 4000, title: 'Opérations Stock' });
+                        Swal.close();
+                    })
+                    .catch(err => { showToast("❌ Envoi impossible : " + err, {title:'Opérations Stock', duration: 4000, type:"error"}); Swal.close(); });
+            });
+        });
     </script>
 {% endblock %}

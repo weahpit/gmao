@@ -40,42 +40,72 @@ document.addEventListener('DOMContentLoaded', () => {
     /* --- Initial Lucide icon render --- */
     lucideRenderAll();
 
-    /* --- Sidebar Toggle (collapse) --- */
+    /* --- Références barre latérale --- */
     const sidebarToggle = document.querySelector('#sidebarToggle');
     const sidebar = document.querySelector('#sidebar');
     const mainWrapper = document.querySelector('#main-wrapper');
-
-    if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.add('collapsed');
-            if (mainWrapper) mainWrapper.classList.add('expanded');
-        });
-    }
-
-    /* --- Banner Toggle (reopen sidebar) --- */
     const bannerToggle = document.querySelector('#bannerToggle');
 
-    if (bannerToggle && sidebar) {
-        bannerToggle.addEventListener('click', () => {
-            sidebar.classList.remove('collapsed');
-            if (mainWrapper) mainWrapper.classList.remove('expanded');
-        });
-    }
+    /* Mode mobile = la barre est en overlay (CSS : translateX(-100%) sauf .open) */
+    const MOBILE_BREAKPOINT = 1024;
+    const isMobile = () => window.innerWidth <= MOBILE_BREAKPOINT;
 
-    /* --- Mobile overlay sidebar --- */
+    /* --- Overlay mobile : toujours créé (masqué par défaut) --- */
     let overlay = document.querySelector('.sidebar-overlay');
-    if (!overlay && window.innerWidth <= 1024) {
+    if (!overlay) {
         overlay = document.createElement('div');
         overlay.className = 'sidebar-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99;display:none;';
         document.body.appendChild(overlay);
     }
-    if (overlay) {
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('open');
-            overlay.style.display = 'none';
+
+    function openSidebarMobile() {
+        sidebar.classList.add('open');
+        overlay.style.display = 'block';
+    }
+    function closeSidebarMobile() {
+        sidebar.classList.remove('open');
+        overlay.style.display = 'none';
+    }
+
+    /* --- Bouton « rabattre » (sidebarToggle) --- */
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', () => {
+            if (isMobile()) {
+                closeSidebarMobile();
+            } else {
+                sidebar.classList.add('collapsed');
+                if (mainWrapper) mainWrapper.classList.add('expanded');
+            }
         });
     }
+
+    /* --- Bouton « ouvrir » (bannerToggle) --- */
+    if (bannerToggle && sidebar) {
+        bannerToggle.addEventListener('click', () => {
+            if (isMobile()) {
+                openSidebarMobile();
+            } else {
+                sidebar.classList.remove('collapsed');
+                if (mainWrapper) mainWrapper.classList.remove('expanded');
+            }
+        });
+    }
+
+    /* --- Fermer en cliquant sur l'overlay --- */
+    overlay.addEventListener('click', closeSidebarMobile);
+
+    /* --- Fermer après un clic sur un lien de navigation (mobile) --- */
+    if (sidebar) {
+        sidebar.querySelectorAll('.sidebar-nav a[href]').forEach((lien) => {
+            lien.addEventListener('click', () => { if (isMobile()) closeSidebarMobile(); });
+        });
+    }
+
+    /* --- Repasser en desktop : nettoyer l'état overlay --- */
+    window.addEventListener('resize', () => {
+        if (!isMobile()) closeSidebarMobile();
+    });
 
     /* --- ⌘K / Ctrl+K Search Shortcut --- */
     const searchInput = document.getElementById('search-input');
