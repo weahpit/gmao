@@ -1203,3 +1203,7 @@ select {
     width: 90%;
     background: linear-gradient(135deg, #f6f6f6, #ffffff);
 }
+
+.w-10 {
+    width: 200px;
+}

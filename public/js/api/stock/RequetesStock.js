@@ -10,31 +10,31 @@ function getMouvementsByDate(ctrl_name, formData){
             if (data.code === "success") {
                 let donnees = data.data;
                 let html = `
-                <div class="table-card">
+                <!--<div class="table-card">
 
-                        <div class="table-toolbar">
+                        <div class="table-toolbar">-->
 
-                            <div class="search-box">
+                            <!--<div class="search-box">
                                 <i class="fas fa-search"></i>
                                 <input
                                     type="text"
                                     id="searchStock"
                                     placeholder="Rechercher un article..."
                                 >
-                            </div>
-                            <div class="table-wrapper">
-                            <table class="modern-table" id="tblMvts">
+                            </div>-->
+                            <!--<div class="table-wrapper">-->
+                            <table class="table table-responsive" id="tblMvts">
                                     <thead><tr>
-                                        <th>Equipements</th>
-                                        <th class="text-center">Type Mouvement</th>
-                                        <th class="text-center">Quantité</th>
-                                        <th class="text-center">Service demandeur</th>
+                                        <th><div class="w-10">Articles</div></th>
+                                        <th class="text-center"> Nature</th>
+                                        <th class="text-center">Qté</th>
+                                        <th class="text-center">Service</th>
                                         <th class="text-center">Emplacement</th>
                                         <th class="text-center">N° Bon</th>
-                                        <th class="text-center">Pièce jointe</th>
+                                        <th class="text-center">PJ</th>
                                         <th class="text-center">Stock Avant</th>
                                         <th class="text-center">Stock Après</th>
-                                        <th class="text-center">Date</th>
+                                        <th class="text-center">Heure</th>
                                         <th class="text-center">Observations</th>
                                     </tr></thead>
                                     <tbody>
@@ -43,7 +43,7 @@ function getMouvementsByDate(ctrl_name, formData){
                 for(var i=0; i< donnees.length; i++){
                     html += '<tr class="tr" style="cursor: default;" id="' + donnees[i].id + '">';
                     if (donnees[i].type_mvt === "1") {
-                        html += '<td class="text-center" style="font-size: 16px;"><img class="me-2" src="data/equipemenrs/' + donnees[i].photo + '"  alt="" style="border-radius: 999px;" height="32">' + donnees[i].eqType  + '</a></td>'
+                        html += '<td class="text-center" style="font-size: 16px;"><a class="" href="#"><img class="me-2" src="data/equipemenrs/' + donnees[i].photo + '"  alt="" style="border-radius: 999px;" height="32">' + donnees[i].eqType  + '</a></td>'
                         html += '<td class="text-center" style="font-size: 16px;" >ENTREE</td>'
                         html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].qte  + '</a></td>'
                         html += '<td class="text-center" style="font-size: 16px;">' + donnees[i].service  + '</a></td>'
@@ -59,13 +59,13 @@ function getMouvementsByDate(ctrl_name, formData){
                         </a></td>
                         `
                         }
-                        html += '<td class="text-center fw-bold " style="font-size: 16px;">' + donnees[i].stock_avant  + '</a></td>'
+                        html += '<td class="text-center fw-bold" style="font-size: 16px;">' + donnees[i].stock_avant  + '</a></td>'
                         html += '<td class="text-center fw-bold" style="font-size: 16px;">' + donnees[i].stock_apres  + '</a></td>'
                         html += '<td class="text-center fw-bold" style="font-size: 16px;">' + donnees[i].created_at  + '</a></td>'
                         html += '<td class="text-center fw-bold" style="font-size: 16px;">' + donnees[i].mention  + '</a></td>'
 
                     } else {
-                        html += '<td class="text-center text-danger" style="font-size: 16px;"><img class="me-2" src="data/equipemenrs/' + donnees[i].photo + '"  alt="" style="border-radius: 999px;" height="32">' + donnees[i].eqType  + '</a></td>'
+                        html += '<td class="text-center text-danger" style="font-size: 16px;width: 200px;"><a href="#" ><img class="me-2" src="data/equipemenrs/' + donnees[i].photo + '"  alt="" style="border-radius: 999px;" height="32">' + donnees[i].eqType  + '</a></td>'
                         html += '<td class="text-center text-danger" style="font-size: 16px;" >SORTIE</td>'
                         html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].qte  + '</a></td>'
                         html += '<td class="text-center text-danger" style="font-size: 16px;">' + donnees[i].service  + '</a></td>'
@@ -84,14 +84,15 @@ function getMouvementsByDate(ctrl_name, formData){
 
                 html +=`    </tbody>
                             </table>
-                        </div>
-                        <div class="table-pagination" id="tablePagination"></div>
+                        <!--</div>
+                        <div class="table-pagination" id="tablePagination"></div>-->
 
-                    </div>`;
+                    <!--</div>-->
+`;
                 ctrl_name.innerHTML = html;
-               // enhanceTable("#tblMvts",{ pageSize: 15, filename: 'Inventaires.csv' })
-
-                initTablePagination()
+               enhanceTable("#tblMvts",{ pageSize: 20, filename: 'operationsJournalieres.csv' })
+                /*document.getElementById("tblMvts").style.width = "100%"*/
+               /* initTablePagination()*/
             }
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Marque', duration: 4000}));
