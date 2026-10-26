@@ -189,7 +189,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                     <div class="m-2 p-2 justify-content-center" id="div_details" style="height: 400px;border: 1px solid lightgrey;">
-
+                        <h3 class="mt-5 p-2 w-100 text-center" style="background: #e1e5ec;">Patientez...</h3>
                     </div>
             </div>
         </div>
@@ -286,6 +286,7 @@
         $("body").on('click','.mvt', function (){
             let value = this.id;
             $('#modalShowMvtsDetails').modal('show')
+            document.getElementById("div_details").innerHTML = '<h1 class="mt-5 p-2 w-100" style="background: #e1e5ec;">Patientez...</h1>'
             getAllMouvementsByEquipement(document.getElementById("div_details"), value,  "1");
         })
     </script>

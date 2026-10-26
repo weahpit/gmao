@@ -21,6 +21,29 @@
     <script src="{{ asset('js/lucide-sprite.js') }}"></script>
     <script src="{{ asset('js/app.js') }}"></script>
     {% block stylesheets %}{% endblock %}
+
+    <style>
+
+        /* Ligne sélectionnée */
+        .table tbody tr.selected-row {
+            background-color: #fff9c4 !important; /* jaune clair */
+            transition: background-color 0.2s ease;
+        }
+
+        /* Survol facultatif */
+        .table tbody tr:hover {
+            cursor: pointer;
+        }
+
+        .selected-row td{
+            background-color: #fff3cd !important;
+        }
+
+        .selected-row td a{
+            color: #664d03 !important;
+        }
+
+    </style>
 </head>
 <body class="h-full">
 <!-- Toast Container -->
@@ -91,6 +114,10 @@
                         <i data-lucide="chevron-down" class="nav-chevron"></i>
                     </button>
                     <div class="nav-submenu">
+                        <a href="#" class="nav-subitem" id="btnAticles" data-bs-toggle="modal" data-bs-target="#modalEq">
+                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
+                            <span class="nav-label" id="mes_articles">Mes articles</span>
+                        </a>
                         <a href="{{ path('app_mouvements_stock_entree') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_entree' ? 'active' }}">
                             <span class="nav-label">Entrée</span>
                         </a>
@@ -198,15 +225,147 @@
         </main>
     </div>
 
+<!-- Modal Add/Edit Equipement-->
+<div class="modal fade" id="modalEq" tabindex="-1" aria-labelledby="modalAddEquipementLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content"  style="border-radius: 0;">
+
+            <div class="modal-header" style="background: var(--green-100)">
+                <h1 class="modal-title fs-5" id="exampleModalLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-box preview-icon"><path d="M14 2v5a1 1 0 001 1h5"/><path d="M14.692 22H18a2 2 0 002-2V8a2.4 2.4 0 00-.706-1.706l-3.588-3.588A2.4 2.4 0 0014 2H6a2 2 0 00-2 2v3.804"/><path d="M2.264 13.752 7 16.5l4.737-2.748"/><path d="M2.995 13.014A2 2 0 002 14.744v3.516a2 2 0 00.996 1.73l3 1.74a2 2 0 002.008 0l3-1.74A2 2 0 0012 18.26v-3.517a2 2 0 00-.995-1.73l-3-1.742a2 2 0 00-1.892-.064z"/><path d="M7 16.5V22"/></svg> Gestion des articles</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="">
+                <form id="formEquipementType">
+                    <div class="m-2 p-2" style="border: 1px solid lightgrey;background-color: #f7f7f7;" id="bloc-add-article">
+                        <h6 class="fw-bold text-primary p-1 w-100" style="background: #d9edf2;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package preview-icon"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>
+                            <span id="lbl_article">Sélectionnez un article dans la liste !</span>
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-7">
+                                <div class="row " style="">
+                                    <div class="col-md-6 d-flex justify-content-start">
+                                        <label class="fw-bold span" for="tdb_CodeEquipement">Code <span class="fw-bold text-danger ms-2">*</span></label>
+                                        <input type="text" class="input fw-bold text-danger" id="tdb_CodeEquipement" style="text-transform: uppercase;background-color: #f4fdf9;" readonly disabled>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-start">
+                                            <label class="fw-bold span " for="tdb_nomEquipement" style="width: 150px;">Nom<span class="fw-bold text-danger ms-2">*</span></label>
+                                            <input type="text" class="input" id="tdb_nomEquipement" style="text-transform: uppercase;background-color: #f4fdf9;">
+                                        </div>
+                                        <div id="div_error_nom" style="display: none">
+                                            <small class="text-danger fw-bold" id="nomError"></small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-1">
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="tdb_famille" class="fw-bold span">Famille<span class="fw-bold text-danger ms-2">*</span></label>
+                                        <select class="input fw-bold" id="tdb_famille" style="background-color: #f4fdf9;"></select>
+                                    </div>
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="tdb_categorie" class="fw-bold span">Catégorie <span class="fw-bold text-danger ms-2">*</span></label>
+                                        <select class="input fw-bold" id="tdb_categorie" style="background-color: #f4fdf9;"></select>
+                                    </div>
+                                </div>
+                                <div class="row mt-1">
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="tdb_marque" class="fw-bold span">Marque</label>
+                                        <select class="input fw-bold" id="tdb_marque" style="background-color: #f4fdf9;"></select>
+                                    </div>
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="tdb_modele" class="fw-bold span">Reference</label>
+                                        <input class="input fw-bold" id="tdb_modele" style="background-color: #f4fdf9;text-transform: uppercase;">
+                                    </div>
+                                </div>
+                                <div class="row mt-1">
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="tdb_criticite" class="fw-bold span">Criticité</label>
+                                        <select class="input fw-bold" id="tdb_criticite" style="background-color: #f4fdf9;"></select>
+                                    </div>
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="tdb_seuil" class="fw-bold span" style="background-color: #f4fdf9;">Seuil</label>
+                                        <input class="input fw-bold text-danger" id="tdb_seuil"  value="0" type="number">
+                                    </div>
+                                </div>
+                                <div class="row  mt-1">
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="tdb_type_eq" class="fw-bold span">Type<span class="fw-bold text-danger ms-2">*</span></label>
+                                        <select class="input fw-bold" id="tdb_type_eq" style="background-color: #f4fdf9;"></select>
+                                    </div>
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <button type="button" id="btn-enr-equipement" class="btn btn-success" style="border-radius: 0;height: 25px;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-save-check preview-icon"><path d="M12.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10.2a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4v4.35"/><path d="m16 19 2 2 4-4"/><path d="M17 15.13V14a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
+                                            Enregistrer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-5" style="border-left: 1px solid lightgrey;">
+                                <div class="row">
+                                    <div class="col-md-4 mb-1 mx-auto text-center">
+                                        <span class="fw-bold d-block mb-1">Insérer un logo</span>
+
+                                        <!-- Bouton personnalisé -->
+                                        <label for="tdb_eqUpload" class="btn mb-1" style="cursor: pointer;background: var(--green-200);">
+                                            <img class="p-1" src="{{ asset('icons/telecharger.png') }}" alt="">
+                                            <small>cliquez ici</small>
+                                        </label>
+                                        <input type="file" id="tdb_eqUpload" accept="image/*" hidden>
+                                        <small class="text-danger d-block mb-1">
+                                            Image de moins de 200Ko
+                                        </small>
+                                    </div>
+                                    <div class="col-md-8 mb-1 mx-auto text-center">
+                                        <img id="tdb_eqPreview" class="p-2"
+                                             style="height:150px;border:2px dashed #000;object-fit:inherit;"
+                                             src="" alt="Aperçu du logo">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="m-2 p-2" style="border: 1px solid lightgrey;background-color: #f7f7f7;height: 400px;" id="bloc-table-article">
+                        <h6 class="p-1" style="background: #cfcfcf;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-spreadsheet preview-icon"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg>
+                            <span class="fw-bold text-dark" >Tous les articles</span>
+                        </h6>
+                        <div class="p-1" id="tbl_articles" style="border:  1px solid lightgrey;min-height: 200px;">
+                            <h5 class="fw-bold text-dark text-center">Chargement des articles...</h5>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
 
 <script src="{{ asset('js/external/jquery.js') }}"></script>
 <script src="{{ asset('js/tools/functions.js') }}"></script>
 <script src="{{ asset('js/tools/showToast.js') }}"></script>
 <script src="{{ asset('js/tools/table.js') }}"></script>
+<script src="{{ asset('js/api/references/Equipement.js') }}"></script>
+
+<script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
+<script src="{{ asset('js/api/references/MarqueEquipement.js') }}"></script>
+<script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+
+<script src="{{ asset('js/api/references/EquipementType.js') }}"></script>
+<script src="{{ asset('js/api/references/NatureEquipement.js') }}"></script>
+<script src="{{ asset('js/api/references/EtatEquipement.js') }}"></script>
+<script src="{{ asset('js/api/references/TypeEquipement.js') }}"></script>
+<script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
+<script src="{{ asset('js/api/references/TypeEq.js') }}"></script>
+<script src="{{ asset('js/api/references/FamilleEquipement.js') }}"></script>
+<script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
+<script src="{{ asset('js/api/references/Emplacement.js') }}"></script>
+<script src="{{ asset('js/api/references/TypeEmplacement.js') }}"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
-
+    idEquipement = 0
     document.addEventListener('DOMContentLoaded', function () {
         {% if not (app.user) %} document.location.href =  {{ path('app_login') }} {%endif %}
         const ACCORDION = true;   // true = un seul sous-menu ouvert à la fois
@@ -238,6 +397,113 @@
             }
         });
     });
+
+    getAllEquipementsFromTdb(document.getElementById("tbl_articles"), 1)
+
+    document.getElementById("mes_articles").addEventListener('click', ()=>{
+
+    })
+
+    function getValues(){
+        /*getAllFournisseurs(document.getElementById('tdb_fournisseur'), 2)*/
+        getAllMarques(document.getElementById('tdb_marque'), 2)
+        /*getAllNatureEquipement(document.getElementById('nature'), 2)*/
+        /*getAllEquipementTypes(document.getElementById('tdb_eqType'), 2)*/
+        getAllTypeEq(document.getElementById("tdb_type_eq"), 2)
+        getAllTypeEquipements(document.getElementById("tdb_categorie"), 2)
+        getAllCriticiteEquipement(document.getElementById("tdb_criticite"), 2)
+        getAllFamilles(document.getElementById("tdb_famille"), 2)
+       /* getAllTypeEmplacements (document.querySelector("#type_emplacement"), 2)
+        getAllZonesExploitation(document.querySelector("#zone"), 2)*/
+    }
+    uploadImage(document.getElementById('tdb_eqUpload'), document.getElementById('tdb_eqPreview'));
+    getValues()
+
+    $('body').on('click', '.tr_article', function(){
+        let value = this.id;
+        effaceChamps()
+        getSingleEquipement(value)
+            .then(Eq =>{
+                idEquipement = Eq.id
+                document.getElementById("tdb_CodeEquipement").value = Eq.code_equipement;
+                document.getElementById("tdb_nomEquipement").value = Eq.nom;
+                document.getElementById('lbl_article').innerText = Eq.nom;
+                document.getElementById("tdb_seuil").value = Eq.seuil;
+                document.getElementById("tdb_categorie").value = Eq.categorie;
+                document.getElementById("tdb_criticite").value = Eq.criticite;
+                if ( Eq.photo){
+                    document.getElementById("tdb_eqPreview").src = "{{ asset('data/equipements/') }}" + Eq.photo;
+                }
+                document.getElementById("tdb_famille").value = Eq.famille;
+                document.getElementById("tdb_type_eq").value = Eq.type_eq;
+
+                document.getElementById("tdb_marque").value = Eq.marque;
+                document.getElementById("tdb_modele").value = Eq.modele;
+            })
+    })
+
+            document.getElementById("tdb_famille").addEventListener('change', ()=>{
+                let value = document.getElementById("tdb_famille").value;
+                getTypeEquipementByFamille(document.getElementById("tdb_categorie"),2, value)
+               /* getCode()*/
+            })
+           /* document.getElementById("tdb_categorie").addEventListener('change', ()=>{
+                getCode()
+            })*/
+
+        function getCode(){
+            document.getElementById('tdb_CodeEquipement').value = "";
+            if (
+                document.getElementById('tdb_famille').value !== "0"  ||
+                document.getElementById('tdb_famille').value !== ""  ||
+                document.getElementById('tdb_categorie').value !== "0"  ||
+                document.getElementById('tdb_categorie').value !== ""
+            ){
+                let formData = new FormData
+
+                formData.append('code_famille', document.getElementById('tdb_famille').value)
+                formData.append('code_categorie', document.getElementById('tdb_categorie').value)
+                getCodeArticle(formData, document.getElementById('tdb_CodeEquipement'));
+            }
+        }
+
+        document.getElementById('btn-enr-equipement').addEventListener('click', ()=>{
+            let formDataEquipement = new FormData();
+            let eqUpload = document.getElementById("tdb_eqUpload").files;
+
+            formDataEquipement.append('id_equipement', idEquipement)
+            formDataEquipement.append('code_equipement', document.getElementById("tdb_CodeEquipement").value)
+            formDataEquipement.append('nom', document.getElementById("tdb_nomEquipement").value)
+            formDataEquipement.append('categorie', document.getElementById("tdb_categorie").value)
+            formDataEquipement.append('criticite', document.getElementById("tdb_criticite").value)
+            formDataEquipement.append('famille', document.getElementById("tdb_famille").value)
+            formDataEquipement.append('type_eq', document.getElementById("tdb_type_eq").value)
+            formDataEquipement.append('marque', document.getElementById("tdb_marque").value)
+            formDataEquipement.append('modele', document.getElementById("tdb_modele").value)
+            formDataEquipement.append('seuil', document.getElementById("tdb_seuil").value)
+
+            formDataEquipement.append("photo", eqUpload[0]);
+            saveEquipement(formDataEquipement, document.getElementById("tbl_articles"), 1)
+        })
+
+        function effaceChamps(){
+            idEquipement = 0
+            document.getElementById("tdb_CodeEquipement").value = "";
+            document.getElementById("tdb_nomEquipement").value = "";
+            /*document.getElementById("tdb_seuil").value = Eq.code;*/
+            document.getElementById("tdb_categorie").value = "0";
+            document.getElementById("tdb_criticite").value = "0";
+            document.getElementById("tdb_eqPreview").src = "";
+            document.getElementById("tdb_famille").value = "0";
+            document.getElementById("tdb_type_eq").value = "0";
+
+            document.getElementById("tdb_marque").value =  "0";
+            document.getElementById("tdb_modele").value =  "";
+            document.getElementById("tdb_seuil").value =  "0";
+
+            document.getElementById('lbl_article').innerText = "Sélectionnez un article dans la liste !";
+        }
+    effaceChamps()
 </script>
 </body>
 </html>

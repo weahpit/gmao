@@ -122,7 +122,7 @@ final class ApiStockTdbController extends AbstractController
                         'code'=>'success',
                         'msg'=>'Success',
                         'code_eq'=>$equipement->getCode(),
-                        'modele'=>$equipement->getModele(),
+                        'modele'=>strtoupper($equipement->getModele()),
                         'nom'=>$equipement->getNom(),
                         'qte'=>$equipement->getQte(),
                         'photo'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getPhoto() : "",

@@ -8,6 +8,7 @@ use App\Entity\EquipementType;
 use App\Entity\EtatEquipement;
 use App\Entity\Fournisseur;
 use App\Entity\Marque;
+use App\Entity\MouvementEquipement;
 use App\Entity\NatureEquipement;
 use App\Entity\TypeEq;
 use App\Entity\TypeEquipement;
@@ -34,6 +35,9 @@ final class ApiEquipementController extends AbstractController
                     // Liste des Natures d'équipements
                     $equipements = $this->em->getRepository(Equipement::class)->findBy([], ['nom'=>'ASC']);
                     foreach ($equipements as $equipement){
+                        $derniere_date = "";
+                        $lastMvt = $this->em->getRepository(MouvementEquipement::class)->findOneBy(['code_equipement'=>$equipement], ['created_at'=>'DESC']);
+                        if ($lastMvt){$derniere_date =$lastMvt->getCreatedAt() ? $lastMvt->getCreatedAt()->format('d/m/Y H:i:s') : "";}
                         $data[] = array(
                             'id'=>$equipement->getId(),
                             'nom'=>strtoupper($equipement->getNom()),
@@ -45,7 +49,8 @@ final class ApiEquipementController extends AbstractController
                             'nature'=>$equipement->getNature()?$equipement->getNature()->getLibelle() : "",
                             'adresse'=>$equipement->getCodeFournisseur() ? $equipement->getCodeFournisseur()->getSigle() : "",
                             'categorie'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getLibelle() : "",
-                            'stockFinal'=>$equipement->getStockFinal()
+                            'qte'=>$equipement->getQte(),
+                            'lastMvt'=>$derniere_date
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -95,20 +100,35 @@ final class ApiEquipementController extends AbstractController
         return new JsonResponse(json_encode($reponse));
     }
 
-    #[Route('api/getSingleEquipement/{$id_equipement}', name: 'app_api_get_single_equipement')]
-    public function app_api_get_single_equipement(int $id_equipement): Response
+    #[Route('api/getSingleEquipement', name: 'app_api_get_single_equipement')]
+    public function app_api_get_single_equipement(Request $request): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
+            $id_equipement = $request->request->get('id_equipement');
             try {
-                $equipement = $this->em->getRepository(Equipement::class)->find($id_equipement);
+                $equipement = $this->em->getRepository(Equipement::class)->find(Uuid::fromString($id_equipement));
 
             if ($equipement){
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
-                    'libelle'=>$equipement->getLibelle()
+                    'id'=>$equipement->getId(),
+                    'nom'=>strtoupper($equipement->getNom()),
+                    'marque'=>$equipement->getMarque()? $equipement->getMarque()->getId() : "" ,
+                    'modele'=>$equipement->getModele(),
+                    'code_equipement'=>$equipement->getCode(),
+                    'etat'=>$equipement->getEtat()?$equipement->getEtat()->getId() : "" ,
+                    'criticite'=>$equipement->getCriticite()? $equipement->getCriticite()->getId() : "",
+                    'nature'=>$equipement->getNature()?$equipement->getNature()->getId() : "",
+                    'adresse'=>$equipement->getCodeFournisseur() ? $equipement->getCodeFournisseur()->getSigle() : "",
+                    'categorie'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getId() : "",
+                    'famille'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getCodeFamille()->getId() : "",
+                    'stockFinal'=>$equipement->getStockFinal(),
+                    'photo'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getPhoto() : "",
+                    'type_eq'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getTypeEq()->getId() : "",
+                    'seuil'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getSeuil(): 0,
                 );
             } else {
                 $reponse = array(
@@ -147,7 +167,7 @@ final class ApiEquipementController extends AbstractController
                 $stock_initial = $request->request->get('stock_initial');
                 $stock_actuel = $request->request->get('stock_actuel');
                 $stock_final = $request->request->get('stock_final');
-                $photo = $request->request->get('photo');
+                $photo = $request->files->get('photo');
 
                 $fournisseur = $this->em->getRepository(Fournisseur::class)->find($codeFournisseur);
                 $criticite = $this->em->getRepository(Criticite::class)->find($criticite_id);
@@ -209,7 +229,72 @@ final class ApiEquipementController extends AbstractController
         return new JsonResponse($reponse);
     }
 
+    #[Route('api/editEquipement', name: 'app_api_edit_equipement')]
+    public function app_api_edit_equipement(Request $request): Response
+    {
+        $reponse = [];
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
+            try {
+                $id_equipement = $request->request->get('id_equipement');
+                $CodeEquipement = $request->request->get('code_equipement');
+                $nomEquipement = $request->request->get('nom');
+                $marque= $request->request->get('marque');
+                $modele = $request->request->get('modele');
+                $categorie = $request->request->get('categorie');
+                $criticite_id = $request->request->get('criticite');
+                $type_eq = $request->request->get('type_eq');
+                $photo = $request->files->get('photo');
+                $seuil = $request->request->get('seuil');
 
+                $criticite = $this->em->getRepository(Criticite::class)->find($criticite_id);
+                $mrq = $this->em->getRepository(Marque::class)->find($marque);
+                $typeEquipement = $this->em->getRepository(TypeEquipement::class)->find($categorie);
+                $typeEq = $this->em->getRepository(TypeEq::class)->find($type_eq);
+
+                if (!$nomEquipement || !$CodeEquipement) {
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs obligatoires !'];
+                } else {
+
+                    $uuid = Uuid::fromString($id_equipement);
+                    $equipement = $this->em->getRepository(Equipement::class)->find($uuid);
+
+                    if (!$equipement) {
+                        $reponse = ['code' => 'warning', 'msg' => 'Merci de sélectionner un article !'];
+                    } else {
+                        $equipement->setCode(strtoupper($CodeEquipement));
+                        $equipement->setNom(strtoupper($nomEquipement));
+
+                        if ($criticite) { $equipement->setCriticite($criticite);}
+                        if ($mrq) { $equipement->setMarque($mrq);;}
+                        if ($typeEquipement) { $equipement->setTypeUnicite($typeEquipement);;}
+                        if ($typeEq) { $equipement->getCodeEquipementType()->setTypeEq($typeEq) ;}
+                        $equipement->setModele(strtoupper($modele));
+
+                        $equipement->getCodeEquipementType()->setSeuil((int) $seuil);
+
+                        if ($photo) {
+                            $filename = uniqid().'.'.$photo->guessExtension();
+                            $photo->move($this->getParameter('photo_equipement'), $filename);
+                            $equipement->getCodeEquipementType->setPhoto($filename);
+                        }
+
+                        $this->em->persist($equipement);
+                        $this->em->persist($equipement->getCodeEquipementType());
+                        $this->em->flush();
+                        $reponse = [
+                            'code' => "success", 'msg' =>  'Equipement créé avec succès !'
+                        ];
+                    }
+                }
+            } catch (\Throwable $throwable) {
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
 
 
 
