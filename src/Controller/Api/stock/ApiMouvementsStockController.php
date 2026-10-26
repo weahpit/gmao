@@ -305,12 +305,11 @@ final class ApiMouvementsStockController extends AbstractController
                                 'id'=>$occurence->getId(),
                                 'nom'=>$occurence->getNom(),
                                 'code'=>$occurence->getCode(),
-                                'reference'=>$occurence->getModele(),
+                                'reference'=>strtoupper($occurence->getModele()),
                                 'qte'=>$occurence->getQte() ? $occurence->getQte() : 0,
                                 'categorie'=>$equipement->getCategorie() ? $equipement->getCategorie()->getLibelle() : ""
                             );
                         }
-
                     }
                 }
                 $reponse = ['code' => "success", 'msg' => 'Success', 'data'=>$data];

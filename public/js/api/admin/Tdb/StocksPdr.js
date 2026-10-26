@@ -101,63 +101,60 @@ function getAllMouvements(render_type){
     });
 }
 
-function getAllMouvementsByEquipement(idEquipement){
-    return new Promise((resolve, reject) => {
+function getAllMouvementsByEquipement(ctrlName, idEquipement, render_type){
         $.ajax({
             url : URL_APP + 'api/getAllMouvementsByEquipement/' + idEquipement,
             type : 'POST',
             success: function (response){
-                let reponse = response;
+                let reponse = JSON.parse(response);
+
                 let contentCtrl = ''
                 if (render_type === "1"){
                     contentCtrl +=`
-                <div class="col-md-4" ><img src="data/equipements/${reponse.photo}"</div>
-                <div class="col-md-8" id="div_eq">
+                <h5 class="text-primary fqw-bold">${reponse.nom}</h5>
+                <h6>Référence : <span class="text-danger fw-bold">${reponse.modele}</span></h6><hr>
+               <div class="row" style="background: #f1f1f1;height: 275px;">
+                <div class="col-md-4" ><img src="data/equipements/${reponse.photo}" style="max-height: 250px;" alt=""></div>
+                <div class="col-md-7 p-2" id="div_eq" style="height: 350px;overflow-y: scroll;">
                     <div class="">
-
-                    </div>
-                </div>
-                <table class="table table-hover">
-                    <thead style="position: sticky;top: 0;background: #f8f9fa;z-index: 2;"><tr>
-                            <th></th>
-                            <th>Equipement</th>
-                            <th>Opération</th>
-                            <th>Qté</th>
-                            <th>Date</th>
-                    </tr></thead>
-                    <tbody>
-                `
+                        <table class="table table-responsive table-hover">
+                            <thead style="position: sticky;top: 0;background: #f8f9fa;z-index: 2;"><tr>
+                                    <th>Opération</th>
+                                    <th>Date</th>
+                                    <th class="text-center">Qté</th>
+                                    <th>N° Bon</th>
+                                    <th>service</th>
+                                    <th>Demandeur</th>
+                            </tr></thead>
+                            <tbody>
+                        `
                     for (var i=0;i < reponse.data.length;i++){
-                        contentCtrl +='<tr class="mvt" style="font-size: 12px;" id="' + reponse.data[i].id + '">'
-                        contentCtrl +='<td><img src="data/equipements/' + reponse.data[i].photo + '" alt="" height="32"></td>'
-                        if (reponse.data[i].equipement.length > 50){
-                            contentCtrl +='<td>' + reponse.data[i].equipement.slice(0,50) + '...</td>'
-                        } else {
-                            contentCtrl +='<td>' + reponse.data[i].equipement + '</td>'
-                        }
+                        contentCtrl +='<tr class="" style="font-size: 12px;" id="' + reponse.data[i].id + '">'
+
                         if (reponse.data[i].type === "1"){ // Entrée
                             contentCtrl +='<td class="text-center"><span class="fw-bold p-1" style="border-radius: 4px;background: linear-gradient(45deg, #78a1f9, #2563EB);color:white;box-shadow: #555555 1px 1px;">E</span></td>'
                         } else {
                             contentCtrl +='<td class="text-center"><span class="fw-bold p-1" style="border-radius: 4px;background: linear-gradient(45deg, #fd5e5e, #ff001f);color:white;box-shadow: #555555 1px 1px;">S</span></td>'
                         }
-
-                        contentCtrl +='<td><a href="#">' + reponse.data[i].nb + '</a></td>'
                         contentCtrl +='<td><a href="#">' + reponse.data[i].date_operation + '</a></td>'
+                        contentCtrl +='<td><a href="#">' + reponse.data[i].nb + '</a></td>'
+                        contentCtrl +='<td><a href="#">' + reponse.data[i].numero_bon + '</a></td>'
+                        contentCtrl +='<td><a href="#">' + reponse.data[i].service_demandeur + '</a></td>'
+                        contentCtrl +='<td><a href="#">' + reponse.data[i].demandeur + '</a></td>'
                         contentCtrl +='</tr>'
                     }
-                    contentCtrl +='</tbody></table>';
+                    contentCtrl +='</tbody></table></div></div></div>';
                 } else {
                     contentCtrl += '<option value="0">-- Mouvements --</option>'
                     for (var i=0;i < reponse.data.length;i++) {
                         contentCtrl += '<option value="' + reponse.data[i].id + '"  style="text-transform: uppercase;">' + reponse.data[i].direction + '</option>'
                     }
                 }
-                resolve(contentCtrl);
+                ctrlName.innerHTML = contentCtrl;
             },
             error : function (response){
-                reject(response.msg);
+
             }
         });
-    });
 }
 

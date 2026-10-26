@@ -137,7 +137,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                         <th>Article</th>
                                         <th>Code</th>
                                         <th>Catégorie</th>
-                                        <th>Références</th>
+                                        <th class="text-center">Références</th>
                                         <th class="text-center"><div style="width: 100px;">En Stock</div></th>
                                         <th class="text-center"><div style="width: 100px;">Qté</div></th>
                                         `;
@@ -187,9 +187,9 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                     ${article.categorie}
                                 </div>
                             </td>
-                            <td>
-                                <div class="article-name" style="color: black;max-width: 300px;">
-                                    ${article.reference}
+                            <td style="border-left: 1px solid #ffd000;border-right: 1px solid #ffd000;background: #faf6e0;">
+                                <div class="article-name text-center" style="width: 150px;background:linear-gradient(175deg, #f5f0e1, #ecebe8);border-bottom: 2px solid #d7895f;color: #0d0d0d;border-radius: 10px;font-size: 12px;">
+                                    <span class="p-1 w-100" style="">${article.reference}</span>
                                 </div>
                             </td>
                             <td class="text-center mx-auto">

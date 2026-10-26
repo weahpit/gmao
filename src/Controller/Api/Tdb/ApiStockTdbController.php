@@ -84,50 +84,56 @@ final class ApiStockTdbController extends AbstractController
     }
 
     #[Route('api/getAllMouvementsByEquipement/{id_equipement}', name: 'getAllMouvementsByEquipement')]
-    public function getAllMouvementsByEquipement(Request $request, Functions $functions, $id_equipement): Response
+    public function getAllMouvementsByEquipement($id_equipement): Response
     {
         $reponse = array();
         $data = array();
+
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         try {
             // Liste des 10 dernières opérations
-            $equipement = $this->em->getRepository(Equipement::class)->find(Uuid::fromString($id_equipement));
-            if ($equipement){
-                $mvts = $this->em->getRepository(MouvementEquipement::class)->findBy(['code_equipement'=>$equipement], ['created_at'=>'DESC'], 10, 0);
-                foreach ($mvts as $mvt){
-                    if ($mvt->getDateOperation()){
-                        $data[] = array(
-                            'id'=>$mvt->getId(),
-                            'type'=>$mvt->getTypeMvt(),
-                            'equipement'=>$mvt->getCodeEquipementType() ? $mvt->getCodeEquipementType()->getNomEquipement() : "",
-                            'nb'=>$mvt->getValue(),
-                            'date_operation'=>$mvt->getDateOperation()->format("d/m/Y"),
-                            'stock_avant'=>$mvt->getStockAvant(),
-                            'stock_apres'=>$mvt->getStockApres(),
-                            'numero_bon'=>$mvt->getNumeroBon(),
-                            'bl'=>$mvt->getBonLivraison(),
-                            'demandeur'=>$mvt->getDemandeur(),
-                            'service_demandeur'=>$mvt->getCodeService() ? $mvt->getCodeService()->getLibelle() : "",
-                            'observations'=>$mvt->getObservation()
-                        );
+            $mvt = $this->em->getRepository(MouvementEquipement::class)->find(Uuid::fromString($id_equipement));
+
+            if ($mvt){
+                $equipement = $mvt->getCodeEquipement();
+                if ($equipement){
+                    $mvts = $this->em->getRepository(MouvementEquipement::class)->findBy(['code_equipement'=>$equipement], ['created_at'=>'DESC']);
+
+                    foreach ($mvts as $mvt){
+                        if ($mvt->getDateOperation()){
+                            $data[] = array(
+                                'id'=>$mvt->getId(),
+                                'type'=>$mvt->getTypeMvt(),
+                                'equipement'=>$mvt->getCodeEquipementType() ? $mvt->getCodeEquipementType()->getNomEquipement() : "",
+                                'nb'=>$mvt->getValue(),
+                                'date_operation'=>$mvt->getDateOperation()->format("d/m/Y"),
+                                'stock_avant'=>$mvt->getStockAvant(),
+                                'stock_apres'=>$mvt->getStockApres(),
+                                'numero_bon'=>$mvt->getNumeroBon() ? $mvt->getNumeroBon() : "",
+                                'bl'=>$mvt->getBonLivraison(),
+                                'demandeur'=>$mvt->getDemandeur() ? $mvt->getDemandeur()  : "",
+                                'service_demandeur'=>$mvt->getCodeService() ? $mvt->getCodeService()->getLibelle() : "",
+                                'observations'=>$mvt->getObservation()
+                            );
+                        }
                     }
+
+                    $reponse = array(
+                        'code'=>'success',
+                        'msg'=>'Success',
+                        'code_eq'=>$equipement->getCode(),
+                        'modele'=>$equipement->getModele(),
+                        'nom'=>$equipement->getNom(),
+                        'qte'=>$equipement->getQte(),
+                        'photo'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getPhoto() : "",
+                        'data'=>$data
+                    );
                 }
-
-                $reponse = array(
-                    'code'=>'success',
-                    'msg'=>'Success',
-                    'code_eq'=>$equipement->getCode(),
-                    'modele'=>$equipement->getModele(),
-                    'nom'=>$equipement->getNom(),
-                    'qte'=>$equipement->getQte(),
-                    'photo'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getPhoto() : "",
-                    'data'=>$data);
             }
-
         } catch (\Throwable $throwable) {
             $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
         }
 
-        return new JsonResponse($reponse);
+        return new JsonResponse(json_encode($reponse));
     }
 }
