@@ -75,7 +75,7 @@ final class ApiTypeEmplacementController extends AbstractController
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
-        if ($this->isGranted("ROLE_ADMIN")) {
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
                 $id_type_emplacement = $request->request->get('id_type_emplacement');
                 $libelle = $request->request->get('type_emplacement');
