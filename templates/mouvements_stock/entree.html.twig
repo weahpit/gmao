@@ -20,7 +20,7 @@
             </button>
             <ul class="dropdown-menu">
                 <li>
-                    <a class="dropdown-item" href="#" id="btn_add_eq" data-bs-toggle="modal" data-bs-target="#modalAddArticle">
+                    <a class="dropdown-item" style="border-bottom: 2px solid #939292;" href="#" id="btn_add_eq" data-bs-toggle="modal" data-bs-target="#modalAddArticle">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
                         Nouvel Article
                     </a>
@@ -38,9 +38,27 @@
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item" href="#" id="btn_add_cat" data-bs-toggle="modal" data-bs-target="#modalAddType">
+                    <a class="dropdown-item" href="#" id="btn_add_cat" data-bs-toggle="modal" data-bs-target="#modalAddFamille">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
+                        Familles Articles
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item"  style="border-bottom: 2px solid #939292;"  href="#" id="btn_add_cat" data-bs-toggle="modal" data-bs-target="#modalAddType">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
                         Catégories Articles
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" id="btn_add_cat" data-bs-toggle="modal" data-bs-target="#modalAddEmplacement">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
+                        Emplacements
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" id="btn_add_cat" data-bs-toggle="modal" data-bs-target="#modalAddTypeEmplacement">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-plus preview-icon"><path d="M19 16v6"/><path d="M21 12.536V5"/><path d="M22 19h-6"/><path d="M3 12A9 3 0 0 0 15.1824 14.8061"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/></svg>
+                        Types Emplacements
                     </a>
                 </li>
             </ul>
@@ -332,6 +350,87 @@
         </div>
     </div>
 
+    <!-- Modal Add/Edit Famille-->
+    <div class="modal fade" id="modalAddFamille" tabindex="-1" aria-labelledby="modalAddFamilleLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/famille.png') }}" height="40" alt=""> Enregistrer une famille</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formFamille" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="familleEq" style="width: 150px;">Nom</label>
+                            <input type="text" class="input" id="familleEq" style="text-transform: uppercase;">
+                            <input type="text" class="input" id="initialFamille" style="text-transform: uppercase;width: 100px;" placeholder="Initial">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveFamille">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Add/Edit Emplacement-->
+    <div class="modal fade" id="modalAddEmplacement" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/emplacement.png') }}" height="40" alt=""> Enregistrer un emplacement</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formEmplacement" >
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="emplacement" style="width: 250px;">Emplacement</label>
+                            <input type="text" class="input" id="emplacement" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="zone" style="width: 165px;">Zone</label>
+                            <select class="input" id="zone"></select>
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="type_emplacement" style="width: 165px;">Type</label>
+                            <select class="input" id="type_emplacement"></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveEmplacement">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Type Emplacement-->
+    <div class="modal fade" id="modalAddTypeEmplacement" tabindex="-1" aria-labelledby="modalAddTypeLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/Type_eq.png') }}" height="40" alt=""> Enregistrer un Type Equipement</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formTypeEmplacement" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="type_emp" style="width: 250px;">Type Emplacement</label>
+                            <input type="text" class="input" id="type_emp" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveTypeEmplacement">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
     <script src="{{ asset('js/external/jquery.js') }}"></script>
@@ -356,6 +455,9 @@
     <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
     <script src="{{ asset('js/api/references/MarqueEquipement.js') }}"></script>
     <script src="{{ asset('js/api/references/TypeEquipement.js') }}"></script>
+    <script src="{{ asset('js/api/references/Emplacement.js') }}"></script>
+    <script src="{{ asset('js/api/references/TypeEmplacement.js') }}"></script>
+    <script src="{{ asset('js/api/references/ZoneExploitation.js') }}"></script>
 
     <script>
         let type_ajout = 0
@@ -603,6 +705,55 @@
             FormDataType.append('code_famille', document.querySelector("#code_famille").value)
             saveTypeEquipement(FormDataType, document.querySelector(".card-body"), 1)
         })
+
+        /*Familles Equipements*/
+        let idFamille = 0;
+        clearForm("formFamille", "famille")
+
+        ValidateOnKeypress(document.getElementById("famille"), document.getElementById("saveFamille"),"formFamille",)
+        document.querySelector("#btn_add_mrq").addEventListener("click", function () {
+            clearForm("formFamille", "famille")
+        })
+
+        document.querySelector("#saveFamille").addEventListener("click", function () {
+            let FormDataFamille = new FormData();
+            FormDataFamille.append('id_famille', idFamille)
+            FormDataFamille.append('famille', document.querySelector("#familleEq").value)
+            FormDataFamille.append('initial', document.querySelector("#initialFamille").value)
+            saveFamille(FormDataFamille, document.querySelector(".card-body"), 1)
+        })
+
+
+        /*Emplacements Equipements*/
+        let idEmplacement = "0";
+
+        getAllTypeEmplacements (document.querySelector("#type_emplacement"), 2)
+        getAllZonesExploitation(document.querySelector("#zone"), 2)
+        clearForm("formEmplacement", "emplacement")
+        ValidateOnKeypress(document.getElementById("emplacement"), document.getElementById("saveEmplacement"), "formEmplacement")
+
+        document.querySelector("#saveEmplacement").addEventListener("click", function () {
+            let FormDataEmplacement = new FormData();
+            FormDataEmplacement.append('id_emplacement', idEmplacement)
+            FormDataEmplacement.append('emplacement', document.querySelector("#emplacement").value)
+            FormDataEmplacement.append('zone', document.querySelector("#zone").value)
+            FormDataEmplacement.append('type_emplacement', document.querySelector("#type_emplacement").value)
+            saveEmplacement(FormDataEmplacement, document.querySelector(".card-body"), 1)
+        })
+
+        let idTypeEmplacement = "0";
+        clearForm("formTypeEmplacement", "type_emp")
+        ValidateOnKeypress(document.getElementById("type_emp"), document.getElementById("saveTypeEmplacement"), "formTypeEmplacement")
+
+        document.querySelector("#saveTypeEmplacement").addEventListener("click", function () {
+            let FormDataTypeEmplacement = new FormData();
+            FormDataTypeEmplacement.append('id_type_emplacement', idTypeEmplacement)
+            FormDataTypeEmplacement.append('type_emplacement', document.querySelector("#type_emp").value)
+            saveTypeEmplacement(FormDataTypeEmplacement, document.querySelector(".card-body"), 1)
+        })
+
+
+        // Events on li button
     </script>
 
 

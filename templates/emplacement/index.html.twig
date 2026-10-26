@@ -13,7 +13,7 @@
 {% block body %}
     <div class="page-header">
         <h1 class="page-title">Emplacements</h1>
-        <a href="#"  id="btn_add_emplacement" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAdd">
+        <a href="#"  id="btn_add_emplacement" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddEmplacement">
             <img src="{{ asset('icons/_eq.png') }}" class="me-2" alt="" height="16"> Ajouter  un emplacement
         </a>
     </div>
@@ -24,7 +24,7 @@
         </div>
 
     <!-- Modal Add/Edit Emplacement-->
-    <div class="modal fade" id="modalAdd" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal fade" id="modalAddEmplacement" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
@@ -54,6 +54,7 @@
             </div>
         </div>
     </div>
+
     <script src="{{ asset('js/external/jquery.js') }}"></script>
     <script src="{{ asset('js/tools/functions.js') }}"></script>
     <script src="{{ asset('js/tools/showToast.js') }}"></script>

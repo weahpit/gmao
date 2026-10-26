@@ -1,7 +1,7 @@
 function getAllTypeEmplacements(ctrl_name, ctrl_type){
     let contentCtrl = ''
     $.ajax({
-        url : 'api/getAllTypeEmplacements',
+        url : URL_APP + 'api/getAllTypeEmplacements',
         type : 'POST',
         success: function (response){
             let reponse = JSON.parse(response)
@@ -34,7 +34,7 @@ function getAllTypeEmplacements(ctrl_name, ctrl_type){
     })
 }
 function saveTypeEmplacement (formData, ctrl_name, ctrl_type){
-    fetch("api/saveTypeEmplacement ", { method: "POST", body: formData })
+    fetch(URL_APP +"api/saveTypeEmplacement ", { method: "POST", body: formData })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -51,7 +51,7 @@ function saveTypeEmplacement (formData, ctrl_name, ctrl_type){
 }
 
 function deleteTypeEmplacement (id_type_emplacement ){
-    fetch("api/deleteTypeEmplacement ", { method: "POST", body: id_type_emplacement  })
+    fetch(URL_APP +"api/deleteTypeEmplacement ", { method: "POST", body: id_type_emplacement  })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -65,7 +65,7 @@ function deleteTypeEmplacement (id_type_emplacement ){
 function getSingleTypeEmplacement (id_type_emplacement ) {
     return new Promise((resolve, reject) => {
         $.ajax({
-            url: 'api/getSingleTypeEmplacement ' + id_type_emplacement ,
+            url: URL_APP +'api/getSingleTypeEmplacement ' + id_type_emplacement ,
             type: 'POST',
             success: function(response) {
                 if (response.code === "success") {

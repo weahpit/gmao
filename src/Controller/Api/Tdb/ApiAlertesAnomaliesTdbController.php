@@ -39,37 +39,6 @@ final class ApiAlertesAnomaliesTdbController extends AbstractController
 
         return new JsonResponse($reponse);
     }
-/*
-    #[Route('api/DerniersMouvementsStocks', name: 'derniers_mouvements_stocks')]
-    public function derniers_mouvements_stocks(Request $request, Functions $functions): Response
-    {
-        $reponse = [];
-        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
-        try {
-            // Liste des 10 dernières opérations
-            $mvts = $this->em->getRepository(MouvementEquipement::class)->findBy([], ['created_at'=>'DESC'], 10, 0);
-            $reponse = array();
-            $data = array();
-            foreach ($mvts as $mvt){
-                if ($mvt->getDateOperation()){
-                    $data[] = array(
-                        'id'=>$mvt->getId(),
-                        'type'=>$mvt->getTypeMvt(),
-                        'equipement'=>$mvt->getCodeEquipementType() ? $mvt->getCodeEquipementType()->getNomEquipement() : "",
-                        'nb'=>$mvt->getValue(),
-                        'photo'=>$mvt->getCodeEquipementType() ? $mvt->getCodeEquipementType()->getPhoto() : "",
-                        'date_operation'=>$mvt->getDateOperation()->format("d/m/Y")
-                    );
-                }
-            }
-
-            $reponse = array('code'=>'success', 'msg'=>'Success', 'data'=>$data);
-        } catch (\Throwable $throwable) {
-            $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
-        }
-
-        return new JsonResponse($reponse);
-    }*/
 
     #[Route('/api/StatsAlertesZones', name: 'stats_alertes_zones')]
     public function stats_alertes_zones(AlerteAnomalieRepository $repo): JsonResponse
