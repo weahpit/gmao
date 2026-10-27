@@ -30,17 +30,17 @@ final class ApiStockTdbController extends AbstractController
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
             try {
                 // Liste des stocks par Equipement Type
-                $equipements_type = $this->em->getRepository(EquipementType::class)->findAll();
+                $equipements_type = $this->em->getRepository(Equipement::class)->findAll();
                 $reponse = array();
                 $data = array();
                 foreach ($equipements_type as $eq){
                     if ($eq->getQte() > 0 and $eq->getSeuil() > 0 and $eq->getQte() <= $eq->getSeuil()){
                         $data[] = array(
                             'id'=>$eq->getId(),
-                            'libelle'=>$eq->getNomEquipement(),
+                            'libelle'=>$eq->getNom(). ' - Réf.' . $eq->getModele(),
                             'qte'=>$eq->getQte(),
                             'seuil'=>$eq->getSeuil(),
-                            'photo'=>$eq->getPhoto()
+                            'photo'=>$eq->getCodeEquipementType() ? $eq->getCodeEquipementType() ->getPhoto() : ""
                         );
                     }
                 }
@@ -67,7 +67,7 @@ final class ApiStockTdbController extends AbstractController
                     $data[] = array(
                         'id'=>$mvt->getId(),
                         'type'=>$mvt->getTypeMvt(),
-                        'equipement'=>$mvt->getCodeEquipementType() ? $mvt->getCodeEquipementType()->getNomEquipement() : "",
+                        'equipement'=>$mvt->getCodeEquipement() ? $mvt->getCodeEquipement()->getNom() . " [". $mvt->getCodeEquipement()->getModele(). "]" : "",
                         'nb'=>$mvt->getValue(),
                         'photo'=>$mvt->getCodeEquipementType() ? $mvt->getCodeEquipementType()->getPhoto() : "",
                         'date_operation'=>$mvt->getDateOperation()->format("d/m/Y"),

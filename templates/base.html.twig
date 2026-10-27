@@ -409,13 +409,15 @@
         });
     });
 
-    getAllEquipementsFromTdb(document.getElementById("tbl_articles"), 1)
+
 
     document.getElementById("mes_articles").addEventListener('click', ()=>{
-
+        getAllEquipementsFromTdb(document.getElementById("tbl_articles"), 1)
+        getValues()
     })
 
     function getValues(){
+        clearForm("formEquipementType", "tdb_CodeEquipement")
         /*getAllFournisseurs(document.getElementById('tdb_fournisseur'), 2)*/
         getAllMarques(document.getElementById('tdb_marque'), 2)
         /*getAllNatureEquipement(document.getElementById('nature'), 2)*/
@@ -426,9 +428,10 @@
         getAllFamilles(document.getElementById("tdb_famille"), 2)
        /* getAllTypeEmplacements (document.querySelector("#type_emplacement"), 2)
         getAllZonesExploitation(document.querySelector("#zone"), 2)*/
+
     }
     uploadImage(document.getElementById('tdb_eqUpload'), document.getElementById('tdb_eqPreview'));
-    getValues()
+
 
     $('body').on('click', '.tr_article', function(){
         let value = this.id;

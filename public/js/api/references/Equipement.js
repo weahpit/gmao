@@ -163,37 +163,69 @@ function getAllEquipementsFromTdb(ctrl_name, ctrl_type){
                             <th style="background: #e5e4e4;color: black;padding:8px;">Etat</th>
                             <th style="background: #e5e4e4;color: black;padding:8px;">Criticité</th>
                             <th style="background: #e5e4e4;color: black;padding:8px;">Qté en stock</th>
+                            <th style="background: #e5e4e4;color: black;padding:8px;">Seuil</th>
                             <th style="background: #e5e4e4;color: black;padding:8px;">Dernier mouvement</th>
                     </tr></thead>
                     <tbody id="body_eq">
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     var nom = reponse.data[i].nom
-                    contentCtrl +='<tr class="tr_article" style="font-size: 14px;" id="' + reponse.data[i].id + '">'
-                    contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;text-align:center;"><button type="button" class="btn btn-sm btn-toggle-mvt" data-id="' + reponse.data[i].id + '" title="Afficher les mouvements" style="border:1px solid #567e64;color:#567e64;background:#fff;line-height:1;padding:1px 7px;border-radius:4px;font-weight:bold;font-size:15px;">+</button></td>'
-                    contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width:150px;" class="text-danger fw-bold"><a href="#">' + reponse.data[i].code + '</a></td>'
+                    if (reponse.data[i].qte === 0){
+                        contentCtrl +='<tr class="tr_article" style="font-size: 14px;" id="' + reponse.data[i].id + '">'
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;text-align:center;"><button type="button" class="btn btn-sm btn-toggle-mvt" data-id="' + reponse.data[i].id + '" title="Afficher les mouvements" style="border:1px solid #567e64;color:#567e64;background:#fff;line-height:1;padding:1px 7px;border-radius:4px;font-weight:bold;font-size:15px;">+</button></td>'
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;width:150px;" class="text-danger fw-bold"><a href="#">' + reponse.data[i].code + '</a></td>'
 
-                    if (nom.length > 40){
-                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width: 250px;" title="' + nom.toUpperCase() + '">' + nom.slice(0,40).toUpperCase() + '...</td>'
+                        if (nom.length > 40){
+                            contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;width: 250px;" title="' + nom.toUpperCase() + '">' + nom.slice(0,40).toUpperCase() + '...</td>'
+                        } else {
+                            contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;width: 250px;" title="' + nom.toUpperCase() + '">' + nom.toUpperCase() + '</td>'
+                        }
+
+                        /*contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-dark fw-bold">' + nom.toUpperCase() + '</td>'*/
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;" >' + reponse.data[i].marque + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;width:200px;" >' + reponse.data[i].modele + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;" >' + reponse.data[i].categorie + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;" >' + reponse.data[i].etat + '</td>'
+                        if (reponse.data[i].criticite === "A"){
+                            contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-primary">' + reponse.data[i].criticite + '</span></td>'
+                        } else if (reponse.data[i].criticite === "B"){
+                            contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-warning text-primary">' + reponse.data[i].criticite + '</span></td>'
+                        } else {
+                            contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-danger">' + reponse.data[i].criticite + '</span></td>'
+                        }
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;" >' + reponse.data[i].qte + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;" >' + reponse.data[i].seuil + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: red;padding:2px;padding-left:5px;width: 150px;" >' + reponse.data[i].lastMvt + '</td>'
+                        contentCtrl +='</tr>'
                     } else {
-                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width: 250px;" title="' + nom.toUpperCase() + '">' + nom.toUpperCase() + '</td>'
+                        contentCtrl +='<tr class="tr_article" style="font-size: 14px;" id="' + reponse.data[i].id + '">'
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;text-align:center;"><button type="button" class="btn btn-sm btn-toggle-mvt" data-id="' + reponse.data[i].id + '" title="Afficher les mouvements" style="border:1px solid #567e64;color:#567e64;background:#fff;line-height:1;padding:1px 7px;border-radius:4px;font-weight:bold;font-size:15px;">+</button></td>'
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width:150px;" class="text-danger fw-bold"><a href="#">' + reponse.data[i].code + '</a></td>'
+
+                        if (nom.length > 40){
+                            contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width: 250px;" title="' + nom.toUpperCase() + '">' + nom.slice(0,40).toUpperCase() + '...</td>'
+                        } else {
+                            contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width: 250px;" title="' + nom.toUpperCase() + '">' + nom.toUpperCase() + '</td>'
+                        }
+
+                        /*contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-dark fw-bold">' + nom.toUpperCase() + '</td>'*/
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].marque + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width:200px;" >' + reponse.data[i].modele + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].categorie + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].etat + '</td>'
+                        if (reponse.data[i].criticite === "A"){
+                            contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-primary">' + reponse.data[i].criticite + '</span></td>'
+                        } else if (reponse.data[i].criticite === "B"){
+                            contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-warning text-primary">' + reponse.data[i].criticite + '</span></td>'
+                        } else {
+                            contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-danger">' + reponse.data[i].criticite + '</span></td>'
+                        }
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].qte + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].seuil + '</td>'
+                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width: 150px;" >' + reponse.data[i].lastMvt + '</td>'
+                        contentCtrl +='</tr>'
                     }
 
-                    /*contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-dark fw-bold">' + nom.toUpperCase() + '</td>'*/
-                    contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].marque + '</td>'
-                    contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width:200px;" >' + reponse.data[i].modele + '</td>'
-                    contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].categorie + '</td>'
-                    contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].etat + '</td>'
-                    if (reponse.data[i].criticite === "A"){
-                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-primary">' + reponse.data[i].criticite + '</span></td>'
-                    } else if (reponse.data[i].criticite === "B"){
-                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-warning text-primary">' + reponse.data[i].criticite + '</span></td>'
-                    } else {
-                        contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;"  class="text-center"><span class="badge bg-danger">' + reponse.data[i].criticite + '</span></td>'
-                    }
-                    contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;" >' + reponse.data[i].qte + '</td>'
-                    contentCtrl +='<td style="background: #ffffff;color: black;padding:2px;padding-left:5px;width: 150px;" >' + reponse.data[i].lastMvt + '</td>'
-                    contentCtrl +='</tr>'
                 }
 
                 contentCtrl +='</tbody></table></div>';

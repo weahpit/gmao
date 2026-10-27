@@ -34,6 +34,7 @@ final class ApiEquipementController extends AbstractController
                 try{
                     // Liste des Natures d'équipements
                     $equipements = $this->em->getRepository(Equipement::class)->findBy([], ['nom'=>'ASC']);
+
                     foreach ($equipements as $equipement){
                         $derniere_date = "";
                         $lastMvt = $this->em->getRepository(MouvementEquipement::class)->findOneBy(['code_equipement'=>$equipement], ['created_at'=>'DESC']);
@@ -50,7 +51,8 @@ final class ApiEquipementController extends AbstractController
                             'adresse'=>$equipement->getCodeFournisseur() ? $equipement->getCodeFournisseur()->getSigle() : "",
                             'categorie'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getLibelle() : "",
                             'qte'=>$equipement->getQte(),
-                            'lastMvt'=>$derniere_date
+                            'lastMvt'=>$derniere_date,
+                            'seuil'=>$equipement->getSeuil()? $equipement->getSeuil() : 0
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -281,10 +283,10 @@ final class ApiEquipementController extends AbstractController
                             }
                         }
                         $equipement->setModele(strtoupper($modele));
+                        $equipement->setSeuil((int) $seuil);
 
                         if ($equipement->getCodeEquipementType()) {
                             $type_equip = $equipement->getCodeEquipementType();
-                            $type_equip->setSeuil((int) $seuil);
                         }
 
 
@@ -362,7 +364,7 @@ final class ApiEquipementController extends AbstractController
                                 } else {
                                     $nouvelEq = new  EquipementType();
                                     $nouvelEq->setCode($CodeEquipement);
-                                    $nouvelEq->setSeuil($seuil);
+                                    /*$nouvelEq->setSeuil($seuil);*/
                                     $nouvelEq->setNomEquipement(trim(strtoupper($nomEquipement)));
                                     $nouvelEq->setQte(0);
 
@@ -398,6 +400,7 @@ final class ApiEquipementController extends AbstractController
                                     $nouvelleOccurrence->setDateEntree(new \DateTime());
                                     $nouvelleOccurrence->setCode($CodeEquipement);
                                     $nouvelleOccurrence->setNom($nouvelEq->getNomEquipement());
+                                    $nouvelleOccurrence->setSeuil((int) $seuil);
                                     if ($nouvelEq->getCategorie()){$nouvelleOccurrence->setTypeUnicite($nouvelEq->getCategorie());}
                                     if ($fournisseur){
                                         $Fournisseur = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($fournisseur));
@@ -427,12 +430,22 @@ final class ApiEquipementController extends AbstractController
 
                             $nouvelleOccurrence = new Equipement();
                             $nouvelleOccurrence->setCodeEquipementType($EquipementType);
+
                             if ($EquipementType->getCode()){ $nouvelleOccurrence->setCode($EquipementType->getCode());}
 
                             $nouvelleOccurrence->setModele($modele);
                             $nouvelleOccurrence->setDateEntree(new \DateTime());
 
                             $nouvelleOccurrence->setNom($EquipementType->getNomEquipement());
+                            $nouvelleOccurrence->setSeuil((int) $seuil);
+                            if ($EquipementType->getCriticite()){
+                                $nouvelleOccurrence->setCriticite($EquipementType->getCriticite());
+                            }
+
+                            if ($EquipementType->getCategorie()){
+                                $nouvelleOccurrence->setTypeUnicite($EquipementType->getCategorie());
+                            }
+
                             if ($fournisseur){
                                 $Fournisseur = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($fournisseur));
                                 if ($Fournisseur){ $nouvelleOccurrence->setCodeFournisseur($Fournisseur);}

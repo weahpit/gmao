@@ -2,6 +2,7 @@
 
 namespace App\Controller\Stock;
 
+use App\Entity\Equipement;
 use App\Entity\EquipementType;
 use App\Entity\MouvementEquipement;
 use App\Services\pdfService;
@@ -31,7 +32,7 @@ final class InventairesController extends AbstractController
             $dateMvt = new  \DateTime($date_inventaire);
 
             // Recherche de tous les équipements Types
-            $eqs = $entityManager->getRepository(EquipementType::class)->findBy([], ['nom_equipement'=>'ASC']);
+            $eqs = $entityManager->getRepository(Equipement::class)->findBy([], ['nom'=>'ASC']);
 
             $reponse = array();
             $data = array();
@@ -58,7 +59,8 @@ final class InventairesController extends AbstractController
 
                 $data[] = array(
                     'id'=>$eq->getId(),
-                    'nom'=>$eq->getNomEquipement(),
+                    'nom'=>$eq->getNom(),
+                    'reference'=>strtoupper($eq->getModele()),
                     'actuel'=>$stock_actuelle? $stock_actuelle : 0,
                     'seuil'=>$eq->getSeuil() ? $eq->getSeuil() : 0,
                     'entree'=>$entree,
@@ -94,11 +96,11 @@ final class InventairesController extends AbstractController
             $dateMvt = new  \DateTime($date_inventaire);
 
             // Recherche de tous les équipements Types
-            $eq = $entityManager->getRepository(EquipementType::class)->find(Uuid::fromString($id_equipement));
+            $eq = $entityManager->getRepository(Equipement::class)->find(Uuid::fromString($id_equipement));
             if ($eq){
 
                 // Recherche les movements et compte suivant la nature de l'équipement ['Quantite' ou 'Serial']
-                $mvts = $entityManager->getRepository(MouvementEquipement::class)->findBy(['code_equipement_type'=>$eq], ['created_at'=>'DESC']);
+                $mvts = $entityManager->getRepository(MouvementEquipement::class)->findBy(['code_equipement'=>$eq], ['created_at'=>'DESC']);
                 // Parcours les moyuvements
                 foreach ($mvts as $mvt){
                     $entree = "";
@@ -125,8 +127,9 @@ final class InventairesController extends AbstractController
             $reponse = array(
                 'code'=>'success',
                 'msg'=>'Détails Mouvements extrait avec succès !',
-                'equipement'=>$eq->getNomEquipement(),
-                'photo'=>$eq->getPhoto() ? $eq->getPhoto() : "",
+                'equipement'=>$eq->getNom(),
+                'reference'=>strtoupper($eq->getModele()),
+                'photo'=>$eq->getCodeEquipementType() ? $eq->getCodeEquipementType()->getPhoto()  : "",
                 'qte'=>$eq->getQte() ?$eq->getQte() : 0 ,
                 'data'=>$data
             );
@@ -156,7 +159,7 @@ final class InventairesController extends AbstractController
 
             $dateMvt = new \DateTime($date_inventaire);
 
-            $eq = $entityManager->getRepository(EquipementType::class)
+            $eq = $entityManager->getRepository(Equipement::class)
                 ->find(Uuid::fromString($id_equipement));
 
             // Si l'équipement n'existe pas : on retourne quand même une réponse.
@@ -165,7 +168,7 @@ final class InventairesController extends AbstractController
             }
 
             $mvts = $entityManager->getRepository(MouvementEquipement::class)
-                ->findBy(['code_equipement_type' => $eq], ['created_at' => 'DESC']);
+                ->findBy(['code_equipement' => $eq], ['created_at' => 'DESC']);
 
             foreach ($mvts as $mvt) {
                 if (strtotime($mvt->getCreatedAt()->format('Y-m-d')) <= strtotime($dateMvt->format('Y-m-d'))) {
@@ -192,7 +195,7 @@ final class InventairesController extends AbstractController
                 $largeurs,
                 $data,
                 'P',
-                $eq->getNomEquipement()
+                $eq->getNom() . " Réf. " . $eq->getModele()
             );
 
             return new Response($contenu, 200, [
