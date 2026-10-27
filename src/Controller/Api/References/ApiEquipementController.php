@@ -42,7 +42,7 @@ final class ApiEquipementController extends AbstractController
                             'id'=>$equipement->getId(),
                             'nom'=>strtoupper($equipement->getNom()),
                             'marque'=>$equipement->getMarque()? $equipement->getMarque()->getNom() : "" ,
-                            'modele'=>$equipement->getModele(),
+                            'modele'=>strtoupper($equipement->getModele()),
                             'code'=>$equipement->getCode(),
                             'etat'=>$equipement->getEtat()?$equipement->getEtat()->getLibelle() : "" ,
                             'criticite'=>$equipement->getCriticite()? $equipement->getCriticite()->getLibelle() : "",
@@ -80,7 +80,7 @@ final class ApiEquipementController extends AbstractController
                         'id'=>$equipement->getId(),
                         'nom'=>strtoupper($equipement->getNom()),
                         'marque'=>$equipement->getMarque()? $equipement->getMarque()->getNom() : "" ,
-                        'modele'=>$equipement->getModele(),
+                        'modele'=>strtoupper($equipement->getModele()),
                         'code'=>$equipement->getCode(),
                         'etat'=>$equipement->getEtat()?$equipement->getEtat()->getLibelle() : "" ,
                         'criticite'=>$equipement->getCriticite()? $equipement->getCriticite()->getLibelle() : "",
@@ -117,7 +117,7 @@ final class ApiEquipementController extends AbstractController
                     'id'=>$equipement->getId(),
                     'nom'=>strtoupper($equipement->getNom()),
                     'marque'=>$equipement->getMarque()? $equipement->getMarque()->getId() : "" ,
-                    'modele'=>$equipement->getModele(),
+                    'modele'=>strtoupper($equipement->getModele()),
                     'code_equipement'=>$equipement->getCode(),
                     'etat'=>$equipement->getEtat()?$equipement->getEtat()->getId() : "" ,
                     'criticite'=>$equipement->getCriticite()? $equipement->getCriticite()->getId() : "",
@@ -268,19 +268,36 @@ final class ApiEquipementController extends AbstractController
                         if ($criticite) { $equipement->setCriticite($criticite);}
                         if ($mrq) { $equipement->setMarque($mrq);;}
                         if ($typeEquipement) { $equipement->setTypeUnicite($typeEquipement);;}
-                        if ($typeEq) { $equipement->getCodeEquipementType()->setTypeEq($typeEq) ;}
+                        if ($typeEq) {
+                            if ($equipement->getCodeEquipementType()) {
+                                $type_equip = $equipement->getCodeEquipementType();
+                                $type_equip->setTypeEq($typeEq) ;
+                            }
+                        }
                         $equipement->setModele(strtoupper($modele));
 
-                        $equipement->getCodeEquipementType()->setSeuil((int) $seuil);
+                        if ($equipement->getCodeEquipementType()) {
+                            $type_equip = $equipement->getCodeEquipementType();
+                            $type_equip->setSeuil((int) $seuil);
+                        }
+
 
                         if ($photo) {
                             $filename = uniqid().'.'.$photo->guessExtension();
                             $photo->move($this->getParameter('photo_equipement'), $filename);
-                            $equipement->getCodeEquipementType->setPhoto($filename);
+                            if ($equipement->getCodeEquipementType()) {
+                                $type_equip = $equipement->getCodeEquipementType();
+                                $type_equip->setPhoto($filename);
+                            }
+
                         }
 
                         $this->em->persist($equipement);
-                        $this->em->persist($equipement->getCodeEquipementType());
+                        if ($equipement->getCodeEquipementType()) {
+                            $type_equip = $equipement->getCodeEquipementType();
+                            $this->em->persist($type_equip);
+                        }
+
                         $this->em->flush();
                         $reponse = [
                             'code' => "success", 'msg' =>  'Equipement créé avec succès !'

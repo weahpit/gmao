@@ -20,56 +20,6 @@ function saveMvt(formData){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Marque', duration: 4000}));
 }
-/*function getArticlesFromStock(ctrl_name, ctrl_type){
-    let contentCtrl = ''
-    $.ajax({
-        url : URL_APP + 'api/getArticlesFromStock',
-        type : 'POST',
-        success: function (response){
-            let reponse = response
-            if (ctrl_type === 1){
-                contentCtrl +=`
-                <table class="modern-table" id="tblMvt">
-                    <thead><tr>
-                            <th></th>
-                            <th>Articles</th>
-                            <th>En stock</th>
-                            <th class="text-center">Qté</th>
-                            <th>Mention</th>
-                            <th>Pièce Jointe</th>
-                    </tr></thead>
-                    <tbody id="tbodyMvt">
-                `
-                for (var i=0;i < reponse.data.length;i++){
-                    contentCtrl +='<tr>'
-                    contentCtrl +='<td><input class="chk_input" type="checkbox" style="border: 2px solid black;" id="' + reponse.data[i].id + '" ></td>'
-                    contentCtrl +='<td style="background: #f7f4ea;">' + reponse.data[i].nom + '</td>'
-                    contentCtrl +='<td style="background: #f7f4ea;border-right: 2px solid black;">' + reponse.data[i].qte + '</td>'
-                    contentCtrl +='<td class="text-center"><input class="qte_input input" type="number" style="width: 40px;border: 2px solid black;background: #e0e0e0;" disabled id="' + reponse.data[i].id + '" ></td>'
-                    contentCtrl +='<td><input class="mention_input input" type="text" style="min-width: 150px;" id="' + reponse.data[i].id + '" disabled>' + '</td>'
-                    contentCtrl +='<td><label class="btn" for="file_' + reponse.data[i].id + '"   style="width: 32px;cursor: pointer;background-color: #d6d5d5;" id="' + reponse.data[i].id + '"  title="attacher une pièce jointe">...</label>' +
-                        '<input class="mention_input input" type="file" style="display: none;" id="file_' + reponse.data[i].id + '" >' +
-                        '<span class="fw-bold" id="span_' + reponse.data[i].id + '" ></span>' +
-                        '</td>'
-                    contentCtrl +='<tr>'
-                }
-                contentCtrl +='</tbody></table>';
-
-            } else {
-                contentCtrl += '<option value="0">-- Articles --</option>'
-                for (var i=0;i < reponse.data.length;i++) {
-                    contentCtrl += '<option value="' + reponse.data[i].id + '">' + reponse.data[i].nom + '</option>'
-                }
-
-            }
-            ctrl_name.innerHTML = contentCtrl
-           /!* if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'emplacements.csv' })}*!/
-        },
-        error : function (response){
-            showToast(response.msg, {title: 'Erreur sur Chargement des données {Emplacements}', type: 'error', duration: 4000 })
-        }
-    })
-}*/
 
 function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
 
@@ -188,7 +138,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                                 </div>
                             </td>
                             <td style="border-left: 1px solid #ffd000;border-right: 1px solid #ffd000;background: #faf6e0;">
-                                <div class="article-name text-center" style="width: 150px;background:linear-gradient(175deg, #f5f0e1, #ecebe8);border-bottom: 2px solid #d7895f;color: #0d0d0d;border-radius: 10px;font-size: 12px;">
+                                <div class="article-name text-center" style="width: 150px;background:linear-gradient(175deg, #f5f0e1, #ecebe8);border-bottom: 2px solid #d7895f;color: #0d0d0d;border-radius: 10px;font-size: 16px;">
                                     <span class="p-1 w-100" style="">${article.reference}</span>
                                 </div>
                             </td>

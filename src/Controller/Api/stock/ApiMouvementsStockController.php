@@ -632,6 +632,50 @@ final class ApiMouvementsStockController extends AbstractController
         }
     }
 
+    #[Route('api/getMouvementsByEquipement/{idEquipement}', name: 'getMouvementsByEquipement', methods: ['GET'])]
+    public function getMouvementsByEquipement(string $idEquipement): Response
+    {
+        $reponse = array();
+        $data = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
+            try {
+                $Equipement = $this->em->getRepository(Equipement::class)->find(Uuid::fromString($idEquipement));
+                if (!$Equipement){
+                    return new JsonResponse(['code' => 'warning', 'msg' => 'Equipement introuvable', 'data' => []]);
+                }
+
+                $Mvts = $this->em->getRepository(MouvementEquipement::class)->findBy(
+                    ['code_equipement' => $Equipement],
+                    ['created_at' => 'DESC']
+                );
+
+                foreach ($Mvts as $Mvt){
+                    $data[] = array(
+                        'id'           => $Mvt->getId(),
+                        'type_mvt'     => $Mvt->getTypeMvt(),
+                        'qte'          => $Mvt->getQte() ? $Mvt->getQte() : 0,
+                        'date'         => $Mvt->getDateOperation() ? $Mvt->getDateOperation()->format('d/m/Y') : "",
+                        'heure'        => $Mvt->getCreatedAt() ? $Mvt->getCreatedAt()->format('H:i:s') : "",
+                        'service'      => $Mvt->getCodeService() ? $Mvt->getCodeService()->getLibelle() : "",
+                        'emplacement'  => $Mvt->getEmplacement() ? $Mvt->getEmplacement()->getLibelle() : "",
+                        'numero_bon'   => $Mvt->getNumeroBon() ? $Mvt->getNumeroBon() : "",
+                        'demandeur'    => $Mvt->getDemandeur() ? $Mvt->getDemandeur() : "",
+                        'stock_avant'  => $Mvt->getStockAvant(),
+                        'stock_apres'  => $Mvt->getStockApres(),
+                        'mention'      => $Mvt->getObservation() ? $Mvt->getObservation() : ""
+                    );
+                }
+                $reponse = ['code' => "success", 'msg' => 'Success', 'data' => $data];
+            } catch (\Throwable $throwable){
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
     #[Route('api/getMouvementsByDate', name: 'getMouvementsByDate')]
     public function getMouvementsByDate(Request $request): Response
     {

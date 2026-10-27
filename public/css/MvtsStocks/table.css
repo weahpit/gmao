@@ -228,7 +228,7 @@
 .article-name{
 
     color:var(--text);
-    font-size: 14px;
+    font-size: 16px;
     font-weight:600;
 }
 
@@ -487,7 +487,6 @@
     .modern-table th,
     .modern-table td{
         padding: 3px;
-        font-size: 3px;
     }
 
     .file-name{
