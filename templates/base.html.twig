@@ -144,13 +144,13 @@
                 </div>
             </div>
 
-            <div class="nav-section">
+            {#<div class="nav-section">
                 <span class="nav-section-title">Achats</span>
                 <a href="{{ path('app_fournisseur') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'supplier' ? 'active' }}">
                     <i data-lucide="truck"></i>
                     <span class="nav-label">Fournisseurs</span>
                 </a>
-            </div>
+            </div>#}
 
             {% if is_granted('ROLE_ADMIN') %}
                 <div class="nav-section">
@@ -164,12 +164,18 @@
                             <i data-lucide="chevron-down" class="nav-chevron"></i>
                         </button>
                         <div class="nav-submenu">
-                            <a href="{{ path('app_users') }}" class="nav-subitem">
+                            <a href="{{ path('app_users') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_users' ? 'active' }}">
                                 <span class="nav-label">Utilisateurs</span>
                             </a>
-                            <a href="#" class="nav-subitem">
-                                <span class="nav-label">Rapports</span>
+                            <a href="{{ path('app_groupe') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_groupe' ? 'active' }}">
+                                <span class="nav-label">Groupes</span>
                             </a>
+                            <a href="{{ path('app_menu') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_menu' ? 'active' }}">
+                                <span class="nav-label">Menus</span>
+                            </a>
+                            {#<a href="#" class="nav-subitem">
+                                <span class="nav-label">Rapports</span>
+                            </a>#}
                             <a href="{{ path('app_references') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_references' ? 'active' }}">
                                 <span class="nav-label">Références</span>
                             </a>
@@ -429,6 +435,7 @@
         effaceChamps()
         getSingleEquipement(value)
             .then(Eq =>{
+                document.getElementById('lbl_chargement').innerText = ""
                 idEquipement = Eq.id
                 document.getElementById("tdb_CodeEquipement").value = Eq.code_equipement;
                 document.getElementById("tdb_nomEquipement").value = Eq.nom;
@@ -444,33 +451,17 @@
 
                 document.getElementById("tdb_marque").value = Eq.marque;
                 document.getElementById("tdb_modele").value = Eq.modele;
+
+
             })
     })
 
             document.getElementById("tdb_famille").addEventListener('change', ()=>{
                 let value = document.getElementById("tdb_famille").value;
                 getTypeEquipementByFamille(document.getElementById("tdb_categorie"),2, value)
-               /* getCode()*/
+
             })
-           /* document.getElementById("tdb_categorie").addEventListener('change', ()=>{
-                getCode()
-            })*/
 
-        function getCode(){
-            document.getElementById('tdb_CodeEquipement').value = "";
-            if (
-                document.getElementById('tdb_famille').value !== "0"  ||
-                document.getElementById('tdb_famille').value !== ""  ||
-                document.getElementById('tdb_categorie').value !== "0"  ||
-                document.getElementById('tdb_categorie').value !== ""
-            ){
-                let formData = new FormData
-
-                formData.append('code_famille', document.getElementById('tdb_famille').value)
-                formData.append('code_categorie', document.getElementById('tdb_categorie').value)
-                getCodeArticle(formData, document.getElementById('tdb_CodeEquipement'));
-            }
-        }
 
         document.getElementById('btn-enr-equipement').addEventListener('click', ()=>{
             let formDataEquipement = new FormData();

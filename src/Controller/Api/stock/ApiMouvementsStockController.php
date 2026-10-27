@@ -433,9 +433,6 @@ final class ApiMouvementsStockController extends AbstractController
                 $mouvement = new MouvementEquipement();
 
                 $mouvement
-                    /*->setCodeEquipement(
-                        $equipement
-                    )*/
                     ->setCodeEquipement(
                         $equipement
                     )->setCodeEquipementType(
@@ -464,7 +461,8 @@ final class ApiMouvementsStockController extends AbstractController
                     )
                     ->setDateOperation(
                         new \DateTime()
-                    );
+                    )
+                ;
 
 
                 if ($typeOperation === '2') {
@@ -724,11 +722,12 @@ final class ApiMouvementsStockController extends AbstractController
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
-                $code_famille = $request->request->get('code_famille');
-                $code_categorie = $request->request->get('code_categorie');
+                $code_famille = $request->request->get('code_famille_');
+                $code_categorie = $request->request->get('code_categorie_');
 
                 $famille = $this->em->getRepository(Famille::class)->find(Uuid::fromString($code_famille));
                 $categorie = $this->em->getRepository(TypeEquipement::class)->find(Uuid::fromString($code_categorie));
+
 
                 $valeur = "";
                 if ($famille && $categorie){

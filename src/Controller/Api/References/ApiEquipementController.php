@@ -111,6 +111,12 @@ final class ApiEquipementController extends AbstractController
                 $equipement = $this->em->getRepository(Equipement::class)->find(Uuid::fromString($id_equipement));
 
             if ($equipement){
+                $criticite = "";
+                if ($equipement->getCodeEquipementType()){
+                    if ($equipement->getCodeEquipementType()->getCriticite()){
+                        $criticite = $equipement->getCodeEquipementType()->getCriticite()->getId();
+                    }
+                }
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
@@ -120,7 +126,7 @@ final class ApiEquipementController extends AbstractController
                     'modele'=>strtoupper($equipement->getModele()),
                     'code_equipement'=>$equipement->getCode(),
                     'etat'=>$equipement->getEtat()?$equipement->getEtat()->getId() : "" ,
-                    'criticite'=>$equipement->getCriticite()? $equipement->getCriticite()->getId() : "",
+                    'criticite'=>$criticite,
                     'nature'=>$equipement->getNature()?$equipement->getNature()->getId() : "",
                     'adresse'=>$equipement->getCodeFournisseur() ? $equipement->getCodeFournisseur()->getSigle() : "",
                     'categorie'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getId() : "",

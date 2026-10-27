@@ -591,8 +591,11 @@
             ){
                 let formData = new FormData
 
-                formData.append('code_famille', document.getElementById('famille').value)
-                formData.append('code_categorie', document.getElementById('categorie').value)
+                formData.append('code_famille_', document.getElementById('famille').value)
+                formData.append('code_categorie_', document.getElementById('categorie').value)
+
+                //alert(document.getElementById('famille').value)
+
                 getCodeArticle(formData, document.getElementById('CodeEquipement'));
             }
 

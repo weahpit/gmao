@@ -150,7 +150,7 @@ function getAllEquipementsFromTdb(ctrl_name, ctrl_type){
             let reponse = JSON.parse(response)
             if (ctrl_type === 1){
                 contentCtrl +=`
-                <div class="d-flex justify-content-between align-items-center"><input class="mb-2 input" type="text" style="width:200px;border: 1px solid #2563EB;" placeholder="Rechercher..." id="TxtInputSearch"><span class="fw-lighter text-primary">${reponse.data.length} article(s)</span></div>
+                <div class="d-flex justify-content-between align-items-center"><input class="mb-2 input" type="text" style="width:200px;border: 1px solid #2563EB;" placeholder="Rechercher..." id="TxtInputSearch"><span class="text-danger fw-bold" style="background: #f9f1f1;" id="lbl_chargement"></span><span class="fw-lighter text-primary">${reponse.data.length} article(s)</span></div>
                 <div style="height:300px; overflow-y:auto; border:1px solid #dee2e6;">
                 <table class="table sticky-top" id="tbl_articles_">
                     <thead style="border: 1px #555555 solid;"><tr>
@@ -211,12 +211,13 @@ function getAllEquipementsFromTdb(ctrl_name, ctrl_type){
 
                 document.querySelectorAll('#tbl_articles_ tbody tr').forEach(row => {
                     row.addEventListener('click', function () {
-
+                        document.getElementById('lbl_chargement').innerText = "Chargement..."
                         document.querySelectorAll('#tbl_articles_ tbody tr').forEach(r => {
                             r.classList.remove('selected-row');
                         });
 
                         this.classList.add('selected-row');
+
                     });
                 });
 
