@@ -1,7 +1,7 @@
-function getAllPriorite(ctrl_name, ctrl_type){
+function getAllStatutAlerte(ctrl_name, ctrl_type){
     let contentCtrl = ''
     $.ajax({
-        url : URL_APP + 'api/getAllPriorite',
+        url : URL_APP + 'api/getAllStatutAlerte',
         type : 'POST',
         success: function (response){
             let reponse = JSON.parse(response)
@@ -26,15 +26,15 @@ function getAllPriorite(ctrl_name, ctrl_type){
                 }
             }
             ctrl_name.innerHTML = contentCtrl
-            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'Priorites.csv' })}
+            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'StatutAlertes.csv' })}
         },
         error : function (response){
             showToast(response.msg, {title: 'Erreur sur Chargement des données {Origine Intervention}', type: 'error', duration: 4000 })
         }
     })
 }
-function savePriorite(formData, ctrl_name, ctrl_type){
-    fetch( URL_APP + "api/savePriorite", { method: "POST", body: formData })
+function saveStatutAlerte(formData, ctrl_name, ctrl_type){
+    fetch( URL_APP + "api/saveStatutAlerte", { method: "POST", body: formData })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -43,13 +43,13 @@ function savePriorite(formData, ctrl_name, ctrl_type){
                 title: 'Origine Intervention'
             })
             if (data.code === "success") {
-                getAllPriorite(ctrl_name, ctrl_type)
+                getAllStatutAlerte(ctrl_name, ctrl_type)
             }
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Origine Intervention', duration: 4000}));
 }
-function deletePriorite(id_priorite){
-    fetch( URL_APP + "api/deletePriorite", { method: "POST", body: id_priorite })
+function deleteStatutAlerte(id_statut_alerte){
+    fetch( URL_APP + "api/deleteStatutAlerte", { method: "POST", body: id_statut_alerte })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -60,10 +60,10 @@ function deletePriorite(id_priorite){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Origines Intervention', duration: 4000}));
 }
-function getSinglePriorite(id_priorite) {
+function getSingleStatutAlerte(id_statut_alerte) {
     return new Promise((resolve, reject) => {
         $.ajax({
-            url:  URL_APP + 'api/getSinglePriorite' + id_priorite,
+            url:  URL_APP + 'api/getSingleStatutAlerte' + id_statut_alerte,
             type: 'POST',
             success: function(response) {
                 if (response.code === "success") {

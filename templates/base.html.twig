@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}CITRAC GMAO{% endblock %}</title>
+    <title>{% block title %}CITRAC PROCESS{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 {#    {% include '_lucide_icons.html.twig' %}#}
@@ -62,7 +62,7 @@
             </div>
             <div class="brand-text">
                 <span class="brand-name">CITRAC</span>
-                <span class="brand-sub">GMAO</span>
+                <span class="brand-sub">PROCESS</span>
             </div>
             <button id="sidebarToggle" class="sidebar-toggle" aria-label="Rabattre la barre latérale">
                 <i data-lucide="panel-left-close"></i>
@@ -77,39 +77,9 @@
                     <i data-lucide="layout-dashboard"></i>
                     <span class="nav-label">Tableau de bord</span>
                 </a>
-
-                <!-- Groupe Maintenance avec sous-menu -->
-                {% set maintenanceRoutes = ['work_order', 'app_references', 'preventive'] %}
-                {% set maintenanceActive = app.request.attributes.get('_route') starts with 'work_order'
-                    or app.request.attributes.get('_route') starts with 'preventive' %}
-                <div class="nav-group">
-                    <button type="button" class="nav-item has-submenu {{ maintenanceActive ? 'has-active' }}">
-                        <i data-lucide="wrench"></i>
-                        <span class="nav-label">Maintenance</span>
-                        <span class="nav-badge">0</span>
-                        <i data-lucide="chevron-down" class="nav-chevron"></i>
-                    </button>
-                    <div class="nav-submenu">
-                        <a href="{{ path('app_maintenance_alerte_anomalie') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
-                            <span class="nav-label">Signaler Anomalie</span>
-                        </a>
-                        <a href="{{ path('app_maintenance_fiche_intervention') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
-                            <span class="nav-label">Fiches d'Intervention</span>
-                        </a>
-                        <a href="#" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
-                            <span class="nav-label">Ordres de travail</span>
-                        </a>
-
-                        <a href="{{ path('preventive_plan_maintenance') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'preventive' ? 'active' }}">
-                            <span class="nav-label">Plans préventifs</span>
-                        </a>
-                    </div>
-                </div>
             </div>
-
             <div class="nav-section">
                 <span class="nav-section-title">Stocks</span>
-
                 <!-- Groupe Stock avec sous-menu -->
                 {% set stockActive = app.request.attributes.get('_route') starts with 'spare_part'
                     or app.request.attributes.get('_route') starts with 'app_mouvements_stock' %}
@@ -140,6 +110,37 @@
                         <a href="#" class="nav-subitem">
                             <span class="nav-label">Alertes stock</span>
                         </a>#}
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <span class="nav-section-title">GMAO</span>
+                <!-- Groupe Maintenance avec sous-menu -->
+                {% set maintenanceRoutes = ['work_order', 'app_references', 'preventive'] %}
+                {% set maintenanceActive = app.request.attributes.get('_route') starts with 'work_order'
+                    or app.request.attributes.get('_route') starts with 'preventive' %}
+                <div class="nav-group">
+                    <button type="button" class="nav-item has-submenu {{ maintenanceActive ? 'has-active' }}">
+                        <i data-lucide="wrench"></i>
+                        <span class="nav-label">Maintenance</span>
+                        {#<span class="nav-badge">0</span>#}
+                        <i data-lucide="chevron-down" class="nav-chevron"></i>
+                    </button>
+                    <div class="nav-submenu">
+                        <a href="{{ path('app_maintenance_alerte_anomalie') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
+                            <span class="nav-label">Signaler Anomalie</span>
+                        </a>
+                        <a href="{{ path('app_maintenance_fiche_intervention') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
+                            <span class="nav-label">Fiches d'Intervention</span>
+                        </a>
+                        <a href="#" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'work_order' ? 'active' }}">
+                            <span class="nav-label">Ordres de travail</span>
+                        </a>
+
+                        <a href="{{ path('preventive_plan_maintenance') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'preventive' ? 'active' }}">
+                            <span class="nav-label">Plans préventifs</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -296,7 +297,7 @@
                                     </div>
                                     <div class="col-md-6 mb-1 d-flex justify-content-start">
                                         <label for="tdb_seuil" class="fw-bold span" style="background-color: #f4fdf9;">Seuil</label>
-                                        <input class="input fw-bold text-danger" id="tdb_seuil"  value="0" type="number">
+                                        <input class="input fw-bold text-danger" id="tdb_seuil"  value="0" type="number"{% if not app.user.admin %} disabled style="border: 1px #d3d3d3 double;background: #ececec;"{% endif %} >
                                     </div>
                                 </div>
                                 <div class="row  mt-1">

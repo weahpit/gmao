@@ -189,6 +189,9 @@
                                     <div class="col-md-6 mb-1 d-flex justify-content-start">
                                         <label for="modele" class="fw-bold span">Reference</label><input class="input fw-bold" id="modele" style="background-color: #f4fdf9;text-transform: uppercase;" disabled>
                                     </div>
+                                    <div class="col-md-6 mb-1 d-flex justify-content-start">
+                                        <label for="seuil_select" class="fw-bold span">Seuil</label><input class="input fw-bold text-danger" id="seuil_select"  value="0" type="number">
+                                    </div>
                                 </form>
 
                             </div>
@@ -463,6 +466,7 @@
        /* let nature = document.getElementById('nature');*/
         let type_eq = document.getElementById('type_eq');
         let seuil = document.getElementById('seuil');
+        let seuil_select = document.getElementById('seuil_select');
         let criticite = document.getElementById('criticite');
 
         let fournisseur = document.getElementById('fournisseur');
@@ -542,6 +546,7 @@
            /* formDataEquipement.append('nature', nature)*/
             formDataEquipement.append('type_eq', type_eq.value)
             formDataEquipement.append('seuil', seuil.value)
+            formDataEquipement.append('seuil_select', seuil_select.value)
             formDataEquipement.append('fournisseur', fournisseur.value)
             formDataEquipement.append('marque', marque.value)
             formDataEquipement.append('modele', modele.value)
@@ -565,6 +570,7 @@
                 selectBlock.style.display = 'none';
                 clearForm("formEquipementType", "nomEquipement")
                 seuil.value = 0;
+                seuil_select.value = 0;
                 type_ajout = 1
             }
 

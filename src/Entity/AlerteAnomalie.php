@@ -40,6 +40,9 @@ class AlerteAnomalie
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $created_by = null;
 
+    #[ORM\ManyToOne(inversedBy: 'alerteAnomalies')]
+    private ?StatutAlerte $statut = null;
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -137,6 +140,18 @@ class AlerteAnomalie
     public function setCreatedBy(?string $created_by): static
     {
         $this->created_by = $created_by;
+
+        return $this;
+    }
+
+    public function getStatut(): ?StatutAlerte
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(?StatutAlerte $statut): static
+    {
+        $this->statut = $statut;
 
         return $this;
     }

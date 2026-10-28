@@ -13,8 +13,8 @@
         .chart-card { border:0; border-radius:4px; box-shadow:0 2px 9px rgba(20,49,27,.08); }
         .chart-card .card-header { background:transparent; border-bottom:1px solid var(--green-100);
             font-weight:700; color:var(--green-800); }
-        .chart-box { position:relative; height:260px; }
-        .chart-box-sm { position:relative; height:220px; }
+        .chart-box { position:relative; height:150px; }
+        .chart-box-sm { position:relative; height:125px; }
         .alert-tile { border:0; border-radius:4px; color:#fff; overflow:hidden; position:relative;
             box-shadow:0 4px 8px rgba(0,0,0,.12); transition:transform .15s ease; }
         .alert-tile:hover { transform:translateY(-3px); }
@@ -211,7 +211,7 @@
             {% endif %}
         {% endif %}
     </script>
-    <!-- {% include 'dashboard/fragments_dashboard/_points_cles.html.twig' %}-->
+    {% include 'dashboard/fragments_dashboard/_points_cles.html.twig' %}
 
     <div class="p-2" style="border: #b9b9b9 1px solid;min-height: 500px;background: linear-gradient(135deg, #efefef, #f8f9fd);/*max-height: 700px;overflow-y: scroll;*/">
         {% include 'dashboard/fragments_dashboard/_widgets.html.twig' %}

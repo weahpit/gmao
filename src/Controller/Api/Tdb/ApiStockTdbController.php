@@ -34,12 +34,14 @@ final class ApiStockTdbController extends AbstractController
                 $reponse = array();
                 $data = array();
                 foreach ($equipements_type as $eq){
-                    if ($eq->getQte() > 0 and $eq->getSeuil() > 0 and $eq->getQte() <= $eq->getSeuil()){
+                    $qte = $eq->getQte()? $eq->getQte() : 0;
+                    $seuil = $eq->getSeuil()? $eq->getSeuil() : 0;
+                    if ($qte  > 0 and $seuil > 0 and $qte <= $seuil){
                         $data[] = array(
                             'id'=>$eq->getId(),
                             'libelle'=>$eq->getNom(). ' - Réf.' . $eq->getModele(),
-                            'qte'=>$eq->getQte(),
-                            'seuil'=>$eq->getSeuil(),
+                            'qte'=>$qte ,
+                            'seuil'=>$seuil,
                             'photo'=>$eq->getCodeEquipementType() ? $eq->getCodeEquipementType() ->getPhoto() : ""
                         );
                     }

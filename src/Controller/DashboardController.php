@@ -2,8 +2,16 @@
 
 namespace App\Controller;
 
+use App\Controller\Maintenance\StatutAlerteController;
+use App\Entity\AlerteAnomalie;
 use App\Entity\CAppTdb;
+use App\Entity\Equipement;
+use App\Entity\Maintenance\FicheIntervention;
+use App\Entity\Maintenance\TypeIntervention;
+use App\Entity\StatutAlerte;
 use App\Entity\User;
+use App\Repository\EquipementRepository;
+use App\Repository\Maintenance\FicheInterventionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,11 +22,24 @@ final class DashboardController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em){}
     #[Route('/', name: 'app_dashboard')]
-    public function index(): Response
+    public function index(EquipementRepository $equipements, FicheInterventionRepository $ficheIntervention): Response
     {
         if (!$this->getUser()){return  $this->redirectToRoute("app_login");}
         $this->checkAndGetUserWidget();
-        return $this->render('dashboard/index.html.twig');
+        $statut = $this->em->getRepository(StatutAlerte::class)->findOneBy(['libelle'=>'OUVERT']);
+        $nb_alertes_equipements = $equipements->count(['qte'=>0]);
+        $nb_fiches_intervention = $ficheIntervention->count([]);
+        $nb_fiches_intervention_preventif = $ficheIntervention->count(['type_intervention'=>$this->em->getRepository(TypeIntervention::class)->findOneBy(['libelle'=>'PREVENTIVE'])]);
+        $nb_fiches_intervention_corrective = $ficheIntervention->count(['type_intervention'=>$this->em->getRepository(TypeIntervention::class)->findOneBy(['libelle'=>'CORRECTIVE'])]);
+
+        return $this->render('dashboard/index.html.twig', [
+            'nb_articles'=>$this->em->getRepository(Equipement::class)->count([]),
+            'nb_alertes_enc_cours'=>$this->em->getRepository(AlerteAnomalie::class)->count(['statut'=>$statut]),
+            'nb_alertes_equipements'=>$nb_alertes_equipements,
+            'nb_fiches_intervention'=>$nb_fiches_intervention,
+            'nb_fiches_intervention_preventif'=>$nb_fiches_intervention_preventif,
+            'nb_fiches_intervention_corrective'=>$nb_fiches_intervention_corrective,
+        ]);
     }
 
     #[Route('/checkAndGetUserWidget', name: 'checkAndGetUserWidget')]

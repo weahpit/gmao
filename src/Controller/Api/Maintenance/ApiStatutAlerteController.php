@@ -2,7 +2,7 @@
 
 namespace App\Controller\Api\Maintenance;
 
-use App\Entity\Maintenance\Priorite;
+use App\Entity\StatutAlerte;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -12,11 +12,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 
-final class ApiPrioriteController extends AbstractController
+final class ApiStatutAlerteController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em){}
-
-    #[Route('api/getAllPriorite', name: 'app_api_get_priorite')]
+    #[Route('api/getAllStatutAlerte', name: 'app_api_get_statut_alerte')]
     public function index(): Response
         {
             if (!$this->getUser()){return $this->redirectToRoute("app_login");}
@@ -25,11 +24,11 @@ final class ApiPrioriteController extends AbstractController
             if ($this->isGranted("ROLE_USER")){
                 try{
                     // Liste des Natures d'équipements
-                    $priorites = $this->em->getRepository(Priorite::class)->findBy([], ['libelle'=>'ASC']);
-                    foreach ($priorites as $priorite){
+                    $statut_alertes = $this->em->getRepository(StatutAlerte::class)->findBy([], ['libelle'=>'ASC']);
+                    foreach ($statut_alertes as $statut_alerte){
                         $data[] = array(
-                            'id'=>$priorite->getId(),
-                            'libelle'=>$priorite->getLibelle()
+                            'id'=>$statut_alerte->getId(),
+                            'libelle'=>$statut_alerte->getLibelle()
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -41,25 +40,25 @@ final class ApiPrioriteController extends AbstractController
             }
             return new JsonResponse(json_encode($reponse));
         }
-    #[Route('api/getSinglePriorite/{$id_priorite}', name: 'app_api_get_single_priorite')]
-    public function app_api_get_single_priorite(int $id_priorite): Response
+    #[Route('api/getSingleStatutAlerte/{$id_statut_alerte}', name: 'app_api_get_single_statut_alerte')]
+    public function app_api_get_single_statut_alerte(int $id_statut_alerte): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
-                $priorite = $this->em->getRepository(Priorite::class)->find(Uuid::fromString($id_priorite));
+                $statut_alerte = $this->em->getRepository(StatutAlerte::class)->find(Uuid::fromString($id_statut_alerte));
 
-            if ($priorite){
+            if ($statut_alerte){
                 $reponse = array(
                     'code'=>'success',
                     'msg'=>'Success',
-                    'libelle'=>$priorite->getLibelle()
+                    'libelle'=>$statut_alerte->getLibelle()
                 );
             } else {
                 $reponse = array(
                     'code'=>'warning',
-                    'msg'=>'Merci de sélectionner une Priorite dans la liste !'
+                    'msg'=>'Merci de sélectionner une StatutAlerte dans la liste !'
                 );
             }
 
@@ -71,36 +70,36 @@ final class ApiPrioriteController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/savePriorite', name: 'app_api_save_priorite')]
-    public function app_api_save_priorite(Request $request): Response
+    #[Route('api/saveStatutAlerte', name: 'app_api_save_statut_alerte')]
+    public function app_api_save_statut_alerte(Request $request): Response
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $id_priorite = $request->request->get('id_priorite');
+                $id_statut_alerte = $request->request->get('id_statut_alerte');
                 $libelle = $request->request->get('libelle');
 
                 if (!$libelle) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir tous les champs obligatoires !'];
                 } else {
                     $isNew = false;
-                    if ($id_priorite === "0") {
-                        $priorite = new Priorite();
+                    if ($id_statut_alerte === "0") {
+                        $statut_alerte = new StatutAlerte();
                         $isNew = true;
                     } else {
-                        $uuid = Uuid::fromString($id_priorite);
-                        $priorite = $this->em->getRepository(Priorite::class)->find($uuid);
+                        $uuid = Uuid::fromString($id_statut_alerte);
+                        $statut_alerte = $this->em->getRepository(StatutAlerte::class)->find($uuid);
                     }
 
-                    $priorite->setLibelle(strtoupper($libelle));
+                    $statut_alerte->setLibelle(strtoupper($libelle));
 
-                    $this->em->persist($priorite);
+                    $this->em->persist($statut_alerte);
                     $this->em->flush();
 
                     $reponse = [
                         'code' => 'success',
-                        'msg' => $isNew ? 'Priorite créée avec succès !' : 'Priorite mise à jour avec succès !'
+                        'msg' => $isNew ? 'StatutAlerte créée avec succès !' : 'StatutAlerte mise à jour avec succès !'
                     ];
                 }
             } catch (\Throwable $throwable) {
@@ -111,26 +110,26 @@ final class ApiPrioriteController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/deletePriorite/{$id_priorite}', name: 'app_api_delete_priorite')]
-    public function app_api_delete_priorite($id_priorite): Response
+    #[Route('api/deleteStatutAlerte/{$id_statut_alerte}', name: 'app_api_delete_statut_alerte')]
+    public function app_api_delete_statut_alerte($id_statut_alerte): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
             try {
-                $priorite = $this->em->getRepository(Priorite::class)->find(Uuid::fromString($id_priorite));
+                $statut_alerte = $this->em->getRepository(StatutAlerte::class)->find(Uuid::fromString($id_statut_alerte));
 
-                if ($priorite){
-                    $this->em->remove($priorite);
+                if ($statut_alerte){
+                    $this->em->remove($statut_alerte);
                     $this->em->flush();
                     $reponse = array(
                         'code'=>'success',
-                        'msg'=>'Priorite supprimée avec succès !'
+                        'msg'=>'StatutAlerte supprimée avec succès !'
                     );
                 } else {
                     $reponse = array(
                         'code'=>'warning',
-                        'msg'=>'Merci de sélectionner une Priorite !'
+                        'msg'=>'Merci de sélectionner une StatutAlerte !'
                     );
                 }
 

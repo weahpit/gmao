@@ -6,11 +6,11 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-final class PrioriteController extends AbstractController
+final class StatutAlerteController extends AbstractController
 {
-    #[Route('/Priorites', name: 'app_priorites_intervention')]
+    #[Route('/StatutAlertes', name: 'app_statut_alertes')]
     public function index(): Response
     {
-        return $this->render('maintenance/priorite/index.html.twig');
+        return $this->render('maintenance/statut_alerte/index.html.twig');
     }
 }

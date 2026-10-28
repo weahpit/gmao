@@ -50,7 +50,7 @@ final class ApiEquipementController extends AbstractController
                             'nature'=>$equipement->getNature()?$equipement->getNature()->getLibelle() : "",
                             'adresse'=>$equipement->getCodeFournisseur() ? $equipement->getCodeFournisseur()->getSigle() : "",
                             'categorie'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getLibelle() : "",
-                            'qte'=>$equipement->getQte(),
+                            'qte'=>$equipement->getQte() ? $equipement->getQte() : 0,
                             'lastMvt'=>$derniere_date,
                             'seuil'=>$equipement->getSeuil()? $equipement->getSeuil() : 0
                         );
@@ -283,7 +283,7 @@ final class ApiEquipementController extends AbstractController
                             }
                         }
                         $equipement->setModele(strtoupper($modele));
-                        $equipement->setSeuil((int) $seuil);
+                        $equipement->setSeuil((int) $seuil ? (int) $seuil : 0);
 
                         if ($equipement->getCodeEquipementType()) {
                             $type_equip = $equipement->getCodeEquipementType();
@@ -343,6 +343,7 @@ final class ApiEquipementController extends AbstractController
                 $categorie = $request->request->get('categorie');
                 $criticite = $request->request->get('criticite');
                 $seuil = $request->request->get('seuil');
+                $seuil_select = $request->request->get('seuil_select');
                 $photo = $request->files->get('photo');
 
 
@@ -364,7 +365,7 @@ final class ApiEquipementController extends AbstractController
                                 } else {
                                     $nouvelEq = new  EquipementType();
                                     $nouvelEq->setCode($CodeEquipement);
-                                    /*$nouvelEq->setSeuil($seuil);*/
+
                                     $nouvelEq->setNomEquipement(trim(strtoupper($nomEquipement)));
                                     $nouvelEq->setQte(0);
 
@@ -400,7 +401,7 @@ final class ApiEquipementController extends AbstractController
                                     $nouvelleOccurrence->setDateEntree(new \DateTime());
                                     $nouvelleOccurrence->setCode($CodeEquipement);
                                     $nouvelleOccurrence->setNom($nouvelEq->getNomEquipement());
-                                    $nouvelleOccurrence->setSeuil((int) $seuil);
+                                    $nouvelleOccurrence->setSeuil((int) $seuil ? (int) $seuil  : 0);
                                     if ($nouvelEq->getCategorie()){$nouvelleOccurrence->setTypeUnicite($nouvelEq->getCategorie());}
                                     if ($fournisseur){
                                         $Fournisseur = $this->em->getRepository(Fournisseur::class)->find(Uuid::fromString($fournisseur));
@@ -437,7 +438,7 @@ final class ApiEquipementController extends AbstractController
                             $nouvelleOccurrence->setDateEntree(new \DateTime());
 
                             $nouvelleOccurrence->setNom($EquipementType->getNomEquipement());
-                            $nouvelleOccurrence->setSeuil((int) $seuil);
+                            $nouvelleOccurrence->setSeuil((int) $seuil_select ? (int) $seuil_select  : 0);
                             if ($EquipementType->getCriticite()){
                                 $nouvelleOccurrence->setCriticite($EquipementType->getCriticite());
                             }

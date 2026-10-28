@@ -3,8 +3,8 @@
     .chart-card { border:0; border-radius:14px; box-shadow:0 4px 18px rgba(20,49,27,.08); }
     .chart-card .card-header { background:transparent; border-bottom:1px solid var(--green-100);
         font-weight:700; color:var(--green-800); }
-    .chart-box { position:relative; height:260px; }
-    .chart-box-sm { position:relative; height:220px; }
+    .chart-box { position:relative; height:150px; }
+    .chart-box-sm { position:relative; height:125px; }
     .alert-tile { border:0; border-radius:14px; color:#fff; overflow:hidden; position:relative;
         box-shadow:0 4px 16px rgba(0,0,0,.12); transition:transform .15s ease; }
     .alert-tile:hover { transform:translateY(-3px); }
@@ -24,33 +24,36 @@
     <div class="col-md-3 col-6">
         <div class="card alert-tile at-danger h-100"><div class="card-body">
                 <i class="bi bi-exclamation-octagon-fill ico"></i>
-                <div class="val">12</div>
+                <div class="val">{{ nb_alertes_enc_cours }}</div>
                 <div class="lbl">Alertes</div>
-                <div class="small mt-1" style="opacity:.9">Tous types</div>
+                <div class="small mt-1" style="opacity:.9">Statut : Ouvert</div>
             </div></div>
     </div>
     <div class="col-md-3 col-6">
         <div class="card alert-tile at-info h-100"><div class="card-body">
                 <i class="bi bi-shield-exclamation ico"></i>
-                <div class="val">42</div>
+                <div class="val">{{ nb_articles }}</div>
                 <div class="lbl">Equipements</div>
-                <div class="small mt-1" style="opacity:.9">En activité 17 %</div>
+                <div class="small mt-1" style="opacity:.9">Actifs 100 %</div>
             </div></div>
     </div>
     <div class="col-md-3 col-6">
         <div class="card alert-tile at-warning h-100"><div class="card-body">
              <i class="bi bi-exclamation-triangle-fill ico"></i>
-                <div class="val">21</div>
+                <div class="val">{{ nb_alertes_equipements }}</div>
                 <div class="lbl">Alertes Stocks</div>
-                <div class="small mt-1" style="opacity:.9">Urgences</div>
+                <div class="small mt-1" style="opacity:.9">Statut : <span class="badge bg-danger p-1 fw-bold">Rupture</span></div>
             </div></div>
     </div>
     <div class="col-md-3 col-6">
         <div class="card alert-tile at-muted h-100"><div class="card-body">
                 <i class="bi bi-question-circle-fill ico"></i>
-                <div class="val">17</div>
+                <div class="val">{{ nb_fiches_intervention }}</div>
                 <div class="lbl">Fiches Intervention</div>
-                <div class="small mt-1" style="opacity:.9">En Cours</div>
+                <div class="small mt-1" style="opacity:.9">
+                    <u>Currative</u>     :<span class="badge bg-dark p-1 fw-bold">{{ nb_fiches_intervention_corrective }}</span>
+                    <u>PREVENTIVE</u> : <span class="badge bg-dark p-1 fw-bold">{{ nb_fiches_intervention_preventif }}</span>
+                </div>
             </div></div>
     </div>
 </div>
