@@ -2,6 +2,7 @@
 
 namespace App\Controller\Api\stock;
 
+use App\Entity\BonSortie;
 use App\Entity\Emplacement;
 use App\Entity\Equipement;
 use App\Entity\EquipementType;
@@ -15,6 +16,7 @@ use App\Entity\TypeEquipement;
 use App\Repository\EquipementRepository;
 use App\Repository\EquipementTypeRepository;
 use App\Services\Functions;
+use App\Services\pdfService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -326,7 +328,8 @@ final class ApiMouvementsStockController extends AbstractController
     public function saveStockOperation(
         Request $request,
         EntityManagerInterface $em,
-        EquipementRepository $equipementRepository
+        EquipementRepository $equipementRepository,
+        pdfService $servicePdf
     ): JsonResponse {
 
         $articles = json_decode(
@@ -344,6 +347,22 @@ final class ApiMouvementsStockController extends AbstractController
                 'msg'  => 'Aucun article sélectionné.'
             ], 400);
         }
+
+        // L'utilisateur peut cocher « Générer un bon de sortie CITRAC ».
+        // Si la case est décochée, aucun bon n'est généré ni enregistré.
+        $genererBon = $request->request->get('generer_bon') === '1';
+
+        // Référence unique du bon de sortie (un bon par opération de sortie)
+        $referenceBon = null;
+        $tokenBon     = null;
+        if ($typeOperation === '2' && $genererBon) {
+            $referenceBon = 'BS-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+            // Jeton aléatoire encodé dans le QR code (validation mobile par le vigil)
+            $tokenBon = bin2hex(random_bytes(16));
+        }
+        $bonLignes = [];
+        $bonInfos  = [];
+        $bonService = null;
 
         $connection = $em->getConnection();
         $connection->beginTransaction();
@@ -433,6 +452,9 @@ final class ApiMouvementsStockController extends AbstractController
                 $mouvement = new MouvementEquipement();
 
                 $mouvement
+                    /*->setCodeEquipement(
+                        $equipement
+                    )*/
                     ->setCodeEquipement(
                         $equipement
                     )->setCodeEquipementType(
@@ -461,8 +483,7 @@ final class ApiMouvementsStockController extends AbstractController
                     )
                     ->setDateOperation(
                         new \DateTime()
-                    )
-                ;
+                    );
 
 
                 if ($typeOperation === '2') {
@@ -484,6 +505,32 @@ final class ApiMouvementsStockController extends AbstractController
                             'code' => 'error',
                             'msg'  => 'Le service et le demandeur sont obligatoires !'
                         ], 500);
+                    }
+
+                    // Rattacher le bon de sortie et collecter les données pour le PDF
+                    $mouvement->setNumeroBon($referenceBon);
+
+                    $bonLignes[] = [
+                        'code'        => $equipement->getCode(),
+                        'designation' => strtoupper((string) $equipement->getNom()),
+                        'qte'         => rtrim(rtrim(number_format($quantite, 2, '.', ''), '0'), '.'),
+                        'stock_avant' => rtrim(rtrim(number_format($stockAvant, 2, '.', ''), '0'), '.'),
+                        'stock_apres' => rtrim(rtrim(number_format($stockApres, 2, '.', ''), '0'), '.'),
+                        'mention'     => $item['mention'] ?? '',
+                    ];
+
+                    if (empty($bonInfos)) {
+                        $etabliPar = '';
+                        $u = $this->getUser();
+                        if ($u && method_exists($u, 'getUserIdentifier')) { $etabliPar = $u->getUserIdentifier(); }
+                        $bonService = $Service;
+                        $bonInfos = [
+                            'reference'  => $referenceBon,
+                            'date'       => (new \DateTime())->format('d/m/Y à H:i'),
+                            'service'    => $Service ? $Service->getLibelle() : '',
+                            'demandeur'  => strtoupper((string) $demandeur),
+                            'etabli_par' => $etabliPar,
+                        ];
                     }
                 }
                 /*
@@ -610,13 +657,54 @@ final class ApiMouvementsStockController extends AbstractController
                 );
             }
 
+            // Persistance du bon de sortie (statut EN_ATTENTE par défaut :
+            // la validation se fera plus tard à la guérite via le scan QR).
+            $bonSortie = null;
+            if ($typeOperation === '2' && $genererBon && !empty($bonLignes)) {
+                $bonSortie = new BonSortie();
+                $bonSortie->setReference($referenceBon)
+                    ->setToken($tokenBon)
+                    ->setStatut(BonSortie::STATUT_EN_ATTENTE)
+                    ->setService($bonInfos['service'] ?? '')
+                    ->setDemandeur($bonInfos['demandeur'] ?? '')
+                    ->setEtabliPar($bonInfos['etabli_par'] ?? '')
+                    ->setLignes($bonLignes)
+                    ->setCreatedAt(new \DateTimeImmutable());
+                if ($bonService instanceof Services) {
+                    $bonSortie->setCodeService($bonService);
+                }
+                $u = $this->getUser();
+                if ($u && method_exists($u, 'getUserIdentifier')) {
+                    $bonSortie->setCreatedBy($u->getUserIdentifier());
+                }
+                $em->persist($bonSortie);
+            }
+
             $em->flush();
 
             $connection->commit();
 
+            // Génération à la demande du bon de sortie (PDF) pour une opération de sortie
+            $bonPdfBase64 = null;
+            if ($typeOperation === '2' && $genererBon && !empty($bonLignes)) {
+                try {
+                    // Le QR encode un jeton : le vigil le scanne pour valider le bon.
+                    $qrData = $this->construireQrData($referenceBon, $tokenBon);
+                    $bonInfos['statut'] = BonSortie::STATUT_EN_ATTENTE;
+                    $pdfContenu = $servicePdf->genererBonSortie($bonInfos, $bonLignes, $qrData);
+                    $bonPdfBase64 = base64_encode($pdfContenu);
+                } catch (\Throwable $e) {
+                    // Ne pas bloquer l'enregistrement si la génération du PDF échoue
+                    $bonPdfBase64 = null;
+                }
+            }
+
             return $this->json([
                 'code' => 'success',
-                'msg'  => 'Mouvement enregistré avec succès.'
+                'msg'  => 'Mouvement enregistré avec succès.',
+                'bon_reference' => $referenceBon,
+                'bon_statut'    => ($typeOperation === '2' && $genererBon) ? BonSortie::STATUT_EN_ATTENTE : null,
+                'bon_pdf'       => $bonPdfBase64
             ]);
 
         } catch (\Exception $e) {
@@ -628,6 +716,199 @@ final class ApiMouvementsStockController extends AbstractController
                 'msg'  => $e->getMessage()
             ], 500);
         }
+    }
+
+    #[Route('api/bonSortie/{reference}', name: 'app_bon_sortie_pdf', methods: ['GET'])]
+    public function bonSortiePdf(string $reference, pdfService $servicePdf): Response
+    {
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if (!($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR"))) {
+            return new Response('Vous n\'êtes pas autorisé à accéder à cette ressource', 403);
+        }
+        try {
+            $bon = $this->em->getRepository(BonSortie::class)->findOneBy(['reference' => $reference]);
+
+            $bonLignes = [];
+            $bonInfos  = [];
+
+            if ($bon) {
+                // Source de vérité : le bon persisté (snapshot des lignes + statut).
+                $bonLignes = $bon->getLignes() ?: [];
+                $bonInfos = [
+                    'reference'  => $bon->getReference(),
+                    'date'       => $bon->getCreatedAt() ? $bon->getCreatedAt()->format('d/m/Y à H:i') : '',
+                    'service'    => (string) $bon->getService(),
+                    'demandeur'  => (string) $bon->getDemandeur(),
+                    'etabli_par' => (string) $bon->getEtabliPar(),
+                    'statut'     => $bon->getStatut(),
+                    'valide_par' => (string) $bon->getValidePar(),
+                    'valide_at'  => $bon->getValideAt() ? $bon->getValideAt()->format('d/m/Y à H:i') : '',
+                ];
+                $qrData = $this->construireQrData($bon->getReference(), (string) $bon->getToken());
+            } else {
+                // Repli pour les anciens bons créés avant la table bon_sortie.
+                $Mvts = $this->em->getRepository(MouvementEquipement::class)->findBy(
+                    ['numero_bon' => $reference, 'type_mvt' => '2'],
+                    ['created_at' => 'ASC']
+                );
+                if (!$Mvts) {
+                    return new Response('Bon de sortie introuvable.', 404);
+                }
+                foreach ($Mvts as $m) {
+                    $eq = $m->getCodeEquipement();
+                    $bonLignes[] = [
+                        'code'        => $eq ? $eq->getCode() : '',
+                        'designation' => $eq ? strtoupper((string) $eq->getNom()) : '',
+                        'qte'         => $m->getQte() !== null ? rtrim(rtrim(number_format($m->getQte(), 2, '.', ''), '0'), '.') : '',
+                        'stock_avant' => $m->getStockAvant() !== null ? rtrim(rtrim(number_format($m->getStockAvant(), 2, '.', ''), '0'), '.') : '',
+                        'stock_apres' => $m->getStockApres() !== null ? rtrim(rtrim(number_format($m->getStockApres(), 2, '.', ''), '0'), '.') : '',
+                        'mention'     => $m->getObservation() ?? '',
+                    ];
+                    if (empty($bonInfos)) {
+                        $bonInfos = [
+                            'reference'  => $reference,
+                            'date'       => $m->getCreatedAt() ? $m->getCreatedAt()->format('d/m/Y à H:i') : '',
+                            'service'    => $m->getCodeService() ? $m->getCodeService()->getLibelle() : '',
+                            'demandeur'  => (string) $m->getDemandeur(),
+                            'etabli_par' => (string) $m->getCreatedBy(),
+                        ];
+                    }
+                }
+                $qrData = $this->construireQrData($reference, '');
+            }
+
+            $contenu = $servicePdf->genererBonSortie($bonInfos, $bonLignes, $qrData);
+
+            return new Response($contenu, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="bon-sortie-' . $reference . '.pdf"',
+            ]);
+        } catch (\Throwable $throwable) {
+            return new Response("Une erreur s'est produite ! => " . $throwable->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Construit le contenu encodé dans le QR code du bon de sortie.
+     * L'application mobile du vigil lit ce JSON, en extrait le jeton,
+     * puis appelle api/bonSortie/valider/{token} pour valider la fiche.
+     */
+    private function construireQrData(string $reference, string $token): string
+    {
+        return json_encode([
+            'app' => 'CITRAC',
+            'typ' => 'BON_SORTIE',
+            'ref' => $reference,
+            'tok' => $token,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * MOBILE (guérite) : après le scan du QR, récupère les détails du bon
+     * et son statut, pour que le vigil voie ce qu'il s'apprête à valider.
+     */
+    #[Route('api/bonSortie/scan/{token}', name: 'app_bon_sortie_scan', methods: ['GET'])]
+    public function bonSortieScan(string $token): JsonResponse
+    {
+        if (!$this->getUser()){
+            return new JsonResponse(['code' => 'error', 'msg' => 'Non authentifié.'], 401);
+        }
+        if (!($this->isGranted("ROLE_VIGIL") or $this->isGranted("ROLE_ADMIN"))) {
+            return new JsonResponse(['code' => 'error', 'msg' => 'Accès refusé.'], 403);
+        }
+
+        $bon = $this->em->getRepository(BonSortie::class)->findOneBy(['token' => $token]);
+        if (!$bon) {
+            return new JsonResponse(['code' => 'warning', 'msg' => 'Bon de sortie introuvable.'], 404);
+        }
+
+        return new JsonResponse([
+            'code' => 'success',
+            'msg'  => 'Bon trouvé.',
+            'data' => $this->serialiserBon($bon),
+        ]);
+    }
+
+    /**
+     * MOBILE (guérite) : le vigil valide le bon après avoir scanné le QR.
+     * Opération idempotente (un bon déjà validé n'est pas revalidé).
+     */
+    #[Route('api/bonSortie/valider/{token}', name: 'app_bon_sortie_valider', methods: ['POST'])]
+    public function bonSortieValider(string $token, Request $request): JsonResponse
+    {
+        if (!$this->getUser()){
+            return new JsonResponse(['code' => 'error', 'msg' => 'Non authentifié.'], 401);
+        }
+        if (!($this->isGranted("ROLE_VIGIL") or $this->isGranted("ROLE_ADMIN"))) {
+            return new JsonResponse(['code' => 'error', 'msg' => 'Accès refusé.'], 403);
+        }
+
+        $bon = $this->em->getRepository(BonSortie::class)->findOneBy(['token' => $token]);
+        if (!$bon) {
+            return new JsonResponse(['code' => 'warning', 'msg' => 'Bon de sortie introuvable.'], 404);
+        }
+
+        if ($bon->getStatut() === BonSortie::STATUT_ANNULE) {
+            return new JsonResponse([
+                'code' => 'error',
+                'msg'  => 'Ce bon a été annulé, validation impossible.',
+                'data' => $this->serialiserBon($bon),
+            ], 409);
+        }
+
+        // Déjà validé -> on renvoie l'état sans re-valider (idempotent).
+        if ($bon->isValide()) {
+            return new JsonResponse([
+                'code' => 'info',
+                'msg'  => 'Ce bon a déjà été validé le ' . ($bon->getValideAt() ? $bon->getValideAt()->format('d/m/Y à H:i') : '') . '.',
+                'data' => $this->serialiserBon($bon),
+            ], 200);
+        }
+
+        $valideParIdentifiant = '';
+        $u = $this->getUser();
+        if ($u && method_exists($u, 'getUserIdentifier')) { $valideParIdentifiant = $u->getUserIdentifier(); }
+
+        $poste = $request->request->get('poste_controle');
+        if ($poste === null) {
+            // Le client mobile peut aussi envoyer un corps JSON.
+            $payload = json_decode($request->getContent() ?: '[]', true);
+            if (is_array($payload) && isset($payload['poste_controle'])) {
+                $poste = (string) $payload['poste_controle'];
+            }
+        }
+
+        $bon->setStatut(BonSortie::STATUT_VALIDE)
+            ->setValideAt(new \DateTimeImmutable())
+            ->setValidePar($valideParIdentifiant)
+            ->setPosteControle($poste !== null ? (string) $poste : 'Guérite');
+
+        $this->em->flush();
+
+        return new JsonResponse([
+            'code' => 'success',
+            'msg'  => 'Bon de sortie validé avec succès.',
+            'data' => $this->serialiserBon($bon),
+        ]);
+    }
+
+    /**
+     * Représentation JSON d'un bon de sortie pour l'application mobile.
+     */
+    private function serialiserBon(BonSortie $bon): array
+    {
+        return [
+            'reference'      => $bon->getReference(),
+            'statut'         => $bon->getStatut(),
+            'service'        => $bon->getService(),
+            'demandeur'      => $bon->getDemandeur(),
+            'etabli_par'     => $bon->getEtabliPar(),
+            'lignes'         => $bon->getLignes() ?: [],
+            'date'           => $bon->getCreatedAt() ? $bon->getCreatedAt()->format('d/m/Y à H:i') : '',
+            'valide_par'     => $bon->getValidePar(),
+            'valide_at'      => $bon->getValideAt() ? $bon->getValideAt()->format('d/m/Y à H:i') : '',
+            'poste_controle' => $bon->getPosteControle(),
+        ];
     }
 
     #[Route('api/getMouvementsByEquipement/{idEquipement}', name: 'getMouvementsByEquipement', methods: ['GET'])]
@@ -722,12 +1003,11 @@ final class ApiMouvementsStockController extends AbstractController
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
-                $code_famille = $request->request->get('code_famille_');
-                $code_categorie = $request->request->get('code_categorie_');
+                $code_famille = $request->request->get('code_famille');
+                $code_categorie = $request->request->get('code_categorie');
 
                 $famille = $this->em->getRepository(Famille::class)->find(Uuid::fromString($code_famille));
                 $categorie = $this->em->getRepository(TypeEquipement::class)->find(Uuid::fromString($code_categorie));
-
 
                 $valeur = "";
                 if ($famille && $categorie){

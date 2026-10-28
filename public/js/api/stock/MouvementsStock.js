@@ -474,6 +474,23 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
         `)
                             .join('');
 
+                        // Case à cocher : proposée uniquement pour une SORTIE (type 2).
+                        // Cochée par défaut ; si l'utilisateur la décoche, aucun bon
+                        // de sortie n'est généré ni enregistré.
+                        const blocBonSortie = (type_operation === "2")
+                            ? `
+            <div class="mt-3 p-2" style="border:1px solid #e0d5cc;border-radius:6px;background:#faf6f2;">
+                <label class="d-flex align-items-center" style="cursor:pointer;margin:0;gap:8px;">
+                    <input type="checkbox" id="chkGenererBon" checked
+                           style="width:18px;height:18px;accent-color:#5a371e;">
+                    <span style="color:#5a371e;font-weight:600;">
+                        Générer un bon de sortie CITRAC
+                    </span>
+                </label>
+            </div>
+        `
+                            : '';
+
                         Swal.fire({
 
                             title: 'Confirmer l’opération ?',
@@ -491,6 +508,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                         ${listeArticles}
                     </ul>
                 </div>
+                ${blocBonSortie}
             </div>
         `,
 
@@ -502,15 +520,26 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
 
                             cancelButtonText: 'Annuler',
 
-                            confirmButtonColor: '#2563eb'
+                            confirmButtonColor: '#2563eb',
+
+                            // Récupère l'état de la case avant la fermeture du popup
+                            preConfirm: () => {
+                                const chk = document.getElementById('chkGenererBon');
+                                return { genererBon: chk ? chk.checked : false };
+                            }
 
                         }).then(result => {
 
                             if (result.isConfirmed) {
 
+                                const genererBon = result.value
+                                    ? result.value.genererBon
+                                    : false;
+
                                 sendArticles(
                                     articles,
-                                    type_operation
+                                    type_operation,
+                                    genererBon
                                 );
                             }
                         });
@@ -888,13 +917,19 @@ function getSelectedArticles(type_operation) {
 }
 
 
-function sendArticles(articles, type_operation) {
+function sendArticles(articles, type_operation, genererBon) {
 
     const formData = new FormData();
 
     formData.append(
         'type_operation',
         type_operation
+    );
+
+    // Indique au serveur s'il faut générer/enregistrer le bon de sortie.
+    formData.append(
+        'generer_bon',
+        (type_operation === "2" && genererBon) ? '1' : '0'
     );
 
     formData.append(
@@ -945,10 +980,22 @@ function sendArticles(articles, type_operation) {
                 }
             );
 
+            // Bon de sortie : ouverture du PDF généré à la demande
+            if (type_operation === "2" && response.bon_pdf) {
+                ouvrirBonSortie(response.bon_pdf, response.bon_reference);
+            }
+
+            var texteSwal = 'Le stock a été mis à jour.';
+            if (type_operation === "2" && response.bon_reference) {
+                texteSwal = 'Bon de sortie ' + response.bon_reference +
+                    ' généré (en attente de validation à la guérite). '
+                    + 'Le vigil le validera en scannant le QR code.';
+            }
+
             Swal.fire({
                 icon:'success',
                 title:'Opération enregistrée',
-                text:'Le stock a été mis à jour.'
+                text: texteSwal
             }).then(() => {
 
                 // Rechargement du tableau
@@ -999,4 +1046,44 @@ function sendArticles(articles, type_operation) {
                 );
         }
     });
+}
+
+
+/**
+ * Ouvre le bon de sortie (PDF) reçu en base64 dans un nouvel onglet.
+ * Le PDF est généré à la demande côté serveur lors de l'enregistrement
+ * de la sortie (route api/saveStockOperation).
+ *
+ * @param {string} base64   Contenu du PDF encodé en base64
+ * @param {string} reference Référence unique du bon (ex. BS-20261028-A1B2C3)
+ */
+function ouvrirBonSortie(base64, reference) {
+    try {
+        const binaire = atob(base64);
+        const octets = new Uint8Array(binaire.length);
+        for (let i = 0; i < binaire.length; i++) {
+            octets[i] = binaire.charCodeAt(i);
+        }
+        const blob = new Blob([octets], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+
+        const fenetre = window.open(url, '_blank');
+        if (!fenetre) {
+            // Pop-up bloquée : proposer un téléchargement manuel
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bon-sortie-' + (reference || 'citrac') + '.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+
+        // Libérer l'URL après un court délai
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+        showToast(
+            "Impossible d'ouvrir le bon de sortie : " + e,
+            { title: 'Bon de sortie', type: 'error' }
+        );
+    }
 }
