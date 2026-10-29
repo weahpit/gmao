@@ -260,5 +260,31 @@ function RechercheDoublonArticle(formData, inputError){
                 inputError.innerText = data.msg
             }
         })
-        .catch(err => showToast("❌ Erreur : " + err, {title: 'Marque', duration: 4000}));
+        .catch(err => showToast("❌ Erreur : " + err, {title: 'Article', duration: 4000}));
+}
+function RechercheDoublonRef(formData, inputError){
+    fetch( URL_APP + "api/RechercheDoublonRef", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('div_error_reference').style.display = "none"
+            inputError.innerText = ""
+            if (data.code === "error") {
+                document.getElementById('div_error_reference').style.display = "block"
+                inputError.innerText = data.msg
+            }
+        })
+        .catch(err => showToast("❌ Erreur : " + err, {title: 'Référence', duration: 4000}));
+}
+function RechercheBonSortie(){
+    $.ajax({
+        url : URL_APP + "api/RechercheBonSortie",
+        type: 'POST',
+        success: function (response){
+            if (parseInt(response.msg) > 0){
+                document.querySelector('.banner-marquee').style.display = "block"
+            }else{
+                document.querySelector('.banner-marquee').style.display = "none"
+            }
+        }
+    })
 }

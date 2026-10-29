@@ -136,7 +136,7 @@ final class ApiEquipementController extends AbstractController
                     'stockFinal'=>$equipement->getStockFinal(),
                     'photo'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getPhoto() : "",
                     'type_eq'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getTypeEq()->getId() : "",
-                    'seuil'=>$equipement->getCodeEquipementType() ? $equipement->getCodeEquipementType()->getSeuil(): 0,
+                    'seuil'=>$equipement->getSeuil() ? $equipement->getSeuil(): 0
                 );
             } else {
                 $reponse = array(
@@ -363,6 +363,7 @@ final class ApiEquipementController extends AbstractController
                                 if ($valeur){
                                     $reponse = ['code' => "error", 'msg' => 'ce nom existe déjà'];
                                 } else {
+
                                     $nouvelEq = new  EquipementType();
                                     $nouvelEq->setCode($CodeEquipement);
 
@@ -427,6 +428,12 @@ final class ApiEquipementController extends AbstractController
                         $EquipementType = $this->em->getRepository(EquipementType::class)->find(Uuid::fromString($id_equipement));
 
                         if ($EquipementType){
+
+                            $doublonRef =$this->em->getRepository(Equipement::class)->findOneBy(['code_equipement_type'=>$EquipementType, 'modele'=>strtoupper($modele)]);
+                            if ($doublonRef){
+                                $reponse = ['code' => "error", 'msg' => 'cette référence existe déjà'];
+                                return new JsonResponse($reponse);
+                            }
                             // Enregistrement de l'occurrence
 
                             $nouvelleOccurrence = new Equipement();
@@ -434,7 +441,7 @@ final class ApiEquipementController extends AbstractController
 
                             if ($EquipementType->getCode()){ $nouvelleOccurrence->setCode($EquipementType->getCode());}
 
-                            $nouvelleOccurrence->setModele($modele);
+                            $nouvelleOccurrence->setModele(strtoupper($modele));
                             $nouvelleOccurrence->setDateEntree(new \DateTime());
 
                             $nouvelleOccurrence->setNom($EquipementType->getNomEquipement());
@@ -497,6 +504,34 @@ final class ApiEquipementController extends AbstractController
                         'msg'=>'Merci de sélectionner une nature d\'équipements !'
                     );
                 }
+
+            } catch (\Throwable $throwable) {
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
+    #[Route('api/MajModele', name: 'MajModele')]
+    public function MajModele(): Response
+    {
+        $reponse = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN")) {
+            try {
+                $equipements = $this->em->getRepository(Equipement::class)->findAll();
+
+                foreach ($equipements as $equipement) {
+                    $equipement->setModele(strtoupper($equipement->getModele()));
+                    $this->em->persist($equipement);
+                }
+                $this->em->flush();
+                $reponse = array(
+                    'code'=>'success',
+                    'msg'=>'Modele mis à jour  avec succès !'
+                );
 
             } catch (\Throwable $throwable) {
                 $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];

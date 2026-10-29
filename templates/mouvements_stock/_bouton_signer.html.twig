@@ -1,0 +1,57 @@
+{#
+  Bouton « Signer le bon » pour le Directeur Général.
+  ------------------------------------------------------------------
+  À inclure sur la page qui affiche un bon de sortie, par ex. :
+
+      {% include 'mouvements_stock/_bouton_signer.html.twig' with {
+          token:  bon.token,
+          statut: bon.statut
+      } %}
+
+  Variables attendues :
+    - token  : le token du bon (string)
+    - statut : le statut courant (EN_ATTENTE | VALIDE | CLOTURE | ANNULE)
+
+  Le bouton n'apparaît que si :
+    - l'utilisateur a le rôle ROLE_DG (ou ROLE_ADMIN qui en hérite),
+    - ET le bon est encore EN_ATTENTE.
+  Sinon on affiche un badge d'état informatif.
+#}
+<div class="bon-signature-zone d-inline-flex align-items-center gap-2"
+     data-token="{{ token }}">
+
+  {% if statut == 'EN_ATTENTE' %}
+    {% if is_granted('ROLE_DG') %}
+      <button type="button"
+              class="btn btn-signer-bon fw-bold text-white"
+              data-token="{{ token }}"
+              style="background:#5a371e;border:none;padding:8px 18px;border-radius:8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px;">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+        </svg>
+        Signer le bon
+      </button>
+    {% else %}
+      <span class="badge" style="background:#fdecea;color:#b71c1c;font-weight:600;padding:8px 12px;">
+        En cours de validation — en attente de la signature du Directeur Général
+      </span>
+    {% endif %}
+
+  {% elseif statut == 'VALIDE' %}
+    <span class="badge" style="background:#e6f4ea;color:#1b5e20;font-weight:600;padding:8px 12px;">
+      ✓ Validé (signé par le Directeur Général)
+    </span>
+
+  {% elseif statut == 'CLOTURE' %}
+    <span class="badge" style="background:#eceff1;color:#37474f;font-weight:600;padding:8px 12px;">
+      Clôturé — sortie autorisée par le vigil
+    </span>
+
+  {% elseif statut == 'ANNULE' %}
+    <span class="badge" style="background:#f5f5f5;color:#757575;font-weight:600;padding:8px 12px;">
+      Annulé
+    </span>
+  {% endif %}
+</div>

@@ -735,14 +735,21 @@ final class ApiMouvementsStockController extends AbstractController
                 // Source de vérité : le bon persisté (snapshot des lignes + statut).
                 $bonLignes = $bon->getLignes() ?: [];
                 $bonInfos = [
-                    'reference'  => $bon->getReference(),
-                    'date'       => $bon->getCreatedAt() ? $bon->getCreatedAt()->format('d/m/Y à H:i') : '',
-                    'service'    => (string) $bon->getService(),
-                    'demandeur'  => (string) $bon->getDemandeur(),
-                    'etabli_par' => (string) $bon->getEtabliPar(),
-                    'statut'     => $bon->getStatut(),
-                    'valide_par' => (string) $bon->getValidePar(),
-                    'valide_at'  => $bon->getValideAt() ? $bon->getValideAt()->format('d/m/Y à H:i') : '',
+                    'reference'   => $bon->getReference(),
+                    'date'        => $bon->getCreatedAt() ? $bon->getCreatedAt()->format('d/m/Y à H:i') : '',
+                    'service'     => (string) $bon->getService(),
+                    'demandeur'   => (string) $bon->getDemandeur(),
+                    'etabli_par'  => (string) $bon->getEtabliPar(),
+                    'statut'      => $bon->getStatut(),
+                    // Signature du Directeur Général (étape 2)
+                    'signe_par'   => (string) $bon->getSignePar(),
+                    'signe_at'    => $bon->getSigneAt() ? $bon->getSigneAt()->format('d/m/Y à H:i') : '',
+                    // Clôture par le vigil à la guérite (étape 3)
+                    'cloture_par' => (string) $bon->getCloturePar(),
+                    'cloture_at'  => $bon->getClotureAt() ? $bon->getClotureAt()->format('d/m/Y à H:i') : '',
+                    // Colonnes historiques conservées pour compatibilité
+                    'valide_par'  => (string) $bon->getValidePar(),
+                    'valide_at'   => $bon->getValideAt() ? $bon->getValideAt()->format('d/m/Y à H:i') : '',
                 ];
                 $qrData = $this->construireQrData($bon->getReference(), (string) $bon->getToken());
             } else {
@@ -830,11 +837,70 @@ final class ApiMouvementsStockController extends AbstractController
     }
 
     /**
-     * MOBILE (guérite) : le vigil valide le bon après avoir scanné le QR.
-     * Opération idempotente (un bon déjà validé n'est pas revalidé).
+     * DIRECTEUR GÉNÉRAL : signe le bon de sortie (étape 2).
+     * Fait passer le statut EN_ATTENTE -> VALIDE.
+     * Accessible depuis l'interface web (ROLE_DG) ou un ROLE_ADMIN.
+     */
+    #[Route('api/bonSortie/signer/{token}', name: 'app_bon_sortie_signer', methods: ['POST'])]
+    public function bonSortieSigner(string $token): JsonResponse
+    {
+        if (!$this->getUser()){
+            return new JsonResponse(['code' => 'error', 'msg' => 'Non authentifié.'], 401);
+        }
+        if (!($this->isGranted("ROLE_DG") or $this->isGranted("ROLE_ADMIN"))) {
+            return new JsonResponse(['code' => 'error', 'msg' => 'Accès refusé : seul le Directeur Général peut signer.'], 403);
+        }
+
+        $bon = $this->em->getRepository(BonSortie::class)->findOneBy(['token' => $token]);
+        if (!$bon) {
+            return new JsonResponse(['code' => 'warning', 'msg' => 'Bon de sortie introuvable.'], 404);
+        }
+
+        if ($bon->getStatut() === BonSortie::STATUT_ANNULE) {
+            return new JsonResponse([
+                'code' => 'error',
+                'msg'  => 'Ce bon a été annulé, signature impossible.',
+                'data' => $this->serialiserBon($bon),
+            ], 409);
+        }
+
+        // Déjà signé (ou clôturé) -> idempotent.
+        if ($bon->isValide() || $bon->isCloture()) {
+            return new JsonResponse([
+                'code' => 'info',
+                'msg'  => 'Ce bon a déjà été signé.',
+                'data' => $this->serialiserBon($bon),
+            ], 200);
+        }
+
+        $signePar = '';
+        $u = $this->getUser();
+        if ($u && method_exists($u, 'getUserIdentifier')) { $signePar = $u->getUserIdentifier(); }
+
+        $bon->setStatut(BonSortie::STATUT_VALIDE)
+            ->setSigneAt(new \DateTimeImmutable())
+            ->setSignePar($signePar);
+
+        $this->em->flush();
+
+        return new JsonResponse([
+            'code' => 'success',
+            'msg'  => 'Bon de sortie signé avec succès. Il peut maintenant être clôturé à la guérite.',
+            'data' => $this->serialiserBon($bon),
+        ]);
+    }
+
+    /**
+     * MOBILE (guérite) : le vigil CLÔTURE le bon après avoir scanné le QR
+     * (étape 3). Un bon ne peut être clôturé QUE s'il a d'abord été signé
+     * par le Directeur Général (statut VALIDE). Opération idempotente.
+     *
+     * NB : la route historique .../valider/{token} est conservée pour
+     * compatibilité avec l'app mobile ; .../cloturer/{token} est un alias.
      */
     #[Route('api/bonSortie/valider/{token}', name: 'app_bon_sortie_valider', methods: ['POST'])]
-    public function bonSortieValider(string $token, Request $request): JsonResponse
+    #[Route('api/bonSortie/cloturer/{token}', name: 'app_bon_sortie_cloturer', methods: ['POST'])]
+    public function bonSortieCloturer(string $token, Request $request): JsonResponse
     {
         if (!$this->getUser()){
             return new JsonResponse(['code' => 'error', 'msg' => 'Non authentifié.'], 401);
@@ -851,23 +917,32 @@ final class ApiMouvementsStockController extends AbstractController
         if ($bon->getStatut() === BonSortie::STATUT_ANNULE) {
             return new JsonResponse([
                 'code' => 'error',
-                'msg'  => 'Ce bon a été annulé, validation impossible.',
+                'msg'  => 'Ce bon a été annulé, clôture impossible.',
                 'data' => $this->serialiserBon($bon),
             ], 409);
         }
 
-        // Déjà validé -> on renvoie l'état sans re-valider (idempotent).
-        if ($bon->isValide()) {
+        // Pas encore signé par le DG -> clôture interdite.
+        if ($bon->isEnAttente()) {
+            return new JsonResponse([
+                'code' => 'warning',
+                'msg'  => 'Ce bon est encore en cours de validation : il doit d\'abord être signé par le Directeur Général avant de pouvoir être clôturé.',
+                'data' => $this->serialiserBon($bon),
+            ], 409);
+        }
+
+        // Déjà clôturé -> idempotent.
+        if ($bon->isCloture()) {
             return new JsonResponse([
                 'code' => 'info',
-                'msg'  => 'Ce bon a déjà été validé le ' . ($bon->getValideAt() ? $bon->getValideAt()->format('d/m/Y à H:i') : '') . '.',
+                'msg'  => 'Ce bon a déjà été clôturé le ' . ($bon->getClotureAt() ? $bon->getClotureAt()->format('d/m/Y à H:i') : '') . '.',
                 'data' => $this->serialiserBon($bon),
             ], 200);
         }
 
-        $valideParIdentifiant = '';
+        $cloturePar = '';
         $u = $this->getUser();
-        if ($u && method_exists($u, 'getUserIdentifier')) { $valideParIdentifiant = $u->getUserIdentifier(); }
+        if ($u && method_exists($u, 'getUserIdentifier')) { $cloturePar = $u->getUserIdentifier(); }
 
         $poste = $request->request->get('poste_controle');
         if ($poste === null) {
@@ -878,16 +953,16 @@ final class ApiMouvementsStockController extends AbstractController
             }
         }
 
-        $bon->setStatut(BonSortie::STATUT_VALIDE)
-            ->setValideAt(new \DateTimeImmutable())
-            ->setValidePar($valideParIdentifiant)
+        $bon->setStatut(BonSortie::STATUT_CLOTURE)
+            ->setClotureAt(new \DateTimeImmutable())
+            ->setCloturePar($cloturePar)
             ->setPosteControle($poste !== null ? (string) $poste : 'Guérite');
 
         $this->em->flush();
 
         return new JsonResponse([
             'code' => 'success',
-            'msg'  => 'Bon de sortie validé avec succès.',
+            'msg'  => 'Bon de sortie clôturé avec succès. La sortie est autorisée.',
             'data' => $this->serialiserBon($bon),
         ]);
     }
@@ -900,13 +975,18 @@ final class ApiMouvementsStockController extends AbstractController
         return [
             'reference'      => $bon->getReference(),
             'statut'         => $bon->getStatut(),
+            'statut_label'   => $bon->getStatutLabel(),
             'service'        => $bon->getService(),
             'demandeur'      => $bon->getDemandeur(),
             'etabli_par'     => $bon->getEtabliPar(),
             'lignes'         => $bon->getLignes() ?: [],
             'date'           => $bon->getCreatedAt() ? $bon->getCreatedAt()->format('d/m/Y à H:i') : '',
-            'valide_par'     => $bon->getValidePar(),
-            'valide_at'      => $bon->getValideAt() ? $bon->getValideAt()->format('d/m/Y à H:i') : '',
+            // Signature du Directeur Général
+            'signe_par'      => $bon->getSignePar(),
+            'signe_at'       => $bon->getSigneAt() ? $bon->getSigneAt()->format('d/m/Y à H:i') : '',
+            // Clôture par le vigil
+            'cloture_par'    => $bon->getCloturePar(),
+            'cloture_at'     => $bon->getClotureAt() ? $bon->getClotureAt()->format('d/m/Y à H:i') : '',
             'poste_controle' => $bon->getPosteControle(),
         ];
     }
@@ -1003,8 +1083,8 @@ final class ApiMouvementsStockController extends AbstractController
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
             try {
-                $code_famille = $request->request->get('code_famille');
-                $code_categorie = $request->request->get('code_categorie');
+                $code_famille = $request->request->get('code_famille_');
+                $code_categorie = $request->request->get('code_categorie_');
 
                 $famille = $this->em->getRepository(Famille::class)->find(Uuid::fromString($code_famille));
                 $categorie = $this->em->getRepository(TypeEquipement::class)->find(Uuid::fromString($code_categorie));
@@ -1051,7 +1131,7 @@ final class ApiMouvementsStockController extends AbstractController
             try {
                 $nom = trim(strtoupper($request->request->get('nom')));
 
-                $valeur = $this->em->getRepository(EquipementType::class)->findOneBy(['nom_equipement'=>$nom]);
+                $valeur = $this->em->getRepository(EquipementType::class)->findOneBy(['nom_equipement'=>strtoupper($nom)]);
                 if ($valeur){
                     $reponse = ['code' => "error", 'msg' => 'ce nom existe déjà'];
                 } else {
@@ -1066,5 +1146,54 @@ final class ApiMouvementsStockController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
+    #[Route('api/RechercheDoublonRef', name: 'RechercheDoublonRef')]
+    public function RechercheDoublonRef(Request $request): Response
+    {
+        $reponse = array();
+        $data = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
+            try {
+                $modele = $request->request->get('ref');
+                $code_equipement_type =$request->request->get('code_equipement_type');
 
+                $EquipementType = $this->em->getRepository(EquipementType::class)->find(Uuid::fromString($code_equipement_type));
+
+                if($EquipementType){
+                    $valeur = $this->em->getRepository(Equipement::class)->findOneBy(['code_equipement_type'=>$EquipementType, 'modele'=>strtoupper($modele)]);
+                    if ($valeur){
+                        $reponse = ['code' => "error", 'msg' => 'cette référence existe déjà'];
+                    } else {
+                        $reponse = ['code' => "success", 'msg' => 'success'];
+                    }
+                } else{
+                    $reponse = ['code' => "error", 'msg' => 'Merci de sélectionner l\'équipemennt Type'];
+                }
+
+            }catch (\Throwable  $throwable){
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+    #[Route('api/RechercheBonSortie', name: 'RechercheBonSortie')]
+    public function RechercheBonSortie(Request $request): Response
+    {
+        $reponse = array();
+        $data = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_DG")) {
+            try {
+                $valeur = $this->em->getRepository(BonSortie::class)->count(['signe_par'=>null]);
+                    $reponse = ['code' => "error", 'msg' =>$valeur];
+            }catch (\Throwable  $throwable){
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
 }

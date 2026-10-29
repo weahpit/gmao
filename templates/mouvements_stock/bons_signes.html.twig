@@ -1,0 +1,187 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bons signés par le DG — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Bons signés par le DG</span>
+{% endblock %}
+
+{% block body %}
+<style>
+    :root { --cacao:#5a371e; --cacao-clair:#8b5a2b; --cacao-fonce:#3b2412; }
+    .bs-wrap { padding: 8px 4px 40px; }
+    .bs-title { color: var(--cacao-fonce); font-weight: 700; }
+    .bs-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin: 14px 0 22px; }
+    .bs-card { border-radius: 14px; padding: 18px 20px; color: #fff; box-shadow: 0 6px 16px rgba(90,55,30,.18); }
+    .bs-card .lbl { font-size: 13px; opacity: .9; }
+    .bs-card .val { font-size: 32px; font-weight: 800; line-height: 1.1; }
+    .bs-c1 { background: linear-gradient(135deg, #5a371e, #8b5a2b); }
+    .bs-c2 { background: linear-gradient(135deg, #2e7d32, #4caf50); }
+    .bs-c3 { background: linear-gradient(135deg, #455a64, #607d8b); }
+    .bs-filters { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin-bottom:16px; }
+    .bs-filters label { font-size:12px; color:#6b6b6b; display:block; margin-bottom:2px; }
+    .bs-filters input[type=date], .bs-filters input[type=text] { border:1px solid #d8cfc6; border-radius:8px; padding:7px 10px; }
+    .bs-table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.06); }
+    .bs-table thead th { background:var(--cacao); color:#fff; font-size:12.5px; font-weight:600; padding:12px 10px; text-align:left; position:sticky; top:0; }
+    .bs-table tbody td { font-size:13px; padding:10px; border-bottom:1px solid #efe9e3; vertical-align:middle; }
+    .bs-table tbody tr:nth-child(4n+1) td { background:#faf7f4; }
+    .bs-table tbody tr.bs-row:hover td { background:#f1e7df; cursor:pointer; }
+    .badge-valide { background:#e6f4ea; color:#1b5e20; font-weight:600; padding:5px 10px; border-radius:20px; font-size:12px; }
+    .badge-cloture { background:#eceff1; color:#37474f; font-weight:600; padding:5px 10px; border-radius:20px; font-size:12px; }
+    .bs-detail td { background: #ffffff !important; }
+    .bs-detail table { width:100%; border-collapse:collapse; margin:4px 0; }
+    .bs-detail table th { background: #dcdbda; color:var(--cacao-fonce); font-size:11.5px; padding:6px 8px; text-align:left; }
+    .bs-detail table td { font-size:12px; padding:5px 8px; border-bottom:1px solid #f0ece7; }
+    .bs-toggle { border:1px solid var(--cacao-clair); color:var(--cacao-clair); background:#fff; border-radius:6px; font-weight:bold; padding:0 8px; line-height:1.6; }
+    .bs-empty { text-align:center; color:#8a8a8a; padding:40px; }
+    .btn-cacao { background:var(--cacao); border:none; color:#fff; border-radius:8px; padding:8px 16px; font-weight:600; }
+</style>
+
+<div class="bs-wrap">
+    <h1 class="bs-title h4 mb-1">Bons de sortie signés</h1>
+    <p class="text-muted" style="font-size:13px;">Récapitulatif des bons validés (signés) et clôturés.</p>
+
+    <div class="bs-cards">
+        <div class="bs-card bs-c1">
+            <div class="lbl">Total signés</div>
+            <div class="val">{{ nbTotal }}</div>
+        </div>
+        <div class="bs-card bs-c2">
+            <div class="lbl">Validés (en attente de clôture)</div>
+            <div class="val">{{ nbValide }}</div>
+        </div>
+        <div class="bs-card bs-c3">
+            <div class="lbl">Clôturés (sortis)</div>
+            <div class="val">{{ nbCloture }}</div>
+        </div>
+    </div>
+
+    <form method="get" class="bs-filters">
+        <div>
+            <label>Signé du</label>
+            <input type="date" name="du" value="{{ du }}">
+        </div>
+        <div>
+            <label>au</label>
+            <input type="date" name="au" value="{{ au }}">
+        </div>
+        <div>
+            <button type="submit" class="btn-cacao">Filtrer</button>
+            <a href="{{ path('app_bons_signes') }}" class="btn btn-light" style="border:1px solid #ddd;">Réinitialiser</a>
+        </div>
+        <div style="margin-left:auto;">
+            <label>Recherche</label>
+            <input type="text" id="bsSearch" placeholder="Référence, service, demandeur..." style="width:240px;">
+        </div>
+    </form>
+
+    {% if bons is empty %}
+        <div class="bs-table"><div class="bs-empty">Aucun bon signé pour cette période.</div></div>
+    {% else %}
+    <div style="overflow-x:auto;">
+    <table class="bs-table" id="bsTable">
+        <thead>
+            <tr>
+                <th style="width:36px;"></th>
+                <th>Référence</th>
+                <th>Service</th>
+                <th>Demandeur</th>
+                <th>Établi par</th>
+                <th>Signé par (DG)</th>
+                <th>Signé le</th>
+                <th>Statut</th>
+                <th>Clôturé par</th>
+                <th>Clôturé le</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for b in bons %}
+            {% set rid = 'det-' ~ loop.index %}
+            <tr class="bs-row" data-target="{{ rid }}"
+                data-search="{{ (b.reference ~ ' ' ~ b.service ~ ' ' ~ b.demandeur ~ ' ' ~ b.signePar)|lower }}">
+                <td><button type="button" class="bs-toggle" data-target="{{ rid }}">+</button></td>
+                <td class="fw-bold" style="color:var(--cacao-fonce);">{{ b.reference }}</td>
+                <td>{{ b.service }}</td>
+                <td>{{ b.demandeur }}</td>
+                <td>{{ b.etabliPar }}</td>
+                <td>{{ b.signePar }}</td>
+                <td>{{ b.signeAt ? b.signeAt|date('d/m/Y H:i') : '' }}</td>
+                <td>
+                    {% if b.statut == 'CLOTURE' %}
+                        <span class="badge-cloture">Clôturé</span>
+                    {% else %}
+                        <span class="badge-valide">Validé</span>
+                    {% endif %}
+                </td>
+                <td>{{ b.cloturePar }}</td>
+                <td>{{ b.clotureAt ? b.clotureAt|date('d/m/Y H:i') : '' }}</td>
+            </tr>
+            <tr class="bs-detail" id="{{ rid }}" style="display:none;">
+                <td colspan="10">
+                    <div style="padding:4px 8px;">
+                        <div style="font-weight:600;color:var(--cacao-fonce);margin-bottom:4px;">
+                            Articles du bon {{ b.reference }}
+                        </div>
+                        {% if b.lignes is not empty %}
+                        <table>
+                            <thead><tr><th>Code</th><th>Désignation</th><th style="text-align:right;">Quantité</th></tr></thead>
+                            <tbody>
+                            {% for l in b.lignes %}
+                                <tr>
+                                    <td>{{ l.code ?? l.code_equipement ?? '' }}</td>
+                                    <td>{{ l.designation ?? l.nom ?? l.libelle ?? '' }}</td>
+                                    <td style="text-align:right;">{{ l.quantite ?? l.qte ?? '' }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                            <span class="text-muted" style="font-size:12px;">Aucun article détaillé.</span>
+                        {% endif %}
+                        <div style="font-size:11.5px;color:#999;margin-top:6px;">
+                            Créé le {{ b.createdAt ? b.createdAt|date('d/m/Y H:i') : '' }}
+                            {% if b.createdBy %} par {{ b.createdBy }}{% endif %}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+(function () {
+    // Dépliage des lignes de détail
+    document.querySelectorAll('.bs-row, .bs-toggle').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var id = el.getAttribute('data-target');
+            var row = document.getElementById(id);
+            if (!row) return;
+            var visible = row.style.display !== 'none';
+            row.style.display = visible ? 'none' : 'table-row';
+            var btn = document.querySelector('.bs-toggle[data-target="' + id + '"]');
+            if (btn) btn.textContent = visible ? '+' : '\u2212';
+        });
+    });
+    // Recherche côté client
+    var search = document.getElementById('bsSearch');
+    if (search) {
+        search.addEventListener('input', function () {
+            var q = this.value.toLowerCase().trim();
+            document.querySelectorAll('#bsTable tbody tr.bs-row').forEach(function (row) {
+                var match = row.getAttribute('data-search').indexOf(q) !== -1;
+                row.style.display = match ? '' : 'none';
+                var det = document.getElementById(row.getAttribute('data-target'));
+                if (det && !match) det.style.display = 'none';
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

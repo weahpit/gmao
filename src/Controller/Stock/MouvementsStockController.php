@@ -13,6 +13,7 @@ final class MouvementsStockController extends AbstractController
     {
         return $this->render('mouvements_stock/entree.html.twig');
     }
+
     #[Route('/OperationsSorties/Stock', name: 'app_mouvements_stock_sortie')]
     public function sorties(): Response
     {

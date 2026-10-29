@@ -20,15 +20,15 @@ function getAllAlertesPdr(render_type){
 
                     for (var i=0;i < reponse.data.length;i++){
                         contentCtrl +='<tr style="font-size: 12px;">'
-                        contentCtrl +='<td style="background: #f9d9d9"><img src="data/equipements/' + reponse.data[i].photo + '" alt="" height="32"></td>'
+                        contentCtrl +='<td style="background: #f9f0d9"><img src="data/equipements/' + reponse.data[i].photo + '" alt="" height="32"></td>'
                         if (reponse.data[i].libelle.length > 30){
-                            contentCtrl +='<td style="background: #f9d9d9">' + reponse.data[i].libelle.slice(0,30) + '...</td>'
+                            contentCtrl +='<td style="background: #f9f0d9">' + reponse.data[i].libelle.slice(0,30) + '...</td>'
                         } else {
-                            contentCtrl +='<td style="background: #f9d9d9">' + reponse.data[i].libelle + '</td>'
+                            contentCtrl +='<td style="background: #f9f0d9">' + reponse.data[i].libelle + '</td>'
                         }
 
-                        contentCtrl +='<td style="background: #f9d9d9"><a href="#">' + reponse.data[i].qte + '</a></td>'
-                        contentCtrl +='<td style="background: #f9d9d9"><a href="#">' + reponse.data[i].seuil + '</a></td>'
+                        contentCtrl +='<td style="background: #f9f0d9"><a href="#">' + reponse.data[i].qte + '</a></td>'
+                        contentCtrl +='<td style="background: #f9f0d9"><a href="#">' + reponse.data[i].seuil + '</a></td>'
                         contentCtrl +='</tr>'
                     }
 

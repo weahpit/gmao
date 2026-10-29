@@ -131,9 +131,7 @@
                                         <div class="col-md-6 mb-1 d-flex justify-content-start">
                                             <label for="seuil" class="fw-bold span">Seuil</label><input class="input fw-bold text-danger" id="seuil"  value="0" type="number">
                                         </div>
-                                       {# <div class="col-md-6 mb-1 d-flex justify-content-start">
-                                            <label for="nature" class="fw-bold span">Nature<span class="fw-bold text-danger ms-2">*</span></label><select class="input fw-bold" id="nature"></select>
-                                        </div>#}
+
                                     </div>
                                     <div class="row  mt-1 p-1">
                                         <div class="col-md-6 mb-1 d-flex justify-content-start">
@@ -188,6 +186,9 @@
                                     </div>
                                     <div class="col-md-6 mb-1 d-flex justify-content-start">
                                         <label for="modele" class="fw-bold span">Reference</label><input class="input fw-bold" id="modele" style="background-color: #f4fdf9;text-transform: uppercase;" disabled>
+                                    </div>
+                                    <div id="div_error_reference" style="display: none">
+                                        <small class="text-danger fw-bold" id="refError"></small>
                                     </div>
                                     <div class="col-md-6 mb-1 d-flex justify-content-start">
                                         <label for="seuil_select" class="fw-bold span">Seuil</label><input class="input fw-bold text-danger" id="seuil_select"  value="0" type="number">
@@ -505,6 +506,7 @@
 
         document.getElementById("btn_add_eq").addEventListener('click', ()=>{
             document.getElementById('nomError').innerText = ""
+            document.getElementById('refError').innerText = ""
             toggleArticlesMode()
             getValues()
         })
@@ -531,6 +533,12 @@
             let formDataDoublon = new FormData();
             formDataDoublon.append('nom', document.getElementById("nomEquipement").value)
             RechercheDoublonArticle(formDataDoublon, document.getElementById('nomError'))
+        })
+        document.getElementById("modele").addEventListener('change', ()=>{
+            let formDataDoublon = new FormData();
+            formDataDoublon.append('ref', document.getElementById("modele").value)
+            formDataDoublon.append('code_equipement_type', document.getElementById("eqType").value)
+            RechercheDoublonRef(formDataDoublon, document.getElementById('refError'))
         })
 
         document.getElementById("saveEquipement").addEventListener('click', ()=>{

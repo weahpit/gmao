@@ -320,16 +320,22 @@ class pdfService
         }
         $pdf->Ln(2);
 
-        // --- Badge de statut (EN ATTENTE par défaut, VALIDÉ après scan vigil) ---
+        // --- Badge de statut (circuit en 3 étapes) ---
+        //   EN_ATTENTE -> en attente de la signature du DG
+        //   VALIDE     -> signé (validé) par la Direction Générale
+        //   CLOTURE    -> clôturé (sortie autorisée) par le vigil
         $statut = strtoupper((string) ($infos['statut'] ?? 'EN_ATTENTE'));
         if ($statut === 'VALIDE') {
-            $libelleStatut = 'SORTIE VALIDÉE';
+            $libelleStatut = 'VALIDÉ';
             $rgb = [34, 139, 34];   // vert
+        } elseif ($statut === 'CLOTURE') {
+            $libelleStatut = 'VALIDÉ — SORTIE CLÔTURÉE';
+            $rgb = [55, 71, 79];    // bleu-gris
         } elseif ($statut === 'ANNULE') {
             $libelleStatut = 'BON ANNULÉ';
             $rgb = [176, 32, 32];   // rouge
         } else {
-            $libelleStatut = 'EN ATTENTE DE VALIDATION';
+            $libelleStatut = 'EN ATTENTE DE SIGNATURE';
             $rgb = [200, 120, 0];   // orange
         }
         $pdf->SetX(10);
@@ -337,12 +343,17 @@ class pdfService
         $pdf->SetFillColor($rgb[0], $rgb[1], $rgb[2]);
         $pdf->SetTextColor(255, 255, 255);
         $pdf->Cell(70, 6, $pdf->txt('Statut : ' . $libelleStatut), 0, 1, 'C', true);
-        if ($statut === 'VALIDE') {
+        if ($statut === 'VALIDE' || $statut === 'CLOTURE') {
             $pdf->SetFont('Arial', '', 8);
             $pdf->SetTextColor(70, 70, 70);
             $pdf->SetX(10);
-            $detailValidation = 'Validé par ' . (string) ($infos['valide_par'] ?? '');
-            if (!empty($infos['valide_at'])) { $detailValidation .= ' le ' . $infos['valide_at']; }
+            // Qui a signé (validé) le bon : la Direction Générale.
+            $signePar = (string) ($infos['signe_par'] ?? '');
+            if ($signePar === '') { $signePar = (string) ($infos['valide_par'] ?? ''); }
+            $signeAt  = (string) ($infos['signe_at'] ?? ($infos['valide_at'] ?? ''));
+            $detailValidation = 'Validé par la Direction Générale';
+            if ($signePar !== '') { $detailValidation .= ' : ' . $signePar; }
+            if ($signeAt !== '')  { $detailValidation .= ' le ' . $signeAt; }
             $pdf->Cell(0, 5, $pdf->txt($detailValidation), 0, 1, 'L');
         }
         $pdf->SetTextColor(0, 0, 0);
@@ -440,14 +451,20 @@ class pdfService
         $pdf->SetFont('Arial', '', 8.5);
         $pdf->SetTextColor(70, 70, 70);
         $pdf->SetX(10);
-        if ($statut === 'VALIDE') {
-            $ligneVigil = 'Sortie validée par le vigil : ' . (string) ($infos['valide_par'] ?? '');
-            if (!empty($infos['valide_at'])) { $ligneVigil .= ' le ' . $infos['valide_at']; }
+        if ($statut === 'CLOTURE') {
+            $clPar = (string) ($infos['cloture_par'] ?? ($infos['valide_par'] ?? ''));
+            $ligneVigil = 'Sortie autorisée par le vigil : ' . $clPar;
+            if (!empty($infos['cloture_at'])) { $ligneVigil .= ' le ' . $infos['cloture_at']; }
             $pdf->MultiCell(0, 5, $pdf->txt($ligneVigil), 0, 'L');
+        } elseif ($statut === 'VALIDE') {
+            $pdf->MultiCell(0, 5, $pdf->txt(
+                'Bon validé par la Direction Générale. À la guérite, le vigil scanne le QR code '
+                . 'ci-dessus avec l\'application mobile pour autoriser (clôturer) la sortie des articles.'
+            ), 0, 'L');
         } else {
             $pdf->MultiCell(0, 5, $pdf->txt(
-                'Ce bon n\'est pas encore validé. À la guérite, le vigil scanne le QR code '
-                . 'ci-dessus avec l\'application mobile pour autoriser la sortie des articles.'
+                'Ce bon n\'est pas encore signé par la Direction Générale. '
+                . 'Il ne peut pas encore être présenté à la guérite pour la sortie des articles.'
             ), 0, 'L');
         }
 

@@ -23,7 +23,6 @@
     {% block stylesheets %}{% endblock %}
 
     <style>
-
         /* Ligne sélectionnée */
         .table tbody tr.selected-row {
             background-color: #fff9c4 !important; /* jaune clair */
@@ -49,7 +48,178 @@
             z-index: 10;
             background: #e5e4e4 !important;
         }
+
+        /* ==========================
+           BANNIÈRE PREMIUM ROUGE
+           ========================== */
+
+        .banner-marquee {
+            position: relative;
+            width: calc(100% - 260px);
+
+            overflow: hidden;
+
+            display: flex;
+            align-items: center;
+
+            padding: 4px 0;
+            margin-left: var(--sidebar-w);
+            margin-top: 0;
+            border-radius: 14px;
+
+            background: linear-gradient(
+                90deg,
+                #fff8f8 0%,
+                #ffeaea 25%,
+                #ffdede 50%,
+                #ffeaea 75%,
+                #fff8f8 100%
+            );
+
+            border: 1px solid rgba(220, 53, 69, 0.15);
+
+            box-shadow:
+                0 6px 20px rgba(220, 53, 69, 0.08),
+                inset 0 1px 0 rgba(255,255,255,.9);
+        }
+
+        /* Effet lumineux */
+        .banner-marquee::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -150%;
+
+            width: 50%;
+            height: 100%;
+
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255,255,255,.7),
+                transparent
+            );
+
+            animation: shine 6s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shine {
+            from {
+                left: -150%;
+            }
+            to {
+                left: 150%;
+            }
+        }
+
+        /* Texte défilant */
+        .banner-content {
+            display: inline-block;
+            white-space: nowrap;
+
+            padding-left: 100%;
+
+            color: #9f1239;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            line-height: 1.6;
+
+            text-shadow:
+                0 1px 1px rgba(255,255,255,.8);
+
+            animation: marquee 20s linear infinite;
+        }
+
+        /* Pause au survol */
+        .banner-marquee:hover .banner-content {
+            animation-play-state: paused;
+        }
+
+        /* Défilement */
+        @keyframes marquee {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* ==========================
+           VERSION FIXE
+           ========================== */
+
+        .static-banner {
+            overflow: visible;
+        }
+
+        .static-banner .banner-content {
+            animation: none;
+            padding-left: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            white-space: normal;
+            text-align: center;
+
+            min-height: 45px;
+
+            color: #991b1b;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        /* ==========================
+           ACCESSIBILITÉ
+           ========================== */
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .banner-marquee::before {
+                animation: none;
+            }
+
+            .banner-content {
+                animation: none;
+                padding-left: 0;
+
+                display: block;
+                white-space: normal;
+                text-align: center;
+            }
+        }
+
+        /* ==========================
+           MOBILE
+           ========================== */
+
+        @media (max-width: 768px) {
+
+            .banner-marquee {
+                padding: 12px 0;
+            }
+
+            .banner-content {
+                font-size: 15px;
+                animation-duration: 55s;
+            }
+
+            .static-banner .banner-content {
+                font-size: 15px;
+            }
+        }
+
     </style>
+    <div class="banner-marquee" style="display: none; cursor: pointer;">
+        <div class="banner-content">
+            🔥   • Vous avez des bons de sortie pour signature • 🌟
+        </div>
+    </div>
 </head>
 <body class="h-full">
 <!-- Toast Container -->
@@ -106,13 +276,44 @@
                         <a href="{{ path('app_mouvements_operations_jour') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_operations_jour' ? 'active' }}">
                             <span class="nav-label">Opérations journalières</span>
                         </a>
-                        {#
-                        <a href="#" class="nav-subitem">
-                            <span class="nav-label">Alertes stock</span>
-                        </a>#}
+                        <hr>
+                        <a href="{{ path('app_magasin_bons_valides') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_magasin_bons_valides' ? 'active' }}">
+                            <span class="nav-label badge text-success" style="background: #e4f6e5;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="height: 16px;"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer-check preview-icon"><path d="M13.5 22H7a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v.5"/><path d="m16 19 2 2 4-4"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/></svg>
+                                <span class="ms-1">Imprimer Bon de Sortie</span>
+                            </span>
+                        </a>
                     </div>
                 </div>
             </div>
+
+            {% if 'ROLE_DG' in app.user.roles or  'ROLE_ADMIN' in app.user.roles %}
+
+            <div class="nav-section">
+                <span class="nav-section-title">Espace de Validations</span>
+
+                <div class="nav-group">
+                    <button type="button" class="nav-item has-submenu {{ stockActive ? 'has-active' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket-check preview-icon"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="m9 12 2 2 4-4"/></svg>
+                        <span class="nav-label">Validations</span>
+                        <i data-lucide="chevron-down" class="nav-chevron"></i>
+                    </button>
+                    <div class="nav-submenu">
+                        <a href="{{ path('app_bons_a_signer') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_bons_a_signer' ? 'active' }}">
+                            <span class="nav-label" id="mes_articles">
+                                <span class="fw-bold text-danger bg-white badge">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" style="height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil-line preview-icon me-1"><path d="M13 21h8"/><path d="m15 5 4 4"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                                    Signer le bon de sortie
+                                </span>
+                            </span>
+                        </a>
+                        <a href="{{ path('app_bons_signes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_bons_signes' ? 'active' }}">
+                            <span class="nav-label">Visualisation Bons de sortie</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="nav-section">
                 <span class="nav-section-title">GMAO</span>
@@ -373,9 +574,12 @@
 <script src="{{ asset('js/api/references/CriticiteEquipement.js') }}"></script>
 <script src="{{ asset('js/api/references/Emplacement.js') }}"></script>
 <script src="{{ asset('js/api/references/TypeEmplacement.js') }}"></script>
+<script src="{{ asset('js/api/stock/RequetesStock.js') }}"></script>
+<script src="{{ asset('js/api/stock/BonSortie.js') }}"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
 <script>
     idEquipement = 0
     document.addEventListener('DOMContentLoaded', function () {
@@ -504,6 +708,24 @@
             document.getElementById('lbl_article').innerText = "Sélectionnez un article dans la liste !";
         }
     effaceChamps()
+
+
+/*    recherche Bon à signer*/
+    signerBons()
+    setInterval(()=>{
+        signerBons()
+    }, 5000)
+
+    function signerBons() {
+        {% if 'ROLE_DG' in app.user.roles or  'ROLE_ADMIN' in app.user.roles %}
+            RechercheBonSortie();
+        {% endif %}
+    }
+
+    document.querySelector('.banner-marquee').addEventListener('click', function (){
+        document.location.href = "{{ path('app_bons_a_signer') }}"
+    })
+
 </script>
 </body>
 </html>

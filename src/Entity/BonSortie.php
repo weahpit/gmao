@@ -10,18 +10,32 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Bon de sortie d'articles.
  *
- * Un bon est créé lors de l'enregistrement d'une sortie de stock. Il est
- * créé par défaut au statut EN_ATTENTE (non validé). La validation est
- * faite plus tard par le vigil à la guérite, en scannant le QR code avec
- * l'application mobile (endpoint api/bonSortie/valider/{token}).
+ * Circuit de validation en 3 étapes :
+ *   1. EN_ATTENTE : le bon est créé par le magasinier lors de la sortie de
+ *      stock. Il est « en cours de validation » (affiché en rouge) et ne
+ *      peut PAS encore sortir du site.
+ *   2. VALIDE : le Directeur Général signe le bon (endpoint signer).
+ *      Le statut passe à « Validé ».
+ *   3. CLOTURE : le vigil scanne le QR à la guérite et clôture le bon
+ *      (endpoint valider/cloturer). Un bon ne peut être clôturé QUE s'il
+ *      a d'abord été signé par le DG (statut VALIDE).
  */
 #[ORM\Entity(repositoryClass: BonSortieRepository::class)]
 #[ORM\Table(name: 'bon_sortie')]
 class BonSortie
 {
-    public const STATUT_EN_ATTENTE = 'EN_ATTENTE';
-    public const STATUT_VALIDE     = 'VALIDE';
+    public const STATUT_EN_ATTENTE = 'EN_ATTENTE'; // créé par le magasinier
+    public const STATUT_VALIDE     = 'VALIDE';     // signé par le Directeur Général
+    public const STATUT_CLOTURE    = 'CLOTURE';    // clôturé par le vigil (guérite)
     public const STATUT_ANNULE     = 'ANNULE';
+
+    /** Libellés métier (FR) affichés dans les interfaces. */
+    public const LIBELLES = [
+        self::STATUT_EN_ATTENTE => 'En cours de validation',
+        self::STATUT_VALIDE     => 'Validé',
+        self::STATUT_CLOTURE    => 'Clôturé',
+        self::STATUT_ANNULE     => 'Annulé',
+    ];
 
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
@@ -74,6 +88,20 @@ class BonSortie
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $poste_controle = null;
 
+    // Signature du Directeur Général (étape 2).
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $signe_at = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $signe_par = null;
+
+    // Clôture par le vigil à la guérite (étape 3).
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $cloture_at = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $cloture_par = null;
+
     public function getId(): ?Uuid
     {
         return $this->id;
@@ -115,9 +143,26 @@ class BonSortie
         return $this;
     }
 
+    public function isEnAttente(): bool
+    {
+        return $this->statut === self::STATUT_EN_ATTENTE;
+    }
+
+    /** Signé par le DG (prêt à être clôturé à la guérite). */
     public function isValide(): bool
     {
         return $this->statut === self::STATUT_VALIDE;
+    }
+
+    /** Clôturé par le vigil (sortie effectuée). */
+    public function isCloture(): bool
+    {
+        return $this->statut === self::STATUT_CLOTURE;
+    }
+
+    public function getStatutLabel(): string
+    {
+        return self::LIBELLES[$this->statut] ?? $this->statut;
     }
 
     public function getCodeService(): ?Services
@@ -236,6 +281,54 @@ class BonSortie
     public function setPosteControle(?string $poste_controle): static
     {
         $this->poste_controle = $poste_controle;
+
+        return $this;
+    }
+
+    public function getSigneAt(): ?\DateTimeImmutable
+    {
+        return $this->signe_at;
+    }
+
+    public function setSigneAt(?\DateTimeImmutable $signe_at): static
+    {
+        $this->signe_at = $signe_at;
+
+        return $this;
+    }
+
+    public function getSignePar(): ?string
+    {
+        return $this->signe_par;
+    }
+
+    public function setSignePar(?string $signe_par): static
+    {
+        $this->signe_par = $signe_par;
+
+        return $this;
+    }
+
+    public function getClotureAt(): ?\DateTimeImmutable
+    {
+        return $this->cloture_at;
+    }
+
+    public function setClotureAt(?\DateTimeImmutable $cloture_at): static
+    {
+        $this->cloture_at = $cloture_at;
+
+        return $this;
+    }
+
+    public function getCloturePar(): ?string
+    {
+        return $this->cloture_par;
+    }
+
+    public function setCloturePar(?string $cloture_par): static
+    {
+        $this->cloture_par = $cloture_par;
 
         return $this;
     }

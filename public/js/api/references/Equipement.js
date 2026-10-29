@@ -122,6 +122,7 @@ function saveEquipement(formData, ctrl_name, ctrl_type){
                 duration: 4000,
                 title: 'Equipement'
             })
+
             getAllEquipementsFromTdb(ctrl_name, ctrl_type)
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Equipement', duration: 4000}));
