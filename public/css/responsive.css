@@ -1,0 +1,82 @@
+/* =====================================================================
+   CITRAC GMAO — Ameliorations responsives (mobile / tablette)
+   Charge APRES app.css : ces regles completent / surchargent l'existant.
+   ===================================================================== */
+
+/* --- Securite anti-debordement horizontal global --- */
+html, body { max-width: 100%; overflow-x: hidden; }
+* { -webkit-tap-highlight-color: rgba(0,0,0,.08); }
+
+/* --- Tableaux : defilement horizontal plutot que de casser la page ---
+   Les tableaux denses du module (stock, inventaire, DA...) deviennent
+   scrollables sur petit ecran au lieu de deborder. --- */
+.main-content .table-responsive,
+.main-content .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 1024px) {
+  /* La banniere defilante du haut ne doit plus se baser sur une largeur fixe
+     (calc(100% - 260px)) quand la sidebar passe en overlay. */
+  .banner-marquee {
+    width: 100% !important;
+    margin-left: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* ================= TABLETTE (<= 1024px) ================= */
+@media (max-width: 1024px) {
+  .main-content { padding: 16px; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .dashboard-right { order: -1; }
+}
+
+/* ================= MOBILE (<= 768px) ================= */
+@media (max-width: 768px) {
+  .banner { padding: 0 12px; gap: 8px; }
+  /* La barre de recherche prend trop de place : on la masque,
+     la loupe reste accessible via le raccourci clavier sur desktop. */
+  .banner .search-bar { display: none !important; }
+  .banner .breadcrumb { font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .main-content { padding: 12px; }
+
+  /* Grilles de formulaires et de details : une seule colonne */
+  .form-grid, .detail-grid { grid-template-columns: 1fr !important; }
+
+  /* Boutons d'action en pleine largeur pour le pouce */
+  .page-header { flex-direction: column; align-items: stretch; gap: 10px; }
+  .page-header .btn, .page-actions .btn { width: 100%; }
+
+  /* Les modales Bootstrap : marges reduites */
+  .modal-dialog { margin: 8px; }
+
+  /* Champs a 16px pour empecher le zoom auto iOS */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Cartes / panneaux : padding plus compact */
+  .card, .panel, .kpi-card { border-radius: 12px; }
+}
+
+/* ================= PETIT MOBILE (<= 560px) ================= */
+@media (max-width: 560px) {
+  .kpi-grid { grid-template-columns: 1fr !important; }
+  .banner .notification-bell { margin-left: auto; }
+
+  /* Pied de sidebar : laisse la place aux 2 boutons (profil + logout) */
+  .sidebar-footer { padding: 12px 14px; gap: 8px; }
+  .sidebar-footer .user-info { min-width: 0; }
+  .sidebar-footer .user-name,
+  .sidebar-footer .user-role { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Boutons generiques : cibles tactiles plus grandes */
+  .btn { min-height: 40px; }
+
+  /* Titres de page un cran plus petits */
+  h1 { font-size: 1.35rem; }
+  h2 { font-size: 1.2rem; }
+}
+
+/* La sidebar overlay doit passer au-dessus de tout le contenu sur mobile */
+@media (max-width: 1024px) {
+  .sidebar { z-index: 100; }
+}

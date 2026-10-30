@@ -9,6 +9,46 @@
 {% endblock %}
 
 {% block body %}
+<style>
+    /* Ligne sélectionnée */
+    table tbody tr.selected-row {
+        background-color: #fff9c4 !important; /* jaune clair */
+        transition: background-color 0.2s ease;
+    }
+
+    table thead {
+        background-color: #c7c7c7 !important; /* jaune clair */
+        color: black;
+        font-weight: bold;
+    }
+    table tbody tr {
+        background-color: #ffffff !important; /* jaune clair */
+        color: black;
+        padding: 10px;
+        border-bottom: 1px solid lightgrey;
+        font-size: 13px;
+    }
+    /* Survol facultatif */
+    table tbody tr:hover {
+        cursor: pointer;
+    }
+
+    .selected-row td{
+        background-color: #fff3cd !important;
+    }
+
+    .selected-row td a{
+        color: #664d03 !important;
+    }
+
+    #tbl_users_ thead.sticky-top th{
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #e5e4e4 !important;
+    }
+    </style>
+
     <div class="page-header">
         <h1 class="page-title"><img class="me-2" src="{{ asset('icons/users.png') }}" alt=""> Gestion des utilisateurs</h1>
         <a href="#"  id="btn_add_user" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#modalAddUser">
@@ -31,7 +71,7 @@
                 </div>
                 <div class="modal-body" style="background: rgba(205,218,195,0.52)">
                     <form id="formUser"  style="height: 400px;overflow-y: scroll;">
-                        <div class="container">
+                        <div class="container p-2">
                         <div class="d-flex justify-content-start mb-3">
                             <label class="fw-bold span " for="matricule" style="width: 250px;">Matricule</label>
                             <input type="text" class="input" id="matricule" style="text-transform: uppercase;">
@@ -72,11 +112,33 @@
                             <label class="fw-bold span " for="poste" style="width: 250px;">Poste</label>
                             <select class="" id="poste" style="width: 100%"></select>
                         </div>
-                        <div class="d-flex justify-content-start mb-3">
-                            <label class="fw-bold span " for="admin" style="width: 250px;">Est-il ADMIN ?</label>
-                            <input type="checkbox" class="input" id="admin" style="text-transform: uppercase;">
-                        </div>
-                            <hr>
+                            <div class="mt-3 mb-3 p-2" style="border:1px solid #e0d5cc;border-radius:6px;background:#faf6f2;">
+                                <label class="d-flex align-items-center" style="cursor:pointer;margin:0;gap:8px;">
+                                    <input type="checkbox" id="admin"
+                                           style="width:18px;height:18px;accent-color:#5a371e;">
+                                    <span style="color:#5a371e;font-weight:600;">
+                                        Cet utilisateur est-il ADMIN ?
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="mb-3 p-2" style="border:1px solid #e0d5cc;border-radius:6px;background:#faf6f2;">
+                                <label class="d-flex align-items-center" style="cursor:pointer;margin:0;gap:8px;">
+                                    <input type="checkbox" id="signataire" checked
+                                           style="width:18px;height:18px;accent-color:#5a371e;">
+                                    <span style="color:#5a371e;font-weight:600;">
+                                        Cet utilisateur est-il Signataire ?
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="mb-3 p-2" style="border:1px solid #deb9b9;border-radius:6px;background:#ffdbdb;">
+                                <label class="d-flex align-items-center" style="cursor:pointer;margin:0;gap:8px;">
+                                    <input type="checkbox" id="bloquer"
+                                           style="width:18px;height:18px;accent-color:#5a1e1e;">
+                                    <span style="color:#5a1e1e;font-weight:600;">
+                                        Bloquer l'utilissateur ?
+                                    </span>
+                                </label>
+                            </div>
                         </div>
 
                         <div class="row container p-2" style="border: 1px solid lightgrey;background : linear-gradient(155deg,#f2f4f7, #d5e1f6)">
@@ -175,6 +237,19 @@
             } else {
                 FormDataUser.append('admin', "NON");
             }
+
+            if (document.querySelector("#bloquer").checked === true) {
+                FormDataUser.append('bloque', "OUI");
+            } else {
+                FormDataUser.append('bloque', "NON");
+            }
+
+            if (document.querySelector("#signataire").checked === true) {
+                FormDataUser.append('signataire', "OUI");
+            } else {
+                FormDataUser.append('signataire', "NON");
+            }
+
             saveUser(FormDataUser, document.querySelector(".card-body"), 1)
             setTimeout(()=>{
                 clearForm("formUser", "matricule") ;
@@ -213,6 +288,9 @@
                     }, 1000)
 
                     document.getElementById("admin").checked = (wd.admin === "OUI");
+                    document.getElementById("bloquer").checked = (wd.bloque === "OUI");
+                    document.getElementById("signataire").checked = (wd.signataire === "OUI");
+
                     if (wd.photo) { document.getElementById('photoPreview').src ='data/users/photos/' +wd.photo  } else { document.getElementById('photoPreview').src ='icons/user.png';  }
                 })
                 .catch(err => {

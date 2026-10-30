@@ -43,7 +43,9 @@ final class ApiUsersController extends AbstractController
                             'service'=>$user->getCodeService() ?$user->getCodeService()->getLibelle() : "",
                             'direction'=>$user->getCodeDirection() ?$user->getCodeDirection()->getLibelle() : "",
                             'actif'=>$user->isActive() ? "OUI" : "NON",
-                            'admin'=>$user->isAdmin() ? "OUI" : "NON"
+                            'admin'=>$user->isAdmin() ? "OUI" : "NON",
+                            'bloque'=>$user->isBloque() ? "OUI" : "NON",
+                            'signataire'=>$user->isSignataire() ? "OUI" : "NON",
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -85,7 +87,9 @@ final class ApiUsersController extends AbstractController
                     'service'=>$user->getCodeService() ?$user->getCodeService()->getId() : "",
                     'direction'=>$user->getCodeDirection() ?$user->getCodeDirection()->getId() : "",
                     'actif'=>$user->isActive() ? "OUI" : "NON",
-                    'admin'=>$user->isAdmin() ? "OUI" : "NON"
+                    'admin'=>$user->isAdmin() ? "OUI" : "NON",
+                    'bloque'=>$user->isBloque() ? "OUI" : "NON",
+                    'signataire'=>$user->isSignataire() ? "OUI" : "NON",
                 );
             } else {
                 $reponse = array(
@@ -120,6 +124,8 @@ final class ApiUsersController extends AbstractController
                 $service = $request->request->get('service');
                 $poste = $request->request->get('poste');
                 $admin = $request->request->get('admin');
+                $bloque = $request->request->get('bloque');
+                $signataire = $request->request->get('signataire');
                 $mdp = $request->request->get('mdp');
                 $confirm_mdp = $request->request->get('confirm_mdp');
                 $photo = $request->files->get('photo');
@@ -180,14 +186,30 @@ final class ApiUsersController extends AbstractController
                             $users->setPhoto($filename);
                         }
 
+                        $users->setRoles(['ROLE_USER']);
+                        $users->setAdmin(false);
+
                         // dd($admin);
-                        if ($admin == "OUI"){
-                            $users->setRoles(['ROLE_USER','ROLE_ADMIN']);
+                        if ($admin == "OUI") {
+                            $users->setRoles(['ROLE_USER', 'ROLE_ADMIN']);
                             $users->setAdmin(true);
-                        } else {
-                            $users->setRoles(['ROLE_USER']);
-                            $users->setAdmin(false);
                         }
+
+                        // L'utilisateur est-il signataire ?
+                        if ($signataire == "OUI"){
+                            $users->setRoles(['ROLE_USER','ROLE_DG']);
+                            $users->setSignataire(true);
+                        }
+
+                            // L'utilisateur est-il bloque ?
+                            if ($bloque == "OUI"){
+                                $users->setBloque(true);
+                                $users->setActive(false);
+
+                            }else {
+                                $users->setBloque(false);
+                                $users->setActive(true);
+                            }
 
                         $this->em->persist($users);
                         $this->em->flush();

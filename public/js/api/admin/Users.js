@@ -7,36 +7,37 @@ function getAllUsers(ctrl_name, ctrl_type){
             let reponse = JSON.parse(response)
             if (ctrl_type === 1){
                 contentCtrl +=`
-                <table class="table table-hover w-100">
+                <div class="d-flex justify-content-between align-items-center p-2" style="border: 1px solid lightgrey"><input class="mb-2 input" type="text" style="width:200px;border: 1px solid #2563EB;" placeholder="Rechercher..." id="TxtInputSearch"><span class="text-danger fw-bold" style="background: #f9f1f1;" id="lbl_chargement"></span><span class="fw-lighter text-primary">${reponse.data.length} utilisateur(s)</span></div>
+                <div style="height:300px; overflow-y:auto; border:1px solid #dee2e6;">
+                <table class="sticky-top w-100 m-1" id="tbl_users_">
                     <thead><tr>
                             <th></th>
-                            <th>Mle</th>
-                            <th>Nom</th>
+                            <th class="text-center" style="width: 75px;">Mle</th>
+                            <th style="min-width: 125px;"">Nom</th>
                             <th>Prenoms</th>
                             <th>Email</th>
                             <th>Mobile</th>
                             <th>Groupe</th>
                             <th>Service/Direction</th>
                             <th>Poste</th>
-                            <th>Actions</th>
                     </tr></thead>
-                    <tbody>
+                    <tbody id="body_users">
                 `
                 for (var i=0;i < reponse.data.length;i++){
                     if (reponse.data[i].actif ==="NON"){
-                        contentCtrl +='<tr style="background-color: #f9e6e6;color: #c53030;font-weight: bold;" class="edit_user" id="' + reponse.data[i].id + '">'
+                        contentCtrl +='<tr class="edit_user" style="background-color: #f9e6e6 !important;color: #fc0202 !important;font-weight: bold;" class="edit_user" id="' + reponse.data[i].id + '">'
                     } else {
                         contentCtrl +='<tr class="edit_user" id="' + reponse.data[i].id + '">'
                     }
 
                     if (reponse.data[i].photo){
-                        contentCtrl +='<td><img class="thumbnail" src="data/users/photos/' + reponse.data[i].photo +'" alt="" height="40" style="border-radius: 50px;border-bottom: 2px solid #4a2d1a;" id="' + reponse.data[i].photo + '"></td>'
+                        contentCtrl +='<td><img class="thumbnail p-2" src="data/users/photos/' + reponse.data[i].photo +'" alt="" height="32" style="border-radius: 50px;border-bottom: 2px solid #4a2d1a;" id="' + reponse.data[i].photo + '"></td>'
                     } else {
-                        contentCtrl +='<td><img src="icons/user.png" alt="" height="40"></td>'
+                        contentCtrl +='<td><img class="thumbnail p-2" src="icons/user.png" alt="" height="32"></td>'
                     }
 
-                    contentCtrl +='<td>' + reponse.data[i].matricule + '</td>'
-                    contentCtrl +='<td><a href="#">' + reponse.data[i].nom + '</a></td>'
+                    contentCtrl +='<td class="text-center" >' + reponse.data[i].matricule + '</td>'
+                    contentCtrl +='<td>' + reponse.data[i].nom + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].prenoms + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].email + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].mobile + '</td>'
@@ -48,14 +49,10 @@ function getAllUsers(ctrl_name, ctrl_type){
                     }
 
                     contentCtrl +='<td>' + reponse.data[i].poste + '</td>'
-                    contentCtrl +=`<td>
-                            <button  class="btn me-2 btn-tooltip" data-tooltip="Editer les informations"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-pen preview-icon"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg></button>
-                            <button class="btn me-2 btn-tooltip" data-tooltip="Bloque l'utilisateur"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock preview-icon"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                        </td>`
                     contentCtrl +='<tr>'
                 }
 
-                contentCtrl +='</tbody></table>';
+                contentCtrl +='</tbody></table></div>';
             } else {
                 contentCtrl += '<option value="0">-- Utilisateurs --</option>'
                 for (var i=0;i < reponse.data.length;i++) {
@@ -63,7 +60,28 @@ function getAllUsers(ctrl_name, ctrl_type){
                 }
             }
             ctrl_name.innerHTML = contentCtrl
-            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'user.csv' })}
+            /*if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'user.csv' })}*/
+            if (ctrl_type === 1){
+                searchValueFromTable(document.getElementById("TxtInputSearch"), "#body_users tr")
+
+                document.querySelectorAll('#tbl_users_ tbody tr').forEach(row => {
+                    /*row.addEventListener('click', function () {
+                       document.querySelectorAll('#tbl_articles_ tbody tr').forEach(r => {
+                            r.classList.remove('selected-row');
+                        });
+                        this.classList.add('selected-row');
+                    });*/
+                });
+
+                // Boutons (+) : dérouler les mouvements de l'article
+                document.querySelectorAll('#tbl_articles_ .btn-toggle-mvt').forEach(btn => {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation(); // ne pas déclencher la sélection de ligne
+                        toggleMouvementsArticle(this);
+                    });
+                });
+            }
         },
         error : function (response){
             showToast(response.msg, {title: 'Erreur sur Chargement des Users', type: 'error', duration: 4000 })

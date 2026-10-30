@@ -35,5 +35,11 @@ final class SecurityHeadersSubscriber implements EventSubscriberInterface
         $headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         // Desactive des API navigateur sensibles par defaut
         $headers->set('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()');
+
+        // Force HTTPS pour les prochaines visites (uniquement si la requete est deja en HTTPS,
+        // pour ne pas bloquer un acces local en HTTP pendant le developpement).
+        if ($event->getRequest()->isSecure()) {
+            $headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        }
     }
 }

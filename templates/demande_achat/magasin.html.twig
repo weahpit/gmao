@@ -1,0 +1,114 @@
+{% extends 'base.html.twig' %}
+{% import 'demande_achat/_macros.html.twig' as m %}
+{% block title %}Demandes d'achat - Magasin{% endblock %}
+
+{% block body %}
+{% include 'demande_achat/_styles.html.twig' %}
+<div class="da-wrap">
+  <div class="da-hero">
+    <h1>Demandes d'achat &mdash; Magasin</h1>
+    <p>Enregistrez les nouvelles demandes et soumettez-les a la direction. Apres validation : servez les articles disponibles et passez commande fournisseur pour les articles coches « a commander ».</p>
+  </div>
+
+  <div class="da-nav">
+    <span class="da-chip">Nouvelles <b>{{ counts['NOUVELLE']|default(0) }}</b></span>
+    <span class="da-chip">Validees <b>{{ counts['VALIDEE']|default(0) }}</b></span>
+    <span class="da-chip">En commande <b>{{ counts['EN_COMMANDE']|default(0) }}</b></span>
+    <span class="da-chip">Servies <b>{{ counts['SERVIE']|default(0) }}</b></span>
+  </div>
+
+  <div class="da-card">
+    <h2>Demandes a traiter</h2>
+    <table class="da-table">
+      <thead>
+        <tr><th style="width:40px;"></th><th>Numero</th><th>Demandeur</th><th>Service</th><th>Articles</th><th>Statut</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for d in a_traiter %}
+          <tr data-id="{{ d.id }}">
+            <td><button type="button" class="da-btn da-btn-light btn-toggle-da" style="padding:4px 10px;" data-id="{{ d.id }}">+</button></td>
+            <td><b>{{ d.numero }}</b></td>
+            <td>{{ d.demandeur|default('-') }}</td>
+            <td>{{ d.service|default('-') }}</td>
+            <td>{{ d.lignes|length }}</td>
+            <td>{{ m.badge(d.statut, d.statutLabel) }}</td>
+            <td>
+              {% if d.statut == 'NOUVELLE' %}
+                <button class="da-btn da-btn-primary" onclick="DemandeAchat.soumettre('{{ d.id }}')">Soumettre a la direction</button>
+              {% elseif d.statut == 'VALIDEE' %}
+                {% if d.lignesAServir|length %}<button class="da-btn da-btn-ok" onclick="DemandeAchat.servir('{{ d.id }}')">Servir ({{ d.lignesAServir|length }})</button>{% endif %}
+                {% if d.lignesACommander|length %}
+                  <button class="da-btn da-btn-light" onclick="DemandeAchat.commander('{{ d.id }}')">Commander ({{ d.lignesACommander|length }})</button>
+                  <a class="da-btn da-btn-light" href="{{ path('da_bon_commande', {id: d.id}) }}" target="_blank">Bon de commande</a>
+                {% endif %}
+              {% elseif d.statut == 'EN_COMMANDE' %}
+                <a class="da-btn da-btn-light" href="{{ path('da_bon_commande', {id: d.id}) }}" target="_blank">Bon de commande</a>
+                <button class="da-btn da-btn-ok" onclick="DemandeAchat.servir('{{ d.id }}')">Commande recue &rarr; servir</button>
+              {% endif %}
+            </td>
+          </tr>
+          <tr class="da-detail-row" id="detail-{{ d.id }}" style="display:none;">
+            <td colspan="7"><div class="da-detail-inner">
+              {% if d.motif %}<p><span class="da-muted">Motif :</span> {{ d.motif }}</p>{% endif %}
+              {% if d.statut == 'NOUVELLE' %}
+                {{ m.lignes(d) }}
+              {% else %}
+                {% if d.lignesAServir|length %}
+                  <p style="margin:6px 0;"><b>A servir (stock disponible)</b></p>
+                  <table class="da-lignes"><thead><tr><th>Code</th><th>Designation</th><th style="width:90px;">Qte validee</th><th style="width:90px;">Stock</th></tr></thead><tbody>
+                    {% for l in d.lignesAServir %}<tr><td>{{ l.code|default('-') }}</td><td>{{ l.designation }}</td><td>{{ l.quantite_validee|default(l.quantite) }}</td><td>{{ (l.qte_stock|default(null)) is null ? '-' : l.qte_stock }}</td></tr>{% endfor %}
+                  </tbody></table>
+                {% endif %}
+                {% if d.lignesACommander|length %}
+                  <p style="margin:12px 0 6px;"><b>A commander (fournisseur)</b></p>
+                  <table class="da-lignes"><thead><tr><th>Code</th><th>Designation</th><th style="width:90px;">Qte validee</th><th style="width:90px;">Stock</th></tr></thead><tbody>
+                    {% for l in d.lignesACommander %}<tr><td>{{ l.code|default('-') }}</td><td>{{ l.designation }}</td><td>{{ l.quantite_validee|default(l.quantite) }}</td><td>{{ (l.qte_stock|default(null)) is null ? 'hors cat.' : l.qte_stock }}</td></tr>{% endfor %}
+                  </tbody></table>
+                {% endif %}
+              {% endif %}
+            </div></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="da-empty">Aucune demande a traiter pour le moment.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="da-card">
+    <h2>Toutes les demandes</h2>
+    <table class="da-table">
+      <thead>
+        <tr><th>Numero</th><th>Date</th><th>Demandeur</th><th>Statut</th><th>Fournisseur</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for d in toutes %}
+          <tr>
+            <td><b>{{ d.numero }}</b></td>
+            <td>{{ d.createdAt|date('d/m/Y H:i') }}</td>
+            <td>{{ d.demandeur|default('-') }}</td>
+            <td>{{ m.badge(d.statut, d.statutLabel) }}</td>
+            <td>{{ d.fournisseurNom|default('-') }}</td>
+            <td><a href="{{ path('da_suivi', {token: d.token}) }}" class="da-btn da-btn-light" style="padding:5px 11px;">Details</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="da-empty">Aucune demande enregistree.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="{{ asset('js/api/stock/DemandeAchat.js') }}"></script>
+<script>
+  document.querySelectorAll('.btn-toggle-da').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var row = document.getElementById('detail-' + btn.dataset.id);
+      if(!row) return;
+      var open = row.style.display !== 'none';
+      row.style.display = open ? 'none' : 'table-row';
+      btn.textContent = open ? '+' : '\u2212';
+    });
+  });
+</script>
+{% endblock %}

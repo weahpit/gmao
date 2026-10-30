@@ -1,0 +1,26 @@
+{# Macros partagees du module Demande d'Achat #}
+
+{% macro badge(statut, libelle) %}
+  <span class="da-badge st-{{ statut }}">{{ libelle ?? statut }}</span>
+{% endmacro %}
+
+{# Tableau des lignes demandees (reutilise dans les lignes depliables) #}
+{% macro lignes(da) %}
+  <table class="da-lignes">
+    <thead>
+      <tr><th>Code</th><th>Designation</th><th style="width:90px;">Quantite</th><th>Observation</th></tr>
+    </thead>
+    <tbody>
+      {% for l in da.lignes %}
+        <tr>
+          <td>{{ l.code|default('-') }}</td>
+          <td>{{ l.designation }}</td>
+          <td>{{ l.quantite }}</td>
+          <td>{{ l.observation|default('-') }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="da-muted">Aucune ligne.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endmacro %}

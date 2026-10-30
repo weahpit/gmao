@@ -88,6 +88,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: FicheIntervention::class, mappedBy: 'code_technicien')]
     private Collection $ficheInterventions;
 
+    #[ORM\Column(nullable: true)]
+    private ?bool $bloque = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $signataire = null;
+
     public function __construct()
     {
         $this->notifications = new ArrayCollection();
@@ -392,5 +398,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __toString(): string
     {
         return  $this->nom . " " . $this->prenoms;
+    }
+
+    public function isBloque(): ?bool
+    {
+        return $this->bloque;
+    }
+
+    public function setBloque(bool $bloque): static
+    {
+        $this->bloque = $bloque;
+
+        return $this;
+    }
+
+    public function isSignataire(): ?bool
+    {
+        return $this->signataire;
+    }
+
+    public function setSignataire(bool $signataire): static
+    {
+        $this->signataire = $signataire;
+
+        return $this;
     }
 }

@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+{% import 'demande_achat/_macros.html.twig' as m %}
+{% block title %}Suivi {{ da.numero }}{% endblock %}
+
+{% block body %}
+{% include 'demande_achat/_styles.html.twig' %}
+<div class="da-wrap">
+  <div class="da-hero">
+    <h1>Suivi de la demande {{ da.numero }}</h1>
+    <p>Statut actuel : <b>{{ da.statutLabel }}</b></p>
+  </div>
+
+  <div class="da-nav">
+    <a href="{{ path('da_mes_demandes') }}" class="da-btn da-btn-light">&larr; Mes demandes</a>
+    <a href="{{ path('da_nouvelle') }}" class="da-btn da-btn-primary">+ Nouvelle demande</a>
+  </div>
+
+  {% for label, messages in app.flashes %}
+    {% for message in messages %}
+      <div class="da-flash {{ label }}">{{ message }}</div>
+    {% endfor %}
+  {% endfor %}
+
+  <div class="da-card">
+    <h2>Resume</h2>
+    <div class="da-grid">
+      <div><div class="da-muted">Demandeur</div><b>{{ da.demandeur|default('-') }}</b></div>
+      <div><div class="da-muted">Service</div><b>{{ da.service|default('-') }}</b></div>
+      <div><div class="da-muted">Date de creation</div><b>{{ da.createdAt|date('d/m/Y H:i') }}</b></div>
+      <div><div class="da-muted">Statut</div>{{ m.badge(da.statut, da.statutLabel) }}</div>
+    </div>
+    {% if da.motif %}<p style="margin-top:12px;"><span class="da-muted">Motif :</span> {{ da.motif }}</p>{% endif %}
+    {% if da.statut == 'REFUSEE' and da.commentaireDg %}
+      <div class="da-flash danger" style="margin-top:12px;">Motif de refus : {{ da.commentaireDg }}</div>
+    {% elseif da.commentaireDg %}
+      <p style="margin-top:10px;"><span class="da-muted">Note direction :</span> {{ da.commentaireDg }}</p>
+    {% endif %}
+    {% if da.fournisseurNom %}<p><span class="da-muted">Fournisseur (commande) :</span> {{ da.fournisseurNom }}</p>{% endif %}
+    {% if da.bonSortieRef %}<p><span class="da-muted">Bon de sortie :</span> {{ da.bonSortieRef }}</p>{% endif %}
+  </div>
+
+  <div class="da-card">
+    <h2>Articles demandes</h2>
+    {{ m.lignes(da) }}
+  </div>
+
+  <div class="da-card">
+    <h2>Historique du traitement</h2>
+    <ul class="da-tl">
+      {% for h in da.historique %}
+        <li>
+          <span class="dot"></span>
+          <div class="tl-t">{{ h.libelle }}</div>
+          <div class="tl-d">{{ h.date }}{% if h.par %} &middot; {{ h.par }}{% endif %}</div>
+          {% if h.note %}<div class="tl-n">{{ h.note }}</div>{% endif %}
+        </li>
+      {% else %}
+        <li><span class="dot"></span><div class="tl-t">Demande creee</div></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

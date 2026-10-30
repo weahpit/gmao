@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+{% import 'demande_achat/_macros.html.twig' as da %}
+{% block title %}Mes demandes d'achat{% endblock %}
+
+{% block body %}
+{% include 'demande_achat/_styles.html.twig' %}
+<div class="da-wrap">
+  <div class="da-hero">
+    <h1>Mes demandes d'achat</h1>
+    <p>Suivez l'avancement de vos demandes, de leur enregistrement par le magasin jusqu'a la sortie des articles.</p>
+  </div>
+
+  <div class="da-nav">
+    <a href="{{ path('da_nouvelle') }}" class="da-btn da-btn-primary">+ Nouvelle demande</a>
+  </div>
+
+  <div class="da-card">
+    <table class="da-table">
+      <thead>
+        <tr>
+          <th>Numero</th><th>Date</th><th>Articles</th><th>Statut</th><th>Derniere etape</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in demandes %}
+          {% set last = d.historique|length ? d.historique|last : null %}
+          <tr>
+            <td><b>{{ d.numero }}</b></td>
+            <td>{{ d.createdAt|date('d/m/Y H:i') }}</td>
+            <td>{{ d.lignes|length }} article(s)</td>
+            <td>{{ da.badge(d.statut, d.statutLabel) }}</td>
+            <td class="da-muted">{{ last ? last.libelle : '-' }}</td>
+            <td><a href="{{ path('da_suivi', {token: d.token}) }}" class="da-btn da-btn-light" style="padding:6px 12px;">Suivre</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="da-empty">Vous n'avez pas encore de demande. Cliquez sur « Nouvelle demande ».</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

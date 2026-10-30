@@ -12,6 +12,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/table.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/responsive.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/sidebar-cacao.css') }}">
     <link rel="icon" href="{{ asset('icons/favicon.png') }}">
 {#    Choices.js#}
     {#<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/base.min.css"/>#}
@@ -241,7 +243,7 @@
 
         <nav class="sidebar-nav">
             <div class="nav-section">
-                <span class="nav-section-title">Principal</span>
+               {# <span class="nav-section-title">Principal</span>#}
 
                 <a href="{{ path('app_dashboard') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'dashboard' ? 'active' }}">
                     <i data-lucide="layout-dashboard"></i>
@@ -249,8 +251,38 @@
                 </a>
             </div>
             <div class="nav-section">
-                <span class="nav-section-title">Stocks</span>
+                <!-- DA avec sous-menu -->
+                <div class="nav-group">
+                    <button type="button" class="nav-item has-submenu">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed-check preview-icon"><path d="M10.1 2.182a10 10 0 013.8 0"/><path d="M13.9 21.818a10 10 0 01-3.8 0"/><path d="m16 9-5.5 5.5L8 12"/><path d="M17.609 3.721a10 10 0 012.69 2.7"/><path d="M2.182 13.9a10 10 0 010-3.8"/><path d="M20.279 17.609a10 10 0 01-2.7 2.69"/><path d="M21.818 10.1a10 10 0 010 3.8"/><path d="M3.721 6.391a10 10 0 012.7-2.69"/><path d="M6.391 20.279a10 10 0 01-2.69-2.7"/></svg>
+                        <span class="nav-label">Demandes d'achat (DA)</span>
+                        <i data-lucide="chevron-down" class="nav-chevron"></i>
+                    </button>
+                    <div class="nav-submenu">
+
+                        <a href="{{ path('da_nouvelle') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'da_nouvelle' ? 'active' }}">
+                            <span class="nav-label">Nouvelle demande</span>
+                        </a>
+                        <a href="{{ path('da_mes_demandes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'da_mes_demandes' ? 'active' }}">
+                            <span class="nav-label">Mes demandes</span>
+                        </a>
+                        {% if is_granted('ROLE_PDR') %}
+                            <a href="{{ path('da_magasin') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'da_magasin' ? 'active' }}">
+                                <span class="nav-label">Réception DA</span>
+                            </a>
+                        {% endif %}
+                        {% if is_granted('ROLE_DG') %}
+                            <a href="{{ path('da_direction') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_operations_jour' ? 'active' }}">
+                                <span class="nav-label">Validation DA</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        <div class="nav-section">
+                {#<span class="nav-section-title">Stocks</span>#}
                 <!-- Groupe Stock avec sous-menu -->
+
                 {% set stockActive = app.request.attributes.get('_route') starts with 'spare_part'
                     or app.request.attributes.get('_route') starts with 'app_mouvements_stock' %}
                 <div class="nav-group">
@@ -260,6 +292,7 @@
                         <i data-lucide="chevron-down" class="nav-chevron"></i>
                     </button>
                     <div class="nav-submenu">
+                        <span class="nav-section-title">Magasin PDR</span>
                         <a href="#" class="nav-subitem" id="btnAticles" data-bs-toggle="modal" data-bs-target="#modalEq">
                             <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
                             <span class="nav-label" id="mes_articles">Mes articles</span>
@@ -290,7 +323,7 @@
             {% if 'ROLE_DG' in app.user.roles or  'ROLE_ADMIN' in app.user.roles %}
 
             <div class="nav-section">
-                <span class="nav-section-title">Espace de Validations</span>
+                {#<span class="nav-section-title">Espace de Validations</span>#}
 
                 <div class="nav-group">
                     <button type="button" class="nav-item has-submenu {{ stockActive ? 'has-active' }}">
@@ -316,7 +349,7 @@
             {% endif %}
 
             <div class="nav-section">
-                <span class="nav-section-title">GMAO</span>
+                {#<span class="nav-section-title">GMAO</span>#}
                 <!-- Groupe Maintenance avec sous-menu -->
                 {% set maintenanceRoutes = ['work_order', 'app_references', 'preventive'] %}
                 {% set maintenanceActive = app.request.attributes.get('_route') starts with 'work_order'
@@ -356,7 +389,7 @@
 
             {% if is_granted('ROLE_ADMIN') %}
                 <div class="nav-section">
-                    <span class="nav-section-title">Administration</span>
+                    {#<span class="nav-section-title">Administration</span>#}
 
                     <!-- Groupe Administration avec sous-menu -->
                     <div class="nav-group">
@@ -390,12 +423,19 @@
             {% endif %}
         </nav>
         <div class="sidebar-footer">
-            <div class="user-avatar">{{ app.user.prenoms|first }}{{ app.user.nom|first }}</div>
-            <div class="user-info">
+            <a href="{{ path('app_profile') }}" class="user-avatar" title="Mon profil" style="text-decoration:none;color:inherit;overflow:hidden;">
+                {% if app.user.photo %}
+                    <img src="{{ asset('data/users/photos/' ~ app.user.photo) }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                {% else %}
+                    {{ app.user.prenoms|first }}{{ app.user.nom|first }}
+                {% endif %}
+            </a>
+            <a href="{{ path('app_profile') }}" class="user-info" title="Mon profil" style="text-decoration:none;color:inherit;">
                 <span class="user-name">{{ app.user.prenoms }} {{ app.user.nom }} </span>
                 <span class="user-role">{{ app.user.roles|first|replace({'ROLE_': ''})|title }}</span>
-            </div>
-            <a href="{{ path('app_logout') }}" class="btn text-danger fw-bold bg-white p-1" title="Déconnexion"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-power preview-icon"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg></a>
+            </a>
+            <a href="{{ path('app_profile') }}" class="btn fw-bold bg-white p-1" title="Mon profil" style="color:#3f6896;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings preview-icon"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></a>
+            <a href="{{ path('app_logout') }}" class="btn text-danger fw-bold bg-white p-1" title="Déconnexion"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-power preview-icon"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg></a>
         </div>
     </aside>
 
