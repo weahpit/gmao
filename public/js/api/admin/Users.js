@@ -12,7 +12,10 @@ function getAllUsers(ctrl_name, ctrl_type){
                 <table class="sticky-top w-100 m-1" id="tbl_users_">
                     <thead><tr>
                             <th></th>
+<<<<<<< HEAD
                             <th></th>
+=======
+>>>>>>> 48ee60e8611bb86c924b1367bf84938267faec89
                             <th class="text-center" style="width: 75px;">Mle</th>
                             <th style="min-width: 125px;"">Nom</th>
                             <th>Prenoms</th>
@@ -37,12 +40,15 @@ function getAllUsers(ctrl_name, ctrl_type){
                         contentCtrl +='<td><img class="thumbnail p-2" src="icons/user.png" alt="" height="32"></td>'
                     }
 
+<<<<<<< HEAD
                     if (reponse.data[i].admin === "OUI"){
                         contentCtrl +='<td><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield-check preview-icon text-primary"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></td>'
                     } else {
                         contentCtrl +='<td></td>'
                     }
 
+=======
+>>>>>>> 48ee60e8611bb86c924b1367bf84938267faec89
                     contentCtrl +='<td class="text-center" >' + reponse.data[i].matricule + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].nom + '</td>'
                     contentCtrl +='<td>' + reponse.data[i].prenoms + '</td>'
