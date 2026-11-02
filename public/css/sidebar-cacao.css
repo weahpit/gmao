@@ -1,0 +1,92 @@
+/* =====================================================================
+   CITRAC GMAO — Sidebar « léger cacao » (clair, elegant, professionnel)
+   ---------------------------------------------------------------------
+   Fond crème / latte, texte cacao profond, accents caramel.
+   Charge APRES app.css : surcharge uniquement la barre laterale, sans
+   toucher au reste de l'application. Pour revenir au cacao fonce,
+   il suffit de retirer le <link> de cette feuille dans base.html.twig.
+   ===================================================================== */
+
+:root {
+  --cc-bg-top: #6c583d;   /* haut du degrade (latte soutenu) */
+  --cc-bg-bot: #4e4538;   /* bas du degrade (cacao clair) */
+  --cc-ink: #f7f5f4;   /* texte principal (cacao profond) */
+  --cc-ink-soft: #e1dfdd;   /* texte secondaire / titres de section */
+  --cc-line:     #d8c7b2;   /* filets / separateurs */
+  --cc-active:   #ddc9b2;   /* fond de l'element actif */
+  --cc-active-ink:#3c2b1d;  /* texte de l'element actif */
+  --cc-hover:    rgba(78,58,42,.08);
+  --cc-accent:   #a86f41;   /* caramel (barre active, points, survol) */
+  --cc-accent-d: #8c5a31;
+  --cc-brand: #f7ebe3;   /* nom de marque */
+}
+
+/* --- Conteneur --- */
+.sidebar {
+  background: linear-gradient(180deg, var(--cc-bg-top) 0%, var(--cc-bg-bot) 100%) !important;
+  color: var(--cc-ink) !important;
+  border-right: 1px solid var(--cc-line);
+  box-shadow: 1px 0 0 rgba(176,122,77,.06), 4px 0 24px rgba(90,68,51,.05);
+}
+
+/* --- Marque --- */
+.sidebar-brand { border-bottom: 1px solid var(--cc-line) !important; }
+.brand-name { color: var(--cc-brand) !important; }
+.brand-sub  { color: var(--cc-ink-soft) !important; }
+.brand-icon .lucide { color: var(--cc-accent) !important; }
+
+/* --- Bouton rabattre --- */
+.sidebar-toggle { color: var(--cc-ink-soft) !important; }
+.sidebar-toggle:hover { color: var(--cc-ink) !important; background: var(--cc-hover) !important; }
+
+/* --- Titres de section --- */
+.nav-section-title { color: var(--cc-ink-soft) !important;background: linear-gradient(125deg, #4c3e33, #5e422a) }
+
+/* --- Elements de navigation --- */
+.nav-item { color: var(--cc-ink) !important; font-weight: 500; }
+.nav-item .lucide { color: var(--cc-ink-soft); }
+.nav-item:hover { color: var(--cc-ink) !important; background: var(--cc-hover) !important; }
+.nav-item:hover .lucide { color: var(--cc-accent); }
+
+.nav-item.active {
+  color: var(--cc-active-ink) !important;
+  background: var(--cc-active) !important;
+  box-shadow: inset 3px 0 0 var(--cc-accent) !important;
+}
+.nav-item.active .lucide { color: var(--cc-accent-d); }
+
+/* --- Chevron des sous-menus --- */
+.nav-chevron { color: var(--cc-ink-soft) !important; }
+.nav-group.open .nav-chevron { color: var(--cc-accent) !important; }
+.nav-item.has-submenu.has-active { color: var(--cc-active-ink) !important; }
+
+/* --- Sous-menus --- */
+.nav-submenu { border-left: 1px solid var(--cc-line) !important; }
+.nav-subitem { color: var(--cc-ink) !important; }
+.nav-subitem::before { background: rgba(176,122,77,.35) !important; }
+.nav-subitem:hover { color: var(--cc-active-ink) !important; background: var(--cc-hover) !important; }
+.nav-subitem:hover::before { background: var(--cc-accent) !important; }
+.nav-subitem.active {
+  color: var(--cc-active-ink) !important;
+  background: var(--cc-active) !important;
+}
+.nav-subitem.active::before { background: var(--cc-accent) !important; }
+
+/* --- Pied : utilisateur --- */
+.sidebar-footer { border-top: 1px solid var(--cc-line) !important; }
+.user-avatar {
+  background: linear-gradient(135deg, #c79a6f, var(--cc-accent)) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(176,122,77,.3);
+}
+.user-name { color: var(--cc-ink) !important; }
+.user-role { color: var(--cc-ink-soft) !important; }
+
+/* Les boutons profil / deconnexion gardent leur pastille blanche :
+   on harmonise juste leur survol avec le caramel. */
+.sidebar-footer .btn.bg-white:hover { background: #fff !important; box-shadow: 0 2px 6px rgba(90,68,51,.12); }
+
+/* --- Barre de defilement interne, assortie --- */
+.sidebar-nav::-webkit-scrollbar { width: 6px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: #ddcdb9; border-radius: 3px; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: var(--cc-accent); }

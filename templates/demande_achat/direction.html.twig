@@ -1,0 +1,112 @@
+{% extends 'base.html.twig' %}
+{% import 'demande_achat/_macros.html.twig' as m %}
+{% block title %}Demandes d'achat - Direction{% endblock %}
+
+{% block body %}
+{% include 'demande_achat/_styles.html.twig' %}
+<div class="da-wrap">
+  <div class="da-hero">
+    <h1>Demandes d'achat &mdash; Direction</h1>
+    <p>Ajustez les quantites, invalidez les articles non retenus, puis validez. Les articles coches « a commander » alimenteront le bon de commande fournisseur. Vous pouvez aussi refuser toute la demande.</p>
+  </div>
+
+  <div class="da-nav">
+    <span class="da-chip">A valider <b>{{ counts['SOUMISE']|default(0) }}</b></span>
+    <span class="da-chip">Validees <b>{{ counts['VALIDEE']|default(0) }}</b></span>
+    <span class="da-chip">Refusees <b>{{ counts['REFUSEE']|default(0) }}</b></span>
+    <span class="da-chip">Servies <b>{{ counts['SERVIE']|default(0) }}</b></span>
+  </div>
+
+  <div class="da-card">
+    <h2>Demandes a valider</h2>
+    <table class="da-table">
+      <thead>
+        <tr><th style="width:40px;"></th><th>Numero</th><th>Demandeur</th><th>Service</th><th>Soumise le</th><th>Articles</th><th>Decision</th></tr>
+      </thead>
+      <tbody>
+        {% for d in a_valider %}
+          <tr data-id="{{ d.id }}">
+            <td><button type="button" class="da-btn da-btn-light btn-toggle-da" style="padding:4px 10px;" data-id="{{ d.id }}">+</button></td>
+            <td><b>{{ d.numero }}</b></td>
+            <td>{{ d.demandeur|default('-') }}</td>
+            <td>{{ d.service|default('-') }}</td>
+            <td>{{ d.soumiseAt ? d.soumiseAt|date('d/m/Y H:i') : '-' }}</td>
+            <td>{{ d.lignes|length }}</td>
+            <td>
+              <button class="da-btn da-btn-ok" onclick="DemandeAchat.valider('{{ d.id }}')">Valider</button>
+              <button class="da-btn da-btn-danger" onclick="DemandeAchat.refuser('{{ d.id }}')">Refuser</button>
+            </td>
+          </tr>
+          <tr class="da-detail-row" id="detail-{{ d.id }}" style="display:none;">
+            <td colspan="7"><div class="da-detail-inner" data-da="{{ d.id }}">
+              {% if d.motif %}<p><span class="da-muted">Motif de la demande :</span> {{ d.motif }}</p>{% endif %}
+              <table class="da-lignes">
+                <thead>
+                  <tr>
+                    <th style="width:70px;">Retenu</th>
+                    <th>Article</th>
+                    <th style="width:90px;">Demande</th>
+                    <th style="width:90px;">Stock</th>
+                    <th style="width:110px;">Qte validee</th>
+                    <th style="width:110px;">A commander</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for l in d.lignes %}
+                    <tr class="da-line" data-idx="{{ loop.index0 }}">
+                      <td style="text-align:center;"><input type="checkbox" class="l-valide" checked></td>
+                      <td>{{ l.designation }}{% if l.code|default %} <span class="da-muted">({{ l.code }})</span>{% endif %}</td>
+                      <td>{{ l.quantite }}</td>
+                      <td>{{ (l.qte_stock|default(null)) is null ? 'hors cat.' : l.qte_stock }}</td>
+                      <td><input type="number" class="l-qv" min="0" step="1" value="{{ l.quantite_validee|default(l.quantite) }}" style="width:90px;padding:4px 6px;"></td>
+                      <td style="text-align:center;"><input type="checkbox" class="l-cmd" {{ (l.a_commander|default(false)) ? 'checked' : '' }}></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="da-empty">Aucune demande en attente de validation.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="da-card">
+    <h2>Historique des decisions</h2>
+    <table class="da-table">
+      <thead>
+        <tr><th>Numero</th><th>Demandeur</th><th>Statut</th><th>Decide par</th><th>Le</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for d in toutes %}
+          <tr>
+            <td><b>{{ d.numero }}</b></td>
+            <td>{{ d.demandeur|default('-') }}</td>
+            <td>{{ m.badge(d.statut, d.statutLabel) }}</td>
+            <td>{{ d.validePar|default('-') }}</td>
+            <td>{{ d.valideAt ? d.valideAt|date('d/m/Y H:i') : '-' }}</td>
+            <td><a href="{{ path('da_suivi', {token: d.token}) }}" class="da-btn da-btn-light" style="padding:5px 11px;">Details</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="da-empty">Aucune decision enregistree.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="{{ asset('js/api/stock/DemandeAchat.js') }}"></script>
+<script>
+  document.querySelectorAll('.btn-toggle-da').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var row = document.getElementById('detail-' + btn.dataset.id);
+      if(!row) return;
+      var open = row.style.display !== 'none';
+      row.style.display = open ? 'none' : 'table-row';
+      btn.textContent = open ? '+' : '\u2212';
+    });
+  });
+</script>
+{% endblock %}

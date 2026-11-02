@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Références — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Références</span>
+{% endblock %}
+
+{% block body %}
+    <h2 class="p-1" style="background: var(--green-100)">Données de références</h2>
+    <div class="bg-white">
+        {%  for menu in menus %}
+            <div class="p-1">
+                {% if (menu.classnameMenu) %}
+                    <a href="{{ path(menu.classnameMenu) }}" class="btn-light btn text-dark" style="transform: translateY(-10px);">
+                        <img src="{{ asset('icons/SVG/database.svg') }}" class="py-auto" alt="" height="16" style="color: #2563EB;"> {{ menu.nomMenu|upper }}
+                    </a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <!-- Development version -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Menu.js') }}"></script>
+
+{% endblock %}

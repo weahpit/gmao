@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Admin DB Manager — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Admin DB Manager</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database preview-icon"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+            Admin DB Manager</h1>
+    </div>
+
+    <!-- Table -->
+        <div class="mt-5 p-5 text-center" style="border: 1px solid #bebebe;background: #e9e8e8;">
+            <button class="btn btn-gold" style="font-size: 20px;" onclick="confirmExportDb()">
+                <i data-lucide="download"></i> Exporter la base (.sql)
+            </button>
+        </div>
+
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/admin/Security/database.js') }}"></script>
+    <script>
+        function confirmExportDb() {
+            Swal.fire({
+                title: 'Exporter la base de données ?',
+                text: 'Le fichier contiendra la structure et toutes les données.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Oui, exporter',
+                cancelButtonText: 'Annuler',
+                confirmButtonColor: '#7d5e3a'
+            }).then(function (result) {
+                if (result.isConfirmed) exportDatabase();
+            });
+        }
+    </script>
+{% endblock %}

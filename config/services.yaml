@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/service.schema.json
+
+# This file is the entry point to configure your own service.
+# Files in the packages/ subdirectory configure your dependencies.
+# See also https://symfony.com/doc/current/service_container/import.html
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    photo_equipement: 'data/equipements/'
+    photo_users: 'data/users/photos/'
+    photos_alertes_anomalies: 'data/maintenance/alertes/anomalies/'
+    bon_livraison: 'data/stock/bons/bl/'
+services:
+    App\Services\pdfService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+    # default configuration for service in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your service.
+        autoconfigure: true # Automatically registers your service as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as service
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones

@@ -1,0 +1,164 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon profil — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Mon profil</span>
+{% endblock %}
+
+{% block body %}
+<style>
+    .profile-wrap{max-width:960px;margin:0 auto;}
+    .profile-card{background:#fff;border:1px solid #d9e3ef;border-radius:16px;
+        box-shadow:0 6px 20px rgba(63,104,150,.08);overflow:hidden;margin-bottom:22px;}
+    .profile-head{background:linear-gradient(135deg,#3f6896,#5b8cc4 60%,#86b0d8);
+        color:#fff;padding:22px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+    .profile-avatar{width:76px;height:76px;border-radius:50%;background:rgba(255,255,255,.22);
+        display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:700;
+        color:#fff;overflow:hidden;flex-shrink:0;border:2px solid rgba(255,255,255,.6);}
+    .profile-avatar img{width:100%;height:100%;object-fit:cover;}
+    .profile-head h2{margin:0;font-size:1.3rem;font-weight:700;}
+    .profile-head .role{opacity:.9;font-size:.9rem;}
+    .profile-body{padding:22px 24px;}
+    .profile-section-title{font-size:1.05rem;font-weight:700;color:#33506e;
+        margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+    .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .profile-field label{display:block;font-weight:600;color:#33506e;font-size:.85rem;margin-bottom:5px;}
+    .profile-field input{width:100%;padding:10px 12px;border:1px solid #d9e3ef;border-radius:10px;
+        font-size:16px;background:#f6f9fc;color:#33506e;box-sizing:border-box;}
+    .profile-field input:focus{outline:none;border-color:#5b8cc4;box-shadow:0 0 0 3px rgba(91,140,196,.18);background:#fff;}
+    .profile-actions{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;}
+    .btn-blue{background:#5b8cc4;color:#fff;border:none;border-radius:10px;padding:11px 20px;
+        font-weight:600;cursor:pointer;transition:background .15s;}
+    .btn-blue:hover{background:#4a77ab;}
+    .btn-ghost{background:#eaf1f8;color:#33506e;border:none;border-radius:10px;padding:11px 20px;
+        font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;}
+    .profile-hint{font-size:.78rem;color:#6b82a0;margin-top:6px;}
+    .photo-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .photo-preview{width:72px;height:72px;border-radius:12px;border:2px dashed #c6d4e6;
+        object-fit:cover;background:#f6f9fc;}
+    @media (max-width:640px){
+        .profile-grid{grid-template-columns:1fr;}
+        .profile-actions{flex-direction:column;}
+        .profile-actions .btn-blue,.profile-actions .btn-ghost{width:100%;text-align:center;}
+    }
+</style>
+
+<div class="profile-wrap">
+
+    {# ------- En-tete ------- #}
+    <div class="profile-card">
+        <div class="profile-head">
+            <div class="profile-avatar">
+                {% if user.photo %}
+                    <img src="{{ asset('data/users/photos/' ~ user.photo) }}" alt="Photo de profil">
+                {% else %}
+                    {{ user.prenoms|first }}{{ user.nom|first }}
+                {% endif %}
+            </div>
+            <div>
+                <h2>{{ user.prenoms }} {{ user.nom }}</h2>
+                <div class="role">
+                    {{ user.roles|first|replace({'ROLE_': ''})|title }}
+                    {% if user.matricule %} &middot; Matricule {{ user.matricule }}{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ------- Informations personnelles ------- #}
+    <div class="profile-card">
+        <div class="profile-body">
+            <h3 class="profile-section-title"><i data-lucide="user-round"></i> Informations personnelles</h3>
+
+            <form method="post" action="{{ path('app_profile_update') }}" enctype="multipart/form-data">
+                <input type="hidden" name="_token" value="{{ csrf_token('profile_update') }}">
+
+                <div class="profile-grid">
+                    <div class="profile-field">
+                        <label for="pf_nom">Nom</label>
+                        <input id="pf_nom" type="text" name="nom" value="{{ user.nom }}" required maxlength="50">
+                    </div>
+                    <div class="profile-field">
+                        <label for="pf_prenoms">Prenoms</label>
+                        <input id="pf_prenoms" type="text" name="prenoms" value="{{ user.prenoms }}" required maxlength="255">
+                    </div>
+                    <div class="profile-field">
+                        <label for="pf_email">Adresse e-mail</label>
+                        <input id="pf_email" type="email" name="email" value="{{ user.email }}" required maxlength="180">
+                    </div>
+                    <div class="profile-field">
+                        <label for="pf_mobile">Telephone mobile</label>
+                        <input id="pf_mobile" type="text" name="mobile" value="{{ user.mobile }}" maxlength="50">
+                    </div>
+                </div>
+
+                <div class="profile-field" style="margin-top:16px;">
+                    <label>Photo de profil</label>
+                    <div class="photo-row">
+                        <img id="pf_photo_preview" class="photo-preview"
+                             src="{{ user.photo ? asset('data/users/photos/' ~ user.photo) : '' }}" alt="Apercu">
+                        <div>
+                            <input id="pf_photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp">
+                            <div class="profile-hint">JPEG, PNG ou WebP &middot; 2 Mo maximum.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button type="submit" class="btn-blue"><i data-lucide="save"></i> Enregistrer les modifications</button>
+                    <a href="{{ path('app_dashboard') }}" class="btn-ghost">Annuler</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ------- Changement de mot de passe ------- #}
+    <div class="profile-card">
+        <div class="profile-body">
+            <h3 class="profile-section-title"><i data-lucide="lock"></i> Changer mon mot de passe</h3>
+
+            <form method="post" action="{{ path('app_profile_password') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('profile_password') }}">
+
+                <div class="profile-grid">
+                    <div class="profile-field">
+                        <label for="pf_old">Mot de passe actuel</label>
+                        <input id="pf_old" type="password" name="mot_de_passe_actuel" required autocomplete="current-password">
+                    </div>
+                    <div></div>
+                    <div class="profile-field">
+                        <label for="pf_new">Nouveau mot de passe</label>
+                        <input id="pf_new" type="password" name="nouveau_mot_de_passe" required autocomplete="new-password" minlength="8">
+                        <div class="profile-hint">Au moins 8 caracteres, avec une lettre et un chiffre.</div>
+                    </div>
+                    <div class="profile-field">
+                        <label for="pf_new2">Confirmer le nouveau mot de passe</label>
+                        <input id="pf_new2" type="password" name="confirmer_mot_de_passe" required autocomplete="new-password" minlength="8">
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button type="submit" class="btn-blue"><i data-lucide="key-round"></i> Mettre a jour le mot de passe</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var input = document.getElementById('pf_photo');
+        var preview = document.getElementById('pf_photo_preview');
+        if (input && preview) {
+            input.addEventListener('change', function () {
+                var f = this.files && this.files[0];
+                if (f) { preview.src = URL.createObjectURL(f); }
+            });
+        }
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouvelle demande d'achat{% endblock %}
+
+{% block body %}
+{% include 'demande_achat/_styles.html.twig' %}
+<div class="da-wrap">
+  <div class="da-hero">
+    <h1>Nouvelle demande d'achat</h1>
+    <p>Choisissez les articles dans la liste (vous pouvez taper pour filtrer, ou saisir un article absent du catalogue). Indiquez la quantite : la disponibilite en stock s'affiche automatiquement.</p>
+  </div>
+
+  <div class="da-nav">
+    <a href="{{ path('da_mes_demandes') }}" class="da-btn da-btn-light">Mes demandes</a>
+  </div>
+
+  {% for label, messages in app.flashes %}
+    {% for message in messages %}
+      <div class="da-flash {{ label }}">{{ message }}</div>
+    {% endfor %}
+  {% endfor %}
+
+  <form method="post" action="{{ path('da_nouvelle') }}" id="da-form">
+    <div class="da-card">
+      <h2>Informations generales</h2>
+      <div class="da-grid">
+        <div class="da-field">
+          <label>Demandeur</label>
+          <input type="text" name="demandeur" value="{{ moi }}" disabled >
+        </div>
+        <div class="da-field">
+          <label for="code_service">Service</label>
+          <select name="code_service" id="code_service" disabled>
+            <option value="">- Selectionner -</option>
+            {% for s in services %}
+              <option value="{{ s.id }}">{{ s.libelle }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="da-field" style="margin-top:12px;">
+        <label for="motif">Motif / justification de la demande</label>
+        <textarea name="motif" id="motif" placeholder="Expliquez brievement le besoin..."></textarea>
+      </div>
+    </div>
+
+    <div class="da-card">
+      <h2>Articles demandes</h2>
+      <datalist id="da-articles"></datalist>
+      <table class="da-table" id="da-lignes-table">
+        <thead>
+          <tr>
+            <th>Article</th>
+            <th style="width:110px;">Quantite</th>
+            <th style="width:170px;">Disponibilite</th>
+            <th>Observation</th>
+            <th style="width:50px;"></th>
+          </tr>
+        </thead>
+        <tbody id="da-lignes-body"></tbody>
+      </table>
+      <div style="margin-top:12px;">
+        <button type="button" class="da-btn da-btn-light" id="da-add-ligne">+ Ajouter un article</button>
+      </div>
+      <p class="da-muted" style="margin-top:8px;">La disponibilite est indicative (stock actuel). La direction ajuste les quantites et decide des articles a commander.</p>
+    </div>
+
+    <div class="da-toolbar" style="justify-content:flex-end;">
+      <a href="{{ path('da_mes_demandes') }}" class="da-btn da-btn-light">Annuler</a>
+      <button type="submit" class="da-btn da-btn-primary">Envoyer la demande</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  var URLAPP = (typeof URL_APP !== 'undefined' && URL_APP) ? URL_APP : (window.location.origin + '/');
+  var ARTICLES = [];
+  var BY_NOM = {};
+  var idx = 0;
+  var body = document.getElementById('da-lignes-body');
+  var datalist = document.getElementById('da-articles');
+
+  function loadArticles(){
+    fetch(URLAPP + 'api/demande-achat/articles', {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){ return r.json(); })
+      .then(function(list){
+        ARTICLES = Array.isArray(list) ? list : [];
+        datalist.innerHTML = '';
+        ARTICLES.forEach(function(a){
+          BY_NOM[(a.nom||'').toLowerCase()] = a;
+          var o = document.createElement('option');
+          o.value = a.nom;
+          o.label = (a.nom ? a.nom + ' - ' : '') + 'Réf. : ' + a.code;
+          datalist.appendChild(o);
+        });
+      })
+      .catch(function(){});
+  }
+
+  function labelFor(tr){
+    var artInput = tr.querySelector('.da-art');
+    var qteInput = tr.querySelector('.da-qte');
+    var lbl = tr.querySelector('.da-dispo');
+    var hidId = tr.querySelector('.da-eqid');
+    var hidCode = tr.querySelector('.da-code');
+    var a = BY_NOM[(artInput.value||'').trim().toLowerCase()];
+    var qte = parseFloat(qteInput.value || '0') || 0;
+    if (a){
+      hidId.value = a.id;
+      hidCode.value = a.code || '';
+      var stock = parseFloat(a.qte || 0) || 0;
+      if (qte > 0 && stock >= qte){
+        lbl.innerHTML = '<span class="da-badge st-SERVIE">Disponible</span>';
+      } else if (stock > 0 && qte > stock){
+        lbl.innerHTML = '<span class="da-badge st-SOUMISE">Partiel</span>';
+      } else {
+        lbl.innerHTML = '<span class="da-badge st-EN_COMMANDE">Indisponible</span>';
+      }
+    } else {
+      hidId.value = '';
+      lbl.innerHTML = '<span class="da-badge st-NOUVELLE">Hors catalogue</span>';
+    }
+  }
+
+  function row(){
+    var i = idx++;
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>'+
+        '<input type="text" class="da-art" style="min-width: 400px;" list="da-articles" name="lignes['+i+'][designation]" placeholder="Tapez pour filtrer ou saisir un article" autocomplete="off">'+
+        '<input type="hidden" class="da-eqid" name="lignes['+i+'][equipement_id]">'+
+        '<input type="hidden" class="da-code" name="lignes['+i+'][code]">'+
+      '</td>'+
+      '<td><input type="number" class="da-qte" name="lignes['+i+'][quantite]" min="0" step="1" value="1"></td>'+
+      '<td class="da-dispo"><span class="da-badge st-NOUVELLE">-</span></td>'+
+      '<td><input type="text" name="lignes['+i+'][observation]" placeholder="Remarque"></td>'+
+      '<td><button type="button" class="da-btn da-btn-danger" style="padding:6px 10px;">&times;</button></td>';
+    body.appendChild(tr);
+    tr.querySelector('.da-art').addEventListener('input', function(){ labelFor(tr); });
+    tr.querySelector('.da-art').addEventListener('change', function(){ labelFor(tr); });
+    tr.querySelector('.da-qte').addEventListener('input', function(){ labelFor(tr); });
+    tr.querySelector('button').addEventListener('click', function(){ tr.remove(); });
+  }
+
+  document.getElementById('da-add-ligne').addEventListener('click', row);
+  loadArticles();
+  row();
+})();
+
+        {% if(app.user) %}
+            {% if(app.user.codeService) %}
+                document.getElementById('code_service').value = "{{ app.user.codeService.id }}"
+            {% endif %}
+        {% endif %}
+        document.getElementById('motif').focus()
+
+</script>
+{% endblock %}

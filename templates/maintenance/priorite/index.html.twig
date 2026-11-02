@@ -1,0 +1,74 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Priorités — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Priorités</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">Origines Interventions</h1>
+        <a href="#"  id="btn_add_priorite" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddPriorite">
+            <img src="{{ asset('icons/priorite.png') }}" class="me-2" alt="" height="16"> Ajouter une priorité
+        </a>
+    </div>
+
+    <!-- Table -->
+
+        <div class="card-body">
+
+        </div>
+
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddPriorite" tabindex="-1" aria-labelledby="modalAddPrioriteLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/priorite.png') }}" height="40" alt=""> Enregistrer une priorité</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formPriorite" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="priorite" style="width: 150px;">Libellé</label>
+                            <input type="text" class="input" id="libelle" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="savePriorite">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/Maintenance/Priorite.js') }}"></script>
+    <script>
+
+        let idPriorite = "0";
+        getAllPriorite(document.querySelector(".card-body"), 1)
+        clearForm("formPriorite", "libelle")
+        ValidateOnKeypress(document.getElementById("libelle"), document.getElementById("savePriorite"), "formPriorite")
+
+        document.querySelector("#btn_add_priorite").addEventListener("click", function () {
+            clearForm("formPriorite", "libelle")
+        })
+
+        document.querySelector("#savePriorite").addEventListener("click", function () {
+            let agree = "0";
+            let FormDataPriorite = new FormData();
+            FormDataPriorite.append('id_priorite', idPriorite)
+            FormDataPriorite.append('libelle', document.querySelector("#libelle").value)
+            savePriorite(FormDataPriorite, document.querySelector(".card-body"), 1)
+        })
+    </script>
+{% endblock %}

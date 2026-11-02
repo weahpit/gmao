@@ -1,0 +1,380 @@
+<?php
+
+namespace App\Entity;
+
+use App\Entity\Maintenance\FicheIntervention;
+use App\Repository\EquipementTypeRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Uid\Uuid;
+
+#[ORM\Entity(repositoryClass: EquipementTypeRepository::class)]
+#[UniqueEntity(
+    fields: ['nom_equipement'],
+    message: 'Cette désignation existe déjà.'
+)]
+class EquipementType
+{
+    #[ORM\Id]
+    #[ORM\Column(type: 'uuid', unique: true)]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    private ?Uuid $id = null;
+
+
+    #[ORM\Column(length: 255, unique: true, nullable: true, )]
+    private ?string $nom_equipement = null;
+
+    #[ORM\ManyToOne(inversedBy: 'equipementTypes')]
+    private ?NatureEquipement $nature_equipement = null;
+
+    #[ORM\ManyToOne(inversedBy: 'equipementTypes')]
+    private ?Criticite $criticite = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $photo = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $code = null;
+
+    #[ORM\ManyToOne(inversedBy: 'equipementTypes')]
+    private ?TypeEquipement $categorie = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $sous_equipement = null;
+
+    #[ORM\ManyToOne(inversedBy: 'equipementTypes')]
+    private ?ZoneExploitation $zone = null;
+
+    #[ORM\ManyToOne(inversedBy: 'equipementTypes')]
+    private ?TypeEq $type_eq = null;
+
+    /**
+     * @var Collection<Uuid, MouvementEquipement>
+     */
+    #[ORM\OneToMany(targetEntity: MouvementEquipement::class, mappedBy: 'code_equipement_type')]
+    private Collection $mouvementEquipements;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $qte = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $seuil = null;
+
+    /**
+     * @var Collection<int, Emplacement>
+     */
+    #[ORM\ManyToMany(targetEntity: Emplacement::class, inversedBy: 'equipementTypes')]
+    private Collection $emplacement;
+
+    /**
+     * @var Collection<int, Equipement>
+     */
+    #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'code_equipement_type')]
+    private Collection $equipements;
+
+    /**
+     * @var Collection<int, AlerteAnomalie>
+     */
+    #[ORM\OneToMany(targetEntity: AlerteAnomalie::class, mappedBy: 'code_equipement')]
+    private Collection $alerteAnomalies;
+
+    /**
+     * @var Collection<int, FicheIntervention>
+     */
+    #[ORM\OneToMany(targetEntity: FicheIntervention::class, mappedBy: 'equipement_type')]
+    private Collection $ficheInterventions;
+
+    public function __construct()
+    {
+        $this->mouvementEquipements = new ArrayCollection();
+        $this->emplacement = new ArrayCollection();
+        $this->equipements = new ArrayCollection();
+        $this->alerteAnomalies = new ArrayCollection();
+        $this->ficheInterventions = new ArrayCollection();
+    }
+
+
+    public function getId(): ?Uuid
+    {
+        return $this->id;
+    }
+
+    public function getNomEquipement(): ?string
+    {
+        return $this->nom_equipement;
+    }
+
+    public function setNomEquipement(?string $nom_equipement): static
+    {
+        $this->nom_equipement = $nom_equipement;
+
+        return $this;
+    }
+
+    public function getNatureEquipement(): ?NatureEquipement
+    {
+        return $this->nature_equipement;
+    }
+
+    public function setNatureEquipement(?NatureEquipement $nature_equipement): static
+    {
+        $this->nature_equipement = $nature_equipement;
+
+        return $this;
+    }
+
+    public function getCriticite(): ?Criticite
+    {
+        return $this->criticite;
+    }
+
+    public function setCriticite(?Criticite $criticite): static
+    {
+        $this->criticite = $criticite;
+
+        return $this;
+    }
+
+    public function getPhoto(): ?string
+    {
+        return $this->photo;
+    }
+
+    public function setPhoto(?string $photo): static
+    {
+        $this->photo = $photo;
+
+        return $this;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    public function setCode(?string $code): static
+    {
+        $this->code = $code;
+
+        return $this;
+    }
+
+    public function getCategorie(): ?TypeEquipement
+    {
+        return $this->categorie;
+    }
+
+    public function setCategorie(?TypeEquipement $categorie): static
+    {
+        $this->categorie = $categorie;
+
+        return $this;
+    }
+
+    public function isSousEquipement(): ?bool
+    {
+        return $this->sous_equipement;
+    }
+
+    public function setSousEquipement(?bool $sous_equipement): static
+    {
+        $this->sous_equipement = $sous_equipement;
+
+        return $this;
+    }
+
+    public function getZone(): ?ZoneExploitation
+    {
+        return $this->zone;
+    }
+
+    public function setZone(?ZoneExploitation $zone): static
+    {
+        $this->zone = $zone;
+
+        return $this;
+    }
+
+    public function getTypeEq(): ?TypeEq
+    {
+        return $this->type_eq;
+    }
+
+    public function setTypeEq(?TypeEq $type_eq): static
+    {
+        $this->type_eq = $type_eq;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<Uuid, MouvementEquipement>
+     */
+    public function getMouvementEquipements(): Collection
+    {
+        return $this->mouvementEquipements;
+    }
+
+    public function addMouvementEquipement(MouvementEquipement $mouvementEquipement): static
+    {
+        if (!$this->mouvementEquipements->contains($mouvementEquipement)) {
+            $this->mouvementEquipements->add($mouvementEquipement);
+            $mouvementEquipement->setCodeEquipementType($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMouvementEquipement(MouvementEquipement $mouvementEquipement): static
+    {
+        if ($this->mouvementEquipements->removeElement($mouvementEquipement)) {
+            // set the owning side to null (unless already changed)
+            if ($mouvementEquipement->getCodeEquipementType() === $this) {
+                $mouvementEquipement->setCodeEquipementType(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getQte(): ?float
+    {
+        return $this->qte;
+    }
+
+    public function setQte(?float $qte): static
+    {
+        $this->qte = $qte;
+
+        return $this;
+    }
+
+    public function getSeuil(): ?int
+    {
+        return $this->seuil;
+    }
+
+    public function setSeuil(?int $seuil): static
+    {
+        $this->seuil = $seuil;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Emplacement>
+     */
+    public function getEmplacement(): Collection
+    {
+        return $this->emplacement;
+    }
+
+    public function addEmplacement(Emplacement $emplacement): static
+    {
+        if (!$this->emplacement->contains($emplacement)) {
+            $this->emplacement->add($emplacement);
+        }
+
+        return $this;
+    }
+
+    public function removeEmplacement(Emplacement $emplacement): static
+    {
+        $this->emplacement->removeElement($emplacement);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Equipement>
+     */
+    public function getEquipements(): Collection
+    {
+        return $this->equipements;
+    }
+
+    public function addEquipement(Equipement $equipement): static
+    {
+        if (!$this->equipements->contains($equipement)) {
+            $this->equipements->add($equipement);
+            $equipement->setCodeEquipementType($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEquipement(Equipement $equipement): static
+    {
+        if ($this->equipements->removeElement($equipement)) {
+            // set the owning side to null (unless already changed)
+            if ($equipement->getCodeEquipementType() === $this) {
+                $equipement->setCodeEquipementType(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, AlerteAnomalie>
+     */
+    public function getAlerteAnomalies(): Collection
+    {
+        return $this->alerteAnomalies;
+    }
+
+    public function addAlerteAnomaly(AlerteAnomalie $alerteAnomaly): static
+    {
+        if (!$this->alerteAnomalies->contains($alerteAnomaly)) {
+            $this->alerteAnomalies->add($alerteAnomaly);
+            $alerteAnomaly->setCodeEquipement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAlerteAnomaly(AlerteAnomalie $alerteAnomaly): static
+    {
+        if ($this->alerteAnomalies->removeElement($alerteAnomaly)) {
+            // set the owning side to null (unless already changed)
+            if ($alerteAnomaly->getCodeEquipement() === $this) {
+                $alerteAnomaly->setCodeEquipement(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, FicheIntervention>
+     */
+    public function getFicheInterventions(): Collection
+    {
+        return $this->ficheInterventions;
+    }
+
+    public function addFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if (!$this->ficheInterventions->contains($ficheIntervention)) {
+            $this->ficheInterventions->add($ficheIntervention);
+            $ficheIntervention->setEquipementType($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFicheIntervention(FicheIntervention $ficheIntervention): static
+    {
+        if ($this->ficheInterventions->removeElement($ficheIntervention)) {
+            // set the owning side to null (unless already changed)
+            if ($ficheIntervention->getEquipementType() === $this) {
+                $ficheIntervention->setEquipementType(null);
+            }
+        }
+
+        return $this;
+    }
+}
