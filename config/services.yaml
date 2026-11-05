@@ -11,6 +11,7 @@ parameters:
     photo_users: 'data/users/photos/'
     photos_alertes_anomalies: 'data/maintenance/alertes/anomalies/'
     bon_livraison: 'data/stock/bons/bl/'
+    photo_saisie_stock: 'data/stock/saisies/'
 services:
     App\Services\pdfService:
         arguments:

@@ -1,0 +1,251 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Saisies de stock{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        :root {
+            --ss-cacao: #5A371E;
+            --ss-cacao-clair: #8B5A2B;
+            --ss-creme: #F5EFE6;
+            --ss-accent: #C8912B;
+        }
+        .ss-header {
+            background: linear-gradient(135deg, var(--ss-cacao) 0%, var(--ss-cacao-clair) 100%);
+            color: #fff;
+            border-radius: 14px;
+            padding: 22px 26px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 18px rgba(90, 55, 30, .18);
+        }
+        .ss-header h1 { font-size: 1.35rem; font-weight: 700; margin: 0; }
+        .ss-header p { margin: 4px 0 0; opacity: .85; font-size: .9rem; }
+
+        .ss-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .ss-card {
+            background: #fff; border-radius: 14px; padding: 16px 18px;
+            border: 1px solid #ece3d8; box-shadow: 0 2px 8px rgba(90,55,30,.06);
+        }
+        .ss-card .lbl { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: #9a8877; font-weight: 600; }
+        .ss-card .val { font-size: 1.45rem; font-weight: 700; color: var(--ss-cacao); margin-top: 4px; }
+        .ss-card .sub { font-size: .78rem; color: #a89b8c; }
+
+        .ss-filtres {
+            background: #fff; border-radius: 14px; padding: 18px;
+            border: 1px solid #ece3d8; margin-bottom: 20px;
+        }
+        .ss-filtres label { font-size: .8rem; font-weight: 600; color: #6b5a4a; }
+        .ss-filtres .form-control, .ss-filtres .form-select {
+            border-radius: 10px; border-color: #e3d8ca;
+        }
+        .btn-cacao { background: var(--ss-cacao); color: #fff; border-radius: 10px; border: none; }
+        .btn-cacao:hover { background: var(--ss-cacao-clair); color: #fff; }
+        .btn-outline-cacao { border: 1px solid var(--ss-cacao); color: var(--ss-cacao); border-radius: 10px; }
+        .btn-outline-cacao:hover { background: var(--ss-cacao); color: #fff; }
+
+        .ss-table { background: #fff; border-radius: 14px; overflow: hidden; border: 1px solid #ece3d8; }
+        .ss-table table { margin: 0; }
+        .ss-table thead th {
+            background: var(--ss-creme); color: var(--ss-cacao); font-size: .8rem;
+            text-transform: uppercase; letter-spacing: .03em; border-bottom: 2px solid #e6dccf;
+        }
+        .ss-table tbody tr:nth-child(even) { background: #fbf8f4; }
+        .ss-badge { background: rgba(200,145,43,.14); color: #8a5f00; border-radius: 999px; padding: 3px 10px; font-size: .78rem; font-weight: 600; }
+        .ss-badge.kg { background: rgba(90,55,30,.1); color: #5A371E; }
+        .ss-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid #e6dccf; }
+        .table-responsive { border-radius: 14px; }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="ss-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h1><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h10"/><path d="M7 12h10"/><path d="M7 16h7"/></svg>Saisies de stock</h1>
+            <p>Consultation et export des stocks declares (application mobile / saisie terrain)</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_saisies_stock_csv', app.request.query.all) }}" class="btn btn-outline-cacao">
+                Export CSV
+            </a>
+            <a href="{{ path('app_saisies_stock_pdf', app.request.query.all) }}" target="_blank" class="btn btn-cacao">
+                Export PDF
+            </a>
+        </div>
+    </div>
+
+    <div class="ss-cards">
+        <div class="ss-card">
+            <div class="lbl">Saisies</div>
+            <div class="val">{{ stats.nbTotal }}</div>
+            <div class="sub">selon les filtres</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Total Kg</div>
+            <div class="val">{{ stats.totalKg|number_format(2, ',', ' ') }}</div>
+            <div class="sub">toutes rubriques</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Total Litres</div>
+            <div class="val">{{ stats.totalLitres|number_format(2, ',', ' ') }}</div>
+            <div class="sub">toutes rubriques</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Avec photo</div>
+            <div class="val">{{ stats.nbPhotos }}</div>
+            <div class="sub">justificatifs joints</div>
+        </div>
+    </div>
+
+    <form method="get" class="ss-filtres row g-3">
+        <div class="col-md-3">
+            <label class="mb-1">Rubrique</label>
+            <select name="rubrique" class="form-select">
+                <option value="">Toutes les rubriques</option>
+                {% for r in rubriques %}
+                    <option value="{{ r }}" {{ filtres.rubrique == r ? 'selected' }}>{{ r }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="mb-1">Service</label>
+            <select name="service" class="form-select">
+                <option value="">Tous les services</option>
+                {% for s in services %}
+                    <option value="{{ s.id }}" {{ filtres.service == s.id|trim ? 'selected' }}>{{ s.libelle }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="mb-1">Agent</label>
+            <input type="text" name="agent" value="{{ filtres.agent }}" class="form-control" placeholder="Nom de l'agent">
+        </div>
+        <div class="col-md-2">
+            <label class="mb-1">Du</label>
+            <input type="date" name="du" value="{{ filtres.du }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <label class="mb-1">Au</label>
+            <input type="date" name="au" value="{{ filtres.au }}" class="form-control">
+        </div>
+        <div class="col-md-8">
+            <label class="mb-1">Recherche libre</label>
+            <input type="text" name="q" value="{{ filtres.q }}" class="form-control" placeholder="Rubrique, service, agent...">
+        </div>
+        <div class="col-md-4 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-cacao w-100">Filtrer</button>
+            <a href="{{ path('app_saisies_stock') }}" class="btn btn-outline-cacao w-100">Reinitialiser</a>
+        </div>
+    </form>
+
+    <div class="ss-table">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Date saisie</th>
+                        <th>Rubrique</th>
+                        <th>Service</th>
+                        <th>Agent</th>
+                        <th class="text-end">Quantite</th>
+                        <th>Photo</th>
+                        <th>Recu le</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in saisies %}
+                        <tr>
+                            <td>{{ s.dateSaisie ? s.dateSaisie|date('d/m/Y H:i') : '-' }}</td>
+                            <td><span class="fw-semibold">{{ s.rubrique }}</span></td>
+                            <td>{{ s.serviceLibelle ?? '-' }}</td>
+                            <td>{{ s.agentLibelle ?? '-' }}</td>
+                            <td class="text-end">
+                                <span class="ss-badge {{ s.unite == 'Litres' ? '' : 'kg' }}">
+                                    {{ s.quantite|number_format(2, ',', ' ') }} {{ s.unite }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if s.photo %}
+                                    <img src="{{ asset(dossierPhotos ~ s.photo) }}"
+                                         class="ss-thumb"
+                                         alt="Photo saisie"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#photoModal"
+                                         data-photo-url="{{ asset(dossierPhotos ~ s.photo) }}"
+                                         data-photo-info="{{ s.rubrique }} - {{ s.quantite|number_format(2, ',', ' ') }} {{ s.unite }}">
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted small">{{ s.createdAt ? s.createdAt|date('d/m/Y H:i') : '-' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                Aucune saisie pour ces criteres.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if stats.parRubrique is not empty %}
+        <div class="ss-table mt-4 p-3">
+            <h6 class="mb-3" style="color: var(--ss-cacao); font-weight:700;">Recapitulatif par rubrique</h6>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr><th>Rubrique</th><th class="text-end">Nb saisies</th><th class="text-end">Total Kg</th><th class="text-end">Total Litres</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for rubrique, v in stats.parRubrique %}
+                            <tr>
+                                <td>{{ rubrique }}</td>
+                                <td class="text-end">{{ v.nb }}</td>
+                                <td class="text-end">{{ v.kg|number_format(2, ',', ' ') }}</td>
+                                <td class="text-end">{{ v.litres|number_format(2, ',', ' ') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<!-- Visionneuse photo -->
+<div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;">
+            <div class="modal-header" style="background:var(--ss-creme);">
+                <h6 class="modal-title" id="photoModalInfo" style="color:var(--ss-cacao);"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="photoModalImg" src="" alt="Photo" class="img-fluid" style="border-radius:10px;">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modal = document.getElementById('photoModal');
+            if (!modal) return;
+            modal.addEventListener('show.bs.modal', function (event) {
+                var img = event.relatedTarget;
+                if (!img) return;
+                modal.querySelector('#photoModalImg').src = img.getAttribute('data-photo-url');
+                modal.querySelector('#photoModalInfo').textContent = img.getAttribute('data-photo-info');
+            });
+        });
+    </script>
+{% endblock %}
