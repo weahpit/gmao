@@ -287,7 +287,8 @@
 
                 {% set stockActive = app.request.attributes.get('_route') starts with 'spare_part'
                     or app.request.attributes.get('_route') starts with 'app_mouvements_stock'
-                    or app.request.attributes.get('_route') starts with 'app_saisies_stock' %}
+                    or app.request.attributes.get('_route') starts with 'app_saisies_stock'
+                    or app.request.attributes.get('_route') starts with 'app_sorties_stock' %}
                 <div class="nav-group">
                     <button type="button" class="nav-item has-submenu {{ stockActive ? 'has-active' }}">
                         <i data-lucide="package"></i>
@@ -313,9 +314,14 @@
                             <span class="nav-label">Opérations journalières</span>
                         </a>
                         <hr>
+                        <span class="nav-section-title">Déchets et Echantiollonnage</span>
                         <a href="{{ path('app_saisies_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisies_stock' ? 'active' }}">
                             <span class="nav-label">Saisies de stock</span>
                         </a>
+                        <a href="{{ path('app_sorties_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_sorties_stock' ? 'active' }}">
+                            <span class="nav-label">Sorties de stock</span>
+                        </a>
+                        <hr>
                         <a href="{{ path('app_magasin_bons_valides') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_magasin_bons_valides' ? 'active' }}">
                             <span class="nav-label badge text-success" style="background: #e4f6e5;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="height: 16px;"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer-check preview-icon"><path d="M13.5 22H7a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v.5"/><path d="m16 19 2 2 4-4"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/></svg>
@@ -330,7 +336,7 @@
             ************************* LOGISTIQUE *********************************************************
             **************************************************************************************************#}
 
-            <div class="nav-section">
+            {#<div class="nav-section">
                 <div class="nav-group">
                     <button type="button" class="nav-item has-submenu">
                         <i data-lucide="package"></i>
@@ -352,65 +358,8 @@
                         </a>
                     </div>
                 </div>
-            </div>
+            </div>#}
 
-            {#*************************************************************************************************
-            ************************* LOGISTIQUE *********************************************************
-            **************************************************************************************************#}
-
-            <div class="nav-section">
-                <div class="nav-group">
-                    <button type="button" class="nav-item has-submenu">
-                        <i data-lucide="package"></i>
-                        <span class="nav-label">Déchets et Echantiollonnage</span>
-                        <i data-lucide="chevron-down" class="nav-chevron"></i>
-                    </button>
-                    <div class="nav-submenu">
-                        <span class="nav-section-title">Logistique</span>
-                        <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Avaries</span>
-                        </a>
-
-                        <span class="nav-section-title">Production</span>
-                        <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Fuites / Pertes</span>
-                        </a>
-
-
-                        <span class="nav-section-title">Laboratoire</span>
-                        <div class="nav-submenu">
-                        <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Echantillonthèque</span>
-                        </a>
-                        <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Dégustation</span>
-                        </a>
-                        <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Physico</span>
-                        </a>
-                        <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Tarrare</span>
-                        </a>
-                        <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Fèves</span>
-                        </a>
-                        </div>
-                        <span class="nav-section-title">Gestion de la refonte</span>
-                        <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Situation</span>
-                        </a>
-                    </div>
-
-                </div>
-            </div>
 
             {% if 'ROLE_DG' in app.user.roles or  'ROLE_ADMIN' in app.user.roles %}
 

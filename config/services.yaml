@@ -12,6 +12,7 @@ parameters:
     photos_alertes_anomalies: 'data/maintenance/alertes/anomalies/'
     bon_livraison: 'data/stock/bons/bl/'
     photo_saisie_stock: 'data/stock/saisies/'
+    photo_sortie_stock: 'data/stock/sorties/'
 services:
     App\Services\pdfService:
         arguments:

@@ -20,11 +20,11 @@ class SaisieStock
 {
     /** Rubriques predefinies (liste fermee). */
     public const RUBRIQUES = [
-        'Stock dechets Recyclables',
-        'Stock dechets non recyclables',
-        'Stock echantillotheque',
+        'Stock déchets Recyclables',
+        'Stock déchets non recyclables',
+        'Stock échantillothèque',
         'Stock Refonte',
-        'Stock echantillons Client',
+        'Stock échantillons Client',
     ];
 
     /** Unites autorisees (Kg par defaut). */

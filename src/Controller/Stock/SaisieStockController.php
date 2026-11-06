@@ -4,7 +4,9 @@ namespace App\Controller\Stock;
 
 use App\Entity\Services;
 use App\Entity\Stock\SaisieStock;
+use App\Entity\Stock\SortieStock;
 use App\Repository\Stock\SaisieStockRepository;
+use App\Repository\Stock\SortieStockRepository;
 use App\Services\pdfService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,9 +15,11 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Ecran web de consultation des saisies de stock + export CSV / PDF.
+ * Ecran web de consultation des stocks (saisies = entrees, sorties, solde)
+ * + export CSV / PDF des saisies.
  *
  * Filtres : rubrique, service, agent, periode (du / au), texte libre.
+ * Par defaut, la periode affichee est celle du jour.
  * Vue : templates/saisie_stock/index.html.twig
  */
 #[Route('/stock')]
@@ -24,62 +28,119 @@ final class SaisieStockController extends AbstractController
     public function __construct(private EntityManagerInterface $em) {}
 
     /**
-     * Lit les filtres de la requete et renvoie les saisies correspondantes.
+     * Lit les filtres de la requete.
      *
-     * @return array{0: SaisieStock[], 1: array<string,mixed>}
+     * Par defaut (aucun parametre du / au dans l'URL), la periode est le jour
+     * courant. Une periode volontairement videe (?du=&au=) affiche tout.
+     *
+     * @return array<string,string>
      */
-    private function appliquerFiltres(Request $request, SaisieStockRepository $repo): array
+    private function lireFiltres(Request $request): array
     {
-        $rubrique  = trim((string) $request->query->get('rubrique', ''));
-        $serviceId = trim((string) $request->query->get('service', ''));
-        $agent     = trim((string) $request->query->get('agent', ''));
-        $q         = trim((string) $request->query->get('q', ''));
-        $du        = trim((string) $request->query->get('du', ''));
-        $au        = trim((string) $request->query->get('au', ''));
+        $du = trim((string) $request->query->get('du', ''));
+        $au = trim((string) $request->query->get('au', ''));
 
-        $saisies = $repo->findFiltre($du, $au, $rubrique, $serviceId, $agent, $q);
+        if (!$request->query->has('du') && !$request->query->has('au')) {
+            $du = $au = (new \DateTimeImmutable('today'))->format('Y-m-d');
+        }
 
-        $filtres = [
-            'rubrique' => $rubrique,
-            'service'  => $serviceId,
-            'agent'    => $agent,
-            'q'        => $q,
+        return [
+            'rubrique' => trim((string) $request->query->get('rubrique', '')),
+            'service'  => trim((string) $request->query->get('service', '')),
+            'agent'    => trim((string) $request->query->get('agent', '')),
+            'q'        => trim((string) $request->query->get('q', '')),
             'du'       => $du,
             'au'       => $au,
         ];
-
-        return [$saisies, $filtres];
     }
 
-    /** Statistiques agregees (par rubrique) sur le jeu filtre. */
-    private function statistiques(array $saisies): array
+    /**
+     * Renvoie les saisies correspondant aux filtres de la requete.
+     *
+     * @return array{0: SaisieStock[], 1: array<string,string>}
+     */
+    private function appliquerFiltres(Request $request, SaisieStockRepository $repo): array
     {
+        $f = $this->lireFiltres($request);
+
+        return [
+            $repo->findFiltre($f['du'], $f['au'], $f['rubrique'], $f['service'], $f['agent'], $f['q']),
+            $f,
+        ];
+    }
+
+    /** Ligne de recapitulatif a zero. */
+    private function ligneVide(): array
+    {
+        return [
+            'nbEntrees'    => 0,
+            'nbSorties'    => 0,
+            'entreeKg'     => 0.0,
+            'entreeLitres' => 0.0,
+            'sortieKg'     => 0.0,
+            'sortieLitres' => 0.0,
+            'soldeKg'      => 0.0,
+            'soldeLitres'  => 0.0,
+        ];
+    }
+
+    /** Ajoute une quantite a une ligne ($sens = 'entree' ou 'sortie'). */
+    private function ajouter(array &$ligne, string $sens, ?string $unite, float $quantite): void
+    {
+        $ligne[$sens . ($unite === 'Litres' ? 'Litres' : 'Kg')] += $quantite;
+        $ligne['nb' . ($sens === 'entree' ? 'Entrees' : 'Sorties')]++;
+    }
+
+    /**
+     * Statistiques agregees par rubrique sur le jeu filtre.
+     *
+     * TOUTES les rubriques predefinies figurent au recapitulatif, meme sans
+     * mouvement (quantites a zero). Seule exception : quand une rubrique est
+     * choisie dans le filtre, on n'affiche que celle-ci.
+     *
+     * @param SaisieStock[] $saisies
+     * @param SortieStock[] $sorties
+     */
+    private function statistiques(array $saisies, array $sorties, string $rubriqueFiltre): array
+    {
+        $rubriques = in_array($rubriqueFiltre, SaisieStock::RUBRIQUES, true)
+            ? [$rubriqueFiltre]
+            : SaisieStock::RUBRIQUES;
+
         $parRubrique = [];
-        $totalKg = 0.0;
-        $totalLitres = 0.0;
+        foreach ($rubriques as $r) {
+            $parRubrique[$r] = $this->ligneVide();
+        }
 
         foreach ($saisies as $s) {
             /** @var SaisieStock $s */
             $r = $s->getRubrique() ?? 'Inconnu';
-            if (!isset($parRubrique[$r])) {
-                $parRubrique[$r] = ['nb' => 0, 'kg' => 0.0, 'litres' => 0.0];
-            }
-            $parRubrique[$r]['nb']++;
-            if ($s->getUnite() === 'Litres') {
-                $parRubrique[$r]['litres'] += (float) $s->getQuantite();
-                $totalLitres += (float) $s->getQuantite();
-            } else {
-                $parRubrique[$r]['kg'] += (float) $s->getQuantite();
-                $totalKg += (float) $s->getQuantite();
-            }
+            $parRubrique[$r] ??= $this->ligneVide();
+            $this->ajouter($parRubrique[$r], 'entree', $s->getUnite(), (float) $s->getQuantite());
+        }
+        foreach ($sorties as $s) {
+            /** @var SortieStock $s */
+            $r = $s->getRubrique() ?? 'Inconnu';
+            $parRubrique[$r] ??= $this->ligneVide();
+            $this->ajouter($parRubrique[$r], 'sortie', $s->getUnite(), (float) $s->getQuantite());
         }
 
+        $totaux = $this->ligneVide();
+        foreach ($parRubrique as &$ligne) {
+            $ligne['soldeKg']     = round($ligne['entreeKg'] - $ligne['sortieKg'], 3);
+            $ligne['soldeLitres'] = round($ligne['entreeLitres'] - $ligne['sortieLitres'], 3);
+            foreach ($totaux as $cle => $valeur) {
+                $totaux[$cle] += $ligne[$cle];
+            }
+        }
+        unset($ligne);
+
+        $avecPhoto = static fn (SaisieStock|SortieStock $m): bool => $m->getPhoto() !== null;
+
         return [
-            'parRubrique'  => $parRubrique,
-            'totalKg'      => $totalKg,
-            'totalLitres'  => $totalLitres,
-            'nbTotal'      => count($saisies),
-            'nbPhotos'     => count(array_filter($saisies, fn (SaisieStock $s) => $s->getPhoto() !== null)),
+            'parRubrique' => $parRubrique,
+            'totaux'      => $totaux,
+            'nbPhotos'    => count(array_filter($saisies, $avecPhoto)) + count(array_filter($sorties, $avecPhoto)),
         ];
     }
 
@@ -89,7 +150,7 @@ final class SaisieStockController extends AbstractController
     }
 
     #[Route('/saisies', name: 'app_saisies_stock', methods: ['GET'])]
-    public function index(Request $request, SaisieStockRepository $repo): Response
+    public function index(Request $request, SaisieStockRepository $repo, SortieStockRepository $sortieRepo): Response
     {
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
@@ -97,15 +158,25 @@ final class SaisieStockController extends AbstractController
         $this->denyAccessUnlessGranted('ROLE_PDR');
 
         [$saisies, $filtres] = $this->appliquerFiltres($request, $repo);
+        $sorties = $sortieRepo->findFiltre(
+            $filtres['du'],
+            $filtres['au'],
+            $filtres['rubrique'],
+            $filtres['service'],
+            $filtres['agent'],
+            $filtres['q']
+        );
 
         return $this->render('saisie_stock/index.html.twig', [
             'saisies'  => $saisies,
+            'sorties'  => $sorties,
             'filtres'  => $filtres,
-            'stats'    => $this->statistiques($saisies),
+            'stats'    => $this->statistiques($saisies, $sorties, $filtres['rubrique']),
             'rubriques' => SaisieStock::RUBRIQUES,
             'unites'   => SaisieStock::UNITES,
             'services' => $this->services(),
             'dossierPhotos' => $this->getParameter('photo_saisie_stock'),
+            'dossierPhotosSorties' => $this->getParameter('photo_sortie_stock'),
         ]);
     }
 
