@@ -1,0 +1,188 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Saisie de stock{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'saisie_stock/_styles.html.twig' %}
+    <style>
+        .ss-badge.entree { background: rgba(39,174,96,.14); color: #1e7e46; }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Saisie de stock</span>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="ss-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h1>Saisie de stock</h1>
+            <p>Enregistrer une quantité entrée dans un type de stock : type, quantité, service et photo justificative</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_sorties_stock') }}" class="btn btn-outline-light" style="border-radius:10px;">
+                Sortie de stock
+            </a>
+            <a href="{{ path('app_saisies_stock') }}" class="btn btn-outline-light" style="border-radius:10px;">
+                Consulter les stocks
+            </a>
+        </div>
+    </div>
+
+    {% if erreurs._global is defined %}
+        <div class="alert alert-danger">{{ erreurs._global }}</div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="ss-filtres row g-3" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token('saisie_stock') }}">
+
+        <div class="col-md-5">
+            <label class="mb-1" for="rubrique">Type de stock *</label>
+            <select id="rubrique" name="rubrique" class="form-select" required>
+                <option value="">— Choisir —</option>
+                {% for r in rubriques %}
+                    <option value="{{ r }}" {{ saisie.rubrique == r ? 'selected' }}>{{ r }}</option>
+                {% endfor %}
+            </select>
+            {% if erreurs.rubrique is defined %}<div class="ss-errors">{{ erreurs.rubrique }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-2">
+            <label class="mb-1" for="quantite">Quantité *</label>
+            <input id="quantite" type="text" inputmode="decimal" name="quantite" class="form-control"
+                   value="{{ saisie.quantite is not null ? saisie.quantite : '' }}" placeholder="0,00" required>
+            {% if erreurs.quantite is defined %}<div class="ss-errors">{{ erreurs.quantite }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-2">
+            <label class="mb-1" for="unite">Unité</label>
+            <select id="unite" name="unite" class="form-select">
+                {% for u in unites %}
+                    <option value="{{ u }}" {{ saisie.unite == u ? 'selected' }}>{{ u }}</option>
+                {% endfor %}
+            </select>
+            {% if erreurs.unite is defined %}<div class="ss-errors">{{ erreurs.unite }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-3">
+            <label class="mb-1" for="date_saisie">Date et heure de la saisie</label>
+            <input id="date_saisie" type="datetime-local" name="date_saisie" class="form-control" value="{{ dateValeur }}">
+            {% if erreurs.dateSaisie is defined %}<div class="ss-errors">{{ erreurs.dateSaisie }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-6">
+            <label class="mb-1" for="service">Service *</label>
+            <select id="service" name="service" class="form-select" required>
+                <option value="">— Choisir —</option>
+                {% for s in services %}
+                    <option value="{{ s.id }}" {{ serviceId == s.id|trim ? 'selected' }}>{{ s.libelle }}</option>
+                {% endfor %}
+            </select>
+            {% if erreurs.service is defined %}<div class="ss-errors">{{ erreurs.service }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-6">
+            <label class="mb-1" for="photo">Photo (facultative)</label>
+            <input id="photo" type="file" name="photo" class="form-control" accept="image/jpeg,image/png,image/webp">
+            {% if erreurs.photo is defined %}<div class="ss-errors">{{ erreurs.photo }}</div>{% endif %}
+            <img id="photoPreview" class="ss-preview" alt="Aperçu de la photo">
+        </div>
+
+        <div class="col-12 d-flex align-items-end justify-content-end gap-2">
+            <a href="{{ path('app_saisies_stock') }}" class="btn btn-outline-cacao">Annuler</a>
+            <button type="submit" class="btn btn-cacao px-4">Enregistrer la saisie</button>
+        </div>
+    </form>
+
+    <div class="ss-section-title">Saisies du jour</div>
+    <div class="ss-table">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Heure</th>
+                        <th>Type Stock</th>
+                        <th>Service</th>
+                        <th>Agent</th>
+                        <th class="text-end">Quantité</th>
+                        <th>Photo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in saisies %}
+                        <tr>
+                            <td>{{ o.dateSaisie ? o.dateSaisie|date('H:i') : '-' }}</td>
+                            <td><span class="fw-semibold">{{ o.rubrique }}</span></td>
+                            <td>{{ o.serviceLibelle ?? '-' }}</td>
+                            <td>{{ o.agentLibelle ?? '-' }}</td>
+                            <td class="text-end">
+                                <span class="ss-badge entree">+ {{ o.quantite|number_format(2, ',', ' ') }} {{ o.unite }}</span>
+                            </td>
+                            <td>
+                                {% if o.photo %}
+                                    <img src="{{ asset(dossierPhotos ~ o.photo) }}"
+                                         class="ss-thumb"
+                                         alt="Photo saisie"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#photoModal"
+                                         data-photo-url="{{ asset(dossierPhotos ~ o.photo) }}"
+                                         data-photo-info="{{ o.rubrique }}">
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Aucune saisie enregistrée aujourd'hui.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Visionneuse photo -->
+<div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;">
+            <div class="modal-header" style="background:var(--ss-creme);">
+                <h6 class="modal-title" id="photoModalInfo" style="color:var(--ss-cacao);"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="photoModalImg" src="" alt="Photo" class="img-fluid" style="border-radius:10px;max-height: 700px;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Visionneuse photo
+        var modal = document.getElementById('photoModal');
+        modal.addEventListener('show.bs.modal', function (event) {
+            var img = event.relatedTarget;
+            if (!img) return;
+            modal.querySelector('#photoModalImg').src = img.getAttribute('data-photo-url');
+            modal.querySelector('#photoModalInfo').textContent = img.getAttribute('data-photo-info');
+        });
+
+        // Aperçu de la photo choisie avant l'envoi
+        var input = document.getElementById('photo');
+        var apercu = document.getElementById('photoPreview');
+        input.addEventListener('change', function () {
+            var f = input.files && input.files[0];
+            if (!f) { apercu.style.display = 'none'; return; }
+            apercu.src = URL.createObjectURL(f);
+            apercu.style.display = 'block';
+        });
+    });
+</script>
+{% endblock %}

@@ -16,6 +16,28 @@ class SortieStockRepository extends ServiceEntityRepository
         parent::__construct($registry, SortieStock::class);
     }
 
+    /** Recherche une sortie par son identifiant client (idempotence mobile). */
+    public function findOneByClientUuid(?string $clientUuid): ?SortieStock
+    {
+        if (!$clientUuid) {
+            return null;
+        }
+
+        return $this->findOneBy(['clientUuid' => $clientUuid]);
+    }
+
+    /** Dernieres sorties d'un agent, les plus recentes d'abord. */
+    public function findRecentesParAgent($agent, int $limite = 50): array
+    {
+        return $this->createQueryBuilder('s')
+            ->andWhere('s.agent = :agent')
+            ->setParameter('agent', $agent)
+            ->orderBy('s.createdAt', 'DESC')
+            ->setMaxResults($limite)
+            ->getQuery()
+            ->getResult();
+    }
+
     /**
      * Sorties filtrées (même logique que SaisieStockRepository::findFiltre,
      * pour que les deux jeux de données se comparent sur les mêmes critères).

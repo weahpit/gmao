@@ -16,8 +16,11 @@
             <p>Entrées (saisies terrain / application mobile), sorties et solde par type de stock</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <a href="{{ path('app_saisie_stock_nouvelle') }}" class="btn btn-success" style="border-radius:10px;">
+                Entrée
+            </a>
             <a href="{{ path('app_sorties_stock') }}" class="btn btn-warning" style="border-radius:10px;">
-                Nouvelle sortie
+                Sortie
             </a>
             <a href="{{ path('app_saisies_stock_csv', app.request.query.all) }}" class="btn btn-outline-cacao">
                 Export CSV

@@ -288,6 +288,7 @@
                 {% set stockActive = app.request.attributes.get('_route') starts with 'spare_part'
                     or app.request.attributes.get('_route') starts with 'app_mouvements_stock'
                     or app.request.attributes.get('_route') starts with 'app_saisies_stock'
+                    or app.request.attributes.get('_route') starts with 'app_saisie_stock_nouvelle'
                     or app.request.attributes.get('_route') starts with 'app_sorties_stock' %}
                 <div class="nav-group">
                     <button type="button" class="nav-item has-submenu {{ stockActive ? 'has-active' }}">
@@ -315,8 +316,11 @@
                         </a>
                         <hr>
                         <span class="nav-section-title">Déchets et Echantiollonnage</span>
+                        <a href="{{ path('app_saisie_stock_nouvelle') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisie_stock_nouvelle' ? 'active' }}">
+                            <span class="nav-label">Saisie de stock</span>
+                        </a>
                         <a href="{{ path('app_saisies_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisies_stock' ? 'active' }}">
-                            <span class="nav-label">Saisies de stock</span>
+                            <span class="nav-label">Consulter les stocks</span>
                         </a>
                         <a href="{{ path('app_sorties_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_sorties_stock' ? 'active' }}">
                             <span class="nav-label">Sorties de stock</span>
