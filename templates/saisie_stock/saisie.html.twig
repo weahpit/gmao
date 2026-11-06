@@ -22,7 +22,7 @@
     <div class="ss-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
             <h1>Saisie de stock</h1>
-            <p>Enregistrer une quantité entrée dans un type de stock : type, quantité, service et photo justificative</p>
+            <p>Enregistrer une quantité entrée dans un type de stock : type, quantité, source, emplacement, motif, service et photo justificative</p>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ path('app_sorties_stock') }}" class="btn btn-outline-light" style="border-radius:10px;">
@@ -75,6 +75,37 @@
             {% if erreurs.dateSaisie is defined %}<div class="ss-errors">{{ erreurs.dateSaisie }}</div>{% endif %}
         </div>
 
+        <div class="col-md-4">
+            <label class="mb-1" for="source">Source du stock *</label>
+            <input id="source" type="text" name="source" class="form-control" list="liste_sources"
+                   maxlength="255" value="{{ saisie.source ?? '' }}" placeholder="D'où provient le stock ?" required>
+            <datalist id="liste_sources">
+                {% for s in sources %}<option value="{{ s }}">{% endfor %}
+            </datalist>
+            {% if erreurs.source is defined %}<div class="ss-errors">{{ erreurs.source }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <label class="mb-1" for="emplacement">Emplacement *</label>
+            <select id="emplacement" name="emplacement" class="form-select" required>
+                <option value="">— Choisir —</option>
+                {% for e in emplacements %}
+                    <option value="{{ e.id }}" {{ emplacementId == e.id|trim ? 'selected' }}>{{ e.libelle }}</option>
+                {% endfor %}
+            </select>
+            {% if erreurs.emplacement is defined %}<div class="ss-errors">{{ erreurs.emplacement }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <label class="mb-1" for="motif">Motif *</label>
+            <input id="motif" type="text" name="motif" class="form-control" list="liste_motifs"
+                   maxlength="255" value="{{ saisie.motif ?? '' }}" placeholder="Motif de l'entrée" required>
+            <datalist id="liste_motifs">
+                {% for m in motifs %}<option value="{{ m }}">{% endfor %}
+            </datalist>
+            {% if erreurs.motif is defined %}<div class="ss-errors">{{ erreurs.motif }}</div>{% endif %}
+        </div>
+
         <div class="col-md-6">
             <label class="mb-1" for="service">Service *</label>
             <select id="service" name="service" class="form-select" required>
@@ -107,6 +138,9 @@
                     <tr>
                         <th>Heure</th>
                         <th>Type Stock</th>
+                        <th>Source</th>
+                        <th>Emplacement</th>
+                        <th>Motif</th>
                         <th>Service</th>
                         <th>Agent</th>
                         <th class="text-end">Quantité</th>
@@ -118,6 +152,9 @@
                         <tr>
                             <td>{{ o.dateSaisie ? o.dateSaisie|date('H:i') : '-' }}</td>
                             <td><span class="fw-semibold">{{ o.rubrique }}</span></td>
+                            <td>{{ o.source ?? '-' }}</td>
+                            <td>{{ o.emplacementLibelle ?? '-' }}</td>
+                            <td>{{ o.motif ?? '-' }}</td>
                             <td>{{ o.serviceLibelle ?? '-' }}</td>
                             <td>{{ o.agentLibelle ?? '-' }}</td>
                             <td class="text-end">
@@ -139,7 +176,7 @@
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">Aucune saisie enregistrée aujourd'hui.</td>
+                            <td colspan="9" class="text-center text-muted py-4">Aucune saisie enregistrée aujourd'hui.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

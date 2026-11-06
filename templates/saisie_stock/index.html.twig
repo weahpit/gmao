@@ -22,11 +22,11 @@
             <a href="{{ path('app_sorties_stock') }}" class="btn btn-warning" style="border-radius:10px;">
                 Sortie
             </a>
-            <a href="{{ path('app_saisies_stock_csv', app.request.query.all) }}" class="btn btn-outline-cacao">
-                Export CSV
+            <a href="{{ path('app_saisies_stock_csv', app.request.query.all) }}" class="btn btn-cacao">
+                CSV
             </a>
             <a href="{{ path('app_saisies_stock_pdf', app.request.query.all) }}" target="_blank" class="btn btn-cacao">
-                Export PDF
+                PDF
             </a>
         </div>
     </div>
@@ -80,7 +80,7 @@
             <table class="table table-sm align-middle mb-0">
                 <thead>
                 <tr>
-                    {% set th = 'background: #547cd3;color: lightgrey' %}
+                    {% set th = 'background: #547cd3;color: white' %}
                     <th style="{{ th }}">Type Stock</th>
                     <th class="text-end" style="{{ th }}">Nb entrées</th>
                     <th class="text-end" style="{{ th }}">Entrées Kg</th>
@@ -97,10 +97,10 @@
                     <tr>
                         <td>{{ rubrique }}</td>
                         <td class="text-end {{ v.nbEntrees == 0 ? 'ss-zero' }}">{{ v.nbEntrees }}</td>
-                        <td class="text-end {{ v.entreeKg == 0 ? 'ss-zero' }}">{{ v.entreeKg|number_format(2, ',', ' ') }}</td>
+                        <td class="text-end {{ v.entreeKg == 0 ? 'ss-zero' }}" style=";background: #f9eded;color: #c53030;{% if (v.entreeKg > 0)  %}font-weight: bold;{% endif %}">{{ v.entreeKg|number_format(2, ',', ' ') }}</td>
                         <td class="text-end {{ v.entreeLitres == 0 ? 'ss-zero' }}">{{ v.entreeLitres|number_format(2, ',', ' ') }}</td>
                         <td class="text-end {{ v.nbSorties == 0 ? 'ss-zero' }}">{{ v.nbSorties }}</td>
-                        <td class="text-end {{ v.sortieKg == 0 ? 'ss-zero' }}">{{ v.sortieKg|number_format(2, ',', ' ') }}</td>
+                        <td class="text-end {{ v.sortieKg == 0 ? 'ss-zero' }}" style=";background: #ecf9ef;color: #1d692e;{% if (v.sortieKg > 0)  %}font-weight: bold;{% endif %}">{{ v.sortieKg|number_format(2, ',', ' ') }}</td>
                         <td class="text-end {{ v.sortieLitres == 0 ? 'ss-zero' }}">{{ v.sortieLitres|number_format(2, ',', ' ') }}</td>
                         <td class="text-end fw-semibold {{ v.soldeKg < 0 ? 'ss-neg' : (v.soldeKg == 0 ? 'ss-zero') }}">{{ v.soldeKg|number_format(2, ',', ' ') }}</td>
                         <td class="text-end fw-semibold {{ v.soldeLitres < 0 ? 'ss-neg' : (v.soldeLitres == 0 ? 'ss-zero') }}">{{ v.soldeLitres|number_format(2, ',', ' ') }}</td>

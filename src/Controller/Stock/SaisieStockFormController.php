@@ -2,6 +2,7 @@
 
 namespace App\Controller\Stock;
 
+use App\Entity\Emplacement;
 use App\Entity\Services;
 use App\Entity\Stock\SaisieStock;
 use App\Entity\User;
@@ -17,7 +18,8 @@ use Symfony\Component\Uid\Uuid;
 
 /**
  * Page de saisie (entrée) de stock : formulaire (type de stock, quantité,
- * unité, service, photo justificative) + saisies du jour.
+ * unité, source, emplacement, motif, service, photo justificative) + saisies
+ * du jour.
  *
  * Pendant web de SortieStockController : même ergonomie, mais pour les ENTRÉES.
  * Les saisies alimentent la page de consultation (/stock/saisies) :
@@ -113,8 +115,12 @@ final class SaisieStockFormController extends AbstractController
             'erreurs'     => $erreurs,
             'dateValeur'  => $saisie->getDateSaisie()?->format('Y-m-d\\TH:i'),
             'serviceId'   => (string) $saisie->getService()?->getId(),
+            'emplacementId' => (string) $saisie->getEmplacement()?->getId(),
             'rubriques'   => SaisieStock::RUBRIQUES,
             'unites'      => SaisieStock::UNITES,
+            'sources'     => SaisieStock::SOURCES,
+            'motifs'      => SaisieStock::MOTIFS,
+            'emplacements' => $this->em->getRepository(Emplacement::class)->findBy([], ['libelle' => 'ASC']),
             'services'    => $this->em->getRepository(Services::class)->findBy([], ['libelle' => 'ASC']),
             'saisies'     => $repo->findFiltre($aujourdhui, $aujourdhui),
             'dossierPhotos' => $this->dossierPhotos,
@@ -133,11 +139,18 @@ final class SaisieStockFormController extends AbstractController
         $saisie->setRubrique(trim((string) $in->get('rubrique')));
         $saisie->setQuantite(is_numeric($brut) ? (float) $brut : null);
         $saisie->setUnite(trim((string) $in->get('unite')) ?: 'Kg');
+        $saisie->setSource(trim((string) $in->get('source')) ?: null);
+        $saisie->setMotif(trim((string) $in->get('motif')) ?: null);
 
         /** @var Services|null $service */
         $service = $this->trouver(Services::class, $in->get('service'));
         $saisie->setService($service);
         $saisie->setServiceLibelle($service?->getLibelle());
+
+        /** @var Emplacement|null $emplacement */
+        $emplacement = $this->trouver(Emplacement::class, $in->get('emplacement'));
+        $saisie->setEmplacement($emplacement);
+        $saisie->setEmplacementLibelle($emplacement?->getLibelle());
 
         $date = trim((string) $in->get('date_saisie'));
         if ($date === '') {
@@ -171,6 +184,19 @@ final class SaisieStockFormController extends AbstractController
         }
         if (!in_array($saisie->getUnite(), SaisieStock::UNITES, true)) {
             $erreurs['unite'] = 'Unité invalide.';
+        }
+        if (($saisie->getSource() ?? '') === '') {
+            $erreurs['source'] = 'Indiquez la source du stock.';
+        } elseif (mb_strlen((string) $saisie->getSource()) > 255) {
+            $erreurs['source'] = 'La source est trop longue (255 caractères maximum).';
+        }
+        if ($saisie->getEmplacement() === null) {
+            $erreurs['emplacement'] = "Choisissez l'emplacement.";
+        }
+        if (($saisie->getMotif() ?? '') === '') {
+            $erreurs['motif'] = 'Le motif est obligatoire.';
+        } elseif (mb_strlen((string) $saisie->getMotif()) > 255) {
+            $erreurs['motif'] = 'Le motif est trop long (255 caractères maximum).';
         }
         if ($saisie->getService() === null) {
             $erreurs['service'] = 'Choisissez le service.';

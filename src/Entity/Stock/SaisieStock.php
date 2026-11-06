@@ -2,6 +2,7 @@
 
 namespace App\Entity\Stock;
 
+use App\Entity\Emplacement;
 use App\Entity\Services;
 use App\Entity\User;
 use App\Repository\Stock\SaisieStockRepository;
@@ -13,6 +14,16 @@ use Symfony\Component\Uid\Uuid;
  * Saisie de stock effectuee par un agent d'un service (Production,
  * Laboratoires, etc.) dans une rubrique predefinie.
  * Alimentee notamment par l'application mobile (mode hors-ligne + synchro).
+ *
+ * Depuis la v2, une entree porte aussi trois informations complementaires :
+ *  - source  : d'ou provient le stock entre (provenance) ;
+ *  - emplacement : ou le stock est range (relation vers Emplacement) ;
+ *  - motif   : pourquoi cette entree est enregistree.
+ *
+ * Ces trois colonnes sont NULLABLE en base : les saisies deja existantes
+ * restent valides et les envois hors-ligne de l'ancienne application mobile
+ * ne cassent pas. Le caractere "obligatoire a la saisie" est applique a
+ * l'entree (formulaire web + API), pas au schema.
  */
 #[ORM\Entity(repositoryClass: SaisieStockRepository::class)]
 #[ORM\Table(name: 'saisie_stock')]
@@ -29,6 +40,27 @@ class SaisieStock
 
     /** Unites autorisees (Kg par defaut). */
     public const UNITES = ['Kg', 'Litres'];
+
+    /** Suggestions de source du stock entre (la saisie reste libre). */
+    public const SOURCES = [
+        'Production interne',
+        'Laboratoire',
+        'Collecte terrain',
+        'Réception fournisseur',
+        'Retour client',
+        'Récupération / tri',
+        'Transfert interne',
+    ];
+
+    /** Suggestions de motifs d'entree (la saisie reste libre). */
+    public const MOTIFS = [
+        'Réception / collecte',
+        'Production interne',
+        'Retour / réintégration',
+        'Transfert entre emplacements',
+        'Récupération / don',
+        "Correction d'inventaire",
+    ];
 
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
@@ -62,6 +94,23 @@ class SaisieStock
 
     #[ORM\Column(length: 20)]
     private ?string $unite = 'Kg';
+
+    /** Source / provenance du stock entre (saisie libre, cf. self::SOURCES). */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $source = null;
+
+    /** Emplacement de rangement du stock entre. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Emplacement $emplacement = null;
+
+    /** Libelle de l'emplacement au moment de la saisie (trace lisible). */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $emplacementLibelle = null;
+
+    /** Motif de l'entree (saisie libre, cf. self::MOTIFS). */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $motif = null;
 
     /** Nom du fichier photo stocke cote serveur. */
     #[ORM\Column(length: 255, nullable: true)]
@@ -110,6 +159,18 @@ class SaisieStock
 
     public function getUnite(): ?string { return $this->unite; }
     public function setUnite(?string $v): static { $this->unite = $v; return $this; }
+
+    public function getSource(): ?string { return $this->source; }
+    public function setSource(?string $v): static { $this->source = $v; return $this; }
+
+    public function getEmplacement(): ?Emplacement { return $this->emplacement; }
+    public function setEmplacement(?Emplacement $emplacement): static { $this->emplacement = $emplacement; return $this; }
+
+    public function getEmplacementLibelle(): ?string { return $this->emplacementLibelle; }
+    public function setEmplacementLibelle(?string $v): static { $this->emplacementLibelle = $v; return $this; }
+
+    public function getMotif(): ?string { return $this->motif; }
+    public function setMotif(?string $v): static { $this->motif = $v; return $this; }
 
     public function getPhoto(): ?string { return $this->photo; }
     public function setPhoto(?string $v): static { $this->photo = $v; return $this; }
