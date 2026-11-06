@@ -2,7 +2,6 @@
 
 namespace App\Controller\Api\stock;
 
-use App\Entity\Emplacement;
 use App\Entity\Services;
 use App\Entity\Stock\SaisieStock;
 use App\Repository\Stock\SaisieStockRepository;
@@ -18,12 +17,6 @@ use Symfony\Component\Routing\Attribute\Route;
  *
  * Toutes les reponses suivent le format maison {code, msg, data}.
  * code : success | warning | error.
- *
- * v2 : l'entree porte en plus la source du stock, l'emplacement de rangement
- * et le motif. Ces champs sont transmis par le mobile (multipart) et valides
- * ici. Pour ne pas rejeter les anciens clients mobiles qui ne les envoient
- * pas encore, ils sont enregistres s'ils sont fournis ; l'emplacement doit
- * resoudre vers un Emplacement existant, sinon il est ignore proprement.
  */
 final class ApiSaisieStockController extends AbstractController
 {
@@ -31,8 +24,7 @@ final class ApiSaisieStockController extends AbstractController
 
     /**
      * Referentiel necessaire a l'ecran mobile :
-     * rubriques, unites, emplacements, suggestions de source et de motif,
-     * liste des services, agent connecte (grise) et date serveur.
+     * rubriques, unites, liste des services, agent connecte (grise) et date serveur.
      */
     #[Route('api/saisie-stock/referentiel', name: 'api_saisie_stock_referentiel', methods: ['GET'])]
     public function referentiel(): JsonResponse
@@ -49,11 +41,6 @@ final class ApiSaisieStockController extends AbstractController
             $services[] = ['id' => (string) $s->getId(), 'libelle' => $s->getLibelle()];
         }
 
-        $emplacements = [];
-        foreach ($this->em->getRepository(Emplacement::class)->findBy([], ['libelle' => 'ASC']) as $e) {
-            $emplacements[] = ['id' => (string) $e->getId(), 'libelle' => $e->getLibelle()];
-        }
-
         $serviceAgent = $user->getCodeService();
         $agentLibelle = trim(($user->getPrenoms() ?? '') . ' ' . ($user->getNom() ?? ''));
 
@@ -64,9 +51,6 @@ final class ApiSaisieStockController extends AbstractController
                 'rubriques' => SaisieStock::RUBRIQUES,
                 'unites'    => SaisieStock::UNITES,
                 'uniteDefaut' => 'Kg',
-                'emplacements' => $emplacements,
-                'sources'   => SaisieStock::SOURCES,
-                'motifs'    => SaisieStock::MOTIFS,
                 'services'  => $services,
                 'agent'     => [
                     'id'        => (string) $user->getId(),
@@ -74,6 +58,9 @@ final class ApiSaisieStockController extends AbstractController
                     'matricule' => $user->getMatricule(),
                     'serviceId' => $serviceAgent ? (string) $serviceAgent->getId() : null,
                     'service'   => $serviceAgent ? $serviceAgent->getLibelle() : null,
+                    // Roles de l'utilisateur : servent a afficher/masquer les
+                    // menus cote application mobile.
+                    'roles'     => array_values($user->getRoles()),
                 ],
                 'date' => (new \DateTime())->format('Y-m-d H:i:s'),
             ],
@@ -100,9 +87,6 @@ final class ApiSaisieStockController extends AbstractController
         $serviceId  = $request->request->get('service');
         $dateSaisie = $request->request->get('date_saisie');
         $clientUuid = trim((string) $request->request->get('client_uuid')) ?: null;
-        $source       = trim((string) $request->request->get('source')) ?: null;
-        $emplacementId = trim((string) $request->request->get('emplacement')) ?: null;
-        $motif        = trim((string) $request->request->get('motif')) ?: null;
 
         // --- Idempotence : si deja recu, on renvoie la ressource existante.
         if ($clientUuid && ($existante = $repo->findOneByClientUuid($clientUuid))) {
@@ -123,12 +107,6 @@ final class ApiSaisieStockController extends AbstractController
         if ($quantite === null || $quantite === '' || !is_numeric($quantite) || (float) $quantite <= 0) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Quantite invalide.'], 200);
         }
-        if ($source !== null && mb_strlen($source) > 255) {
-            return new JsonResponse(['code' => 'warning', 'msg' => 'Source trop longue (255 caracteres max).'], 200);
-        }
-        if ($motif !== null && mb_strlen($motif) > 255) {
-            return new JsonResponse(['code' => 'warning', 'msg' => 'Motif trop long (255 caracteres max).'], 200);
-        }
 
         $saisie = new SaisieStock();
         $saisie->setAgent($user);
@@ -137,22 +115,6 @@ final class ApiSaisieStockController extends AbstractController
         $saisie->setQuantite((float) $quantite);
         $saisie->setUnite($unite);
         $saisie->setClientUuid($clientUuid);
-        $saisie->setSource($source);
-        $saisie->setMotif($motif);
-
-        // Emplacement : resolution si un identifiant est fourni.
-        if ($emplacementId) {
-            $emplacement = null;
-            try {
-                $emplacement = $this->em->getRepository(Emplacement::class)->find(Uuid::fromString($emplacementId));
-            } catch (\Throwable) {
-                $emplacement = null;
-            }
-            if ($emplacement) {
-                $saisie->setEmplacement($emplacement);
-                $saisie->setEmplacementLibelle($emplacement->getLibelle());
-            }
-        }
 
         // Service : fourni par le mobile sinon celui de l'agent.
         $service = null;
@@ -227,9 +189,6 @@ final class ApiSaisieStockController extends AbstractController
                 'rubrique'   => $s->getRubrique(),
                 'quantite'   => $s->getQuantite(),
                 'unite'      => $s->getUnite(),
-                'source'     => $s->getSource(),
-                'emplacement' => $s->getEmplacementLibelle(),
-                'motif'      => $s->getMotif(),
                 'service'    => $s->getServiceLibelle(),
                 'agent'      => $s->getAgentLibelle(),
                 'photo'      => $s->getPhoto(),

@@ -78,8 +78,8 @@
         </div>
 
         <div class="col-md-3">
-            <label class="mb-1" for="emplacement">Emplacement *</label>
-            <select id="emplacement" name="emplacement" class="form-select" required>
+            <label class="mb-1" for="emplacement">Emplacement</label>
+            <select id="emplacement" name="emplacement" class="form-select">
                 <option value="">— Choisir —</option>
                 {% for e in emplacements %}
                     <option value="{{ e.id }}" {{ emplacementId == e.id|trim ? 'selected' }}>{{ e.libelle }}</option>

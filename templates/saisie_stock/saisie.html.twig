@@ -71,7 +71,7 @@
 
         <div class="col-md-3">
             <label class="mb-1" for="date_saisie">Date et heure de la saisie</label>
-            <input id="date_saisie" type="datetime-local" name="date_saisie" class="form-control" value="{{ dateValeur }}">
+            <input id="date_saisie" type="datetime-local" name="date_saisie" class="form-control" disabled value="{{ dateValeur }}">
             {% if erreurs.dateSaisie is defined %}<div class="ss-errors">{{ erreurs.dateSaisie }}</div>{% endif %}
         </div>
 

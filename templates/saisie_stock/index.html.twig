@@ -61,6 +61,48 @@
             <div class="sub">justificatifs joints</div>
         </div>
     </div>
+    <form method="get" class="ss-filtres row m-1 mt-2" style="background: #efefef;">
+        <h6 class="mb-0" style="color: var(--ss-cacao); font-weight:700;">Filtrer...</h6>
+        <div class="col-md-3">
+            <label class="mb-1">Stock</label>
+            <select name="rubrique" class="form-select p-0">
+                <option value="">Tous les stocks</option>
+                {% for r in rubriques %}
+                    <option value="{{ r }}" {{ filtres.rubrique == r ? 'selected' }}>{{ r }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="mb-1">Service</label>
+            <select name="service" class="form-select p-0">
+                <option value="">Tous les services</option>
+                {% for s in services %}
+                    <option value="{{ s.id }}" {{ filtres.service == s.id|trim ? 'selected' }}>{{ s.libelle }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="mb-1">Agent</label>
+            <input type="text" name="agent" value="{{ filtres.agent }}" class="form-control p-0" placeholder="Nom de l'agent">
+        </div>
+        <div class="col-md-2">
+            <label class="mb-1">Du</label>
+            <input type="date" name="du" value="{{ filtres.du }}" class="form-control p-0">
+        </div>
+        <div class="col-md-2">
+            <label class="mb-1">Au</label>
+            <input type="date" name="au" value="{{ filtres.au }}" class="form-control p-0">
+        </div>
+        <div class="col-md-8">
+            <label class="mb-1">Recherche libre</label>
+            <input type="text" name="q" value="{{ filtres.q }}" class="form-control p-0" placeholder="Type de Stock, service, agent...">
+        </div>
+        <div class="col-md-4 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-cacao w-100">Filtrer</button>
+            <a href="{{ path('app_saisies_stock') }}" class="btn btn-outline-cacao w-100" title="Revenir aux données du jour">Aujourd'hui</a>
+            <a href="{{ path('app_saisies_stock') }}?du=&au=" class="btn btn-outline-cacao w-100" title="Toutes les dates">Tout</a>
+        </div>
+    </form>
 
     <div class="ss-table mt-4 p-3 pb-2" style="background:linear-gradient(75deg,#e7ecf8, #eef1f6)">
         <div class="d-flex flex-wrap justify-content-between align-items-baseline mb-3">
@@ -124,47 +166,7 @@
         </div>
     </div>
 
-    <form method="get" class="ss-filtres row g-3 mt-4">
-        <div class="col-md-3">
-            <label class="mb-1">Stock</label>
-            <select name="rubrique" class="form-select">
-                <option value="">Tous les stocks</option>
-                {% for r in rubriques %}
-                    <option value="{{ r }}" {{ filtres.rubrique == r ? 'selected' }}>{{ r }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-3">
-            <label class="mb-1">Service</label>
-            <select name="service" class="form-select">
-                <option value="">Tous les services</option>
-                {% for s in services %}
-                    <option value="{{ s.id }}" {{ filtres.service == s.id|trim ? 'selected' }}>{{ s.libelle }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="mb-1">Agent</label>
-            <input type="text" name="agent" value="{{ filtres.agent }}" class="form-control" placeholder="Nom de l'agent">
-        </div>
-        <div class="col-md-2">
-            <label class="mb-1">Du</label>
-            <input type="date" name="du" value="{{ filtres.du }}" class="form-control">
-        </div>
-        <div class="col-md-2">
-            <label class="mb-1">Au</label>
-            <input type="date" name="au" value="{{ filtres.au }}" class="form-control">
-        </div>
-        <div class="col-md-8">
-            <label class="mb-1">Recherche libre</label>
-            <input type="text" name="q" value="{{ filtres.q }}" class="form-control" placeholder="Type de Stock, service, agent...">
-        </div>
-        <div class="col-md-4 d-flex align-items-end gap-2">
-            <button type="submit" class="btn btn-cacao w-100">Filtrer</button>
-            <a href="{{ path('app_saisies_stock') }}" class="btn btn-outline-cacao w-100" title="Revenir aux données du jour">Aujourd'hui</a>
-            <a href="{{ path('app_saisies_stock') }}?du=&au=" class="btn btn-outline-cacao w-100" title="Toutes les dates">Tout</a>
-        </div>
-    </form>
+
 
     <div class="ss-section-title">Entrées de stock (saisies)</div>
     <div class="ss-table">

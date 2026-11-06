@@ -17,9 +17,6 @@ use Symfony\Component\Validator\Constraints as Assert;
  * justificative facultative.
  *
  * Le solde d'une rubrique = somme des saisies (entrées) - somme des sorties.
- *
- * Alimentée aussi par l'application mobile (mode hors-ligne + synchro),
- * d'où le champ clientUuid qui garantit l'idempotence (cf. SaisieStock).
  */
 #[ORM\Entity(repositoryClass: SortieStockRepository::class)]
 #[ORM\Table(name: 'sortie_stock')]
@@ -59,8 +56,7 @@ class SortieStock
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $serviceLibelle = null;
 
-    /** Emplacement d'où le stock est sorti. */
-    #[Assert\NotNull(message: "Choisissez l'emplacement.")]
+    /** Emplacement d'où le stock est sorti (facultatif). */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true)]
     private ?Emplacement $emplacement = null;
@@ -99,13 +95,6 @@ class SortieStock
     /** Date d'enregistrement serveur. */
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $createdAt = null;
-
-    /**
-     * Identifiant généré par le mobile : garantit l'idempotence lors de la
-     * synchronisation hors-ligne (évite les doublons si l'envoi est rejoué).
-     */
-    #[ORM\Column(length: 64, unique: true, nullable: true)]
-    private ?string $clientUuid = null;
 
     public function __construct()
     {
@@ -153,7 +142,4 @@ class SortieStock
 
     public function getCreatedAt(): ?\DateTimeImmutable { return $this->createdAt; }
     public function setCreatedAt(?\DateTimeImmutable $v): static { $this->createdAt = $v; return $this; }
-
-    public function getClientUuid(): ?string { return $this->clientUuid; }
-    public function setClientUuid(?string $v): static { $this->clientUuid = $v; return $this; }
 }
