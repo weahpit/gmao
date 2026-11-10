@@ -50,6 +50,7 @@ final class ApiSaisieStockController extends AbstractController
             'data' => [
                 'rubriques' => SaisieStock::RUBRIQUES,
                 'unites'    => SaisieStock::UNITES,
+                'natures'   => SaisieStock::NATURES,
                 'uniteDefaut' => 'Kg',
                 'services'  => $services,
                 'agent'     => [
@@ -58,6 +59,8 @@ final class ApiSaisieStockController extends AbstractController
                     'matricule' => $user->getMatricule(),
                     'serviceId' => $serviceAgent ? (string) $serviceAgent->getId() : null,
                     'service'   => $serviceAgent ? $serviceAgent->getLibelle() : null,
+                    // Nom du fichier photo (servi depuis public/data/users/photos).
+                    'photo'     => $user->getPhoto(),
                     // Roles de l'utilisateur : servent a afficher/masquer les
                     // menus cote application mobile.
                     'roles'     => array_values($user->getRoles()),
@@ -84,6 +87,7 @@ final class ApiSaisieStockController extends AbstractController
         $rubrique   = trim((string) $request->request->get('rubrique'));
         $quantite   = $request->request->get('quantite');
         $unite      = trim((string) $request->request->get('unite')) ?: 'Kg';
+        $nature     = trim((string) $request->request->get('nature'));
         $serviceId  = $request->request->get('service');
         $dateSaisie = $request->request->get('date_saisie');
         $clientUuid = trim((string) $request->request->get('client_uuid')) ?: null;
@@ -104,6 +108,9 @@ final class ApiSaisieStockController extends AbstractController
         if (!in_array($unite, SaisieStock::UNITES, true)) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Unite invalide.'], 200);
         }
+        if (!in_array($nature, SaisieStock::NATURES, true)) {
+            return new JsonResponse(['code' => 'warning', 'msg' => 'Nature du produit invalide.'], 200);
+        }
         if ($quantite === null || $quantite === '' || !is_numeric($quantite) || (float) $quantite <= 0) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Quantite invalide.'], 200);
         }
@@ -114,6 +121,7 @@ final class ApiSaisieStockController extends AbstractController
         $saisie->setRubrique($rubrique);
         $saisie->setQuantite((float) $quantite);
         $saisie->setUnite($unite);
+        $saisie->setNature($nature);
         $saisie->setClientUuid($clientUuid);
 
         // Service : fourni par le mobile sinon celui de l'agent.
@@ -189,6 +197,7 @@ final class ApiSaisieStockController extends AbstractController
                 'rubrique'   => $s->getRubrique(),
                 'quantite'   => $s->getQuantite(),
                 'unite'      => $s->getUnite(),
+                'nature'     => $s->getNature(),
                 'service'    => $s->getServiceLibelle(),
                 'agent'      => $s->getAgentLibelle(),
                 'photo'      => $s->getPhoto(),

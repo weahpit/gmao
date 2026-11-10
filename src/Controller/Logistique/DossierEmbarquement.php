@@ -17,7 +17,7 @@ class DossierEmbarquement extends  AbstractController
     #[Route('logistique/enregistrement-dossier', name: 'enregistrement_embarquement')]
     public function enregistrements_dossier(ManagerRegistry $registry): Response
     {
-        return $this->render('logistique/embarquement.html.twig',
+        return $this->render('logistique/embarquement/index.html.twig',
             [
                 'produits'=>$registry->getRepository(Produit::class)->findAll(),
                 'clients'=>$registry->getRepository(Client::class)->findAll(),

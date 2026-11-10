@@ -32,7 +32,7 @@ class SaisieStock
     /** Rubriques predefinies (liste fermee). */
     public const RUBRIQUES = [
         'Stock déchets Recyclables',
-        'Stock déchets non recyclables',
+        'Stock déchets non recyclable',
         'Stock échantillothèque',
         'Stock Refonte',
         'Stock échantillons Client',
@@ -40,6 +40,15 @@ class SaisieStock
 
     /** Unites autorisees (Kg par defaut). */
     public const UNITES = ['Kg', 'Litres'];
+
+    /** Nature du produit : liste FERMEE (valeurs imposees). */
+    public const NATURES = [
+        'Fèves',
+        'Masse',
+        'Beurre',
+        'Tourteau',
+        'Tout venant',
+    ];
 
     /** Suggestions de source du stock entre (la saisie reste libre). */
     public const SOURCES = [
@@ -94,6 +103,10 @@ class SaisieStock
 
     #[ORM\Column(length: 20)]
     private ?string $unite = 'Kg';
+
+    /** Nature du produit (liste fermee, cf. self::NATURES). */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $nature = null;
 
     /** Source / provenance du stock entre (saisie libre, cf. self::SOURCES). */
     #[ORM\Column(length: 255, nullable: true)]
@@ -159,6 +172,9 @@ class SaisieStock
 
     public function getUnite(): ?string { return $this->unite; }
     public function setUnite(?string $v): static { $this->unite = $v; return $this; }
+
+    public function getNature(): ?string { return $this->nature; }
+    public function setNature(?string $v): static { $this->nature = $v; return $this; }
 
     public function getSource(): ?string { return $this->source; }
     public function setSource(?string $v): static { $this->source = $v; return $this; }

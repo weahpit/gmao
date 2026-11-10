@@ -1,0 +1,298 @@
+{% extends 'base.html.twig' %}
+{% block title %}Production de lots{% endblock %}
+
+{% block body %}
+    <style>
+        select {
+            border: 1px solid grey;
+            background: white;
+            height: 30px;
+            font-size: 13px;
+            font-weight: lighter;
+            width: 200px;
+        }
+        th {
+            font-weight: bolder;
+        }
+        input{
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding-left: 10px;
+            border: 1px solid lightgrey;
+            border-bottom: 2px solid darkblue;
+            width: 200px;
+        }
+        th, td {
+            border-right: 1px solid black;
+            padding: 2px;
+        }
+        .selected {
+            background: #3b82f6;
+            color: white;
+        }
+        .highlight { background-color: yellow; }
+        .hov {
+            background: #cfdaeb;
+            color: black;
+        }
+
+    </style>
+    <h3 class="p-1 sticky-top" style="border-bottom: 1px solid #c0bebe;background: #d2cdcd;">Gestion des lots</h3>
+    <div class="m-2 border border1 border-secondary" style="min-height: 500px;">
+
+        <div class="row p-2 m-2"  style="background:linear-gradient( #f9f9f6, #fdfde7);border: 1px solid #343401;">
+
+            <div class="col-md-5">
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="numero_lot" class="fw-bold" style="width: 200px;"> N° Lot</label>
+                    <input class="w-100" type="text" placeholder="N° Lot" id="numero_lot">
+                </div>
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="proprio" class="fw-bold" style="width: 200px;"> Propriétaire</label>
+                    <select class="w-100" name="proprio" id="proprio" required></select>
+                </div>
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="produit" class="fw-bold" style="width: 200px;"> Produit</label>
+                    <select  class="w-100" name="produit" id="produit" required></select>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="date_prod" class="fw-bold" style="width: 200px;"> Date Production</label>
+                    <input  class="w-100" type="date" id="date_prod" placeholder="date de production" style="width: 200px;" required>
+                </div>
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="pn_th" class="fw-bold" style="width: 200px;"> PN Théorique</label>
+                    <input class="w-100" type="number" placeholder="PN Théorique" id="pn_th" required>
+                </div>
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="magasin" class="fw-bold" style="width: 200px;"> Emplacement</label>
+                    <select class="w-100" name="magasin" id="magasin" required></select>
+                </div>
+            </div>
+
+            <div class="col-md-2 text-center">
+                <a href="#" class="btn btn-warning mx-auto mt-2 text-center" id="new_lot" style="width: 150px;" >Nouveau lot</a><br>
+                <a href="#" id="btn_enr_lot" class="btn btn-success mx-auto mt-2 text-center" style="width: 150px;">Enregistrer en base</a>
+            </div>
+        </div>
+        <hr>
+        <div class="w-100 p1">
+            <div class="p-1 bg-white m-1"  style="height: 550px;overflow-y: scroll;border: 1px solid lightgrey;">
+                <div class="form-group form-group-sm mt-2 d-inline-flex">
+                    <label class="fw-bold">
+                        <input type="text" placeholder="Rechercher un lot" id="recherche">
+                    </label>
+                    <a href="#" data-bs-target="#modal_scission" data-bs-toggle="modal" class="btn btn-danger btn-sm ms-2" style="display: none" id="btn_s_nc" title="Scinder le lot en Conforme et non Conforme"><i class="fa fa-cut ms-2"></i> Scission Non conformité</a>
+                </div>
+                <br>
+                <div class="p-0 d-inline-flex mt-2">
+                    <label for="" style="font-weight: bold;">Légende : </label><label for="" class="ms-5" style="background-color: #fabdbd;height: 18px;width: 18px;"></label><label for="" class="ms-1 mb-2">Lots non conforme (NC)</label>
+                </div>
+                <hr style="border: 2px black dashed">
+                <table  class="mt-1 w-100 table-hover">
+                    <thead class="fw-normal sticky-top">
+                    <tr class="p-1 fw-light" id="table tableLots" style="background: linear-gradient(#f5f1f1, #d2cdcd);font-weight: normal;font-size: 16px;border: 1px solid black;height: 25px;">
+                        <th>N° Lot</th>
+                        <th>Proprietaire</th>
+                        <th>Nature</th>
+                        <th>Date Production</th>
+                        <th>PN Théor.</th>
+                        {#<th>PN Réel</th>#}
+                        <th>Etat</th>
+                        <th>Situation</th>
+                        <th>N° OT</th>
+                    </tr>
+                    </thead>
+                    <tbody class="lots_body"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    {# Modal Scission #}
+    <div class="modal fade" id="modal_scission" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Scission de lot</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center" >
+                    <h5 class="fw-normal">Voulez-vous scinder le lot suivant pour non conformité ?</h5>
+                    <hr>
+                    <div class="mt-2 container">
+                        <label class="fw-bold"> Saisissez le poids Non Conforme (kg)
+                            <br><input class="fw-bold text-center" type="number" style="width: 100%;background-color: #f6d3d7" placeholder="Poids NC" id="poids_nc">
+                        </label>
+                    </div>
+                    <div class="mt-2">
+                        <a href="#" class="btn btn-danger btn-sm mb-2 w-100" id="btn-scission">Scinder</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/embarquements.js') }}"></script>
+    <script src="{{ asset('js/api/Production/Produit.js') }}"></script>
+    <script src="{{ asset('js/api/Production/Lot.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Proprietaire.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Magasin.js') }}"></script>
+
+
+    <script>
+        let id_lot = "0";
+        let scinde = false;
+        getAllProprietaires(document.getElementById("proprio"), 2)
+        getAllMagasins(document.getElementById('magasin'), 2)
+        getAllLots(document.querySelector('.lots_body'), 1)
+
+
+        document.getElementById("proprio").addEventListener('change', ()=>{
+            getAllProduitsByProprietaire(document.getElementById("produit"), 2, document.getElementById("proprio").value)
+        })
+
+
+
+
+        reinitialise_form()
+
+        /* EVENTS*/
+        $("#btn_enr_lot").on("click", function (e){
+            e.preventDefault();
+            addLot();
+        })
+
+        $("#btn-scission").on("click", function (e){
+            e.preventDefault();
+            scinder_lot();
+        })
+
+        $("#new_lot").on("click", function (e){
+            e.preventDefault();
+            reinitialise_form()
+            $('#numero_lot').focus()
+        })
+
+        /*--------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+
+        /*  API*/
+
+        function   addLot(){let formLot = new FormData()
+            formLot.append('id_lot', id_lot)
+            formLot.append('numero_lot', document.getElementById('numero_lot').value)
+            formLot.append('code_proprio', document.getElementById('proprio').value)
+            formLot.append('code_produit', document.getElementById('produit').value)
+            formLot.append('magasin', document.getElementById('magasin').value)
+            formLot.append('pn_th', document.getElementById('pn_th').value)
+            formLot.append('date_prod', document.getElementById('date_prod').value)
+
+            saveLot(formLot, document.querySelector('.lots_body'), 1 )
+        }
+        function   getLotInfos(idLot){
+            let reponse = "";
+            reinitialise_form()
+            $.ajax({
+                url : '{{ url('app_login') }}api/getLotInfos/' + idLot,
+                type : 'POST',
+                success: function (response){
+                    reponse = JSON.parse(response)
+                    id_lot = reponse.id_lot
+                    $('#numero_lot').val(reponse.numero_lot);
+                    $('#date_prod').val(reponse.date_prod);
+                    $('#pn_th').val(reponse.pn_th);
+                    $('#proprio').val(reponse.proprio);
+                    $('#produit').val(reponse.pdt);
+                    $('#magasin').val(reponse.situation);
+                    if (!reponse.scission && reponse.libelle_pdt !== "Fèves"){
+                        document.querySelector("#btn_s_nc").style = 'display:inline;'
+                    }
+                },
+                error : function (erreur){
+                    reponse = "Erreur"
+                    console.log(erreur)
+                }
+            })
+        }
+
+        function   scinder_lot(){
+            let reponse = "";
+            let obj = {}
+            obj.id_lot  = id_lot
+            obj.pn_th = $('#poids_nc').val()
+
+            let data = JSON.stringify(obj);
+            $.ajax({
+                url : '{{ url('app_login') }}api/scinderLot/' + data,
+                type : 'POST',
+                success: function (response){
+                    reponse = JSON.parse(response)
+                    $("#modal_scission .btn-close").click()
+                    render_toast_value(reponse.msg, reponse.code)
+                    listeLots()
+                },
+                error : function (erreur){
+                    reponse = "Erreur"
+                    console.log(erreur)
+                }
+            })
+        }
+        function selected_row(){
+            document.querySelectorAll(".tr").forEach(function(row) {
+                row.addEventListener("click", function() {
+                    id_lot = this.id;
+                    getLotInfos(id_lot)
+                    // Supprime la classe 'selected' des autres lignes
+                    document.querySelectorAll("tr").forEach(r => r.classList.remove("selected"));
+                    // Ajoute la classe 'selected' à la ligne cliquée
+                    this.classList.add("selected");
+                });
+            });
+        }
+
+        $("#recherche").on("input", function() {
+            var valeur = $(this).val().toLowerCase();
+            // alert(valeur)
+            // Réinitialise les couleurs
+            $("#tableLots tr").removeClass("highlight");
+
+            if (valeur !== "") {
+                $("#tableLots tr").toggle($(this).text().toLowerCase().indexOf(valeur) > -1);
+            }
+        });
+
+        function reinitialise_form(){
+            $("#numero_lot").val("")
+            $("#date_prod").val(null)
+            $("#pn_th").val(0)
+            $("#proprio").val(0)
+            $("#produit").val(0)
+            $("#magasin").val(0)
+            $("#recherche").val("")
+            $("#poids_nc").val(0)
+            id_lot = 0;
+            document.querySelector("#btn_s_nc").style ='display:none'
+        }
+        $(" input ").on("input", function (){
+            check_input(this)
+        })
+
+        function check_input(ctl){
+            if (ctl.value === "" || ctl.value === 0){
+                ctl.style.background = "white"
+            } else {
+                ctl.style.background = "lightyellow"
+            }
+        }
+    </script>
+{% endblock %}
+

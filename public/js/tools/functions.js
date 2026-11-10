@@ -115,3 +115,16 @@ function searchValueFromTable(textboxSearch, tbodyTr){
         });
     });
 }
+function getNumberSeparator(control){
+    control.addEventListener('keyup', function() {
+        let valeur = $(this).val().replace(/\s+/g, '');
+
+        if (valeur === '') {
+            return;
+        }
+
+        $(this).val(
+            parseInt(valeur, 10).toLocaleString('fr-FR')
+        );
+    });
+}

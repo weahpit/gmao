@@ -30,6 +30,9 @@ class CvDeblocage
     #[ORM\OneToMany(targetEntity: CvExecution::class, mappedBy: 'code_cv_deblocage')]
     private Collection $cvExecutions;
 
+    #[ORM\ManyToOne(inversedBy: 'cvDeblocages')]
+    private ?Proprietaire $code_proprietaire = null;
+
     public function __construct()
     {
         $this->cvExecutions = new ArrayCollection();
@@ -90,6 +93,18 @@ class CvDeblocage
                 $cvExecution->setCodeCvDeblocage(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCodeProprietaire(): ?Proprietaire
+    {
+        return $this->code_proprietaire;
+    }
+
+    public function setCodeProprietaire(?Proprietaire $code_proprietaire): static
+    {
+        $this->code_proprietaire = $code_proprietaire;
 
         return $this;
     }

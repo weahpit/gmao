@@ -155,7 +155,7 @@ final class SaisieStockController extends AbstractController
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
         }
-        $this->denyAccessUnlessGranted('ROLE_PDR');
+        $this->denyAccessUnlessGranted('ROLE_USER');
 
         [$saisies, $filtres] = $this->appliquerFiltres($request, $repo);
         $sorties = $sortieRepo->findFiltre(
@@ -187,7 +187,7 @@ final class SaisieStockController extends AbstractController
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
         }
-        $this->denyAccessUnlessGranted('ROLE_PDR');
+        $this->denyAccessUnlessGranted('ROLE_USER');
 
         [$saisies] = $this->appliquerFiltres($request, $repo);
 
@@ -227,7 +227,7 @@ final class SaisieStockController extends AbstractController
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
         }
-        $this->denyAccessUnlessGranted('ROLE_PDR');
+        $this->denyAccessUnlessGranted('ROLE_USER');
 
         [$saisies, $filtres] = $this->appliquerFiltres($request, $repo);
 

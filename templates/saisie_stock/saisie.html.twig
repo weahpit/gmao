@@ -38,7 +38,7 @@
         <div class="alert alert-danger">{{ erreurs._global }}</div>
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data" class="ss-filtres row g-3" novalidate>
+    <form id="formSaisie" method="post" enctype="multipart/form-data" class="ss-filtres row g-3" novalidate>
         <input type="hidden" name="_token" value="{{ csrf_token('saisie_stock') }}">
 
         <div class="col-md-5">
@@ -50,6 +50,17 @@
                 {% endfor %}
             </select>
             {% if erreurs.rubrique is defined %}<div class="ss-errors">{{ erreurs.rubrique }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-5">
+            <label class="mb-1" for="nature">Nature du produit *</label>
+            <select id="nature" name="nature" class="form-select" required>
+                <option value="">— Choisir —</option>
+                {% for n in natures %}
+                    <option value="{{ n }}" {{ saisie.nature == n ? 'selected' }}>{{ n }}</option>
+                {% endfor %}
+            </select>
+            {% if erreurs.nature is defined %}<div class="ss-errors">{{ erreurs.nature }}</div>{% endif %}
         </div>
 
         <div class="col-md-2">
@@ -126,7 +137,9 @@
 
         <div class="col-12 d-flex align-items-end justify-content-end gap-2">
             <a href="{{ path('app_saisies_stock') }}" class="btn btn-outline-cacao">Annuler</a>
-            <button type="submit" class="btn btn-cacao px-4">Enregistrer la saisie</button>
+            <button type="submit" class="btn btn-cacao px-4" data-libelle="Enregistrer la saisie">
+                <span class="ss-btn-spinner" aria-hidden="true"></span>Enregistrer la saisie
+            </button>
         </div>
     </form>
 
@@ -138,6 +151,7 @@
                     <tr>
                         <th>Heure</th>
                         <th>Type Stock</th>
+                        <th>Nature</th>
                         <th>Source</th>
                         <th>Emplacement</th>
                         <th>Motif</th>
@@ -152,6 +166,7 @@
                         <tr>
                             <td>{{ o.dateSaisie ? o.dateSaisie|date('H:i') : '-' }}</td>
                             <td><span class="fw-semibold">{{ o.rubrique }}</span></td>
+                            <td>{{ o.nature ?? '-' }}</td>
                             <td>{{ o.source ?? '-' }}</td>
                             <td>{{ o.emplacementLibelle ?? '-' }}</td>
                             <td>{{ o.motif ?? '-' }}</td>
@@ -176,7 +191,7 @@
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Aucune saisie enregistrée aujourd'hui.</td>
+                            <td colspan="10" class="text-center text-muted py-4">Aucune saisie enregistrée aujourd'hui.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -220,6 +235,33 @@
             apercu.src = URL.createObjectURL(f);
             apercu.style.display = 'block';
         });
+
+        // Anti double-saisie : griser le bouton + loading pendant l'envoi
+        var form = document.getElementById('formSaisie');
+        if (form) {
+            var enEnvoi = false;
+            var bouton = form.querySelector('button[type="submit"]');
+            form.addEventListener('submit', function (e) {
+                if (enEnvoi) { e.preventDefault(); return; }   // bloque les clics suivants
+                enEnvoi = true;
+                form.classList.add('is-sending');
+                if (bouton) {
+                    bouton.classList.add('is-sending');
+                    bouton.setAttribute('aria-busy', 'true');
+                    // On réactive juste avant l'envoi réel pour que la valeur du bouton parte,
+                    // puis on garde le voile actif jusqu'au rechargement de la page.
+                }
+            });
+            // Si l'utilisateur revient via le bouton Précédent (page en cache),
+            // on réinitialise l'état pour pouvoir ré-enregistrer.
+            window.addEventListener('pageshow', function (ev) {
+                if (ev.persisted) {
+                    enEnvoi = false;
+                    form.classList.remove('is-sending');
+                    if (bouton) { bouton.classList.remove('is-sending'); bouton.removeAttribute('aria-busy'); }
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

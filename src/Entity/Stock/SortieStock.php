@@ -33,6 +33,9 @@ class SortieStock
         "Correction d'inventaire",
     ];
 
+    /** Nature du produit : liste FERMEE (valeurs imposees, cf. SaisieStock::NATURES). */
+    public const NATURES = SaisieStock::NATURES;
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -68,6 +71,15 @@ class SortieStock
     #[Assert\Choice(choices: SaisieStock::RUBRIQUES, message: 'Type de stock invalide.')]
     #[ORM\Column(length: 100)]
     private ?string $rubrique = null;
+
+    /** Nature du produit (liste fermee, cf. self::NATURES). */
+    #[Assert\NotBlank(message: 'Choisissez la nature du produit.')]
+    #[Assert\Choice(choices: SaisieStock::NATURES, message: 'Nature du produit invalide.')]
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $nature = null;
+
+    public function getNature(): ?string { return $this->nature; }
+    public function setNature(?string $v): static { $this->nature = $v; return $this; }
 
     #[Assert\NotNull(message: 'Quantité invalide.')]
     #[Assert\Positive(message: 'La quantité doit être supérieure à zéro.')]

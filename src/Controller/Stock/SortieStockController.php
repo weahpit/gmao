@@ -49,7 +49,7 @@ final class SortieStockController extends AbstractController
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
         }
-        $this->denyAccessUnlessGranted('ROLE_PDR');
+        $this->denyAccessUnlessGranted('ROLE_USER');
 
         /** @var User $user */
         $user = $this->getUser();
@@ -115,6 +115,7 @@ final class SortieStockController extends AbstractController
             'emplacementId' => (string) $sortie->getEmplacement()?->getId(),
             'rubriques'     => SaisieStock::RUBRIQUES,
             'unites'        => SaisieStock::UNITES,
+            'natures'       => SortieStock::NATURES,
             'motifs'        => SortieStock::MOTIFS,
             'services'      => $this->em->getRepository(Services::class)->findBy([], ['libelle' => 'ASC']),
             'emplacements'  => $this->em->getRepository(Emplacement::class)->findBy([], ['libelle' => 'ASC']),
@@ -136,6 +137,7 @@ final class SortieStockController extends AbstractController
         $sortie->setQuantite(is_numeric($brut) ? (float) $brut : null);
         $sortie->setUnite(trim((string) $in->get('unite')) ?: 'Kg');
         $sortie->setMotif(trim((string) $in->get('motif')));
+        $sortie->setNature(trim((string) $in->get('nature')) ?: null);
 
         /** @var Services|null $service */
         $service = $this->trouver(Services::class, $in->get('service'));

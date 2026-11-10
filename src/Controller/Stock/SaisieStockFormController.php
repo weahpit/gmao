@@ -52,7 +52,7 @@ final class SaisieStockFormController extends AbstractController
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
         }
-        $this->denyAccessUnlessGranted('ROLE_PDR');
+        $this->denyAccessUnlessGranted('ROLE_USER');
 
         /** @var User $user */
         $user = $this->getUser();
@@ -118,6 +118,7 @@ final class SaisieStockFormController extends AbstractController
             'emplacementId' => (string) $saisie->getEmplacement()?->getId(),
             'rubriques'   => SaisieStock::RUBRIQUES,
             'unites'      => SaisieStock::UNITES,
+            'natures'     => SaisieStock::NATURES,
             'sources'     => SaisieStock::SOURCES,
             'motifs'      => SaisieStock::MOTIFS,
             'emplacements' => $this->em->getRepository(Emplacement::class)->findBy([], ['libelle' => 'ASC']),
@@ -139,6 +140,7 @@ final class SaisieStockFormController extends AbstractController
         $saisie->setRubrique(trim((string) $in->get('rubrique')));
         $saisie->setQuantite(is_numeric($brut) ? (float) $brut : null);
         $saisie->setUnite(trim((string) $in->get('unite')) ?: 'Kg');
+        $saisie->setNature(trim((string) $in->get('nature')) ?: null);
         $saisie->setSource(trim((string) $in->get('source')) ?: null);
         $saisie->setMotif(trim((string) $in->get('motif')) ?: null);
 
@@ -184,6 +186,11 @@ final class SaisieStockFormController extends AbstractController
         }
         if (!in_array($saisie->getUnite(), SaisieStock::UNITES, true)) {
             $erreurs['unite'] = 'Unité invalide.';
+        }
+        if (($saisie->getNature() ?? '') === '') {
+            $erreurs['nature'] = 'Choisissez la nature du produit.';
+        } elseif (!in_array($saisie->getNature(), SaisieStock::NATURES, true)) {
+            $erreurs['nature'] = 'Nature du produit invalide.';
         }
         if (($saisie->getSource() ?? '') === '') {
             $erreurs['source'] = 'Indiquez la source du stock.';

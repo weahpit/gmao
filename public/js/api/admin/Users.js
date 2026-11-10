@@ -8,7 +8,7 @@ function getAllUsers(ctrl_name, ctrl_type){
             if (ctrl_type === 1){
                 contentCtrl +=`
                 <div class="d-flex justify-content-between align-items-center p-2" style="border: 1px solid lightgrey"><input class="mb-2 input" type="text" style="width:200px;border: 1px solid #2563EB;" placeholder="Rechercher..." id="TxtInputSearch"><span class="text-danger fw-bold" style="background: #f9f1f1;" id="lbl_chargement"></span><span class="fw-lighter text-primary">${reponse.data.length} utilisateur(s)</span></div>
-                <div style="height:300px; overflow-y:auto; border:1px solid #dee2e6;">
+                <div style="min-height:300px; overflow-y:auto; border:1px solid #dee2e6;">
                 <table class="sticky-top w-100 m-1" id="tbl_users_">
                     <thead><tr>
                             <th></th>

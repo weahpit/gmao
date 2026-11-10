@@ -58,6 +58,7 @@ final class ApiSortieStockController extends AbstractController
             'data' => [
                 'rubriques'    => SaisieStock::RUBRIQUES,
                 'unites'       => SaisieStock::UNITES,
+                'natures'      => SortieStock::NATURES,
                 'uniteDefaut'  => 'Kg',
                 'motifs'       => SortieStock::MOTIFS,
                 'services'     => $services,
@@ -68,6 +69,8 @@ final class ApiSortieStockController extends AbstractController
                     'matricule' => $user->getMatricule(),
                     'serviceId' => $serviceAgent ? (string) $serviceAgent->getId() : null,
                     'service'   => $serviceAgent ? $serviceAgent->getLibelle() : null,
+                    // Nom du fichier photo (servi depuis public/data/users/photos).
+                    'photo'     => $user->getPhoto(),
                 ],
                 'date' => (new \DateTime())->format('Y-m-d H:i:s'),
             ],
@@ -92,6 +95,7 @@ final class ApiSortieStockController extends AbstractController
         $quantite   = $request->request->get('quantite');
         $unite      = trim((string) $request->request->get('unite')) ?: 'Kg';
         $motif      = trim((string) $request->request->get('motif'));
+        $nature     = trim((string) $request->request->get('nature'));
         $serviceId  = $request->request->get('service');
         $emplacementId = $request->request->get('emplacement');
         $dateSortie = $request->request->get('date_sortie');
@@ -112,6 +116,9 @@ final class ApiSortieStockController extends AbstractController
         }
         if (!in_array($unite, SaisieStock::UNITES, true)) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Unite invalide.'], 200);
+        }
+        if (!in_array($nature, SortieStock::NATURES, true)) {
+            return new JsonResponse(['code' => 'warning', 'msg' => 'Nature du produit invalide.'], 200);
         }
         if ($quantite === null || $quantite === '' || !is_numeric($quantite) || (float) $quantite <= 0) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Quantite invalide.'], 200);
@@ -143,6 +150,7 @@ final class ApiSortieStockController extends AbstractController
         $sortie->setQuantite((float) $quantite);
         $sortie->setUnite($unite);
         $sortie->setMotif($motif);
+        $sortie->setNature($nature);
         $sortie->setClientUuid($clientUuid);
         $sortie->setEmplacement($emplacement);
         $sortie->setEmplacementLibelle($emplacement->getLibelle());
@@ -221,6 +229,7 @@ final class ApiSortieStockController extends AbstractController
                 'quantite'    => $s->getQuantite(),
                 'unite'       => $s->getUnite(),
                 'motif'       => $s->getMotif(),
+                'nature'      => $s->getNature(),
                 'emplacement' => $s->getEmplacementLibelle(),
                 'service'     => $s->getServiceLibelle(),
                 'agent'       => $s->getAgentLibelle(),

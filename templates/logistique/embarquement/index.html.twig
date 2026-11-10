@@ -1,0 +1,898 @@
+{% extends 'base.html.twig' %}
+{% block title %}Enregistrement Embarquement{% endblock %}
+
+{% block body %}
+    <style>
+        .input-shipping {
+            border: 1px solid lightgrey;
+            background: #f7fbfc;
+            width: 100%;
+        }
+        .input-shipping:focus{
+            border: 1px solid #707070;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ asset('css/Logistique/style.css') }}">
+    <div class="da-wrap">
+        <div class="da-hero">
+            <h1>Nouvel Embarquement</h1>
+            <p>Renseignez toutes les informations correspondant à l'Ordre de Transit..</p>
+      </div>
+
+      <div class="da-nav">
+        <a href="#" class="da-btn da-btn-light">Mes Dossiers</a>
+      </div>
+
+      <form method="post" action="{{ path('da_nouvelle') }}" id="da-form">
+        <div class="da-card p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+          <h2>Enregistrement de l'OT (Ordre de Transit)</h2>
+
+            <div class="da-field">
+              <label for="demandeur">N° OT</label>
+              <input type="text" id="demandeur" value="" required>
+            </div>
+            <div class="da-field">
+              <label for="code_proprietaire">Propriétaire</label>
+              <select name="code_proprietaire" id="code_proprietaire" required>
+              </select>
+            </div>
+            <div class="da-field">
+                <label for="code_produit">Produit</label>
+                <select name="code_produit" id="code_produit" required>
+                </select>
+            </div>
+
+        </div>
+        <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+              <h2>Contrats de ventes</h2>
+              <div class="da-grid">
+                  <div class="d-flex justify-content-between">
+                      <div class="da-field">
+                          <label for="cv_deblocage">N° CV Déblocage</label>
+                          <select name="select_cv_deblocage" id="select_cv_deblocage">
+                          </select>
+                      </div>
+                      <button  class="btn btn-light p-2 fw-bold text-danger btn-outline-success"  id="ajt_cv_deb" type="button"  style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;" data-bs-toggle="modal" data-bs-target="#modalCvDeblocage" title="ajouter un contrat de déblocage">...</button>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <div class="da-field">
+                      <label for="select_cv_execution">N° CV Exécution</label>
+                      <select name="select_cv_execution" id="select_cv_execution" required></select>
+                    </div>
+                    <button class="btn btn-light p-2 fw-bold text-danger btn-outline-success" id="ajt_cv_exe" type="button" style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;" data-bs-toggle="modal" data-bs-target="#modalCvExecution" title="ajouter un contrat d'exécution">...</button>
+                  </div>
+                  <div class="da-field"></div>
+              </div>
+              <div class="da-grid">
+                  <div class="da-field">
+                      <label for="type_montant">Type Montant</label>
+                      <select name="type_montant" id="type_montant">
+                          <option value="Reversement">Reversement</option>
+                          <option value="Soutien">Soutien</option>
+                      </select>
+                  </div>
+                  <div class="da-field">
+                      <label for="montant_contrat">Montant</label>
+                      <input type="number" id="montant_contrat" value="">
+                  </div>
+                  <div class="da-field"></div>
+              </div>
+              <div class="da-grid">
+                  <div class="da-field">
+                      <label for="montant_contrat">N° Formule</label>
+                      <input type="text" id="montant_contrat" value="">
+                  </div>
+                  <div class="da-field">
+                      <label for="code_client">Charger la formule</label>
+                      <input type="file" class="p-0" id="formule_file" value="">
+                  </div>
+                  <div class="da-field"></div>
+              </div>
+              <hr>
+              <div class="da-grid">
+                  <div class="da-field">
+                      <label for="numero_contrat_africao">N° Contrat (AFRICAO)</label>
+                      <input type="text" id="numero_contrat_africao" value="">
+                  </div>
+                  <div class="d-flex justify-content-between">
+                  <div class="da-field">
+                      <label for="select_banque">Banque</label>
+                      <select name="select_banque" id="select_banque"></select>
+                  </div>
+                  <button  class="btn btn-light p-2 fw-bold text-danger btn-outline-success"  id="ajt_banque" type="button"  style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;" data-bs-toggle="modal" data-bs-target="#modalBanque" title="ajouter une banque">...</button>
+                  </div>
+                  <div class="da-field"></div>
+                </div>
+          </div>
+        <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+              <h2>Enregistrement du client</h2>
+                  <div class="da-field">
+                      <div class="d-flex content-justify-between">
+                          <div class="w-100">
+                              <label for="select_client">Client</label>
+                              <select class="w-100" name="select_client" id="select_client" required>
+                              </select>
+                          </div>
+                          <button class="btn btn-light ms-2 test-danger btn-outline-success" id="ajt_clt" type="button" data-bs-toggle="modal" data-bs-target="#modalClient" style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;"  title="ajouter un client">...</button>
+                      </div>
+                      <div class="da-field" id="infos_client"></div>
+                  </div>
+          </div>
+        <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+              <h2>Expédition</h2>
+              <div class="da-grid">
+                  <div class="da-field">
+                      <div class="d-flex content-justify-between">
+                          <div class=""><label for="select_navire">Navire</label>
+                              <select name="select_navire" id="select_navire" style="width: 250px;" required>
+                              </select></div>
+                          <button class="btn btn-light ms-2 test-danger btn-outline-success" id="ajt_navire"  data-bs-toggle="modal" data-bs-target="#modalNavire"  type="button" style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;" title="ajouter un navire">...</button>
+                      </div>
+                  </div>
+                  <div class="d-flex content-justify-between">
+                      <div class="da-field">
+                          <label for="pays_destination">Pays de destination</label>
+                          <select name="pays_destination" id="pays_destination">
+                          </select>
+                      </div>
+                      <button class="btn btn-light ms-2 test-danger btn-outline-success" id="ajt_pays"   data-bs-toggle="modal" data-bs-target="#modalPays"  type="button" style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;"  title="ajouter un pays">...</button>
+                  </div>
+                  <div class="da-field">
+                      <label for="port_destination">Port de destination</label>
+                      <input type="text" id="port_destination" value="">
+                  </div>
+              </div>
+          </div>
+          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+              <h2>Enregistrement des conteneurs</h2>
+                  <div class="da-field d-flex content-justify-between mb-2">
+                      <label for="poids_vgm">Poids Embarquement VGM (Kg)</label>
+                      <input class="input" type="text" id="poids_vgm" style="width: 120px;border-radius: 0;">
+                  </div>
+              <button class="btn mb-2" id="ajt_clt" style="background: #a6ebf9" type="button" data-bs-toggle="modal" data-bs-target="#modalTc" title="ajouter des conteneurs">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-container preview-icon"><path d="M22 7.7c0-.6-.4-1.2-.8-1.5l-6.3-3.9a1.72 1.72 0 0 0-1.7 0l-10.3 6c-.5.2-.9.8-.9 1.4v6.6c0 .5.4 1.2.8 1.5l6.3 3.9a1.72 1.72 0 0 0 1.7 0l10.3-6c.5-.3.9-1 .9-1.5Z"/><path d="M10 21.9V14L2.1 9.1"/><path d="m10 14 11.9-6.9"/><path d="M14 19.8v-8.1"/><path d="M18 17.5V9.4"/></svg>
+                  Ajouter des conteneurs
+              </button>
+              <div class="da-field col-9">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="background: #e9e9e9;color: black;">N°</th>
+                                <th style="background: #e9e9e9;color: black;">N° TC</th>
+                                <th style="background: #e9e9e9;color: black;">N° Plomb</th>
+                                <th style="background: #e9e9e9;color: black;">Lots</th>
+                                <th style="background: #e9e9e9;color: black;">Nb Cartons / Sacs / Big Bag</th>
+                                <th style="background: #e9e9e9;color: black;">Poids Brut (Kg)</th>
+                                <th style="background: #e9e9e9;color: black;">Poids Net (Kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+              </div>
+          </div>
+          <hr>
+          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+              <h2>Dates & Echéances</h2>
+              <div class="da-grid">
+                  <div class="da-field">
+                      <div class="d-flex content-justify-between">
+                          <div class="">
+                              <label for="date_eta">ETA</label>
+                                    <input type="date" id="date_eta" style="width: 250px;">
+                              </div>
+                      </div>
+                  </div>
+                  <div class="da-field">
+                      <div class="d-flex content-justify-between">
+                          <div class="">
+                              <label for="date_empotage">Empotage</label>
+                              <input type="date" id="date_empotage" style="width: 250px;">
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <div class="da-grid">
+                  <div class="da-field">
+                      <div class="d-flex content-justify-between">
+                          <div class="">
+                              <label for="date_relevage">Relevage</label>
+                              <input type="date" id="date_relevage" style="width: 250px;">
+                          </div>
+                      </div>
+                  </div>
+                  <div class="da-field">
+                      <div class="d-flex content-justify-between">
+                          <div class="">
+                              <label for="date_embarquement">Embarquement</label>
+                              <input type="date" id="date_embarquement" style="width: 250px;">
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <div class="da-field">
+                  <div class="d-flex content-justify-between">
+                      <div class="">
+                          <label for="date_remise">Remise Doc</label>
+                          <input type="date" id="date_remise" style="width: 250px;">
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+              <h2>Applications et Documentation</h2>
+              <div class="da-grid">
+                  <div class="">
+                      <h5 class="p-1"  style="background: linear-gradient(120deg, #bdfcf9, #b2e1fa)">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-virus-off preview-icon"><path d="M10.01 10h.01"/><path d="M12 14.991h.01"/><path d="M12 22v-3"/><path d="M12 2v3"/><path d="M13 22h-2"/><path d="M13 2h-2"/><path d="m16.5 19.794-1-1.733"/><path d="m16.5 4.205-1 1.732"/><path d="M18.891 13.235a7 7 0 00-8.126-8.126"/><path d="m19.794 7.5-1.732 1"/><path d="M2 12h3"/><path d="M2 13v-2"/><path d="m2 2 20 20"/><path d="M22 12h-3"/><path d="M22 13v-2"/><path d="m4.206 16.5 1.732-1"/><path d="m4.206 7.5 1.732 1"/><path d="M7.05 7.05a7 7 0 009.9 9.9"/><path d="m7.5 19.794 1-1.733"/><path d="M9 12h.01"/></svg>
+                          Traitement
+                      </h5>
+                      <div class="d-flex content-justify-between mb-2">
+                          <div style="width: 200px;">Formule établie ?</div>
+                          <div class="d-flex content-justify-between ms-2" style="height: 35px;">
+                              <input type="radio" class="btn-check" name="options-formule"   id="success-formule" autocomplete="off" checked>
+                              <label class="btn btn-outline-success btn-sm" for="success-formule">OUI</label>
+                              <input type="radio" class="btn-check" name="options-formule" id="danger-formule" autocomplete="off">
+                              <label class="btn btn-outline-danger btn-sm" for="danger-formule">NON</label>
+                          </div>
+                      </div>
+                      <div class="d-flex content-justify-between mb-2">
+                          <div style="width: 200px;">Chèque établi ?</div>
+                          <div class="d-flex content-justify-between ms-2" style="height: 35px;">
+                              <input type="radio" class="btn-check" name="options-cheque" id="success-cheque" autocomplete="off" checked>
+                              <label class="btn btn-outline-success btn-sm" for="success-cheque">OUI</label>
+                              <input type="radio" class="btn-check" name="options-cheque" id="danger-cheque" autocomplete="off">
+                              <label class="btn btn-outline-danger btn-sm" for="danger-cheque">NON</label>
+                          </div>
+                      </div>
+                      <div class="d-flex content-justify-between mb-2">
+                          <div style="width: 200px;">TCs Fumigués ?</div>
+                          <div class="d-flex content-justify-between ms-2" style="height: 35px;">
+                              <input type="radio"  class="btn-check right" name="options-fumigue" id="success-fumigue" autocomplete="off" checked>
+                              <label class="btn btn-outline-success btn-sm" for="success-fumigue">OUI</label>
+                              <input type="radio" class="btn-check right" name="options-fumigue" id="danger-fumigue" autocomplete="off">
+                              <label class="btn btn-outline-danger btn-sm" for="danger-fumigue">NON</label>
+                          </div>
+                      </div>
+                      <div class="d-flex content-justify-between mb-2">
+                          <div style="width: 200px;">Etiquettes ?</div>
+                          <div class="d-flex content-justify-between ms-2" style="height: 35px;">
+                              <input type="radio" class="btn-check btn-sm" name="options-etiquette" id="success-etiquette" autocomplete="off" checked>
+                              <label class="btn btn-outline-success btn-sm" for="success-etiquette">OUI</label>
+                              <input type="radio" class="btn-check btn-sm" name="options-etiquette" id="danger-etiquette" autocomplete="off">
+                              <label class="btn btn-outline-danger btn-sm" for="danger-etiquette">NON</label>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="">
+                      <h5 class="p-1"   style="background: linear-gradient(120deg, #b2e1fa, #bdfcf9)">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-certificate preview-icon"><path d="M12 10H6"/><path d="m20.69 15.479 1.29 4.88a.5.5 0 01-.698.591l-1.843-.849a1 1 0 00-.879.001l-1.846.85a.5.5 0 01-.692-.593l1.29-4.88"/><path d="M22 6.675V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2h8"/><path d="M6 14h4"/><circle cx="19" cy="13" r="3"/></svg>
+                          Certificats et autres document
+                      </h5>
+                      <div class="da-grid">
+                          <div class="da-field">
+                              <label for="approbation">Draft BL</label>
+                              <select name="approbation" id="approbation" style="width: 150px;"></select>
+                          </div>
+                          <div class="da-field">
+                              <label for="sel_pl">Packing List</label>
+                              <select name="sel_pl" id="sel_pl" style="width: 150px;"></select>
+                          </div>
+                          <div class="da-field">
+                              <label for="sel_pl">Certificat Poids</label>
+                              <select name="sel_cert_poids" id="sel_cert_poids" style="width: 150px;"></select>
+                          </div>
+                          <div class="da-field">
+                              <label for="sel_cert_coa">COA</label>
+                              <select name="sel_cert_coa" id="sel_cert_coa" style="width: 150px;"></select>
+                          </div>
+                          <div class="da-field">
+                              <label for="sel_cert_phyto">Certificat Phyto</label>
+                              <select name="sel_cert_phyto" id="sel_cert_phyto" style="width: 150px;"></select>
+                          </div>
+                          <div class="da-field">
+                              <label for="sel_cert_co">Certificat Origine</label>
+                              <select name="sel_cert_co" id="sel_cert_co" style="width: 150px;"></select>
+                          </div>
+                          <div class="da-field">
+                              <label for="sel_cert_conformite">Certificat Conformité</label>
+                              <select name="sel_cert_conformite" id="sel_cert_conformite" style="width: 150px;"></select>
+                          </div>
+                          <div class="da-field">
+                              <label for="sel_cert_hygienne">Certificat Hygiene</label>
+                              <select name="sel_cert_hygienne" id="sel_cert_hygienne" style="width: 150px;"></select>
+                          </div>
+                        <div class="da-field">
+                              <label for="sel_cert_fumigation">Certificat Fumigation</label>
+                              <select name="sel_cert_fumigation" id="sel_cert_fumigation" style="width: 150px;"></select>
+                          </div>
+                          <div class="da-field">
+                              <label for="sel_cert_hygienne">Certificat Halal / Kosher / FSSC22000</label>
+                              <select name="sel_cert_halal" id="sel_cert_halal" style="width: 150px;"></select>
+                          </div>
+                      </div>
+
+                  </div>
+              </div>
+
+          </div>
+          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+              <h2>Photos Empotage & Rapport</h2>
+                <div class="da-field">
+                      <div class="col-5"><label class="fs-6">Photos / Rapports: </label></div>
+                      <div class="col-7 d-inline-flex w-100" id="div_upload">
+                          {#<input type="file" id="fileInput" name="photos" accept="image/ application/msword" multiple>#}
+                          <form id="uploadForm"  enctype="multipart/form-data" style="border-top:  2px solid grey">
+                              <input type="file" id="fileInput"  multiple accept="image/*,.pdf, .doc, .docx, .xls, .xlsx" name="fichiers[]" />
+                          </form>
+                      </div>
+                  </div>
+                    <div class="da-field">
+                        <div class="mt-2 mb-2 mx-auto" style="max-height: 300px;overflow-y: scroll;width: 75%;background: #dad9d9;" id="preview"></div>
+                    </div>
+          </div>
+
+          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
+              <div class="d-flex justify-content-between">
+                <h2>Suivi documentaire & Consignation</h2>
+                  <a href="#" class="btn btn-success p-1 mb-1" style="border-radius: 0;">Modèles de dossier</a>
+              </div>
+                    <div class="da-field">
+                        <div class="div_donnees mb-2 bg-light" style="border: 1px solid lightgray;overflow-y: scroll;font-size: 13px;max-height: 250px;">
+                        </div>
+                        <hr>
+                        <div class="mt-2{# border border-1 p-2#} docs_contenu"></div>
+                  </div>
+          </div>
+
+
+        <div class="da-toolbar" style="justify-content:flex-end;">
+          <a href="#" class="da-btn da-btn-light">Annuler</a>
+          <button type="submit" class="da-btn da-btn-primary">Enregistrer le dossier</button>
+        </div>
+      </form>
+</div>
+
+
+
+
+    {#
+    ------------------------------------------------------------------------------------------------------
+    ---------------------------------------------- MODAL -------------------------------------------
+    ------------------------------------------------------------------------------------------------------
+#}
+    <!-- Modal Cv Déblocage-->
+    <div class="modal fade" id="modalCvDeblocage" tabindex="-1" aria-labelledby="AddmodalCvDeblocageLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content modal-center"  style="border-radius: 0;">
+                <div class="modal-header" style="background: var(--green-100)">
+                    <h1 class="modal-title fs-5" id="modalCvDeblocageLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-receipt-text preview-icon"><path d="M13 16H8"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"/></svg> CV Déblocage</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCvDeblocage">
+                        <div class="d-flex justify-content-start">
+                            <label for="cv_deblocage" class="fw-bold span">N° CV</label>
+                            <input class="input-shipping fw-bold" type="text" id="cv_deblocage" style="text-transform: uppercase;width:100%;">
+                            <input class="input-shipping ms-2 text-center fw-bold" type="text" id="tonnage_cv_deblocage" style="color: #480202;width:50%;" placeholder="tonnage (Kg)">
+                        </div>
+                        <hr>
+                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-cv-deb" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
+                    </form>
+                </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Modal Cv Exécution-->
+    <div class="modal fade" id="modalCvExecution" tabindex="-1" aria-labelledby="AddmodalCvExecutionLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content modal-center"  style="border-radius: 0;">
+                <div class="modal-header" style="background: var(--green-100)">
+                    <h1 class="modal-title fs-5" id="modalCvExecutionLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-receipt-text preview-icon"><path d="M13 16H8"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"/></svg> CV Exécution</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCvExecution">
+                        <div class="d-flex justify-content-start">
+                            <label for="cv_execution" class="fw-bold span">N° CV</label>
+                            <input class="input-shipping fw-bold" type="text" id="cv_execution" style="text-transform: uppercase;width:100%;">
+                        </div>
+                        <hr>
+                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-cv-exe" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Banque-->
+    <div class="modal fade" id="modalBanque" tabindex="-1" aria-labelledby="AddmodalBanqueLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content modal-center"  style="border-radius: 0;">
+                <div class="modal-header" style="background: var(--green-100)">
+                    <h1 class="modal-title fs-5" id="modalBanqueLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-landmark preview-icon"><path d="M10 18v-7"/><path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M3 22h18"/><path d="M6 18v-7"/></svg> Banque</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formBanque">
+                        <div class="d-flex justify-content-start">
+                            <label for="banque" class="fw-bold span">Nom</label>
+                            <input class="input-shipping fw-bold" type="text" id="banque" style="text-transform: uppercase;width:100%;">
+                        </div>
+                        <hr>
+                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-banque" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Client-->
+    <div class="modal fade" id="modalClient" tabindex="-1" aria-labelledby="AddmodalClientLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content modal-center"  style="border-radius: 0;">
+                <div class="modal-header" style="background: var(--green-100)">
+                    <h1 class="modal-title fs-5" id="modalClientLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-star preview-icon"><path d="M16.051 12.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.866l-1.156-1.153a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z"/><path d="M8 15H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/></svg> Client</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formClient">
+                        <div class="d-flex justify-content-start mb-2">
+                            <label for="client" class="fw-bold span">Nom client</label>
+                            <input class="input-shipping fw-bold" type="text" id="client" style="text-transform: uppercase;width:100%;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label for="select_pays" class="fw-bold span">Pays</label>
+                            <select class="input-shipping fw-bold"  id="select_pays"></select>
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label for="client" class="fw-bold span">Ville</label>
+                            <input class="input-shipping fw-bold" type="text" id="ville" style="text-transform: uppercase;width:100%;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label for="client" class="fw-bold span">Adresse</label>
+                            <input class="input-shipping fw-bold" type="text" id="adresse" style="text-transform: uppercase;width:100%;">
+                        </div>
+                        <hr>
+                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-client" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Navire-->
+    <div class="modal fade" id="modalNavire" tabindex="-1" aria-labelledby="AddmodalNavireLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content modal-center"  style="border-radius: 0;">
+                <div class="modal-header" style="background: var(--green-100)">
+                    <h1 class="modal-title fs-5" id="modalNavireLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ship preview-icon"><path d="M12 2v2"/><path d="M12 9.189V13"/><path d="M19 12V6a2 2 0 00-2-2H7a2 2 0 00-2 2v6"/><path d="M19.38 19A11.6 11.6 0 0021 13l-8.188-3.639a2 2 0 00-1.624 0L3 13.001a11.6 11.6 0 002.81 7.76"/><path d="M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg> Navire</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formNavire">
+                        <div class="d-flex justify-content-start">
+                            <label for="navire" class="fw-bold span">Nom</label>
+                            <input class="input-shipping fw-bold" type="text" id="navire" style="text-transform: uppercase;width:100%;">
+                        </div>
+                        <hr>
+                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-navire" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pays-->
+    <div class="modal fade" id="modalPays" tabindex="-1" aria-labelledby="AddmodalPaysLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content modal-center"  style="border-radius: 0;">
+                <div class="modal-header" style="background: var(--green-100)">
+                    <h1 class="modal-title fs-5" id="modalPaysLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe preview-icon"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Pays</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formPays">
+                        <div class="d-flex justify-content-start">
+                            <label for="pays" class="fw-bold span">Pays</label>
+                            <input class="input-shipping fw-bold" type="text" id="pays" style="text-transform: uppercase;width:100%;">
+                        </div>
+                        <hr>
+                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-pays" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tc-->
+    <div class="modal fade" id="modalTc" tabindex="-1" aria-labelledby="AddmodalTcLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg  modal-center">
+            <div class="modal-content"  style="border-radius: 0;">
+                <div class="modal-header" style="background: var(--green-100)">
+                    <h1 class="modal-title fs-5" id="modalTcLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe preview-icon"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Tc</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formTc" style="font-size: 13px;">
+                        <div class="d-flex justify-content-start">
+                            <label for="tc" class="fw-bold span">Tc</label>
+                            <input class="input-shipping fw-bold" type="text" id="tc" style="text-transform: uppercase;width:200px;" placeholder="N° TC">
+                            <input class="input-shipping fw-bold ms-2" type="text" id="plomb" style="text-transform: uppercase;width:150px;" placeholder="N° Plomb">
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label for="select_lot" class="fw-bold span">Ajouter lots</label>
+                            <select name="select_lot" id="select_lot" style="width: 150px;"></select>
+                            <input class="input-shipping fw-bold ms-2" type="text" id="nb_cartons" style="text-transform: uppercase;width: 100px;" placeholder="Nb Cartons">
+                            <input class="input-shipping fw-bold ms-2" type="text" id="pb" style="text-transform: uppercase;width:100px;" placeholder="Poids brut" disabled>
+                            <input class="input-shipping fw-bold ms-2" type="text" id="pb" style="text-transform: uppercase;width:100px;" placeholder="Poids Net" disabled>
+                            <button type="button" id="add-lot" class="btn btn-warning p-1 ms-2" style="border-radius: 2px;">Ajouter le lot</button>
+                        </div>
+                        <table class="table col-9">
+                            <thead>
+                                <tr style="background: #ececec">
+                                    <th style="background: #046585;color: white;padding: 2px;">Lot</th>
+                                    <th style="background: #046585;color: white;padding: 2px;">Nb Cartons</th>
+                                    <th style="background: #046585;color: white;padding: 2px;">Poids Brut</th>
+                                    <th style="background: #046585;color: white;padding: 2px;">Poids Net</th>
+                                </tr>
+                            </thead>
+                            <tbody id="select_lot_tbody">
+
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-tc" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Modal Photo #}
+    <div class="modal fade" id="modal_photo" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center" >
+                    {#<a href="#" id="telecharger_photo" class="btn btn-primary mx-auto mb-2">Télécharger</a>#}
+                    <div class="m-2 sticky-top" style="height: 500px;overflow-y: scroll;"><img src="" width="100%" style="width: 700px;"  alt="" id="img_photo"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {#</div>#}
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/Production/Produit.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Proprietaire.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Cv.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Banque.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Pays.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Client.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Navire.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/embarquements.js') }}"></script>
+<script>
+    let id_dossier = "0";
+    let cv_deb = document.getElementById('select_cv_deblocage')
+    let cv_exe = document.getElementById('select_cv_execution')
+    let code_proprietaire = document.getElementById('code_proprietaire')
+    let code_produit = document.getElementById('code_produit')
+    let banque = document.getElementById('select_banque')
+    let pays = document.getElementById('select_pays')
+    let pays_destination = document.getElementById('pays_destination')
+    let navire = document.getElementById('select_navire')
+
+    getAllProprietaires(document.getElementById('code_proprietaire'), 2)
+    getAllBanques(banque, 2)
+    getAllPays(pays, 2)
+    getAllPays(pays_destination, 2)
+    getAllNavires(navire, 2)
+    code_proprietaire.addEventListener('change', ()=>{
+        let valeur = code_proprietaire.value;
+        getAllProduitsByProprietaire(code_produit, 2, valeur)
+        getAllCvsDeblocageByProprio(cv_deb, 2, valeur)
+    })
+
+
+/*    ********************************************************************************************************************
+    ********************************************************************************************************************
+    ********************************************************************************************************************
+    *********************************************************************************************************************/
+
+
+            /* =======> Contrats de Déblocage */
+                        document.getElementById('btn-add-cv-deb').addEventListener('click', function (){
+                        let formCvDeb = new FormData()
+                        formCvDeb.append('numero_cv', document.getElementById('cv_deblocage').value)
+                        formCvDeb.append('tonnage', document.getElementById('tonnage_cv_deblocage').value)
+                        formCvDeb.append('code_proprietaire', code_proprietaire.value)
+                        saveCvDeblocage(formCvDeb, cv_deb, 2, code_proprietaire.value)
+                    })
+                        getNumberSeparator(document.getElementById('tonnage_cv_deblocage'))
+                        document.getElementById('ajt_cv_deb').addEventListener('click', function (){
+                            clearForm('formCvDeblocage', "cv_deblocage")
+                        })
+                        ValidateOnKeypress(document.getElementById("cv_deblocage"), document.getElementById("btn-add-cv-deb"),"formCvDeblocage",)
+                        cv_deb.addEventListener('change', ()=>{
+                            let valeur = cv_deb.value;
+                            getAllCvsExecutionByDeb(cv_exe, 2, valeur)
+                        })
+            /* Fin Contrat de Déblocage  */
+
+
+
+
+            /*=======> Contrats d'exécution */
+                       document.getElementById('btn-add-cv-exe').addEventListener('click', function (){
+                                let formCvExe = new FormData()
+                                formCvExe.append('numero_cv', document.getElementById('cv_execution').value)
+                                formCvExe.append('code_cv_deblocage', cv_deb.value)
+                                saveCvExecution(formCvExe, cv_exe, 2, cv_deb.value)
+                            })
+                        ValidateOnKeypress(document.getElementById("cv_execution"), document.getElementById("btn-add-cv-exe"),"formCvExecution",)
+                        document.getElementById('ajt_cv_exe').addEventListener('click', function (){
+                                    clearForm('formCvExecution', "cv_execution")
+                                })
+            /* Fin Contrat d'exécution  */
+
+
+
+            /* =======> Banque */
+                        document.getElementById('btn-add-banque').addEventListener('click', function (){
+                            let formBanque = new FormData()
+                            formBanque.append('banque', document.getElementById('banque').value)
+                            saveBanque(formBanque, document.getElementById('select_banque'), 2)
+                        })
+                        ValidateOnKeypress(document.getElementById("banque"), document.getElementById("btn-add-banque"),"formBanque",)
+                        document.getElementById('ajt_banque').addEventListener('click', function (){
+                            clearForm('formBanque', "banque")
+                        })
+            /*   Fin Banque  */
+
+
+
+            /* =======> Client */
+                        document.getElementById('btn-add-client').addEventListener('click', function (){
+                            let formClient = new FormData()
+                            formClient.append('client', document.getElementById('client').value)
+                            formClient.append('pays', pays.value)
+                            formClient.append('ville', document.getElementById('ville').value)
+                            formClient.append('adresse', document.getElementById('adresse').value)
+                            saveClient(formClient, document.getElementById('select_client'), 2)
+                        })
+                        ValidateOnKeypress(document.getElementById("banque"), document.getElementById("btn-add-banque"),"formBanque",)
+                        document.getElementById('ajt_banque').addEventListener('click', function (){
+                        clearForm('formBanque', "banque")
+                })
+            /*   Fin Client  */
+
+
+            /* =======> Navire */
+                        document.getElementById('btn-add-navire').addEventListener('click', function (){
+                            let formNavire = new FormData()
+                            formNavire.append('navire', document.getElementById('navire').value)
+                            saveNavire(formNavire, document.getElementById('select_navire'), 2)
+                        })
+                        ValidateOnKeypress(document.getElementById("navire"), document.getElementById("btn-add-navire"),"formNavire",)
+                        document.getElementById('ajt_navire').addEventListener('click', function (){
+                            clearForm('formNavire', "navire")
+                        })
+            /*   Fin Navire  */
+
+
+        /* =======> Pays */
+                            document.getElementById('btn-add-pays').addEventListener('click', function (){
+                                let formPays = new FormData()
+                                formPays.append('pays', document.getElementById('pays').value)
+                                savePays(formPays, document.getElementById('select_pays'), 2)
+                                setTimeout(()=>{
+                                    getAllPays(pays_destination, 2)
+                                }, 2000)
+                            })
+                            ValidateOnKeypress(document.getElementById("pays"), document.getElementById("btn-add-pays"),"formPays",)
+                            document.getElementById('ajt_pays').addEventListener('click', function (){
+                                clearForm('formPays', "pays")
+                            })
+        /*   Fin Pays  */
+
+
+
+
+
+
+            /** Docs et Photos ***/
+
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+
+    fileInput.addEventListener('change', () => {
+        preview.innerHTML = ""; // Nettoyer l'aperçu précédent
+        const files = fileInput.files;
+
+        Array.from(files).forEach(file => {
+            if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement("img");
+
+                    img.src = e.target.result;
+                    img.style.height = "200px";
+                    img.style.margin = "10px;";
+                    img.classList = "m-2 a_photo";
+                    img.style.cursor = "pointer";
+
+                    preview.appendChild(img);
+                };
+                // Aller automatiquement au bloc preview
+                preview.scrollIntoView({ behavior: "smooth" });
+
+                reader.readAsDataURL(file);
+
+            }
+        });
+        const btn_upload = document.createElement("button");
+
+        btn_upload.classList ="btn btn-outline-success p-0 ms-2"
+        btn_upload.style.width ="30px"
+        btn_upload.id ="btn_upload"
+        btn_upload.type = "submit"
+        btn_upload.innerHTML = '<i class="fa-solid fa-check-to-slot"></i>'
+        document.querySelector("#uploadForm").appendChild(btn_upload);
+    });
+
+    function reinitialise_photo(){
+        let btn_upload = document.querySelector("#btn_upload")
+        document.querySelector("#uploadForm").removeChild(btn_upload)
+        document.querySelector("#fileInput").value = null;
+    }
+
+    function affiche_docs_empotage(){
+        let contenu = '';
+        let contenu_other = '';
+        let j = 0;
+        $.ajax({
+            url : '{{ url('app_login') }}api/getDossiersFiles/' + id_dossier,
+            type : 'POST',
+            success: function (response){
+                reponse = JSON.parse(response)
+                if (reponse.code === "SUCCESS"){
+                    for (var i = 0 ; i < reponse.data.length; i++){
+                        if (reponse.data[i].extension === "doc" || reponse.data[i].extension === "docx" || reponse.data[i].extension === "pdf" || reponse.data[i].extension === "xls" || reponse.data[i].extension === "xlsx"){
+                            j = j + 1;
+                            if (j === 1) { contenu_other +='<span class="text-dark text-decoration-underline fw-bold" >Fichiers associés :<br></span>' }
+                            contenu_other += '<div class="text-left ms-2"  style="font-size:13px;" ><i class="fa-solid fa-arrow-right me-1"></i><a href="{{ asset('files/photos_dossier/') }}' + reponse.data[i].filename + '" >' + reponse.data[i].fichier + '</a></div>'
+                        } else {
+                            contenu += '<a class="col-5 m-1 mx-auto a_photo" data-bs-target="#modal_photo" data-bs-toggle="modal" id ="{{ asset('files/photos_dossier/') }}' + reponse.data[i].filename + '" ><img class="border border-2 border-secondary" style="border-radius:4px;" src="{{ asset('files/photos_dossier/') }}' + reponse.data[i].filename + '" alt="thumbnail_file"></a>'
+                        }
+                    }
+                    // Ajout  des contenus dans le Div preview
+
+                    const div_files = document.createElement("div");
+                    const div_images = document.createElement("div");
+
+                    div_files.classList ="p-1 mb-4"
+                    div_files.style.borderBottomStyle ="2px solid grey;"
+                    div_files.style.backgroundColor = "#f2f9fa"
+                    div_images.classList ="p-2 row"
+                    div_images.style.backgroundColor = "lightyellow"
+                    div_files.innerHTML = contenu_other;
+                    div_images.innerHTML = contenu;
+
+                    document.querySelector("#preview").innerHTML =''
+                    document.querySelector("#preview").appendChild(div_files);
+                    document.querySelector("#preview").appendChild(div_images);
+                    $(".lbl_emp").html(j +' fichier(s), ' + i + ' image(s)');
+                }
+            },
+            error : function (erreur){
+                reponse = "Erreur"
+                console.log(erreur)
+            }
+        })
+    }
+
+    $('body').on("click", ".a_photo", function (){
+        $("#modal_photo").modal('show')
+        document.querySelector("#img_photo").src = this.src
+    })
+
+    function getDocsDossier(){
+        let reponse = "";
+        let contenu = "";
+        let contenu_body = "";
+
+        $.ajax({
+            url : '{{ url('app_login') }}api/getListDocsByOT/' + id_dossier,
+            type : 'POST',
+            success: function (response){
+
+                reponse = JSON.parse(response)
+                if (reponse.data.length > 0){
+
+                    contenu += ' <legend class="bg-warning p-1" style="font-size: 16px;"><i class="fa fa-file me-2 text-secondary"></i>Documentation:</legend>'
+                    contenu += '<div class="progress "><div class="progress-bar progress-bar-striped bg-success" role="progressbar" style="width: ' + reponse.suivi + '%;" aria-valuenow="' + reponse.suivi + '" aria-valuemin="0" aria-valuemax="100">' + reponse.suivi + '%</div></div>'
+                    contenu += '<table class="table table-hover" id="tbl_docs" style="">'
+                    contenu += '<thead>'
+                    contenu += '<tr>'
+                    contenu += '<th class="p-1 text-center" style="background-color: #703508;color:white;border-right: 1px lightgray solid;font-weight: lighter;">Fichier à charger</th>'
+                    contenu += '<th  class="p-1" style="background-color: #703508;color:white;border-right: 1px lightgray solid;font-weight: lighter;">Actions</th>'
+                    contenu += '</tr>'
+                    contenu += '</thead>'
+                    contenu += '<tbody class="bg-white">'
+
+                    for(var i = 0; i< reponse.data.length; i++){
+                        contenu += '<tr>'
+                        if ( reponse.data[i].filename === "") {
+                            contenu += '<td class="fw-bold" style="font-size: 12px;color: #033050"><i class="fa-solid fa-arrow-right"></i> ' + reponse.data[i].doc + '</td>'
+                            contenu += '<td class="p-1">' +
+                                '<div class="columns is-mobile is-centered "><div class="column is-12 mt-1"><div class="file">' +
+                                '<label class="file-label">' +
+                                '<input class="file-input btn btn-outline-secondary" accept="application/pdf" title="Télécharger un fichier PDF"  id="' + reponse.data[i].id_doc + '"  type="file" name="fichier">' +
+                                '<span class="file-cta">' +
+                                '<span class="file-icon">' +
+                                '<i class="fas fa-upload"></i>' +
+                                '</span>' +
+                                '<span class="file-label"> Charger</span>' +
+                                '</span>' +
+                                '</label>'+
+                                '</div></div></div>'+
+                                '</td>'
+                        }  else {
+                            contenu += '<td class="fw-bold" style="font-size: 12px;color: #033050;background-color: #e7fcf2;"><i class="fa-solid fa-arrow-right"></i> ' + reponse.data[i].doc + '</td>'
+                            contenu += '<td class="p-1 d-inline-flex row" style="background-color: #e7fcf2;"><div class="col-6 text-center"><a class=" btn btn-sm btn-outline-primary" href="{{ asset('files/docs_dossier/') }}' + reponse.data[i].filename+ '">Voir</a></div><div class="col-6 text-center"><a class=" btn btn-sm btn-outline-danger supprimer"  id="' + reponse.data[i].id_doc + '" href="#"><i  class="fa fa-times"></a></div></td>'
+                        }
+                        contenu += '</tr>'
+                    }
+                } else {
+                    contenu += '<h5 class="text-danger">Aucun document généré !</h5>'
+                }
+                contenu += '</tbody>'
+                contenu += '</table>'
+                document.querySelector('.docs_contenu').innerHTML = contenu;
+
+            },
+            error : function (erreur){
+                reponse = "Erreur !";
+                contenu += '</tbody>'
+                contenu += '</table>'
+                //document.querySelector('.div_donnees').innerHTML = contenu;
+            }
+        })
+
+        //alert(contenu_body)
+    }
+
+    function getApprobation(){
+        let reponse = "";
+        let contenu = "";
+        $.ajax({
+            url : '{{ url('app_api_approbations') }}',
+            type : 'POST',
+            success: function (response){
+                reponse = JSON.parse(response)
+                contenu += '<option value="0">Sélectionnez une valeur</option>'
+                for(var i = 0; i< reponse.length; i++){
+                    contenu += '<option value ="' + reponse[i].id_approbation + '">' + reponse[i].valeur + '</option>'
+                }
+                contenu_approbation = contenu;
+                affecte_contenu_approbation()
+            },
+            error : function (){
+                reponse = "Erreur"
+            }
+        })
+    }
+</script>
+{% endblock %}
+

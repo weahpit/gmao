@@ -281,7 +281,9 @@
                     </div>
                 </div>
             </div>
-        <div class="nav-section">
+
+
+            <div class="nav-section">
                 {#<span class="nav-section-title">Stocks</span>#}
                 <!-- Groupe Stock avec sous-menu -->
 
@@ -296,51 +298,58 @@
                         <span class="nav-label">Gestion du stock</span>
                         <i data-lucide="chevron-down" class="nav-chevron"></i>
                     </button>
+
                     <div class="nav-submenu">
-                        <span class="nav-section-title">Magasin PDR</span>
-                        <a href="#" class="nav-subitem" id="btnAticles" data-bs-toggle="modal" data-bs-target="#modalEq">
-                            <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
-                            <span class="nav-label" id="mes_articles">Mes articles</span>
-                        </a>
-                        <a href="{{ path('app_mouvements_stock_entree') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_entree' ? 'active' }}">
-                            <span class="nav-label">Entrée</span>
-                        </a>
-                        <a href="{{ path('app_mouvements_stock_sortie') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_sortie' ? 'active' }}">
-                            <span class="nav-label">Sortie</span>
-                        </a>
-                        <a href="{{ path('app_inventaires') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_inventaires' ? 'active' }}">
-                            <span class="nav-label">Inventaire</span>
-                        </a>
-                        <a href="{{ path('app_mouvements_operations_jour') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_operations_jour' ? 'active' }}">
-                            <span class="nav-label">Opérations journalières</span>
-                        </a>
-                        <hr>
-                        <span class="nav-section-title">Déchets et Echantiollonnage</span>
-                        <a href="{{ path('app_saisie_stock_nouvelle') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisie_stock_nouvelle' ? 'active' }}">
-                            <span class="nav-label">Entrée Stock</span>
-                        </a>
-                        <a href="{{ path('app_sorties_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_sorties_stock' ? 'active' }}">
-                            <span class="nav-label">Sorties stock</span>
-                        </a>
-                        <a href="{{ path('app_saisies_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisies_stock' ? 'active' }}">
-                            <span class="nav-label">Consultations</span>
-                        </a>
-                        <hr>
-                        <a href="{{ path('app_magasin_bons_valides') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_magasin_bons_valides' ? 'active' }}">
+                        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_PDR')%}
+                            <span class="nav-section-title">Magasin PDR</span>
+                            <a href="#" class="nav-subitem" id="btnAticles" data-bs-toggle="modal" data-bs-target="#modalEq">
+                                <svg style="height: 16px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-text preview-icon"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8h8"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
+                                <span class="nav-label" id="mes_articles">Mes articles</span>
+                            </a>
+                            <a href="{{ path('app_mouvements_stock_entree') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_entree' ? 'active' }}">
+                                <span class="nav-label">Entrée</span>
+                            </a>
+                            <a href="{{ path('app_mouvements_stock_sortie') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_sortie' ? 'active' }}">
+                                <span class="nav-label">Sortie</span>
+                            </a>
+                            <a href="{{ path('app_inventaires') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_inventaires' ? 'active' }}">
+                                <span class="nav-label">Inventaire</span>
+                            </a>
+                            <a href="{{ path('app_mouvements_operations_jour') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_operations_jour' ? 'active' }}">
+                                <span class="nav-label">Opérations journalières</span>
+                            </a>
+                            <hr>
+                            <a href="{{ path('app_magasin_bons_valides') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_magasin_bons_valides' ? 'active' }}">
                             <span class="nav-label badge text-success" style="background: #e4f6e5;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="height: 16px;"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer-check preview-icon"><path d="M13.5 22H7a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v.5"/><path d="m16 19 2 2 4-4"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/></svg>
                                 <span class="ms-1">Imprimer Bon de Sortie</span>
                             </span>
-                        </a>
+                            </a>
+                        {% endif %}
+
+                        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_SAISIE_STOCK')%}
+                            <span class="nav-section-title">Déchets et Echantiollonnage</span>
+                            <a href="{{ path('app_saisie_stock_nouvelle') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisie_stock_nouvelle' ? 'active' }}">
+                                <span class="nav-label">Entrée Stock</span>
+                            </a>
+                            <a href="{{ path('app_sorties_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_sorties_stock' ? 'active' }}">
+                                <span class="nav-label">Sorties stock</span>
+                            </a>
+                            <a href="{{ path('app_saisies_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisies_stock' ? 'active' }}">
+                                <span class="nav-label">Consultations</span>
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
 
+
+            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_LOGISTIQUE')%}
             {#*************************************************************************************************
             ************************* LOGISTIQUE *********************************************************
             **************************************************************************************************#}
 
-            {#<div class="nav-section">
+            <div class="nav-section">
                 <div class="nav-group">
                     <button type="button" class="nav-item has-submenu">
                         <i data-lucide="package"></i>
@@ -354,7 +363,7 @@
                             <span class="nav-label" id="mes_articles">Embarquements</span>
                         </a>
                         <span class="nav-section-title">Gestion des lots</span>
-                        <a href="{{ path('app_mouvements_stock_entree') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_entree' ? 'active' }}">
+                        <a href="{{ path('production_lot') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'production_lot' ? 'active' }}">
                             <span class="nav-label">Production</span>
                         </a>
                         <a href="{{ path('app_mouvements_stock_sortie') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_stock_sortie' ? 'active' }}">
@@ -362,8 +371,8 @@
                         </a>
                     </div>
                 </div>
-            </div>#}
-
+            </div>
+            {% endif %}
 
             {% if 'ROLE_DG' in app.user.roles or  'ROLE_ADMIN' in app.user.roles %}
 

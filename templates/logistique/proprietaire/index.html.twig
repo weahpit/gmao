@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Proprietaires — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Propriétaires</span>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">Propriétaires</h1>
+        <a href="#"  id="btn_add_proprietaire" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddProprietaire">
+            <img src="{{ asset('icons/_eq.png') }}" class="me-2" alt="" height="16"> Ajouter  un propriétaire
+        </a>
+    </div>
+
+    <!-- Table -->
+        <div class="card-body">
+
+        </div>
+
+    <!-- Modal Add/Edit Proprietaire-->
+    <div class="modal fade" id="modalAddProprietaire" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/proprietaire.png') }}" height="40" alt=""> Enregistrer un proprietaire</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formProprietaire" >
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="proprietaire" style="width: 250px;">Proprietaire</label>
+                            <input type="text" class="input" id="proprietaire" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveProprietaire">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Proprietaire.js') }}"></script>
+    <script>
+
+        let idProprietaire = "0";
+        getAllProprietaires(document.querySelector(".card-body"), 1)
+        clearForm("formProprietaire", "proprietaire")
+        ValidateOnKeypress(document.getElementById("proprietaire"), document.getElementById("saveProprietaire"), "formProprietaire")
+
+        document.querySelector("#btn_add_proprietaire").addEventListener("click", function () {
+            clearForm("formProprietaire", "proprietaire")
+        })
+
+        document.querySelector("#saveProprietaire").addEventListener("click", function () {
+            let FormDataProprietaire = new FormData();
+            FormDataProprietaire.append('id_proprietaire', idProprietaire)
+            FormDataProprietaire.append('proprietaire', document.querySelector("#proprietaire").value)
+            saveProprietaire(FormDataProprietaire, document.querySelector(".card-body"), 1)
+        })
+    </script>
+{% endblock %}

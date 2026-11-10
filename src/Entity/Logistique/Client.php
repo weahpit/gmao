@@ -33,6 +33,15 @@ class Client
     #[ORM\OneToMany(targetEntity: ModeleDoc::class, mappedBy: 'code_client')]
     private Collection $modeleDocs;
 
+    #[ORM\ManyToOne(inversedBy: 'clients')]
+    private ?Pays $code_pays = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $ville = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $adresse_client = null;
+
     public function __construct()
     {
         $this->dossiers = new ArrayCollection();
@@ -112,6 +121,42 @@ class Client
                 $modeleDoc->setCodeClient(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCodePays(): ?Pays
+    {
+        return $this->code_pays;
+    }
+
+    public function setCodePays(?Pays $code_pays): static
+    {
+        $this->code_pays = $code_pays;
+
+        return $this;
+    }
+
+    public function getVille(): ?string
+    {
+        return $this->ville;
+    }
+
+    public function setVille(?string $ville): static
+    {
+        $this->ville = $ville;
+
+        return $this;
+    }
+
+    public function getAdresseClient(): ?string
+    {
+        return $this->adresse_client;
+    }
+
+    public function setAdresseClient(?string $adresse_client): static
+    {
+        $this->adresse_client = $adresse_client;
 
         return $this;
     }

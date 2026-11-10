@@ -41,11 +41,18 @@ class Proprietaire
     #[ORM\OneToMany(targetEntity: Lot::class, mappedBy: 'code_proprio')]
     private Collection $lots;
 
+    /**
+     * @var Collection<Uuid, CvDeblocage>
+     */
+    #[ORM\OneToMany(targetEntity: CvDeblocage::class, mappedBy: 'code_proprietaire')]
+    private Collection $cvDeblocages;
+
     public function __construct()
     {
         $this->dossiers = new ArrayCollection();
         $this->produits = new ArrayCollection();
         $this->lots = new ArrayCollection();
+        $this->cvDeblocages = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -149,6 +156,36 @@ class Proprietaire
             // set the owning side to null (unless already changed)
             if ($lot->getCodeProprio() === $this) {
                 $lot->setCodeProprio(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<Uuid, CvDeblocage>
+     */
+    public function getCvDeblocages(): Collection
+    {
+        return $this->cvDeblocages;
+    }
+
+    public function addCvDeblocage(CvDeblocage $cvDeblocage): static
+    {
+        if (!$this->cvDeblocages->contains($cvDeblocage)) {
+            $this->cvDeblocages->add($cvDeblocage);
+            $cvDeblocage->setCodeProprietaire($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCvDeblocage(CvDeblocage $cvDeblocage): static
+    {
+        if ($this->cvDeblocages->removeElement($cvDeblocage)) {
+            // set the owning side to null (unless already changed)
+            if ($cvDeblocage->getCodeProprietaire() === $this) {
+                $cvDeblocage->setCodeProprietaire(null);
             }
         }
 
