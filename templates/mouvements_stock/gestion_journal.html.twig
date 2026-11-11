@@ -1,0 +1,165 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Journal d'audit des mouvements — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Journal d'audit · Mouvements de stock</span>
+{% endblock %}
+
+{% block body %}
+    <link rel="stylesheet" href="{{ asset('css/MvtsStocks/table.css') }}">
+
+    <div class="page-header">
+        <h1 class="page-title"><img src="{{ asset('images/arrow.png') }}" height="32" class="me-2" alt="">Journal d'audit · Mouvements de stock</h1>
+        <div class="d-flex align-items-center" style="gap:8px;">
+            <label for="filtreFamille" class="fw-bold" style="color:#5b4327;white-space:nowrap;">Famille&nbsp;:</label>
+            <select id="filtreFamille" class="form-select" style="width:auto;min-width:170px;border:1px solid #509b80;font-weight:600;">
+                <option value="" selected>Toutes</option>
+                <option value="PIECES">Pièces de rechange</option>
+                <option value="CACAO">Cacao</option>
+            </select>
+            <label for="filtreAction" class="fw-bold ms-2" style="color:#5b4327;white-space:nowrap;">Action&nbsp;:</label>
+            <select id="filtreAction" class="form-select" style="width:auto;min-width:150px;border:1px solid #509b80;font-weight:600;">
+                <option value="" selected>Toutes</option>
+                <option value="MODIFICATION">Modification</option>
+                <option value="SUPPRESSION">Suppression</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="alert" style="border:1px solid #d7895f;background:#faf6e0;border-radius:10px;color:#5b4327;">
+        <strong>Information&nbsp;:</strong> ce journal est <b>en lecture seule</b> (append-only). Il conserve la trace de
+        chaque <b>modification</b> et <b>suppression</b> de mouvements, avec l'auteur, la date, et l'état avant / après.
+    </div>
+
+    <div class="" style="border:1px solid #d2d0d0;background:radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius:0;">
+        <div class="table-responsive" id="div_journal" style="border:1px solid #dedede;">
+            <h5 class="text-center fw-bold text-priimary mt-5">Chargement du journal ...</h5>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+
+    <script>
+        var _donneesJournal = [];
+
+        function echapHtml(v){
+            if (v === null || v === undefined) return '';
+            return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function resumeEtat(e){
+            if (!e) return '<span style="color:#9c9c9c;">—</span>';
+            var parts = [];
+            if (e.article) parts.push(e.article);
+            if (e.rubrique) parts.push(e.rubrique);
+            if (e.type) parts.push('(' + e.type + ')');
+            if (e.quantite !== undefined && e.quantite !== null) parts.push('Qté ' + e.quantite);
+            if (e.unite) parts.push(e.unite);
+            if (e.numero_bon) parts.push('Bon ' + e.numero_bon);
+            var txt = parts.length ? parts.join(' · ') : '(aucun détail)';
+            return '<span class="article-name" style="color:#5b4327;">' + echapHtml(txt) + '</span>';
+        }
+
+        function chargerJournal(){
+            var conteneur = document.getElementById('div_journal');
+            conteneur.innerHTML = '<h5 class="text-center fw-bold text-priimary mt-5">Chargement du journal ...</h5>';
+            $.ajax({
+                url: URL_APP + 'api/gestion-journal-mvt/list',
+                type: 'GET',
+                dataType: 'json',
+                success: function (response){
+                    if (response.code !== 'success'){
+                        showToast(response.msg || 'Erreur lors du chargement.', { type: (response.code || 'error') });
+                        conteneur.innerHTML = '<h5 class="text-center fw-bold text-danger mt-5">' + (response.msg || 'Erreur') + '</h5>';
+                        return;
+                    }
+                    _donneesJournal = response.data || [];
+                    afficherJournal();
+                },
+                error: function (){
+                    showToast('Erreur réseau lors du chargement du journal.', { type: 'error' });
+                    conteneur.innerHTML = '<h5 class="text-center fw-bold text-danger mt-5">Erreur réseau.</h5>';
+                }
+            });
+        }
+
+        function afficherJournal(){
+            var conteneur = document.getElementById('div_journal');
+            var fFam = document.getElementById('filtreFamille').value;
+            var fAct = document.getElementById('filtreAction').value;
+
+            var lignes = _donneesJournal.filter(function(j){
+                if (fFam && j.famille !== fFam) return false;
+                if (fAct && j.action !== fAct) return false;
+                return true;
+            });
+
+            if (lignes.length === 0){
+                conteneur.innerHTML = '<h5 class="text-center fw-bold text-success mt-5">Aucune entrée dans le journal.</h5>';
+                return;
+            }
+
+            var html = ''
+                + '<div class="table-card">'
+                +   '<div class="table-toolbar">'
+                +     '<div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchJournal" placeholder="Rechercher (article, auteur, bon...)"></div>'
+                +     '<span class="stock-counter">' + lignes.length + ' entrée(s) — 500 dernières</span>'
+                +   '</div>'
+                +   '<div class="table-wrapper">'
+                +     '<table class="modern-table" id="tblJournal"><thead><tr>'
+                +       '<th class="text-center">Date</th>'
+                +       '<th>Action</th>'
+                +       '<th>Famille</th>'
+                +       '<th>Cible</th>'
+                +       '<th>Avant</th>'
+                +       '<th>Après</th>'
+                +       '<th>Auteur</th>'
+                +     '</tr></thead><tbody id="tbodyJournal">';
+
+            lignes.forEach(function(j){
+                var badgeAct = j.action === 'SUPPRESSION'
+                    ? '<span class="stock-badge" style="background:#fbe3d6;color:#a2432a;">Suppression</span>'
+                    : '<span class="stock-badge" style="background:#e8eef7;color:#274472;">Modification</span>';
+                var badgeFam = j.famille === 'PIECES'
+                    ? '<span class="stock-badge" style="background:#dff3e8;color:#1f6f4b;">Pièces</span>'
+                    : '<span class="stock-badge" style="background:#f7ecd6;color:#7a5a25;">Cacao</span>';
+
+                html += '<tr data-horodatage="' + echapHtml(j.horodatage) + '">'
+                    +   '<td class="text-center" style="white-space:nowrap;">' + echapHtml(j.date_action) + '</td>'
+                    +   '<td>' + badgeAct + '</td>'
+                    +   '<td>' + badgeFam + '</td>'
+                    +   '<td><div class="article-name" style="color:black;max-width:260px;">' + echapHtml(j.cible) + '</div></td>'
+                    +   '<td>' + resumeEtat(j.avant) + '</td>'
+                    +   '<td>' + resumeEtat(j.apres) + '</td>'
+                    +   '<td>' + echapHtml(j.auteur) + '</td>'
+                    + '</tr>';
+            });
+
+            html += '</tbody></table></div></div>';
+            conteneur.innerHTML = html;
+
+            var search = document.getElementById('searchJournal');
+            if (search){
+                search.addEventListener('input', function(){
+                    var terme = search.value.toLowerCase().trim();
+                    document.querySelectorAll('#tbodyJournal tr').forEach(function(tr){
+                        var txt = tr.innerText.toLowerCase();
+                        tr.style.display = (terme === '' || txt.indexOf(terme) !== -1) ? '' : 'none';
+                    });
+                });
+            }
+        }
+
+        var fFamInit = document.getElementById('filtreFamille');
+        if (fFamInit){ fFamInit.addEventListener('change', afficherJournal); }
+        var fActInit = document.getElementById('filtreAction');
+        if (fActInit){ fActInit.addEventListener('change', afficherJournal); }
+
+        chargerJournal();
+    </script>
+{% endblock %}

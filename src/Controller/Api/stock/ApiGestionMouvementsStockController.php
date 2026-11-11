@@ -4,6 +4,7 @@ namespace App\Controller\Api\stock;
 
 use App\Entity\EquipementType;
 use App\Entity\MouvementEquipement;
+use App\Entity\Stock\JournalMouvement;
 use App\Entity\Stock\SaisieStock;
 use App\Entity\Stock\SortieStock;
 use Doctrine\ORM\EntityManagerInterface;
@@ -26,11 +27,64 @@ use Symfony\Component\Uid\Uuid;
  *     (somme entrees - somme sorties) : aucun stock n'est stocke, donc aucun
  *     recalcul n'est necessaire a la suppression / modification.
  *
+ * Chaque modification / suppression est tracee dans le journal d'audit
+ * (entite JournalMouvement), en append-only.
+ *
  * Convention type_mvt des pieces : "1" = entree, toute autre valeur = sortie.
  */
 final class ApiGestionMouvementsStockController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em) {}
+
+    /**
+     * Ajoute une entree au journal d'audit (append-only).
+     * $avant / $apres sont de petits tableaux serialises en JSON.
+     */
+    private function journaliser(string $action, string $famille, ?Uuid $cibleId, ?string $cibleLibelle, ?array $avant, ?array $apres): void
+    {
+        $user = $this->getUser();
+        $j = new JournalMouvement();
+        $j->setAction($action)
+          ->setFamille($famille)
+          ->setCibleId($cibleId)
+          ->setCibleLibelle($cibleLibelle)
+          ->setAvant($avant)
+          ->setApres($apres)
+          ->setDateAction(new \DateTimeImmutable());
+        if ($user) {
+            $j->setAuteurId($user->getId());
+            $nom = trim((string) $user->getNom() . ' ' . (string) $user->getPrenoms());
+            $j->setAuteurNom($nom !== '' ? $nom : (string) $user->getEmail());
+        }
+        $this->em->persist($j);
+    }
+
+    /** Photo lisible d'un mouvement piece, pour le journal. */
+    private function photoPiece(MouvementEquipement $m): array
+    {
+        return [
+            'article'        => $m->getCodeEquipementType() ? $m->getCodeEquipementType()->getNomEquipement() : null,
+            'code_article'   => $m->getCodeEquipementType() ? $m->getCodeEquipementType()->getCode() : null,
+            'type'           => $m->getTypeMvt() === '1' ? 'Entree' : 'Sortie',
+            'quantite'       => (float) ($m->getValue() ?? 0),
+            'numero_bon'     => $m->getNumeroBon(),
+            'observation'    => $m->getObservation(),
+            'date_operation' => $m->getDateOperation() ? $m->getDateOperation()->format('Y-m-d') : null,
+        ];
+    }
+
+    /** Photo lisible d'un mouvement cacao, pour le journal. */
+    private function photoCacao(string $type, SaisieStock|SortieStock $m): array
+    {
+        return [
+            'type'     => $type === 'entree' ? 'Entree' : 'Sortie',
+            'rubrique' => $m->getRubrique(),
+            'nature'   => $m->getNature(),
+            'quantite' => (float) ($m->getQuantite() ?? 0),
+            'unite'    => $m->getUnite(),
+            'motif'    => $m->getMotif(),
+        ];
+    }
 
     /** Effet d'un mouvement piece sur le stock : +value si entree, -value si sortie. */
     private function effetPiece(MouvementEquipement $m): float
@@ -99,6 +153,7 @@ final class ApiGestionMouvementsStockController extends AbstractController
                 return new JsonResponse(['code' => 'warning', 'msg' => 'Mouvement introuvable.']);
             }
 
+            $avant = $this->photoPiece($m);
             $ancienneValeur = (float) ($m->getValue() ?? 0);
             $nouvelleValeur = $request->request->get('value');
             $nouvelleValeur = ($nouvelleValeur === null || $nouvelleValeur === '')
@@ -134,6 +189,15 @@ final class ApiGestionMouvementsStockController extends AbstractController
             }
 
             $this->em->persist($m);
+            $apres = $this->photoPiece($m);
+            $this->journaliser(
+                JournalMouvement::ACTION_MODIFICATION,
+                JournalMouvement::FAMILLE_PIECES,
+                $m->getId(),
+                (string) $apres['article'] . ' (' . $apres['type'] . ')',
+                $avant,
+                $apres
+            );
             $this->em->flush();
             $connection->commit();
             return new JsonResponse(['code' => 'success', 'msg' => 'Mouvement modifie et stock recalcule.']);
@@ -161,6 +225,8 @@ final class ApiGestionMouvementsStockController extends AbstractController
             foreach ($ids as $id) {
                 $m = $this->em->getRepository(MouvementEquipement::class)->find(Uuid::fromString((string) $id));
                 if (!$m) { continue; }
+                // Photo du mouvement AVANT suppression (pour le journal d'audit).
+                $avant = $this->photoPiece($m);
                 // On annule l'effet du mouvement sur le stock de l'article.
                 $eq = $m->getCodeEquipementType();
                 if ($eq) {
@@ -168,6 +234,14 @@ final class ApiGestionMouvementsStockController extends AbstractController
                     $eq->setQte(max(0, $stock - $this->effetPiece($m)));
                     $this->em->persist($eq);
                 }
+                $this->journaliser(
+                    JournalMouvement::ACTION_SUPPRESSION,
+                    JournalMouvement::FAMILLE_PIECES,
+                    $m->getId(),
+                    (string) $avant['article'] . ' (' . $avant['type'] . ')',
+                    $avant,
+                    null
+                );
                 $this->em->remove($m);
                 $nb++;
             }
@@ -258,6 +332,8 @@ final class ApiGestionMouvementsStockController extends AbstractController
             if (!$m) {
                 return new JsonResponse(['code' => 'warning', 'msg' => 'Mouvement introuvable.']);
             }
+            // Photo du mouvement AVANT modification (pour le journal d'audit).
+            $avant = $this->photoCacao($type, $m);
 
             if ($request->request->has('quantite')) {
                 $q = (float) $request->request->get('quantite');
@@ -293,6 +369,14 @@ final class ApiGestionMouvementsStockController extends AbstractController
             }
 
             $this->em->persist($m);
+            $this->journaliser(
+                JournalMouvement::ACTION_MODIFICATION,
+                JournalMouvement::FAMILLE_CACAO,
+                $m->getId(),
+                (string) ($m->getRubrique() ?? 'Cacao') . ' (' . ($type === 'entree' ? 'Entree' : 'Sortie') . ')',
+                $avant,
+                $this->photoCacao($type, $m)
+            );
             $this->em->flush();
             return new JsonResponse(['code' => 'success', 'msg' => 'Mouvement modifie avec succes.']);
         } catch (\Throwable $e) {
@@ -323,6 +407,15 @@ final class ApiGestionMouvementsStockController extends AbstractController
                 $classe = $type === 'entree' ? SaisieStock::class : SortieStock::class;
                 $m = $this->em->getRepository($classe)->find(Uuid::fromString($id));
                 if (!$m) { continue; }
+                $avant = $this->photoCacao($type, $m);
+                $this->journaliser(
+                    JournalMouvement::ACTION_SUPPRESSION,
+                    JournalMouvement::FAMILLE_CACAO,
+                    $m->getId(),
+                    (string) ($avant['rubrique'] ?? 'Cacao') . ' (' . $avant['type'] . ')',
+                    $avant,
+                    null
+                );
                 $this->em->remove($m);
                 $nb++;
             }
@@ -331,6 +424,39 @@ final class ApiGestionMouvementsStockController extends AbstractController
             return new JsonResponse(['code' => 'success', 'msg' => $nb . ' mouvement(s) supprime(s).']);
         } catch (\Throwable $e) {
             $connection->rollBack();
+            return new JsonResponse(['code' => 'error', 'msg' => 'Une erreur s\'est produite !<br>' . $e->getMessage()]);
+        }
+    }
+
+    /* =====================================================================
+     *  JOURNAL D'AUDIT  (lecture seule)
+     * ===================================================================== */
+
+    #[Route('api/gestion-journal-mvt/list', name: 'api_gestion_journal_mvt_list', methods: ['GET'])]
+    public function listJournal(): Response
+    {
+        if (!$this->getUser()) { return $this->redirectToRoute('app_login'); }
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return new JsonResponse(['code' => 'warning', 'msg' => 'Acces reserve aux administrateurs.']);
+        }
+        try {
+            $entrees = $this->em->getRepository(JournalMouvement::class)->findRecents(500);
+            $data = [];
+            foreach ($entrees as $j) {
+                $data[] = [
+                    'id'          => (string) $j->getId(),
+                    'date_action' => $j->getDateAction() ? $j->getDateAction()->format('d/m/Y H:i:s') : '',
+                    'horodatage'  => $j->getDateAction() ? $j->getDateAction()->format('Y-m-d\\TH:i:s') : '',
+                    'action'      => $j->getAction(),
+                    'famille'     => $j->getFamille(),
+                    'cible'       => $j->getCibleLibelle(),
+                    'auteur'      => $j->getAuteurNom(),
+                    'avant'       => $j->getAvant(),
+                    'apres'       => $j->getApres(),
+                ];
+            }
+            return new JsonResponse(['code' => 'success', 'msg' => 'Success', 'data' => $data]);
+        } catch (\Throwable $e) {
             return new JsonResponse(['code' => 'error', 'msg' => 'Une erreur s\'est produite !<br>' . $e->getMessage()]);
         }
     }

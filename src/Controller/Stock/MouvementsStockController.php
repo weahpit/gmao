@@ -53,4 +53,15 @@ final class MouvementsStockController extends AbstractController
     {
         return $this->render('mouvements_stock/gestion_cacao.html.twig');
     }
+
+    /**
+     * Consultation du journal d'audit des mouvements de stock
+     * (lecture seule, append-only).
+     */
+    #[Route('/Gestion/JournalMouvements', name: 'app_gestion_journal_mvt')]
+    #[IsGranted('ROLE_ADMIN')]
+    public function journalMvt(): Response
+    {
+        return $this->render('mouvements_stock/gestion_journal.html.twig');
+    }
 }
