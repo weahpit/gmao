@@ -1,0 +1,78 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rubriques — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Rubriques</span>
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Rubriques ou Types de Stocks</h1>
+    <a href="#"  id="btn_add_rubrique" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddRubrique">
+        <img src="{{ asset('icons/rubrique.png') }}" class="me-2" alt="" height="16"> Nouvelle rubrique
+    </a>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+
+    </div>
+</div>
+
+    <!-- Modal Add/Edit Equipement-->
+    <div class="modal fade" id="modalAddRubrique" tabindex="-1" aria-labelledby="modalAddRubriqueLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/rubrique.png') }}" height="40" alt=""> Enregistrer une rubrique</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formRubrique" >
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="rubrique" style="width: 150px;">Libelle</label>
+                            <input type="text" class="input" id="rubrique" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start">
+                            <label class="fw-bold span " for="position" style="width: 150px;">Position</label>
+                            <input type="number" class="input" id="position" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveRubrique">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/stock/Rubrique.js') }}"></script>
+    <script>
+
+        let idRubrique = 0;
+       getAllRubriques(document.querySelector(".card-body"), 1)
+       clearForm("formRubrique", "rubrique")
+        ValidateOnKeypress(document.getElementById("rubrique"), document.getElementById("saveRubrique"), "formRubrique")
+
+        document.querySelector("#btn_add_rubrique").addEventListener("click", function () {
+           clearForm("formRubrique", "rubrique")
+       })
+
+       document.querySelector("#saveRubrique").addEventListener("click", function () {
+           let FormDataRubrique = new FormData();
+           FormDataRubrique.append('id_rubrique', idRubrique)
+           FormDataRubrique.append('rubrique', document.querySelector("#rubrique").value)
+           FormDataRubrique.append('position', document.querySelector("#position").value)
+           saveRubrique(FormDataRubrique, document.querySelector(".card-body"), 1)
+       })
+    </script>
+{% endblock %}
