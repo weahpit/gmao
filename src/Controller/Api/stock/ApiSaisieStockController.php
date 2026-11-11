@@ -5,6 +5,7 @@ namespace App\Controller\Api\stock;
 use App\Entity\Services;
 use App\Entity\Stock\SaisieStock;
 use App\Repository\Stock\SaisieStockRepository;
+use App\Service\Stock\ReferentielStock;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,7 +21,10 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class ApiSaisieStockController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private ReferentielStock $referentiel,
+    ) {}
 
     /**
      * Referentiel necessaire a l'ecran mobile :
@@ -48,9 +52,11 @@ final class ApiSaisieStockController extends AbstractController
             'code' => 'success',
             'msg'  => 'OK',
             'data' => [
-                'rubriques' => SaisieStock::RUBRIQUES,
+                // Listes partagees web + mobile : rubriques depuis la table
+                // stock_rubrique, natures depuis le referentiel Produit.
+                'rubriques' => $this->referentiel->rubriques(),
                 'unites'    => SaisieStock::UNITES,
-                'natures'   => SaisieStock::NATURES,
+                'natures'   => $this->referentiel->natures(),
                 'uniteDefaut' => 'Kg',
                 'services'  => $services,
                 'agent'     => [
@@ -102,13 +108,13 @@ final class ApiSaisieStockController extends AbstractController
         }
 
         // --- Validations.
-        if (!in_array($rubrique, SaisieStock::RUBRIQUES, true)) {
+        if (!$this->referentiel->rubriqueValide($rubrique)) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Rubrique invalide.'], 200);
         }
         if (!in_array($unite, SaisieStock::UNITES, true)) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Unite invalide.'], 200);
         }
-        if (!in_array($nature, SaisieStock::NATURES, true)) {
+        if (!$this->referentiel->natureValide($nature)) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Nature du produit invalide.'], 200);
         }
         if ($quantite === null || $quantite === '' || !is_numeric($quantite) || (float) $quantite <= 0) {

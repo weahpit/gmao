@@ -5,6 +5,8 @@ namespace App\DataFixtures;
 use App\Entity\Criticite;
 use App\Entity\EtatEquipement;
 use App\Entity\NatureEquipement;
+use App\Entity\Production\Produit;
+use App\Entity\Stock\Rubrique;
 use App\Entity\TypeZoneExploitation;
 use App\Entity\User;
 use App\Entity\ZoneExploitation;
@@ -94,6 +96,34 @@ class AppFixtures extends Fixture
         $ze = new TypeZoneExploitation();
         $ze->setLibelle("ESPACE / ZONE DE TRAVAIL");
         $manager->persist($ze);
+
+        // --- Rubriques de stock (type de stock) ---
+        // Liste de reference PARTAGEE web + mobile (table stock_rubrique).
+        $rubriquesStock = [
+            'Stock déchets Recyclables',
+            'Stock déchets non recyclable',
+            'Stock échantillothèque',
+            'Stock Refonte',
+            'Stock échantillons Client',
+        ];
+        foreach ($rubriquesStock as $i => $libelle) {
+            $rubrique = new Rubrique();
+            $rubrique->setLibelle($libelle);
+            $rubrique->setActive(true);
+            $rubrique->setPosition($i);
+            $manager->persist($rubrique);
+        }
+
+        // --- Produits (referentiel Production) ---
+        // La "nature du produit" cote stock (web + mobile) est lue depuis cette
+        // table. On y injecte les natures historiques si elles n'existent pas
+        // deja ; completer/retirer ici suffit a faire evoluer la liste.
+        $produitsNature = ['Fèves', 'Masse', 'Beurre', 'Tourteau', 'Tout venant'];
+        foreach ($produitsNature as $libelle) {
+            $produit = new Produit();
+            $produit->setLibelle($libelle);
+            $manager->persist($produit);
+        }
 
         $manager->flush();
     }

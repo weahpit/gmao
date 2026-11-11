@@ -7,6 +7,7 @@ use App\Entity\Stock\SaisieStock;
 use App\Entity\Stock\SortieStock;
 use App\Repository\Stock\SaisieStockRepository;
 use App\Repository\Stock\SortieStockRepository;
+use App\Service\Stock\ReferentielStock;
 use App\Services\pdfService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,7 +26,10 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/stock')]
 final class SaisieStockController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private ReferentielStock $referentiel,
+    ) {}
 
     /**
      * Lit les filtres de la requete.
@@ -103,9 +107,9 @@ final class SaisieStockController extends AbstractController
      */
     private function statistiques(array $saisies, array $sorties, string $rubriqueFiltre): array
     {
-        $rubriques = in_array($rubriqueFiltre, SaisieStock::RUBRIQUES, true)
+        $rubriques = in_array($rubriqueFiltre, $this->referentiel->rubriques(), true)
             ? [$rubriqueFiltre]
-            : SaisieStock::RUBRIQUES;
+            : $this->referentiel->rubriques();
 
         $parRubrique = [];
         foreach ($rubriques as $r) {
@@ -172,7 +176,7 @@ final class SaisieStockController extends AbstractController
             'sorties'  => $sorties,
             'filtres'  => $filtres,
             'stats'    => $this->statistiques($saisies, $sorties, $filtres['rubrique']),
-            'rubriques' => SaisieStock::RUBRIQUES,
+            'rubriques' => $this->referentiel->rubriques(),
             'unites'   => SaisieStock::UNITES,
             'services' => $this->services(),
             'dossierPhotos' => $this->getParameter('photo_saisie_stock'),

@@ -8,6 +8,7 @@ use App\Entity\Stock\SaisieStock;
 use App\Entity\Stock\SortieStock;
 use App\Entity\User;
 use App\Repository\Stock\SortieStockRepository;
+use App\Service\Stock\ReferentielStock;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -40,6 +41,7 @@ final class SortieStockController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private ValidatorInterface $validator,
+        private ReferentielStock $referentiel,
         #[Autowire('%photo_sortie_stock%')] private string $dossierPhotos,
     ) {}
 
@@ -113,9 +115,9 @@ final class SortieStockController extends AbstractController
             'dateValeur'    => $sortie->getDateSortie()?->format('Y-m-d\TH:i'),
             'serviceId'     => (string) $sortie->getService()?->getId(),
             'emplacementId' => (string) $sortie->getEmplacement()?->getId(),
-            'rubriques'     => SaisieStock::RUBRIQUES,
+            'rubriques'     => $this->referentiel->rubriques(),
             'unites'        => SaisieStock::UNITES,
-            'natures'       => SortieStock::NATURES,
+            'natures'       => $this->referentiel->natures(),
             'motifs'        => SortieStock::MOTIFS,
             'services'      => $this->em->getRepository(Services::class)->findBy([], ['libelle' => 'ASC']),
             'emplacements'  => $this->em->getRepository(Emplacement::class)->findBy([], ['libelle' => 'ASC']),
@@ -171,6 +173,19 @@ final class SortieStockController extends AbstractController
         $erreurs = [];
         foreach ($this->validator->validate($sortie) as $violation) {
             $erreurs[$violation->getPropertyPath()] ??= (string) $violation->getMessage();
+        }
+
+        // Listes de reference partagees web + mobile : rubrique (table
+        // stock_rubrique) et nature (referentiel Produit). On ne valide ces
+        // valeurs que si NotBlank est deja satisfait, pour ne pas ecraser le
+        // message "Choisissez...".
+        if (!isset($erreurs['rubrique'])
+            && !$this->referentiel->rubriqueValide($sortie->getRubrique())) {
+            $erreurs['rubrique'] = 'Type de stock invalide.';
+        }
+        if (!isset($erreurs['nature'])
+            && !$this->referentiel->natureValide($sortie->getNature())) {
+            $erreurs['nature'] = 'Nature du produit invalide.';
         }
 
         if ($photo instanceof UploadedFile) {

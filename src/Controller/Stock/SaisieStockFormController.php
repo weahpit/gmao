@@ -7,6 +7,7 @@ use App\Entity\Services;
 use App\Entity\Stock\SaisieStock;
 use App\Entity\User;
 use App\Repository\Stock\SaisieStockRepository;
+use App\Service\Stock\ReferentielStock;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -43,6 +44,7 @@ final class SaisieStockFormController extends AbstractController
 
     public function __construct(
         private EntityManagerInterface $em,
+        private ReferentielStock $referentiel,
         #[Autowire('%photo_saisie_stock%')] private string $dossierPhotos,
     ) {}
 
@@ -116,9 +118,9 @@ final class SaisieStockFormController extends AbstractController
             'dateValeur'  => $saisie->getDateSaisie()?->format('Y-m-d\\TH:i'),
             'serviceId'   => (string) $saisie->getService()?->getId(),
             'emplacementId' => (string) $saisie->getEmplacement()?->getId(),
-            'rubriques'   => SaisieStock::RUBRIQUES,
+            'rubriques'   => $this->referentiel->rubriques(),
             'unites'      => SaisieStock::UNITES,
-            'natures'     => SaisieStock::NATURES,
+            'natures'     => $this->referentiel->natures(),
             'sources'     => SaisieStock::SOURCES,
             'motifs'      => SaisieStock::MOTIFS,
             'emplacements' => $this->em->getRepository(Emplacement::class)->findBy([], ['libelle' => 'ASC']),
@@ -176,7 +178,7 @@ final class SaisieStockFormController extends AbstractController
     {
         $erreurs = [];
 
-        if (!in_array($saisie->getRubrique(), SaisieStock::RUBRIQUES, true)) {
+        if (!$this->referentiel->rubriqueValide($saisie->getRubrique())) {
             $erreurs['rubrique'] = 'Choisissez le type de stock.';
         }
         if ($saisie->getQuantite() === null) {
@@ -189,7 +191,7 @@ final class SaisieStockFormController extends AbstractController
         }
         if (($saisie->getNature() ?? '') === '') {
             $erreurs['nature'] = 'Choisissez la nature du produit.';
-        } elseif (!in_array($saisie->getNature(), SaisieStock::NATURES, true)) {
+        } elseif (!$this->referentiel->natureValide($saisie->getNature())) {
             $erreurs['nature'] = 'Nature du produit invalide.';
         }
         if (($saisie->getSource() ?? '') === '') {

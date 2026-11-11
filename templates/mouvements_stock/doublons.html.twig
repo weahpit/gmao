@@ -1,0 +1,231 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Doublons d'articles — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Doublons d'articles</span>
+{% endblock %}
+
+{% block body %}
+    <link rel="stylesheet" href="{{ asset('css/MvtsStocks/table.css') }}">
+
+    <div class="page-header">
+        <h1 class="page-title"><img src="{{ asset('images/arrow.png') }}" height="32" class="me-2" alt="">Doublons d'articles</h1>
+        <div class="d-flex align-items-center" style="gap:8px;">
+            <label for="critereDoublon" class="fw-bold" style="color:#5b4327;white-space:nowrap;">Critère de doublon&nbsp;:</label>
+            <select id="critereDoublon" class="form-select" style="width:auto;min-width:220px;border:1px solid #509b80;font-weight:600;">
+                <option value="nom">Nom</option>
+                <option value="modele">Modèle</option>
+                <option value="nom_modele" selected>Nom &amp; modèle</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="alert" style="border:1px solid #d7895f;background:#faf6e0;border-radius:10px;color:#5b4327;">
+        <strong>Information&nbsp;:</strong> choisissez le critère de doublon ci-dessus — par <b>nom</b>, par <b>modèle</b>, ou par <b>nom &amp; modèle</b> (les deux identiques).
+        Cochez ensuite les lignes à supprimer puis validez. La suppression retire définitivement l'article
+        <u>ainsi que tous les mouvements de stock associés</u>.
+    </div>
+
+    <!-- Tableau des doublons -->
+    <div class="" style="border: 1px solid #d2d0d0;background: radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius: 0;">
+        <div class="table-responsive" id="div_doublons" style="border: 1px solid #dedede;">
+            <h5 class="text-center fw-bold text-priimary mt-5">Recherche des doublons ...</h5>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+
+    <script>
+        function chargerDoublons(){
+            var conteneur = document.getElementById('div_doublons');
+            conteneur.innerHTML = '<h5 class="text-center fw-bold text-priimary mt-5">Recherche des doublons ...</h5>';
+
+            var selCritere = document.getElementById('critereDoublon');
+            var critere = selCritere ? selCritere.value : 'nom_modele';
+
+            $.ajax({
+                url: URL_APP + 'api/getDoublonsArticles',
+                type: 'GET',
+                data: { critere: critere },
+                dataType: 'json',
+                success: function (response){
+                    if (response.code !== 'success'){
+                        showToast(response.msg || 'Erreur lors du chargement.', { type: (response.code || 'error') });
+                        conteneur.innerHTML = '<h5 class="text-center fw-bold text-danger mt-5">' + (response.msg || 'Erreur') + '</h5>';
+                        return;
+                    }
+
+                    var groupes = response.data || [];
+
+                    if (groupes.length === 0){
+                        conteneur.innerHTML = '<h5 class="text-center fw-bold text-success mt-5">Aucun doublon trouvé. 🎉</h5>';
+                        return;
+                    }
+
+                    var totalArticles = 0;
+                    groupes.forEach(function(g){ totalArticles += (g.total || 0); });
+
+                    var html = ''
+                        + '<div class="table-card">'
+                        +   '<div class="table-toolbar">'
+                        +     '<div class="search-box">'
+                        +       '<i class="fas fa-search"></i>'
+                        +       '<input type="text" id="searchDoublon" placeholder="Rechercher un article...">'
+                        +     '</div>'
+                        +     '<div class="table-actions mb-2">'
+                        +       '<button type="button" class="btn-submit-stock-danger" id="btnSupprimerDoublons" disabled>'
+                        +         '<i class="fas fa-trash"></i> Supprimer la sélection (<span id="nbSel">0</span>)'
+                        +       '</button>'
+                        +     '</div>'
+                        +     '<span class="stock-counter">' + groupes.length + ' groupe(s) · ' + totalArticles + ' article(s)</span>'
+                        +   '</div>'
+                        +   '<div class="table-wrapper">'
+                        +     '<table class="modern-table" id="tblDoublons">'
+                        +       '<thead><tr>'
+                        +         '<th><input type="checkbox" id="chkAll" class="custom-check" title="Tout cocher"></th>'
+                        +         '<th>Article</th>'
+                        +         '<th>Code</th>'
+                        +         '<th>Catégorie</th>'
+                        +         '<th class="text-center">Référence</th>'
+                        +         '<th class="text-center"><div style="width: 90px;">En stock</div></th>'
+                        +         '<th class="text-center"><div style="width: 90px;">Mouvements</div></th>'
+                        +       '</tr></thead>'
+                        +       '<tbody id="tbodyDoublons">';
+
+                    groupes.forEach(function(g){
+                        html += '<tr class="groupe-doublon">'
+                            +     '<td colspan="7" style="background:linear-gradient(175deg,#f5f0e1,#ecebe8);border-bottom:2px solid #d7895f;font-weight:700;color:#5b4327;">'
+                            +       '↳ ' + g.libelle + ' <span class="stock-badge" style="margin-left:8px;">' + g.total + ' doublons</span>'
+                            +       ' <span class="stock-badge" style="margin-left:8px;background:#e8eef7;color:#274472;">' + (g.critere || '') + '</span>'
+                            +     '</td>'
+                            +   '</tr>';
+
+                        (g.articles || []).forEach(function(a){
+                            html += '<tr>'
+                                +   '<td><input class="chk_doublon custom-check" type="checkbox" data-id="' + a.id + '" data-nom="' + a.nom + '"></td>'
+                                +   '<td><div class="article-name" style="color:black;max-width:400px;min-width:260px;">' + a.nom + '</div></td>'
+                                +   '<td><div class="article-name text-success" style="width:120px;">' + a.code + '</div></td>'
+                                +   '<td><div class="article-name" style="color:black;max-width:300px;">' + (a.categorie || '') + '</div></td>'
+                                +   '<td style="border-left:1px solid #ffd000;border-right:1px solid #ffd000;background:#faf6e0;">'
+                                +     '<div class="article-name text-center" style="width:150px;background:linear-gradient(175deg,#f5f0e1,#ecebe8);border-bottom:2px solid #d7895f;color:#0d0d0d;border-radius:10px;font-size:16px;"><span class="p-1 w-100">' + (a.reference || '') + '</span></div>'
+                                +   '</td>'
+                                +   '<td class="text-center"><span class="stock-badge">' + a.qte + '</span></td>'
+                                +   '<td class="text-center"><span class="stock-badge">' + a.mouvements + '</span></td>'
+                                + '</tr>';
+                        });
+                    });
+
+                    html += '</tbody></table></div></div>';
+                    conteneur.innerHTML = html;
+
+                    brancherEvenements();
+                },
+                error: function (){
+                    showToast('Erreur réseau lors du chargement des doublons.', { type: 'error' });
+                    conteneur.innerHTML = '<h5 class="text-center fw-bold text-danger mt-5">Erreur réseau.</h5>';
+                }
+            });
+        }
+
+        function majCompteur(){
+            var coches = document.querySelectorAll('.chk_doublon:checked');
+            var span = document.getElementById('nbSel');
+            var btn = document.getElementById('btnSupprimerDoublons');
+            if (span){ span.innerText = coches.length; }
+            if (btn){ btn.disabled = coches.length === 0; }
+        }
+
+        function brancherEvenements(){
+            // Case « tout cocher »
+            var chkAll = document.getElementById('chkAll');
+            if (chkAll){
+                chkAll.addEventListener('change', function(){
+                    document.querySelectorAll('.chk_doublon').forEach(function(c){
+                        var ligne = c.closest('tr');
+                        if (ligne && ligne.style.display === 'none'){ return; }
+                        c.checked = chkAll.checked;
+                        if (ligne){ ligne.classList.toggle('selected', chkAll.checked); }
+                    });
+                    majCompteur();
+                });
+            }
+
+            // Cases individuelles
+            document.querySelectorAll('.chk_doublon').forEach(function(c){
+                c.addEventListener('change', function(){
+                    var ligne = c.closest('tr');
+                    if (ligne){ ligne.classList.toggle('selected', c.checked); }
+                    majCompteur();
+                });
+            });
+
+            // Recherche
+            var search = document.getElementById('searchDoublon');
+            if (search){
+                search.addEventListener('input', function(){
+                    var terme = search.value.toLowerCase().trim();
+                    document.querySelectorAll('#tbodyDoublons tr').forEach(function(tr){
+                        if (tr.classList.contains('groupe-doublon')){ tr.style.display = ''; return; }
+                        var txt = tr.innerText.toLowerCase();
+                        tr.style.display = (terme === '' || txt.indexOf(terme) !== -1) ? '' : 'none';
+                    });
+                });
+            }
+
+            // Suppression
+            var btn = document.getElementById('btnSupprimerDoublons');
+            if (btn){
+                btn.addEventListener('click', function(){
+                    var ids = [];
+                    document.querySelectorAll('.chk_doublon:checked').forEach(function(c){
+                        ids.push(c.getAttribute('data-id'));
+                    });
+                    if (ids.length === 0){
+                        showToast('Aucun article sélectionné.', { type: 'warning' });
+                        return;
+                    }
+                    if (!confirm('Confirmer la suppression de ' + ids.length + ' article(s) ainsi que tous les mouvements de stock associés ? Cette action est irréversible.')){
+                        return;
+                    }
+
+                    btn.disabled = true;
+                    var formData = new FormData();
+                    formData.append('ids', JSON.stringify(ids));
+
+                    $.ajax({
+                        url: URL_APP + 'api/supprimerArticlesDoublons',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        dataType: 'json',
+                        success: function (response){
+                            showToast(response.msg, { type: (response.code || 'success') });
+                            if (response.code === 'success'){
+                                chargerDoublons();
+                            } else {
+                                btn.disabled = false;
+                            }
+                        },
+                        error: function (){
+                            showToast('Erreur réseau lors de la suppression.', { type: 'error' });
+                            btn.disabled = false;
+                        }
+                    });
+                });
+            }
+        }
+
+        var selCritereInit = document.getElementById('critereDoublon');
+        if (selCritereInit){
+            selCritereInit.addEventListener('change', chargerDoublons);
+        }
+
+        chargerDoublons();
+    </script>
+{% endblock %}

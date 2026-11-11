@@ -84,7 +84,7 @@
                     <label class="fw-bold">
                         <input type="text" placeholder="Rechercher un lot" id="recherche">
                     </label>
-                    <a href="#" data-bs-target="#modal_scission" data-bs-toggle="modal" class="btn btn-danger btn-sm ms-2" style="display: none" id="btn_s_nc" title="Scinder le lot en Conforme et non Conforme"><i class="fa fa-cut ms-2"></i> Scission Non conformité</a>
+                    <a href="#" data-bs-target="#modal_scission" data-bs-toggle="modal" class="btn btn-outline-danger btn-sm ms-2" style="display: none" id="btn_s_nc" title="Scinder le lot en Conforme et non Conforme"><i class="fa fa-cut ms-2"></i> Scission Non conformité</a>
                 </div>
                 <br>
                 <div class="p-0 d-inline-flex mt-2">
@@ -105,7 +105,7 @@
                         <th>N° OT</th>
                     </tr>
                     </thead>
-                    <tbody class="lots_body"></tbody>
+                    <tbody class="lots_body"><tr><td><h6 class="fw-bold text-danger">Chargement des lots...</h6></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -201,26 +201,22 @@
         function   getLotInfos(idLot){
             let reponse = "";
             reinitialise_form()
-            $.ajax({
-                url : '{{ url('app_login') }}api/getLotInfos/' + idLot,
-                type : 'POST',
-                success: function (response){
-                    reponse = JSON.parse(response)
-                    id_lot = reponse.id_lot
-                    $('#numero_lot').val(reponse.numero_lot);
-                    $('#date_prod').val(reponse.date_prod);
-                    $('#pn_th').val(reponse.pn_th);
-                    $('#proprio').val(reponse.proprio);
-                    $('#produit').val(reponse.pdt);
-                    $('#magasin').val(reponse.situation);
-                    if (!reponse.scission && reponse.libelle_pdt !== "Fèves"){
-                        document.querySelector("#btn_s_nc").style = 'display:inline;'
-                    }
-                },
-                error : function (erreur){
-                    reponse = "Erreur"
-                    console.log(erreur)
-                }
+            let formLot = new FormData()
+            formLot.append('id_lot', idLot)
+            getSingleLot(formLot).
+                then(lot=>{
+                    id_lot = idLot;
+                    document.getElementById('numero_lot').value = lot.numero_lot;
+                    document.getElementById('proprio').value = lot.proprio;
+                    document.getElementById('date_prod').value = lot.date_production;
+                    document.getElementById('pn_th').value = lot.pn_th;
+                document.getElementById('magasin').value = lot.situation;
+                getAllProduitsByProprietaire(document.getElementById("produit"), 2, document.getElementById("proprio").value)
+                document.querySelector("#btn_s_nc").style.display ='inline'
+                setTimeout(()=>{
+                    document.getElementById('produit').value = lot.produit;
+                }, 1000)
+
             })
         }
 
@@ -279,7 +275,7 @@
             $("#magasin").val(0)
             $("#recherche").val("")
             $("#poids_nc").val(0)
-            id_lot = 0;
+            id_lot = "0";
             document.querySelector("#btn_s_nc").style ='display:none'
         }
         $(" input ").on("input", function (){

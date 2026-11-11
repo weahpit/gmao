@@ -1196,4 +1196,144 @@ final class ApiMouvementsStockController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
+
+    /**
+     * Liste les articles (équipements) en doublon selon le critère demandé.
+     * Paramètre `critere` (GET ou POST) :
+     *   - 'nom'        : même nom ;
+     *   - 'modele'     : même modèle ;
+     *   - 'nom_modele' : même nom ET même modèle (par défaut).
+     * Comparaison normalisée (espaces superflus retirés, insensible à la casse).
+     * Un groupe n'est retourné que s'il contient au moins deux articles.
+     */
+    #[Route('api/getDoublonsArticles', name: 'app_get_doublons_articles', methods: ['GET', 'POST'])]
+    public function getDoublonsArticles(Request $request): Response
+    {
+        $reponse = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
+            try {
+                $critere = (string) $request->query->get('critere', $request->request->get('critere', 'nom_modele'));
+                if (!in_array($critere, array('nom', 'modele', 'nom_modele'), true)){
+                    $critere = 'nom_modele';
+                }
+                $libelleCritere = array(
+                    'nom'        => 'Même nom',
+                    'modele'     => 'Même modèle',
+                    'nom_modele' => 'Nom et modèle identiques',
+                )[$critere];
+
+                $groupes = array();
+                $equipementsType = $this->em->getRepository(EquipementType::class)->findAll();
+                foreach ($equipementsType as $type){
+                    $categorie = $type->getCategorie() ? $type->getCategorie()->getLibelle() : "";
+                    $occurences = $type->getEquipements();
+                    if (!$occurences){ continue; }
+                    foreach ($occurences as $eq){
+                        $nom    = (string) $eq->getNom();
+                        $modele = (string) $eq->getModele();
+                        $cleNom    = mb_strtoupper(preg_replace('/\s+/', ' ', trim($nom)), 'UTF-8');
+                        $cleModele = mb_strtoupper(preg_replace('/\s+/', ' ', trim($modele)), 'UTF-8');
+
+                        // Clé de regroupement selon le critère choisi.
+                        if ($critere === 'nom'){
+                            if ($cleNom === ''){ continue; }
+                            $cle = 'N:' . $cleNom;
+                            $libelleGroupe = $nom;
+                        } elseif ($critere === 'modele'){
+                            if ($cleModele === ''){ continue; }
+                            $cle = 'M:' . $cleModele;
+                            $libelleGroupe = strtoupper($modele);
+                        } else { // nom_modele
+                            if ($cleNom === '' && $cleModele === ''){ continue; }
+                            $cle = 'NM:' . $cleNom . '||' . $cleModele;
+                            $libelleGroupe = trim($nom . ' — ' . strtoupper($modele), ' — ');
+                        }
+
+                        if (!isset($groupes[$cle])){
+                            $groupes[$cle] = array('libelle' => $libelleGroupe, 'articles' => array());
+                        }
+                        $groupes[$cle]['articles'][] = array(
+                            'id'         => $eq->getId(),
+                            'nom'        => $eq->getNom(),
+                            'code'       => $eq->getCode(),
+                            'reference'  => strtoupper($modele),
+                            'qte'        => $eq->getQte() ? $eq->getQte() : 0,
+                            'categorie'  => $categorie,
+                            'mouvements' => $eq->getMouvementEquipements()->count(),
+                        );
+                    }
+                }
+
+                $data = array();
+                foreach ($groupes as $groupe){
+                    if (count($groupe['articles']) > 1){
+                        $data[] = array(
+                            'libelle'  => $groupe['libelle'],
+                            'critere'  => $libelleCritere,
+                            'total'    => count($groupe['articles']),
+                            'articles' => $groupe['articles'],
+                        );
+                    }
+                }
+                usort($data, static function ($a, $b){ return strcmp((string) $a['libelle'], (string) $b['libelle']); });
+                $reponse = ['code' => "success", 'msg' => 'Success', 'critere' => $critere, 'data' => $data];
+            }catch (\Throwable $throwable){
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
+    /**
+     * Supprime les articles (équipements) sélectionnés ainsi que TOUS les
+     * mouvements de stock qui leur sont associés. Les éventuelles fiches
+     * d'intervention liées sont détachées (mises à NULL) pour éviter toute
+     * violation de contrainte. L'ensemble est exécuté dans une transaction.
+     */
+    #[Route('api/supprimerArticlesDoublons', name: 'app_supprimer_articles_doublons', methods: ['POST'])]
+    public function supprimerArticlesDoublons(Request $request): Response
+    {
+        $reponse = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR")) {
+            $ids = json_decode($request->request->get('ids', '[]'), true);
+            if (!is_array($ids) || count($ids) === 0){
+                return new JsonResponse(['code' => 'warning', 'msg' => 'Aucun article sélectionné.']);
+            }
+            $connection = $this->em->getConnection();
+            $connection->beginTransaction();
+            try {
+                $nbArticles   = 0;
+                $nbMouvements = 0;
+                foreach ($ids as $id){
+                    $eq = $this->em->getRepository(Equipement::class)->find($id);
+                    if (!$eq){ continue; }
+                    $uuid = $eq->getId();
+                    // 1) Suppression des mouvements de stock associés à l'article.
+                    $nbMouvements += (int) $this->em->createQuery(
+                        'DELETE FROM App\\Entity\\MouvementEquipement m WHERE m.code_equipement = :id'
+                    )->setParameter('id', $uuid, 'uuid')->execute();
+                    // 2) Détachement des fiches d'intervention éventuelles.
+                    $this->em->createQuery(
+                        'UPDATE App\\Entity\\Maintenance\\FicheIntervention f SET f.equipement = NULL WHERE f.equipement = :id'
+                    )->setParameter('id', $uuid, 'uuid')->execute();
+                    // 3) Suppression de l'article lui-même.
+                    $this->em->remove($eq);
+                    $this->em->flush();
+                    $nbArticles++;
+                }
+                $connection->commit();
+                $reponse = ['code' => "success", 'msg' => $nbArticles . ' article(s) supprimé(s), ' . $nbMouvements . ' mouvement(s) associé(s) supprimé(s).'];
+            }catch (\Throwable $throwable){
+                $connection->rollBack();
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
 }

@@ -24,4 +24,10 @@ final class MouvementsStockController extends AbstractController
     {
         return $this->render('mouvements_stock/operations_jour.html.twig');
     }
+
+    #[Route('/Doublons/Articles', name: 'app_mouvements_doublons_articles')]
+    public function doublonsArticles(): Response
+    {
+        return $this->render('mouvements_stock/doublons.html.twig');
+    }
 }

@@ -10,9 +10,9 @@ function getAllLots(ctrl_name, ctrl_type){
                 if (reponse.data.length > 0){
                     for(var i = 0; i< reponse.data.length; i++){
                         if (reponse.data[i].qualite === "NC"){
-                            contentCtrl += '<tr class="tr p-2 fw-light"  id="' + reponse.data[i].id_lot + '"  onclick="selected_row()" style="font-size: 12px;font-family: Arial;cursor: pointer;font-weight: lighter;background: linear-gradient(#fedcdc, #fa9b9b);">'
+                            contentCtrl += '<tr class="tr p-2 fw-light"  id="' + reponse.data[i].id + '"  onclick="selected_row()" style="font-size: 12px;font-family: Arial;cursor: pointer;font-weight: lighter;background: linear-gradient(#fedcdc, #fa9b9b);">'
                         } else {
-                            contentCtrl += '<tr class="tr p-2 fw-light"  id="' + reponse.data[i].id_lot + '"  onclick="selected_row()" style="font-size: 12px;font-family: Arial;cursor: pointer;font-weight: lighter">'
+                            contentCtrl += '<tr class="tr p-2 fw-light"  id="' + reponse.data[i].id + '"  onclick="selected_row()" style="font-size: 12px;font-family: Arial;cursor: pointer;font-weight: lighter">'
                         }
 
                         contentCtrl += '<td class="fw-bold">' + reponse.data[i].numero_lot + '</td>'
@@ -74,25 +74,14 @@ function deleteLot(id_lot){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Lot', duration: 4000}));
 }
-function getSingleLot(id_lot) {
+function getSingleLot(formData) {  // api/getSingleUser
     return new Promise((resolve, reject) => {
-        $.ajax({
-            url:  URL_APP + 'api/getSingleLot' + id_lot,
-            type: 'POST',
-            success: function(response) {
-                if (response.code === "success") {
-                    resolve(response); // renvoie l'objet au .then()
-                } else {
-                    showToast(data.msg, {
-                        type : data.code,
-                        duration: 4000,
-                        title: 'Lot'
-                    })
-                }
-            },
-            error: function(err) {
-                showToast("❌ Erreur : " + err, {title: 'Lot', duration: 4000});
-            }
-        });
+        fetch( URL_APP + "api/getSingleLot", { method: "POST", body: formData })
+            .then(res => res.json())
+            .then(data => {
+                resolve(data); // renvoie l'objet au .then()
+            })
+            .catch(err => showToast("❌ Erreur : " + err, {title: 'Widget', duration: 4000}));
+
     });
 }

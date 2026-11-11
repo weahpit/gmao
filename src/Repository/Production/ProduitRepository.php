@@ -16,6 +16,28 @@ class ProduitRepository extends ServiceEntityRepository
         parent::__construct($registry, Produit::class);
     }
 
+    /**
+     * Libelles des produits, tries alphabetiquement.
+     *
+     * Sert a alimenter la liste "Nature du produit" cote stock (web + mobile) :
+     * la nature d'un mouvement de stock EST un produit du referentiel Production.
+     *
+     * @return string[]
+     */
+    public function libelles(): array
+    {
+        $rows = $this->createQueryBuilder('p')
+            ->select('p.libelle')
+            ->orderBy('p.libelle', 'ASC')
+            ->getQuery()
+            ->getScalarResult();
+
+        return array_values(array_filter(array_map(
+            static fn ($row) => $row['libelle'],
+            $rows
+        )));
+    }
+
     //    /**
     //     * @return Produit[] Returns an array of Produit objects
     //     */

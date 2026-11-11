@@ -67,14 +67,17 @@ class SortieStock
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $emplacementLibelle = null;
 
+    // Le libelle valide (type de stock) est verifie dynamiquement dans le
+    // controleur via App\Service\Stock\ReferentielStock (table stock_rubrique),
+    // pas par un Assert\Choice fige sur une constante.
     #[Assert\NotBlank(message: 'Choisissez le type de stock.')]
-    #[Assert\Choice(choices: SaisieStock::RUBRIQUES, message: 'Type de stock invalide.')]
     #[ORM\Column(length: 100)]
     private ?string $rubrique = null;
 
-    /** Nature du produit (liste fermee, cf. self::NATURES). */
+    /** Nature du produit : libelle d'un produit du referentiel Production. */
+    // La valeur valide est verifiee dynamiquement dans le controleur via
+    // ReferentielStock (table production.produit), pas par un Assert\Choice fige.
     #[Assert\NotBlank(message: 'Choisissez la nature du produit.')]
-    #[Assert\Choice(choices: SaisieStock::NATURES, message: 'Nature du produit invalide.')]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $nature = null;
 

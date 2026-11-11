@@ -195,6 +195,7 @@ function saveEquipementWithReference(formData){
             })
             if (data.code === "success") {
                 document.getElementById("btn_add_eq").click()
+                getAllEquipementTypes(document.getElementById('eqType'), 2)
                 getArticlesFromStock(document.getElementById("div_entree"), 1, "1")
             }
         })

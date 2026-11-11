@@ -318,6 +318,9 @@
                             <a href="{{ path('app_mouvements_operations_jour') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_operations_jour' ? 'active' }}">
                                 <span class="nav-label">Opérations journalières</span>
                             </a>
+                            <a href="{{ path('app_mouvements_doublons_articles') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_doublons_articles' ? 'active' }}">
+                                <span class="nav-label">Doublons d'articles</span>
+                            </a>
                             <hr>
                             <a href="{{ path('app_magasin_bons_valides') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_magasin_bons_valides' ? 'active' }}">
                             <span class="nav-label badge text-success" style="background: #e4f6e5;">
