@@ -5,6 +5,7 @@ namespace App\Controller\Stock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class MouvementsStockController extends AbstractController
 {
@@ -29,5 +30,27 @@ final class MouvementsStockController extends AbstractController
     public function doublonsArticles(): Response
     {
         return $this->render('mouvements_stock/doublons.html.twig');
+    }
+
+    /**
+     * Page d'administration : modifier / supprimer les mouvements de stock
+     * des PIECES DE RECHANGE (entite MouvementEquipement).
+     */
+    #[Route('/Gestion/MouvementsPieces', name: 'app_gestion_mvt_pieces')]
+    #[IsGranted('ROLE_ADMIN')]
+    public function gestionMvtPieces(): Response
+    {
+        return $this->render('mouvements_stock/gestion_pieces.html.twig');
+    }
+
+    /**
+     * Page d'administration : modifier / supprimer les mouvements de stock
+     * CACAO (entrees SaisieStock + sorties SortieStock).
+     */
+    #[Route('/Gestion/MouvementsCacao', name: 'app_gestion_mvt_cacao')]
+    #[IsGranted('ROLE_ADMIN')]
+    public function gestionMvtCacao(): Response
+    {
+        return $this->render('mouvements_stock/gestion_cacao.html.twig');
     }
 }

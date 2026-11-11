@@ -321,6 +321,11 @@
                             <a href="{{ path('app_mouvements_doublons_articles') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_doublons_articles' ? 'active' }}">
                                 <span class="nav-label">Doublons d'articles</span>
                             </a>
+                            {% if is_granted('ROLE_ADMIN') %}
+                            <a href="{{ path('app_gestion_mvt_pieces') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_gestion_mvt_pieces' ? 'active' }}">
+                                <span class="nav-label">Modifier / Supprimer mouvements</span>
+                            </a>
+                            {% endif %}
                             <hr>
                             <a href="{{ path('app_magasin_bons_valides') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_magasin_bons_valides' ? 'active' }}">
                             <span class="nav-label badge text-success" style="background: #e4f6e5;">
@@ -341,6 +346,11 @@
                             <a href="{{ path('app_saisies_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisies_stock' ? 'active' }}">
                                 <span class="nav-label">Consultations</span>
                             </a>
+                            {% if is_granted('ROLE_ADMIN') %}
+                            <a href="{{ path('app_gestion_mvt_cacao') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_gestion_mvt_cacao' ? 'active' }}">
+                                <span class="nav-label">Modifier / Supprimer mouvements</span>
+                            </a>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>

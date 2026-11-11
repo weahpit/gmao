@@ -1,0 +1,285 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des mouvements — Cacao — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Gestion des mouvements · Cacao</span>
+{% endblock %}
+
+{% block body %}
+    <link rel="stylesheet" href="{{ asset('css/MvtsStocks/table.css') }}">
+
+    <div class="page-header">
+        <h1 class="page-title"><img src="{{ asset('images/arrow.png') }}" height="32" class="me-2" alt="">Mouvements de stock · Cacao</h1>
+        <div class="d-flex align-items-center" style="gap:8px;">
+            <label for="filtreType" class="fw-bold" style="color:#5b4327;white-space:nowrap;">Type&nbsp;:</label>
+            <select id="filtreType" class="form-select" style="width:auto;min-width:160px;border:1px solid #509b80;font-weight:600;">
+                <option value="" selected>Tous</option>
+                <option value="entree">Entrées</option>
+                <option value="sortie">Sorties</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="alert" style="border:1px solid #d7895f;background:#faf6e0;border-radius:10px;color:#5b4327;">
+        <strong>Information&nbsp;:</strong> modifiez ou supprimez les mouvements <b>cacao</b> (entrées et sorties).
+        Le solde de chaque rubrique est calculé à la volée (somme des entrées moins les sorties) : <u>aucun recalcul de stock n'est nécessaire</u>.
+        Les suppressions sont définitives.
+    </div>
+
+    <div class="" style="border:1px solid #d2d0d0;background:radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius:0;">
+        <div class="table-responsive" id="div_cacao" style="border:1px solid #dedede;">
+            <h5 class="text-center fw-bold text-priimary mt-5">Chargement des mouvements ...</h5>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+
+    <script>
+        var _donneesCacao = [];
+
+        function echapHtml(v){
+            if (v === null || v === undefined) return '';
+            return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function chargerCacao(){
+            var conteneur = document.getElementById('div_cacao');
+            conteneur.innerHTML = '<h5 class="text-center fw-bold text-priimary mt-5">Chargement des mouvements ...</h5>';
+
+            $.ajax({
+                url: URL_APP + 'api/gestion-mvt-cacao/list',
+                type: 'GET',
+                dataType: 'json',
+                success: function (response){
+                    if (response.code !== 'success'){
+                        showToast(response.msg || 'Erreur lors du chargement.', { type: (response.code || 'error') });
+                        conteneur.innerHTML = '<h5 class="text-center fw-bold text-danger mt-5">' + (response.msg || 'Erreur') + '</h5>';
+                        return;
+                    }
+                    _donneesCacao = response.data || [];
+                    afficherCacao();
+                },
+                error: function (){
+                    showToast('Erreur réseau lors du chargement.', { type: 'error' });
+                    conteneur.innerHTML = '<h5 class="text-center fw-bold text-danger mt-5">Erreur réseau.</h5>';
+                }
+            });
+        }
+
+        function afficherCacao(){
+            var conteneur = document.getElementById('div_cacao');
+            var filtre = document.getElementById('filtreType') ? document.getElementById('filtreType').value : '';
+            var lignes = _donneesCacao.filter(function(m){ return filtre === '' || m.type === filtre; });
+
+            if (lignes.length === 0){
+                conteneur.innerHTML = '<h5 class="text-center fw-bold text-success mt-5">Aucun mouvement à afficher.</h5>';
+                return;
+            }
+
+            var html = ''
+                + '<div class="table-card">'
+                +   '<div class="table-toolbar">'
+                +     '<div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchCacao" placeholder="Rechercher un mouvement..."></div>'
+                +     '<div class="table-actions mb-2">'
+                +       '<button type="button" class="btn-submit-stock-danger" id="btnSupprimerCacao" disabled><i class="fas fa-trash"></i> Supprimer la sélection (<span id="nbSel">0</span>)</button>'
+                +     '</div>'
+                +     '<span class="stock-counter">' + lignes.length + ' mouvement(s)</span>'
+                +   '</div>'
+                +   '<div class="table-wrapper">'
+                +     '<table class="modern-table" id="tblCacao"><thead><tr>'
+                +       '<th><input type="checkbox" id="chkAll" class="custom-check" title="Tout cocher"></th>'
+                +       '<th>Type</th><th class="text-center">Date</th>'
+                +       '<th>Rubrique</th><th>Nature</th>'
+                +       '<th class="text-center">Quantité</th><th>Unité</th>'
+                +       '<th>Service</th><th>Emplacement</th>'
+                +       '<th>Motif</th><th>Source</th><th>Agent</th>'
+                +       '<th class="text-center">Action</th>'
+                +     '</tr></thead><tbody id="tbodyCacao">';
+
+            lignes.forEach(function(m){
+                var badge = m.type === 'entree'
+                    ? '<span class="stock-badge" style="background:#dff3e8;color:#1f6f4b;">Entrée</span>'
+                    : '<span class="stock-badge" style="background:#fbe3d6;color:#a2432a;">Sortie</span>';
+                html += '<tr'
+                    + ' data-type="' + echapHtml(m.type) + '"'
+                    + ' data-id="' + echapHtml(m.id) + '"'
+                    + ' data-quantite="' + echapHtml(m.quantite) + '"'
+                    + ' data-unite="' + echapHtml(m.unite) + '"'
+                    + ' data-rubrique="' + echapHtml(m.rubrique) + '"'
+                    + ' data-nature="' + echapHtml(m.nature) + '"'
+                    + ' data-motif="' + echapHtml(m.motif) + '"'
+                    + ' data-source="' + echapHtml(m.source) + '"'
+                    + ' data-date="' + echapHtml(m.date) + '">'
+                    +   '<td><input class="chk_cacao custom-check" type="checkbox" data-type="' + echapHtml(m.type) + '" data-id="' + echapHtml(m.id) + '"></td>'
+                    +   '<td>' + badge + '</td>'
+                    +   '<td class="text-center">' + echapHtml(m.date_affiche) + '</td>'
+                    +   '<td><div class="article-name" style="color:black;min-width:140px;">' + echapHtml(m.rubrique) + '</div></td>'
+                    +   '<td>' + echapHtml(m.nature) + '</td>'
+                    +   '<td class="text-center"><span class="stock-badge">' + echapHtml(m.quantite) + '</span></td>'
+                    +   '<td>' + echapHtml(m.unite) + '</td>'
+                    +   '<td>' + echapHtml(m.service) + '</td>'
+                    +   '<td>' + echapHtml(m.emplacement) + '</td>'
+                    +   '<td><div class="article-name" style="color:#5b4327;max-width:200px;">' + echapHtml(m.motif) + '</div></td>'
+                    +   '<td>' + echapHtml(m.source) + '</td>'
+                    +   '<td>' + echapHtml(m.agent) + '</td>'
+                    +   '<td class="text-center"><button type="button" class="btn-edit-cacao" title="Modifier" style="border:none;background:#509b80;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;"><i class="fas fa-pen"></i></button></td>'
+                    + '</tr>';
+            });
+
+            html += '</tbody></table></div></div>';
+            conteneur.innerHTML = html;
+            brancherEvenements();
+        }
+
+        function majCompteur(){
+            var coches = document.querySelectorAll('.chk_cacao:checked');
+            var span = document.getElementById('nbSel');
+            var btn = document.getElementById('btnSupprimerCacao');
+            if (span){ span.innerText = coches.length; }
+            if (btn){ btn.disabled = coches.length === 0; }
+        }
+
+        function ouvrirEdition(tr){
+            var type = tr.getAttribute('data-type');
+            var id = tr.getAttribute('data-id');
+            var estEntree = (type === 'entree');
+            var champSource = estEntree
+                ? '<label style="font-weight:600;">Source</label><input id="sw_source" type="text" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(tr.getAttribute('data-source') || '') + '">'
+                : '';
+
+            Swal.fire({
+                title: 'Modifier le mouvement (' + (estEntree ? 'entrée' : 'sortie') + ')',
+                html:
+                    '<div style="text-align:left;font-size:14px;">'
+                    + '<label style="font-weight:600;">Rubrique</label>'
+                    + '<input id="sw_rubrique" type="text" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(tr.getAttribute('data-rubrique') || '') + '">'
+                    + '<label style="font-weight:600;">Nature</label>'
+                    + '<input id="sw_nature" type="text" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(tr.getAttribute('data-nature') || '') + '">'
+                    + '<label style="font-weight:600;">Quantité</label>'
+                    + '<input id="sw_quantite" type="number" min="0.01" step="0.01" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(tr.getAttribute('data-quantite') || '') + '">'
+                    + '<label style="font-weight:600;">Unité</label>'
+                    + '<input id="sw_unite" type="text" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(tr.getAttribute('data-unite') || '') + '">'
+                    + '<label style="font-weight:600;">Date</label>'
+                    + '<input id="sw_date" type="datetime-local" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(tr.getAttribute('data-date') || '') + '">'
+                    + '<label style="font-weight:600;">Motif</label>'
+                    + '<textarea id="sw_motif" class="swal2-textarea" style="margin:4px 0 10px;">' + echapHtml(tr.getAttribute('data-motif') || '') + '</textarea>'
+                    + champSource
+                    + '</div>',
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Enregistrer',
+                cancelButtonText: 'Annuler',
+                confirmButtonColor: '#509b80',
+                cancelButtonColor: '#9c9c9c',
+                preConfirm: function(){
+                    var q = parseFloat(document.getElementById('sw_quantite').value);
+                    if (isNaN(q) || q <= 0){
+                        Swal.showValidationMessage('La quantité doit être supérieure à zéro.');
+                        return false;
+                    }
+                    var d = {
+                        rubrique: document.getElementById('sw_rubrique').value,
+                        nature: document.getElementById('sw_nature').value,
+                        quantite: q,
+                        unite: document.getElementById('sw_unite').value,
+                        date: document.getElementById('sw_date').value,
+                        motif: document.getElementById('sw_motif').value
+                    };
+                    if (estEntree){ d.source = document.getElementById('sw_source').value; }
+                    return d;
+                }
+            }).then(function(res){
+                if (!res.isConfirmed) return;
+                var fd = new FormData();
+                fd.append('type', type);
+                fd.append('id', id);
+                fd.append('rubrique', res.value.rubrique);
+                fd.append('nature', res.value.nature);
+                fd.append('quantite', res.value.quantite);
+                fd.append('unite', res.value.unite);
+                fd.append('date', res.value.date);
+                fd.append('motif', res.value.motif);
+                if (estEntree){ fd.append('source', res.value.source); }
+                $.ajax({
+                    url: URL_APP + 'api/gestion-mvt-cacao/update',
+                    type: 'POST', data: fd, processData: false, contentType: false, dataType: 'json',
+                    success: function(r){
+                        showToast(r.msg, { type: (r.code || 'success') });
+                        if (r.code === 'success'){ chargerCacao(); }
+                    },
+                    error: function(){ showToast('Erreur réseau lors de la modification.', { type: 'error' }); }
+                });
+            });
+        }
+
+        function brancherEvenements(){
+            var chkAll = document.getElementById('chkAll');
+            if (chkAll){
+                chkAll.addEventListener('change', function(){
+                    document.querySelectorAll('.chk_cacao').forEach(function(c){
+                        var ligne = c.closest('tr');
+                        if (ligne && ligne.style.display === 'none'){ return; }
+                        c.checked = chkAll.checked;
+                        if (ligne){ ligne.classList.toggle('selected', chkAll.checked); }
+                    });
+                    majCompteur();
+                });
+            }
+            document.querySelectorAll('.chk_cacao').forEach(function(c){
+                c.addEventListener('change', function(){
+                    var ligne = c.closest('tr');
+                    if (ligne){ ligne.classList.toggle('selected', c.checked); }
+                    majCompteur();
+                });
+            });
+            document.querySelectorAll('.btn-edit-cacao').forEach(function(b){
+                b.addEventListener('click', function(){ ouvrirEdition(b.closest('tr')); });
+            });
+
+            var search = document.getElementById('searchCacao');
+            if (search){
+                search.addEventListener('input', function(){
+                    var terme = search.value.toLowerCase().trim();
+                    document.querySelectorAll('#tbodyCacao tr').forEach(function(tr){
+                        var txt = tr.innerText.toLowerCase();
+                        tr.style.display = (terme === '' || txt.indexOf(terme) !== -1) ? '' : 'none';
+                    });
+                });
+            }
+
+            var btn = document.getElementById('btnSupprimerCacao');
+            if (btn){
+                btn.addEventListener('click', function(){
+                    var items = [];
+                    document.querySelectorAll('.chk_cacao:checked').forEach(function(c){
+                        items.push({ type: c.getAttribute('data-type'), id: c.getAttribute('data-id') });
+                    });
+                    if (items.length === 0){ showToast('Aucun mouvement sélectionné.', { type: 'warning' }); return; }
+                    if (!confirm('Confirmer la suppression de ' + items.length + ' mouvement(s) cacao ? Cette action est irréversible.')){ return; }
+                    btn.disabled = true;
+                    var fd = new FormData();
+                    fd.append('items', JSON.stringify(items));
+                    $.ajax({
+                        url: URL_APP + 'api/gestion-mvt-cacao/delete',
+                        type: 'POST', data: fd, processData: false, contentType: false, dataType: 'json',
+                        success: function(r){
+                            showToast(r.msg, { type: (r.code || 'success') });
+                            if (r.code === 'success'){ chargerCacao(); } else { btn.disabled = false; }
+                        },
+                        error: function(){ showToast('Erreur réseau lors de la suppression.', { type: 'error' }); btn.disabled = false; }
+                    });
+                });
+            }
+        }
+
+        var filtreInit = document.getElementById('filtreType');
+        if (filtreInit){ filtreInit.addEventListener('change', afficherCacao); }
+
+        chargerCacao();
+    </script>
+{% endblock %}

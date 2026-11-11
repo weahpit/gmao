@@ -1,0 +1,248 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des mouvements — Pièces de rechange — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Gestion des mouvements · Pièces de rechange</span>
+{% endblock %}
+
+{% block body %}
+    <link rel="stylesheet" href="{{ asset('css/MvtsStocks/table.css') }}">
+
+    <div class="page-header">
+        <h1 class="page-title"><img src="{{ asset('images/arrow.png') }}" height="32" class="me-2" alt="">Mouvements de stock · Pièces de rechange</h1>
+    </div>
+
+    <div class="alert" style="border:1px solid #d7895f;background:#faf6e0;border-radius:10px;color:#5b4327;">
+        <strong>Information&nbsp;:</strong> modifiez ou supprimez les mouvements des <b>pièces de rechange</b>.
+        Toute modification de la <b>quantité</b> ou toute suppression <u>recalcule automatiquement le stock de l'article</u>
+        (une entrée augmente le stock, une sortie le diminue). Ces actions sont définitives.
+    </div>
+
+    <div class="" style="border:1px solid #d2d0d0;background:radial-gradient(rgb(233,233,233), rgba(246,246,246,0.96));border-radius:0;">
+        <div class="table-responsive" id="div_pieces" style="border:1px solid #dedede;">
+            <h5 class="text-center fw-bold text-priimary mt-5">Chargement des mouvements ...</h5>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+
+    <script>
+        function echapHtml(v){
+            if (v === null || v === undefined) return '';
+            return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function chargerPieces(){
+            var conteneur = document.getElementById('div_pieces');
+            conteneur.innerHTML = '<h5 class="text-center fw-bold text-priimary mt-5">Chargement des mouvements ...</h5>';
+
+            $.ajax({
+                url: URL_APP + 'api/gestion-mvt-pieces/list',
+                type: 'GET',
+                dataType: 'json',
+                success: function (response){
+                    if (response.code !== 'success'){
+                        showToast(response.msg || 'Erreur lors du chargement.', { type: (response.code || 'error') });
+                        conteneur.innerHTML = '<h5 class="text-center fw-bold text-danger mt-5">' + (response.msg || 'Erreur') + '</h5>';
+                        return;
+                    }
+                    var lignes = response.data || [];
+                    if (lignes.length === 0){
+                        conteneur.innerHTML = '<h5 class="text-center fw-bold text-success mt-5">Aucun mouvement enregistré.</h5>';
+                        return;
+                    }
+
+                    var html = ''
+                        + '<div class="table-card">'
+                        +   '<div class="table-toolbar">'
+                        +     '<div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchPiece" placeholder="Rechercher un mouvement..."></div>'
+                        +     '<div class="table-actions mb-2">'
+                        +       '<button type="button" class="btn-submit-stock-danger" id="btnSupprimerPieces" disabled><i class="fas fa-trash"></i> Supprimer la sélection (<span id="nbSel">0</span>)</button>'
+                        +     '</div>'
+                        +     '<span class="stock-counter">' + lignes.length + ' mouvement(s)</span>'
+                        +   '</div>'
+                        +   '<div class="table-wrapper">'
+                        +     '<table class="modern-table" id="tblPieces"><thead><tr>'
+                        +       '<th><input type="checkbox" id="chkAll" class="custom-check" title="Tout cocher"></th>'
+                        +       '<th>Type</th><th>Article</th><th>Code</th>'
+                        +       '<th class="text-center">Quantité</th><th>N° bon</th>'
+                        +       '<th>Service</th><th>Emplacement</th>'
+                        +       '<th class="text-center">Date</th>'
+                        +       '<th class="text-center">Stock après</th>'
+                        +       '<th>Observation</th>'
+                        +       '<th class="text-center">Action</th>'
+                        +     '</tr></thead><tbody id="tbodyPieces">';
+
+                    lignes.forEach(function(m){
+                        var badge = m.type_mvt === '1'
+                            ? '<span class="stock-badge" style="background:#dff3e8;color:#1f6f4b;">Entrée</span>'
+                            : '<span class="stock-badge" style="background:#fbe3d6;color:#a2432a;">Sortie</span>';
+                        html += '<tr'
+                            + ' data-id="' + echapHtml(m.id) + '"'
+                            + ' data-value="' + echapHtml(m.value) + '"'
+                            + ' data-bon="' + echapHtml(m.numero_bon) + '"'
+                            + ' data-obs="' + echapHtml(m.observation) + '"'
+                            + ' data-date="' + echapHtml(m.date_operation) + '"'
+                            + ' data-article="' + echapHtml(m.article) + '">'
+                            +   '<td><input class="chk_piece custom-check" type="checkbox" data-id="' + echapHtml(m.id) + '"></td>'
+                            +   '<td>' + badge + '</td>'
+                            +   '<td><div class="article-name" style="color:black;min-width:200px;">' + echapHtml(m.article) + '</div></td>'
+                            +   '<td><div class="article-name text-success">' + echapHtml(m.code_article) + '</div></td>'
+                            +   '<td class="text-center"><span class="stock-badge">' + echapHtml(m.value) + '</span></td>'
+                            +   '<td>' + echapHtml(m.numero_bon) + '</td>'
+                            +   '<td>' + echapHtml(m.service) + '</td>'
+                            +   '<td>' + echapHtml(m.emplacement) + '</td>'
+                            +   '<td class="text-center">' + echapHtml(m.date_affiche) + '</td>'
+                            +   '<td class="text-center">' + echapHtml(m.stock_apres === null ? '' : m.stock_apres) + '</td>'
+                            +   '<td><div class="article-name" style="color:#5b4327;max-width:220px;">' + echapHtml(m.observation) + '</div></td>'
+                            +   '<td class="text-center"><button type="button" class="btn-edit-piece" title="Modifier" style="border:none;background:#509b80;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;"><i class="fas fa-pen"></i></button></td>'
+                            + '</tr>';
+                    });
+
+                    html += '</tbody></table></div></div>';
+                    conteneur.innerHTML = html;
+                    brancherEvenements();
+                },
+                error: function (){
+                    showToast('Erreur réseau lors du chargement.', { type: 'error' });
+                    conteneur.innerHTML = '<h5 class="text-center fw-bold text-danger mt-5">Erreur réseau.</h5>';
+                }
+            });
+        }
+
+        function majCompteur(){
+            var coches = document.querySelectorAll('.chk_piece:checked');
+            var span = document.getElementById('nbSel');
+            var btn = document.getElementById('btnSupprimerPieces');
+            if (span){ span.innerText = coches.length; }
+            if (btn){ btn.disabled = coches.length === 0; }
+        }
+
+        function ouvrirEdition(tr){
+            var article = tr.getAttribute('data-article') || '';
+            var value = tr.getAttribute('data-value') || '';
+            var bon = tr.getAttribute('data-bon') || '';
+            var obs = tr.getAttribute('data-obs') || '';
+            var date = tr.getAttribute('data-date') || '';
+            var id = tr.getAttribute('data-id');
+
+            Swal.fire({
+                title: 'Modifier le mouvement',
+                html:
+                    '<div style="text-align:left;font-size:14px;">'
+                    + '<p style="margin:0 0 10px;color:#5b4327;"><b>Article&nbsp;:</b> ' + echapHtml(article) + '</p>'
+                    + '<label style="font-weight:600;">Quantité</label>'
+                    + '<input id="sw_value" type="number" min="0.01" step="0.01" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(value) + '">'
+                    + '<label style="font-weight:600;">N° de bon</label>'
+                    + '<input id="sw_bon" type="text" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(bon) + '">'
+                    + '<label style="font-weight:600;">Date d\'opération</label>'
+                    + '<input id="sw_date" type="date" class="swal2-input" style="margin:4px 0 10px;" value="' + echapHtml(date) + '">'
+                    + '<label style="font-weight:600;">Observation</label>'
+                    + '<textarea id="sw_obs" class="swal2-textarea" style="margin:4px 0 0;">' + echapHtml(obs) + '</textarea>'
+                    + '<p style="margin:10px 0 0;color:#a2432a;font-size:12px;">La modification de la quantité recalcule le stock de l\'article.</p>'
+                    + '</div>',
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Enregistrer',
+                cancelButtonText: 'Annuler',
+                confirmButtonColor: '#509b80',
+                cancelButtonColor: '#9c9c9c',
+                preConfirm: function(){
+                    var v = parseFloat(document.getElementById('sw_value').value);
+                    if (isNaN(v) || v <= 0){
+                        Swal.showValidationMessage('La quantité doit être supérieure à zéro.');
+                        return false;
+                    }
+                    return {
+                        value: v,
+                        numero_bon: document.getElementById('sw_bon').value,
+                        date_operation: document.getElementById('sw_date').value,
+                        observation: document.getElementById('sw_obs').value
+                    };
+                }
+            }).then(function(res){
+                if (!res.isConfirmed) return;
+                var fd = new FormData();
+                fd.append('id', id);
+                fd.append('value', res.value.value);
+                fd.append('numero_bon', res.value.numero_bon);
+                fd.append('date_operation', res.value.date_operation);
+                fd.append('observation', res.value.observation);
+                $.ajax({
+                    url: URL_APP + 'api/gestion-mvt-pieces/update',
+                    type: 'POST', data: fd, processData: false, contentType: false, dataType: 'json',
+                    success: function(r){
+                        showToast(r.msg, { type: (r.code || 'success') });
+                        if (r.code === 'success'){ chargerPieces(); }
+                    },
+                    error: function(){ showToast('Erreur réseau lors de la modification.', { type: 'error' }); }
+                });
+            });
+        }
+
+        function brancherEvenements(){
+            var chkAll = document.getElementById('chkAll');
+            if (chkAll){
+                chkAll.addEventListener('change', function(){
+                    document.querySelectorAll('.chk_piece').forEach(function(c){
+                        var ligne = c.closest('tr');
+                        if (ligne && ligne.style.display === 'none'){ return; }
+                        c.checked = chkAll.checked;
+                        if (ligne){ ligne.classList.toggle('selected', chkAll.checked); }
+                    });
+                    majCompteur();
+                });
+            }
+            document.querySelectorAll('.chk_piece').forEach(function(c){
+                c.addEventListener('change', function(){
+                    var ligne = c.closest('tr');
+                    if (ligne){ ligne.classList.toggle('selected', c.checked); }
+                    majCompteur();
+                });
+            });
+            document.querySelectorAll('.btn-edit-piece').forEach(function(b){
+                b.addEventListener('click', function(){ ouvrirEdition(b.closest('tr')); });
+            });
+
+            var search = document.getElementById('searchPiece');
+            if (search){
+                search.addEventListener('input', function(){
+                    var terme = search.value.toLowerCase().trim();
+                    document.querySelectorAll('#tbodyPieces tr').forEach(function(tr){
+                        var txt = tr.innerText.toLowerCase();
+                        tr.style.display = (terme === '' || txt.indexOf(terme) !== -1) ? '' : 'none';
+                    });
+                });
+            }
+
+            var btn = document.getElementById('btnSupprimerPieces');
+            if (btn){
+                btn.addEventListener('click', function(){
+                    var ids = [];
+                    document.querySelectorAll('.chk_piece:checked').forEach(function(c){ ids.push(c.getAttribute('data-id')); });
+                    if (ids.length === 0){ showToast('Aucun mouvement sélectionné.', { type: 'warning' }); return; }
+                    if (!confirm('Confirmer la suppression de ' + ids.length + ' mouvement(s) ? Le stock des articles concernés sera recalculé. Cette action est irréversible.')){ return; }
+                    btn.disabled = true;
+                    var fd = new FormData();
+                    fd.append('ids', JSON.stringify(ids));
+                    $.ajax({
+                        url: URL_APP + 'api/gestion-mvt-pieces/delete',
+                        type: 'POST', data: fd, processData: false, contentType: false, dataType: 'json',
+                        success: function(r){
+                            showToast(r.msg, { type: (r.code || 'success') });
+                            if (r.code === 'success'){ chargerPieces(); } else { btn.disabled = false; }
+                        },
+                        error: function(){ showToast('Erreur réseau lors de la suppression.', { type: 'error' }); btn.disabled = false; }
+                    });
+                });
+            }
+        }
+
+        chargerPieces();
+    </script>
+{% endblock %}
