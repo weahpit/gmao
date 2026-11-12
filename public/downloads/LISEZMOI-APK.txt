@@ -1,0 +1,2 @@
+Placez ici votre fichier APK nomme : citrac-gmao.apk
+Le lien de telechargement du login pointe vers public/downloads/citrac-gmao.apk

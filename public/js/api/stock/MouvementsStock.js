@@ -612,7 +612,7 @@ function getMouvementsBayDate(ctrl_name, ctrl_type, valeurr) {
 
 function initTablePagination() {
 
-    const rowsPerPage = 10;
+    const rowsPerPage = 8;
 
     const allRows = Array.from(
         document.querySelectorAll('#tbodyMvt tr')
@@ -662,6 +662,49 @@ function initTablePagination() {
         renderPagination(filteredRows.length);
     }
 
+    /*
+     * Liste COMPACTE des numeros de page : on n'affiche jamais tous les
+     * numeros d'un coup. Au-dela d'un petit nombre de pages, seuls le
+     * premier, le dernier, la page courante et leurs voisines sont montres ;
+     * les pages sautees sont remplacees par des points de suspension.
+     */
+    function nombreDePagesAffichees(totalPages) {
+
+        const fenetre = 3; // nombre de numeros autour de la page courante
+
+        if(totalPages <= 5){
+
+            return Array.from(
+                { length: totalPages },
+                (_, i) => i + 1
+            );
+        }
+
+        const pages = [1];
+
+        let debut = Math.max(2, currentPage - Math.floor(fenetre / 2));
+
+        let fin = Math.min(totalPages - 1, debut + fenetre - 1);
+
+        debut = Math.max(2, fin - fenetre + 1);
+
+        if(debut > 2){
+            pages.push('...');
+        }
+
+        for(let i = debut; i <= fin; i++){
+            pages.push(i);
+        }
+
+        if(fin < totalPages - 1){
+            pages.push('...');
+        }
+
+        pages.push(totalPages);
+
+        return pages;
+    }
+
     function renderPagination(totalRows) {
 
         pagination.innerHTML = '';
@@ -696,27 +739,45 @@ function initTablePagination() {
 
         pagination.appendChild(prevBtn);
 
-        for(let i = 1; i <= totalPages; i++){
+        /*
+         * Limite aussi le nombre de numeros affiches : au plus 5 boutons
+         * numerotes (avec « ... ») au lieu de la liste complete.
+         */
+        nombreDePagesAffichees(totalPages).forEach(item => {
+
+            if(item === '...'){
+
+                const sep =
+                    document.createElement('span');
+
+                sep.className = 'pagination-ellipsis';
+
+                sep.textContent = '…';
+
+                pagination.appendChild(sep);
+
+                return;
+            }
 
             const btn =
                 document.createElement('button');
 
-            btn.textContent = i;
+            btn.textContent = item;
 
-            if(i === currentPage){
+            if(item === currentPage){
 
                 btn.classList.add('active');
             }
 
             btn.addEventListener('click', () => {
 
-                currentPage = i;
+                currentPage = item;
 
                 renderTable();
             });
 
             pagination.appendChild(btn);
-        }
+        });
 
         const nextBtn =
             document.createElement('button');
