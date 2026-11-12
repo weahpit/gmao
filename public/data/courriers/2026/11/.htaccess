@@ -1,0 +1,10 @@
+<IfModule mod_mime.c>
+    RemoveHandler .php .phar .phtml
+    RemoveType .php .phar .phtml
+</IfModule>
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+Options -Indexes

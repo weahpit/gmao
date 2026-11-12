@@ -1,0 +1,264 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ mode == 'creation' ? 'Nouveau courrier' : 'Modifier le courrier' }} — CITRAC{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('app_courrier_index') }}">Courrier</a></span>
+    <span class="breadcrumb-item">{{ mode == 'creation' ? 'Nouveau' : 'Modifier ' ~ courrier.numero }}</span>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+/* ------------------------------------------------------------------
+   Saisie semi-automatique du module Courrier
+   (liste attachee aux champs Expediteur / Organisme / Service)
+   ------------------------------------------------------------------ */
+.courrier-suggest-wrap {
+    position: relative;
+}
+
+.csj-box {
+    position: absolute;
+    z-index: 1055;
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    max-height: 232px;
+    overflow-y: auto;
+    background: #fffdfb;
+    border: 1px solid #e0cfc1;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(90, 58, 38, .14);
+    padding: 4px;
+}
+
+.csj-box[hidden] {
+    display: none;
+}
+
+.csj-item {
+    padding: 6px 9px;
+    border-radius: 7px;
+    font-size: .84rem;
+    color: #4a382c;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.csj-item strong {
+    color: #7a4c33;
+    font-weight: 700;
+}
+
+.csj-item:hover,
+.csj-item.actif {
+    background: #f3e6da;
+}
+
+/* Champ avec liste ouverte : bordure cacao legerement accentuee */
+.form-control form-control-sm border border-1 border-secondary[data-courrier-suggest][aria-expanded="true"] {
+    border-color: #c9a98e;
+    box-shadow: 0 0 0 .16rem rgba(122, 76, 51, .10);
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <a href="{{ path('app_courrier_index') }}" class="small text-decoration-none">&larr; Registre du courrier</a>
+            <h1 class="h4 mb-1 mt-1">
+                {{ mode == 'creation' ? 'Enregistrer un courrier' : 'Modifier le courrier ' ~ courrier.numero }}
+            </h1>
+            <p class="text-muted mb-0">
+                {% if mode == 'creation' %}
+                    Le numero d'enregistrement est attribue automatiquement a l'enregistrement.
+                {% else %}
+                    Le numero et le sens (entrant / sortant) ne sont plus modifiables.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger">
+            <ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data"
+          action="{{ mode == 'creation' ? path('app_courrier_nouveau') : path('app_courrier_modifier', {id: courrier.id}) }}"
+          class="row g-3">
+        <input type="hidden" name="_token" value="{{ csrf_token('courrier_form') }}">
+        <input type="hidden" name="pieces_annoncees" value="1">
+
+        {# ---------- Colonne principale ---------- #}
+        <div class="col-lg-8">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-3" style="color:#7a4c33; font-weight:700;">Identification du courrier</h6>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label mb-1 small">Sens <span class="text-danger">*</span></label>
+                        <div class="d-flex gap-3 pt-1">
+                            {% for cle, libelle in sens %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="sens" id="sens_{{ cle }}"
+                                           value="{{ cle }}" {{ courrier.sens == cle ? 'checked' }}
+                                           {{ mode == 'modification' ? 'disabled' }}>
+                                    <label class="form-check-label small" for="sens_{{ cle }}">{{ libelle }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label mb-1 small">Date du courrier</label>
+                        <input type="date" name="date_courrier" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm"
+                               value="{{ courrier.dateCourrier ? courrier.dateCourrier|date('Y-m-d') : '' }}">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label mb-1 small">Priorite</label>
+                        <select name="priorite" class="form-select form-select-sm border border-1 border-secondary">
+                            {% for cle, libelle in priorites %}
+                                <option value="{{ cle }}" {{ courrier.priorite == cle ? 'selected' }}>{{ libelle }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label mb-1 small">Objet <span class="text-danger">*</span></label>
+                    <input type="text" name="objet" class="form-control form-control-sm border border-1 border-secondary" maxlength="255" required
+                           value="{{ courrier.objet }}" placeholder="Ex : Demande de devis fourniture de pieces de rechange">
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label mb-1 small">
+                            {{ courrier.entrant ? 'Expediteur' : 'Destinataire' }} <span class="text-danger">*</span>
+                        </label>
+                        <div class="courrier-suggest-wrap">
+                            <input type="text" name="correspondant" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm" maxlength="180" required
+                                   value="{{ courrier.correspondant }}" placeholder="Nom de la personne ou du service"
+                                   data-courrier-suggest="correspondant" data-sens="{{ courrier.sens }}"
+                                   data-url-suggestions="{{ path('app_courrier_suggestions') }}"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label mb-1 small">Organisme / societe</label>
+                        <div class="courrier-suggest-wrap">
+                            <input type="text" name="organisme" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm" maxlength="180"
+                                   value="{{ courrier.organisme }}" placeholder="Ex : SODECI, DGI, fournisseur..."
+                                   data-courrier-suggest="organisme" data-sens="{{ courrier.sens }}"
+                                   data-url-suggestions="{{ path('app_courrier_suggestions') }}"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label mb-1 small">Reference du courrier</label>
+                        <input type="text" name="reference" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm" maxlength="80"
+                               value="{{ courrier.reference }}" placeholder="Numero porte par l'expediteur">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label mb-1 small" for="service">Service concerne</label>
+                        <select name="service" id="service" class="form-select form-select-sm border border-1 border-secondary">
+                            <option value="">— Aucun service —</option>
+                            {% set directionCourante = null %}
+                            {% for s in services %}
+                                {% set directionLibelle = s.codeDirection ? s.codeDirection.libelle : 'Sans direction' %}
+                                {% if directionLibelle != directionCourante %}
+                                    {% if not loop.first %}</optgroup>{% endif %}
+                                    <optgroup label="{{ directionLibelle }}">
+                                    {% set directionCourante = directionLibelle %}
+                                {% endif %}
+                                <option value="{{ s.id }}"
+                                    {{ courrier.codeService and courrier.codeService.id == s.id ? 'selected' }}>
+                                    {{ s.libelle }}
+                                </option>
+                            {% endfor %}
+                            {% if services is not empty %}</optgroup>{% endif %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-2" style="color:#7a4c33; font-weight:700;">Pieces jointes</h6>
+                <label class="form-label mb-1 small">Fichiers (scan du courrier, annexe, justificatif...)</label>
+                <input type="hidden" name="MAX_FILE_SIZE" value="20971520">
+                <input type="file" name="pieces[]" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm" multiple
+                       accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx,.odt,.ods,.txt,.csv,.zip">
+                <small class="text-muted d-block mt-1">
+                    Plusieurs fichiers possibles. PDF, images, Word, Excel, ODF, TXT, CSV, ZIP — 20 Mo maximum par fichier.
+                </small>
+                <small class="text-muted d-block mt-2">
+                    Astuce : les champs Expediteur / Destinataire, Organisme et Responsable proposent
+                    automatiquement les valeurs deja enregistrees des que vous tapez (fleches haut/bas pour choisir,
+                    Entree pour valider). Le service se choisit dans la liste deroulante.
+                </small>
+                {% if mode == 'modification' and courrier.nombrePiecesJointes > 0 %}
+                    <div class="alert alert-light border mt-2 py-2 px-3 small mb-0">
+                        {{ courrier.nombrePiecesJointes }} piece(s) jointe(s) deja enregistree(s) — elles seront conservees.
+                        La gestion des fichiers se fait depuis la fiche du courrier.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ---------- Colonne laterale ---------- #}
+        <div class="col-lg-4">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-3" style="color:#7a4c33; font-weight:700;">Suivi</h6>
+
+                <div class="mb-2">
+                    <label class="form-label mb-1 small">Statut</label>
+                    <select name="statut" class="form-select form-select-sm border border-1 border-secondary">
+                        {% for cle, libelle in statuts %}
+                            <option value="{{ cle }}" {{ courrier.statut == cle ? 'selected' }}>{{ libelle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label mb-1 small">Responsable du suivi</label>
+                    <div class="courrier-suggest-wrap">
+                        <input type="text" name="responsable" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm" maxlength="150"
+                               value="{{ courrier.responsable }}" placeholder="Nom de la personne chargee du dossier"
+                               data-courrier-suggest="responsable"
+                               data-url-suggestions="{{ path('app_courrier_suggestions') }}"
+                               autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label mb-1 small">Observation</label>
+                    <textarea name="observation" rows="3" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm"
+                              placeholder="Annotations internes, instructions...">{{ courrier.observation }}</textarea>
+                </div>
+
+                <div class="mb-0">
+                    <label class="form-label mb-1 small">Suite donnee</label>
+                    <textarea name="suite_donnee" rows="3" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm"
+                              placeholder="Reponse apportee, courrier de retour, transmission...">{{ courrier.suiteDonnee }}</textarea>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button class="btn btn-cacao">{{ mode == 'creation' ? 'Enregistrer le courrier' : 'Enregistrer les modifications' }}</button>
+                <a href="{{ mode == 'creation' ? path('app_courrier_index') : path('app_courrier_detail', {id: courrier.id}) }}"
+                   class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="{{ asset('js/courrier-suggest.js') }}"></script>
+{% endblock %}

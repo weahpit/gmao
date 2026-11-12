@@ -1,0 +1,182 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ courrier.numero }} — Courrier CITRAC{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('app_courrier_index') }}">Courrier</a></span>
+    <span class="breadcrumb-item">{{ courrier.numero }}</span>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <a href="{{ path('app_courrier_index') }}" class="small text-decoration-none">&larr; Registre du courrier</a>
+            <h1 class="h4 mb-1 mt-1">{{ courrier.objet }}</h1>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <span class="badge" style="background:{{ courrier.entrant ? '#e6eef7' : '#f5e8dd' }}; color:{{ courrier.entrant ? '#2b5f8c' : '#7a4c33' }};">
+                    {{ courrier.sensLibelle }}
+                </span>
+                <span class="text-muted small">{{ courrier.numero }}</span>
+                {% if courrier.urgent %}
+                    <span class="badge" style="background:#f7e2df; color:#9c2f27;">{{ courrier.prioriteLibelle }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('app_courrier_modifier', {id: courrier.id}) }}" class="btn btn-sm btn-cacao">Modifier</a>
+            <a href="{{ path('app_courrier_fiche_pdf', {id: courrier.id}) }}" target="_blank" rel="noopener"
+               class="btn btn-sm btn-outline-secondary">Imprimer la fiche</a>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        {# ---------- Informations ---------- #}
+        <div class="col-lg-7">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0" style="color:#7a4c33; font-weight:700;">Informations</h6>
+                    <span class="badge" style="background:{{ courrier.statutCouleurFond }}; color:{{ courrier.statutCouleurTexte }};">{{ courrier.statutLibelle }}</span>
+                </div>
+
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <th class="text-muted fw-normal" style="width:38%;">Date du courrier</th>
+                            <td>{{ courrier.dateCourrier ? courrier.dateCourrier|date('d/m/Y') : '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted fw-normal">{{ courrier.entrant ? 'Expediteur' : 'Destinataire' }}</th>
+                            <td class="fw-semibold">{{ courrier.correspondantComplet }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted fw-normal">Reference</th>
+                            <td>{{ courrier.reference ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted fw-normal">Service concerne</th>
+                            <td>
+                                {% if courrier.codeService %}
+                                    {{ courrier.codeService.libelle }}
+                                    {% if courrier.codeService.codeDirection %}
+                                        <span class="text-muted small">— {{ courrier.codeService.codeDirection.libelle }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    {{ courrier.service ?? '-' }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted fw-normal">Responsable du suivi</th>
+                            <td>{{ courrier.responsable ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted fw-normal">Date de traitement</th>
+                            <td>{{ courrier.dateAccuse ? courrier.dateAccuse|date('d/m/Y') : '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted fw-normal">Enregistre le</th>
+                            <td>{{ courrier.createdAt ? courrier.createdAt|date('d/m/Y a H:i') : '-' }}
+                                {% if courrier.createdBy %}<span class="text-muted small">par {{ courrier.createdBy.prenoms }} {{ courrier.createdBy.nom }}</span>{% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            {% if courrier.observation %}
+                <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                    <h6 class="mb-1" style="color:#7a4c33; font-weight:700;">Observation</h6>
+                    <p class="mb-0 small">{{ courrier.observation|nl2br }}</p>
+                </div>
+            {% endif %}
+
+            {% if courrier.suiteDonnee %}
+                <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                    <h6 class="mb-1" style="color:#7a4c33; font-weight:700;">Suite donnee</h6>
+                    <p class="mb-0 small">{{ courrier.suiteDonnee|nl2br }}</p>
+                </div>
+            {% endif %}
+
+            <div class="p-3" style="background:#fff; border:1px solid #efd9d4; border-radius:14px;">
+                <h6 class="mb-1" style="color:#9c2f27; font-weight:700;">Supprimer le courrier</h6>
+                <p class="text-muted small mb-2">Supprime definitivement ce courrier et ses pieces jointes. Action irreversible.</p>
+                <form method="post" action="{{ path('app_courrier_supprimer', {id: courrier.id}) }}"
+                      onsubmit="return confirm('Supprimer DEFINITIVEMENT le courrier {{ courrier.numero|e('js') }} et tous ses fichiers ?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('courrier_suppr_' ~ courrier.id) }}">
+                    <button class="btn btn-sm btn-outline-danger">Supprimer ce courrier</button>
+                </form>
+            </div>
+        </div>
+
+        {# ---------- Traitement + pieces jointes ---------- #}
+        <div class="col-lg-5">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-2" style="color:#7a4c33; font-weight:700;">Traitement</h6>
+                <div class="d-flex gap-2 flex-wrap">
+                    {% for cle, libelle in statuts %}
+                        {% if courrier.statut != cle %}
+                            <form method="post" action="{{ path('app_courrier_statut', {id: courrier.id, statut: cle}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('courrier_statut_' ~ courrier.id) }}">
+                                <button class="btn btn-sm {{ cle == 'traite' ? 'btn-success' : (cle == 'archive' ? 'btn-outline-secondary' : 'btn-outline-secondary') }}">
+                                    {{ libelle }}
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                    <h6 class="mb-0" style="color:#7a4c33; font-weight:700;">Pieces jointes</h6>
+                    <span class="badge" style="background:#f5e8dd; color:#7a4c33;">{{ courrier.nombrePiecesJointes }}</span>
+                </div>
+
+                {% for pj in courrier.piecesJointes %}
+                    <div class="d-flex justify-content-between align-items-center gap-2 p-2 mb-2 flex-wrap"
+                         style="background:#fbf5f0; border-radius:10px;">
+                        <div class="small" style="min-width:0; flex:1 1 60%;">
+                            <div class="fw-semibold text-truncate" title="{{ pj.nomOriginal }}">{{ pj.nomOriginal }}</div>
+                            <div class="text-muted" style="font-size:.75rem;">
+                                {{ pj.extension|upper }} - {{ pj.tailleLisible }}
+                                {% if pj.commentaire %} - {{ pj.commentaire }}{% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <a href="{{ path('app_courrier_piece_voir', {id: pj.id}) }}" target="_blank" rel="noopener"
+                               class="btn btn-sm btn-outline-secondary" title="Ouvrir">Ouvrir</a>
+                            <a href="{{ path('app_courrier_piece_telecharger', {id: pj.id}) }}"
+                               class="btn btn-sm btn-outline-secondary" title="Telecharger">&#8595;</a>
+                            <form method="post" action="{{ path('app_courrier_piece_supprimer', {id: pj.id}) }}"
+                                  onsubmit="return confirm('Supprimer cette piece jointe ?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('courrier_piece_suppr_' ~ pj.id) }}">
+                                <button class="btn btn-sm btn-outline-danger" title="Supprimer">&times;</button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-2">Aucune piece jointe pour ce courrier.</p>
+                {% endfor %}
+
+                <hr class="my-3">
+
+                <form method="post" action="{{ path('app_courrier_piece_ajouter', {id: courrier.id}) }}" enctype="multipart/form-data">
+                    <input type="hidden" name="_token" value="{{ csrf_token('courrier_pieces_' ~ courrier.id) }}">
+                    <input type="hidden" name="pieces_annoncees" value="1">
+                    <label class="form-label mb-1 small">Ajouter des fichiers</label>
+                    <input type="hidden" name="MAX_FILE_SIZE" value="20971520">
+                    <input type="file" name="pieces[]" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm" multiple
+                           accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx,.odt,.ods,.txt,.csv,.zip">
+                    <input type="text" name="commentaire_piece" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm mt-2" maxlength="255"
+                           placeholder="Commentaire (facultatif, ex : scan de la lettre recue)">
+                    <button class="btn btn-sm btn-cacao w-100 mt-2">Joindre les fichiers</button>
+                    <small class="text-muted d-block mt-1">20 Mo maximum par fichier.</small>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -221,7 +221,7 @@ final class AdminReunionController extends AbstractController
             return $retour;
         }
 
-        if (strtolower((string) $fichier->getClientOriginalExtension()) !== 'pdf') {
+        if (strtolower((string) pathinfo($fichier->getClientOriginalName(), PATHINFO_EXTENSION)) !== 'pdf') {
             $this->addFlash('danger', 'Le compte rendu doit etre un fichier PDF.');
 
             return $retour;

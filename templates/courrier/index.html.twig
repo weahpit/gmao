@@ -1,0 +1,181 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion du courrier — CITRAC{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item">Courrier</span>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Gestion du courrier</h1>
+            <p class="text-muted mb-0">Courriers entrants et sortants, pieces jointes, registre imprimable.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('app_courrier_nouveau', {sens: 'entrant'}) }}" class="btn btn-sm btn-cacao">
+                + Courrier entrant
+            </a>
+            <a href="{{ path('app_courrier_nouveau', {sens: 'sortant'}) }}" class="btn btn-sm btn-outline-secondary">
+                + Courrier sortant
+            </a>
+            <a href="{{ path('app_courrier_impression', app.request.query.all) }}" target="_blank" rel="noopener"
+               class="btn btn-sm btn-outline-secondary">Imprimer le registre</a>
+        </div>
+    </div>
+
+    {# ---------- Compteurs ---------- #}
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="text-muted small text-uppercase" style="letter-spacing:.03em;">Entrants a traiter</div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="h4 mb-0" style="color:#7a4c33;">{{ compteursEntrant.a_traiter }}</span>
+                    <span class="small text-muted">sur {{ compteursEntrant.a_traiter + compteursEntrant.en_cours + compteursEntrant.traite + compteursEntrant.archive }} archivables</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="text-muted small text-uppercase" style="letter-spacing:.03em;">Sortants en cours</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ compteursSortant.en_cours + compteursSortant.a_traiter }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="text-muted small text-uppercase" style="letter-spacing:.03em;">Traites</div>
+                <div class="h4 mb-0" style="color:#22684d;">{{ compteurs.traite }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="text-muted small text-uppercase" style="letter-spacing:.03em;">Archives</div>
+                <div class="h4 mb-0 text-muted">{{ compteurs.archive }}</div>
+            </div>
+        </div>
+    </div>
+
+    {# ---------- Filtres ---------- #}
+    <form method="get" action="{{ path('app_courrier_index') }}"
+          class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label mb-1 small">Recherche</label>
+                <input type="text" name="q" value="{{ filtres.q }}" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm"
+                       placeholder="Numero, objet, correspondant, reference...">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label mb-1 small">Sens</label>
+                <select name="sens" class="form-select form-select-sm border border-1 border-secondary">
+                    <option value="">Tous</option>
+                    {% for cle, libelle in sens %}
+                        <option value="{{ cle }}" {{ filtres.sens == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label mb-1 small">Statut</label>
+                <select name="statut" class="form-select form-select-sm border border-1 border-secondary">
+                    <option value="">Tous</option>
+                    {% for cle, libelle in statuts %}
+                        <option value="{{ cle }}" {{ filtres.statut == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label mb-1 small">Du</label>
+                <input type="date" name="du" value="{{ filtres.du }}" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label mb-1 small">Au</label>
+                <input type="date" name="au" value="{{ filtres.au }}" class="form-control form-control-sm border border-1 border-secondary form-control form-control-sm border border-1 border-secondary-sm">
+            </div>
+            {% if services is not empty %}
+                <div class="col-12 col-md-3">
+                    <label class="form-label mb-1 small">Service</label>
+                    <select name="service" class="form-select form-select-sm border border-1 border-secondary">
+                        <option value="">Tous</option>
+                        {% for s in services %}
+                            <option value="{{ s.id }}" {{ filtres.service == s.id|trim ? 'selected' }}>{{ s.libelle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+            <div class="col-12 col-md-auto d-flex gap-2">
+                <button class="btn btn-sm btn-cacao">Filtrer</button>
+                <a href="{{ path('app_courrier_index') }}" class="btn btn-sm btn-outline-secondary">Reinitialiser</a>
+            </div>
+        </div>
+    </form>
+
+    {# ---------- Listing ---------- #}
+    <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+        <div class="d-flex justify-content-between align-items-baseline mb-2">
+            <h6 class="mb-0" style="color:#7a4c33; font-weight:700;">Registre</h6>
+            <span class="badge" style="background:#f5e8dd; color:#7a4c33;">{{ nombreTotal }} courrier{{ nombreTotal > 1 ? 's' }}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Numero</th>
+                        <th>Date</th>
+                        <th>Objet</th>
+                        <th>Correspondant</th>
+                        <th>Statut</th>
+                        <th class="text-center">PJ</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for c in courriers %}
+                    <tr>
+                        <td>
+                            <div class="fw-semibold small">{{ c.numero }}</div>
+                            <span class="badge" style="font-size:.7rem; {{ c.entrant ? 'background:#e6eef7; color:#2b5f8c;' : 'background:#f5e8dd; color:#7a4c33;' }}">
+                                {{ c.sensCourt }}
+                            </span>
+                            {% if c.urgent %}
+                                <span class="badge" style="font-size:.7rem; background:#f7e2df; color:#9c2f27;">{{ c.prioriteLibelle }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">{{ c.dateCourrier ? c.dateCourrier|date('d/m/Y') : '-' }}</td>
+                        <td>
+                            <div class="fw-semibold small">{{ c.objet }}</div>
+                            {% if c.reference %}<div class="text-muted" style="font-size:.75rem;">Ref. {{ c.reference }}</div>{% endif %}
+                        </td>
+                        <td class="small">{{ c.correspondantComplet }}</td>
+                        <td>
+                            <span class="badge" style="background:{{ c.statutCouleurFond }}; color:{{ c.statutCouleurTexte }};">{{ c.statutLibelle }}</span>
+                        </td>
+                        <td class="text-center small">
+                            {% if c.nombrePiecesJointes > 0 %}
+                                <span class="badge" style="background:#eef3ee; color:#3c6b4f;">{{ c.nombrePiecesJointes }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <a href="{{ path('app_courrier_detail', {id: c.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir</a>
+                                <form method="post" action="{{ path('app_courrier_supprimer', {id: c.id}) }}"
+                                      onsubmit="return confirm('Supprimer definitivement le courrier {{ c.numero|e('js') }} et ses pieces jointes ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('courrier_suppr_' ~ c.id) }}">
+                                    <button class="btn btn-sm btn-outline-danger" title="Supprimer">Suppr.</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">Aucun courrier ne correspond a votre recherche.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
