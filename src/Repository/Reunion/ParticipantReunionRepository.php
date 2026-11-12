@@ -29,28 +29,58 @@ class ParticipantReunionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Empeche un double enregistrement : meme nom (insensible a la casse)
-     * et meme numero de telephone dans la meme reunion
-     * (ou, a defaut de telephone, meme adresse email).
+     * Empeche un double enregistrement dans la meme reunion : meme nom
+     * (insensible a la casse) et meme telephone, ou a defaut de telephone,
+     * meme adresse email.
+     *
+     * ATTENTION : aucun appel a une fonction SQL (REPLACE, TRIM...) dans le
+     * DQL. La comparaison des numeros se fait en PHP, car DQL n'accepte pas
+     * REPLACE (erreur « Expected known function, got 'REPLACE' »).
      */
     public function existeDeja(Reunion $reunion, string $nom, ?string $telephone, ?string $email = null): bool
     {
-        $qb = $this->createQueryBuilder('p')
-            ->select('COUNT(p.id)')
+        $candidats = $this->createQueryBuilder('p')
             ->andWhere('p.reunion = :reunion')
             ->andWhere('LOWER(p.nom) = :nom')
             ->setParameter('reunion', $reunion)
-            ->setParameter('nom', mb_strtolower($nom));
+            ->setParameter('nom', mb_strtolower(trim($nom)))
+            ->getQuery()
+            ->getResult();
 
-        $tel = preg_replace('/\s+/', '', (string) $telephone);
-        if ($tel !== '') {
-            $qb->andWhere('REPLACE(REPLACE(p.telephone, \' \', \'\'), \'-\', \'\') = :tel')
-               ->setParameter('tel', $tel);
-        } elseif ($email !== null && $email !== '') {
-            $qb->andWhere('LOWER(p.email) = :email')
-               ->setParameter('email', mb_strtolower($email));
+        if ($candidats === []) {
+            return false;
         }
 
-        return (int) $qb->getQuery()->getSingleScalarResult() > 0;
+        $tel   = $this->normaliserTelephone($telephone);
+        $email = $email !== null ? mb_strtolower(trim($email)) : '';
+
+        foreach ($candidats as $candidat) {
+            /** @var ParticipantReunion $candidat */
+            $telExistant   = $this->normaliserTelephone($candidat->getTelephone());
+            $emailExistant = mb_strtolower(trim((string) $candidat->getEmail()));
+
+            if ($tel !== '' && $tel === $telExistant) {
+                return true;
+            }
+
+            if ($tel === '' && $email !== '' && $email === $emailExistant) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** « 07 00-00 00 00 » et « +2250700000000 » -> « 0700000000 » (chiffres seuls). */
+    private function normaliserTelephone(?string $telephone): string
+    {
+        $chiffres = preg_replace('/[^0-9]/', '', (string) $telephone);
+
+        // Retire l'indicatif pays eventuel pour comparer les numeros ivoiriens.
+        if (strlen($chiffres) > 10 && str_starts_with($chiffres, '225')) {
+            $chiffres = substr($chiffres, 3);
+        }
+
+        return $chiffres;
     }
 }
