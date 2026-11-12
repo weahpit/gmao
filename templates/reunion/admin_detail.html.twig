@@ -139,12 +139,68 @@
                 </form>
             </div>
 
+
+            {# ---------- Envoi du compte rendu par email ---------- #}
+            {% if reunion.compteRendu %}
+                <div class="p-3 mt-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                    <h6 class="mb-2" style="color:#7a4c33; font-weight:700;">Envoi du compte rendu par email</h6>
+
+                    {% if destinatairesCompteRendu|length > 0 %}
+                        <p class="small mb-2">
+                            <span class="badge" style="background:#f5e8dd; color:#7a4c33;">{{ destinatairesCompteRendu|length }} destinataire{{ destinatairesCompteRendu|length > 1 ? 's' }}</span>
+                            <span class="text-muted">participant(s) ayant laisse une adresse email.</span>
+                        </p>
+                    {% else %}
+                        <div class="alert alert-warning py-2 px-3 small mb-2">
+                            Aucun participant n'a renseigne d'adresse email : l'envoi n'est pas encore possible.
+                        </div>
+                    {% endif %}
+
+                    {% if reunion.compteRenduEnvoyeLe %}
+                        <p class="text-muted small mb-2">
+                            Dernier envoi : {{ reunion.compteRenduEnvoyeLe|date('d/m/Y a H:i') }}{% if reunion.compteRenduEnvoyeA %} - {{ reunion.compteRenduEnvoyeA }} destinataire{{ reunion.compteRenduEnvoyeA > 1 ? 's' }}{% endif %}
+                        </p>
+                    {% endif %}
+
+                    {% if not reunion.ouverte %}
+                        <form method="post" action="{{ path('app_admin_reunions_cr_envoyer', {id: reunion.id}) }}"
+                              onsubmit="return confirm('Envoyer le compte rendu aux {{ destinatairesCompteRendu|length }} participant(s) par email ?');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reunion_cr_envoi_' ~ reunion.id) }}">
+                            <label class="form-label mb-1 small">Message d'accompagnement (facultatif)</label>
+                            <textarea name="message" rows="2" class="form-control form-control-sm mb-2"
+                                      placeholder="Ex. : Bonjour, veuillez trouver ci-joint le compte rendu de notre reunion."></textarea>
+                            <button class="btn btn-sm btn-cacao w-100" {{ destinatairesCompteRendu|length == 0 ? 'disabled' }}>
+                                {{ reunion.compteRenduEnvoyeLe ? 'Renvoyer le compte rendu aux participants' : 'Envoyer le compte rendu aux participants' }}
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                Un seul email avec le PDF en piece jointe ; les adresses ne sont pas divulguees entre participants.
+                            </small>
+                        </form>
+                    {% else %}
+                        <p class="text-muted small mb-0">La reunion doit etre cloturee avant l'envoi du compte rendu.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
             {% if reunion.objet %}
                 <div class="p-3 mt-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
                     <h6 class="mb-1" style="color:#7a4c33; font-weight:700;">Objet</h6>
                     <p class="mb-0 small">{{ reunion.objet|nl2br }}</p>
                 </div>
             {% endif %}
+
+            {# ---------- Zone sensible : suppression ---------- #}
+            <div class="p-3 mt-3" style="background:#fff; border:1px solid #efd9d4; border-radius:14px;">
+                <h6 class="mb-1" style="color:#9c2f27; font-weight:700;">Supprimer la reunion</h6>
+                <p class="text-muted small mb-2">
+                    Supprime definitivement la reunion, sa liste de presence, les signatures et le compte rendu.
+                    Cette action est irreversible.
+                </p>
+                <form method="post" action="{{ path('app_admin_reunions_supprimer', {id: reunion.id}) }}"
+                      onsubmit="return confirm('Supprimer DEFINITIVEMENT la reunion {{ reunion.titre|e('js') }} avec ses participants, signatures et compte rendu ?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('reunion_suppr_' ~ reunion.id) }}">
+                    <button class="btn btn-sm btn-outline-danger w-100">Supprimer cette reunion</button>
+                </form>
+            </div>
         </div>
 
         {# ---------- Participants ---------- #}

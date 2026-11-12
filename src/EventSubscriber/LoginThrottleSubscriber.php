@@ -8,6 +8,7 @@ use App\Security\AccountLockedException;
 use App\Security\LoginThrottler;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Http\Event\LoginFailureEvent;
@@ -29,11 +30,12 @@ class LoginThrottleSubscriber implements EventSubscriberInterface
         private LoggerInterface $logger,
         private UserRepository $userRepository,
         private MailerInterface $mailer,
+        #[Autowire('%mail_from%')] private string $mailFrom = self::MAIL_FROM,
     ) {
     }
 
-    /** Adresse d'expedition des alertes securite (modifiable au besoin). */
-    private const MAIL_FROM = 'no-reply@citrac.local';
+    /** Adresse d'expedition par defaut des alertes securite. */
+    private const MAIL_FROM = 'admin@ndiasoft.com';
 
     public static function getSubscribedEvents(): array
     {
@@ -130,7 +132,7 @@ class LoginThrottleSubscriber implements EventSubscriberInterface
 
         try {
             $email = (new Email())
-                ->from(self::MAIL_FROM)
+                ->from($this->mailFrom)
                 ->subject($subject)
                 ->text($body);
             foreach ($recipients as $to) {

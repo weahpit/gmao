@@ -130,7 +130,14 @@
                                 </td>
                                 <td class="text-end fw-semibold">{{ r.nombreParticipants }}</td>
                                 <td class="text-end">
-                                    <a href="{{ path('app_admin_reunions_detail', {id: r.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir</a>
+                                    <div class="d-inline-flex gap-1">
+                                        <a href="{{ path('app_admin_reunions_detail', {id: r.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir</a>
+                                        <form method="post" action="{{ path('app_admin_reunions_supprimer', {id: r.id}) }}"
+                                              onsubmit="return confirm('Supprimer DEFINITIVEMENT la reunion {{ r.titre|e('js') }} avec ses participants, signatures et compte rendu ?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('reunion_suppr_' ~ r.id) }}">
+                                            <button class="btn btn-sm btn-outline-danger" title="Supprimer">Suppr.</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         {% else %}

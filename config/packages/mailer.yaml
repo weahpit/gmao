@@ -1,3 +1,12 @@
+# Messagerie : le transport est defini par la variable MAILER_DSN
+# (voir .env pour la valeur par defaut, .env.local pour le compte reel).
 framework:
     mailer:
         dsn: '%env(MAILER_DSN)%'
+
+parameters:
+    # Adresse d'expedition des messages envoyes par l'application.
+    # DOIT etre une adresse de votre domaine Infomaniak
+    # (sinon le serveur refuse l'envoi). Personnalisable via MAIL_FROM.
+    mail_from: '%env(default:mail_from_defaut:MAIL_FROM)%'
+    mail_from_defaut: 'admin@ndiasoft.com'

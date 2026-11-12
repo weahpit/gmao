@@ -78,6 +78,14 @@ class Reunion
     #[ORM\Column(type: 'boolean')]
     private bool $compteRenduPublie = false;
 
+    /** Date du dernier envoi du compte rendu par email aux participants. */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $compteRenduEnvoyeLe = null;
+
+    /** Nombre de destinataires du dernier envoi par email. */
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $compteRenduEnvoyeA = null;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -141,6 +149,12 @@ class Reunion
     {
         return $this->compteRenduPublie && $this->compteRendu !== null && $this->compteRendu !== '';
     }
+
+    public function getCompteRenduEnvoyeLe(): ?\DateTimeImmutable { return $this->compteRenduEnvoyeLe; }
+    public function setCompteRenduEnvoyeLe(?\DateTimeImmutable $d): static { $this->compteRenduEnvoyeLe = $d; return $this; }
+
+    public function getCompteRenduEnvoyeA(): ?int { return $this->compteRenduEnvoyeA; }
+    public function setCompteRenduEnvoyeA(?int $n): static { $this->compteRenduEnvoyeA = $n; return $this; }
 
     public function getCreatedAt(): ?\DateTimeImmutable { return $this->createdAt; }
 

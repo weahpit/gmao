@@ -6,6 +6,7 @@ use App\Entity\Reunion\ParticipantReunion;
 use App\Entity\Reunion\Reunion;
 use App\Repository\Reunion\ParticipantReunionRepository;
 use App\Repository\Reunion\ReunionRepository;
+use App\Service\Reunion\EnvoiCompteRenduReunion;
 use App\Service\Reunion\QrCodeReunion;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -26,6 +27,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  *  - /admin/reunions/{id}/compte-rendu    : chargement du PDF
  *  - /admin/reunions/{id}/cloturer        : cloture
  *  - /admin/reunions/{id}/liste-presence  : export CSV des presences
+ *  - /admin/reunions/{id}/compte-rendu/envoyer : envoi du CR par email aux participants
+ *  - /admin/reunions/{id}/supprimer       : suppression definitive (CR, signatures, presences)
  */
 #[Route('/admin/reunions')]
 #[IsGranted('ROLE_ADMIN')]
@@ -34,6 +37,7 @@ final class AdminReunionController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         #[Autowire('%reunion_comptes_rendus%')] private string $dossierComptesRendus,
+        #[Autowire('%reunion_signatures%')] private string $dossierSignatures,
     ) {}
 
     private function qrDe(?Reunion $reunion, int $taille = 500): ?string
@@ -110,7 +114,12 @@ final class AdminReunionController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_admin_reunions_detail', methods: ['GET'])]
-    public function detail(string $id, ReunionRepository $repo, ParticipantReunionRepository $participants): Response
+    public function detail(
+        string $id,
+        ReunionRepository $repo,
+        ParticipantReunionRepository $participants,
+        EnvoiCompteRenduReunion $envoiCompteRendu,
+    ): Response
     {
         $reunion = $repo->find($id);
         if (!$reunion) {
@@ -123,6 +132,7 @@ final class AdminReunionController extends AbstractController
             'reunion'      => $reunion,
             'qrImage'      => $reunion->isOuverte() ? $this->qrDe($reunion, 400) : null,
             'participants' => $participants->findParReunion($reunion),
+            'destinatairesCompteRendu' => $envoiCompteRendu->destinataires($reunion),
             'dossierComptesRendus' => $this->dossierComptesRendus,
             'statuts'      => Reunion::STATUTS,
             'lienPublic'   => $lienRelatif,
@@ -294,6 +304,99 @@ final class AdminReunionController extends AbstractController
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'inline; filename="compte-rendu.pdf"',
         ]);
+    }
+
+
+    /** Envoi du compte rendu par email aux participants. */
+    #[Route('/{id}/compte-rendu/envoyer', name: 'app_admin_reunions_cr_envoyer', methods: ['POST'])]
+    public function envoyerCompteRendu(
+        string $id,
+        Request $request,
+        ReunionRepository $repo,
+        EnvoiCompteRenduReunion $envoiCompteRendu,
+    ): Response {
+        $reunion = $repo->find($id);
+        if (!$reunion) {
+            throw $this->createNotFoundException('Reunion introuvable.');
+        }
+
+        $retour = $this->redirectToRoute('app_admin_reunions_detail', ['id' => $reunion->getId()]);
+
+        if (!$this->isCsrfTokenValid('reunion_cr_envoi_' . $reunion->getId(), (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Session expiree, merci de reessayer.');
+
+            return $retour;
+        }
+
+        if ($reunion->isOuverte()) {
+            $this->addFlash('danger', 'La reunion n\'est pas terminee : cloturez-la avant d\'envoyer le compte rendu.');
+
+            return $retour;
+        }
+
+        if (!$reunion->getCompteRendu()) {
+            $this->addFlash('danger', 'Chargez d\'abord le compte rendu au format PDF.');
+
+            return $retour;
+        }
+
+        $destinataires = $envoiCompteRendu->destinataires($reunion);
+        if ($destinataires === []) {
+            $this->addFlash('danger', 'Aucun participant n\'a renseigne d\'adresse email : l\'envoi est impossible.');
+
+            return $retour;
+        }
+
+        $messageLibre = trim((string) $request->request->get('message', ''));
+        $resultat = $envoiCompteRendu->envoyer($reunion, $destinataires, $messageLibre);
+
+        $this->addFlash($resultat['echecs'] > 0 ? 'danger' : 'success', $resultat['message']);
+
+        return $retour;
+    }
+
+    /** Suppression definitive d'une reunion et de ses fichiers. */
+    #[Route('/{id}/supprimer', name: 'app_admin_reunions_supprimer', methods: ['POST'])]
+    public function supprimer(string $id, Request $request, ReunionRepository $repo): Response
+    {
+        $reunion = $repo->find($id);
+        if (!$reunion) {
+            throw $this->createNotFoundException('Reunion introuvable.');
+        }
+
+        if (!$this->isCsrfTokenValid('reunion_suppr_' . $reunion->getId(), (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Session expiree, merci de reessayer.');
+
+            return $this->redirectToRoute('app_admin_reunions_detail', ['id' => $reunion->getId()]);
+        }
+
+        $titre = (string) $reunion->getTitre();
+        $racinePublic = $this->getParameter('kernel.project_dir') . '/public/';
+
+        // Fichiers physiques : compte rendu PDF et signatures manuscrites des participants.
+        if ($reunion->getCompteRendu()) {
+            $chemin = $racinePublic . $this->dossierComptesRendus . $reunion->getCompteRendu();
+            if (is_file($chemin)) {
+                @unlink($chemin);
+            }
+        }
+
+        foreach ($reunion->getParticipants() as $participant) {
+            if ($participant->getSignature()) {
+                $chemin = $racinePublic . $this->dossierSignatures . $participant->getSignature();
+                if (is_file($chemin)) {
+                    @unlink($chemin);
+                }
+            }
+        }
+
+        // Les participants sont supprimes automatiquement (cascade + orphanRemoval).
+        $this->em->remove($reunion);
+        $this->em->flush();
+
+        $this->addFlash('success', 'Reunion « ' . $titre . ' » supprimee definitivement avec ses participants et ses fichiers.');
+
+        return $this->redirectToRoute('app_admin_reunions');
     }
 
     /** Export CSV de la liste de presence. */
