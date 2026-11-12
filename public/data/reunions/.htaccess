@@ -1,0 +1,5 @@
+# Les signatures et comptes rendus sont servis uniquement par l'application.
+# On interdit l'execution de tout script dans ces dossiers.
+<FilesMatch "\.(php|phtml|phar|cgi|pl|py|sh)$">
+    Require all denied
+</FilesMatch>

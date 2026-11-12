@@ -63,7 +63,7 @@
     </div>
     <form method="get" class="ss-filtres row m-1 mt-2" style="background: #efefef;">
         <h6 class="mb-0" style="color: var(--ss-cacao); font-weight:700;">Filtrer...</h6>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="mb-1">Stock</label>
             <select name="rubrique" class="form-select p-0">
                 <option value="">Tous les stocks</option>
@@ -72,7 +72,16 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            <label class="mb-1">Nature du produit</label>
+            <select name="nature" class="form-select p-0">
+                <option value="">Toutes les natures</option>
+                {% for n in natures %}
+                    <option value="{{ n }}" {{ filtres.nature == n ? 'selected' }}>{{ n }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
             <label class="mb-1">Service</label>
             <select name="service" class="form-select p-0">
                 <option value="">Tous les services</option>
@@ -93,11 +102,11 @@
             <label class="mb-1">Au</label>
             <input type="date" name="au" value="{{ filtres.au }}" class="form-control p-0">
         </div>
-        <div class="col-md-8">
+        <div class="col-md-6">
             <label class="mb-1">Recherche libre</label>
-            <input type="text" name="q" value="{{ filtres.q }}" class="form-control p-0" placeholder="Type de Stock, service, agent...">
+            <input type="text" name="q" value="{{ filtres.q }}" class="form-control p-0" placeholder="Type de Stock, nature, service, agent...">
         </div>
-        <div class="col-md-4 d-flex align-items-end gap-2">
+        <div class="col-md-6 d-flex align-items-end gap-2">
             <button type="submit" class="btn btn-cacao w-100">Filtrer</button>
             <a href="{{ path('app_saisies_stock') }}" class="btn btn-outline-cacao w-100" title="Revenir aux données du jour">Aujourd'hui</a>
             <a href="{{ path('app_saisies_stock') }}?du=&au=" class="btn btn-outline-cacao w-100" title="Toutes les dates">Tout</a>
@@ -176,6 +185,7 @@
                     <tr>
                         <th>Date saisie</th>
                         <th>Type Stock</th>
+                        <th>Nature</th>
                         <th>Service</th>
                         <th>Agent</th>
                         <th class="text-end">Quantite</th>
@@ -188,6 +198,7 @@
                         <tr>
                             <td>{{ s.dateSaisie ? s.dateSaisie|date('d/m/Y H:i') : '-' }}</td>
                             <td><span class="fw-semibold">{{ s.rubrique }}</span></td>
+                            <td>{{ s.nature ?? '-' }}</td>
                             <td>{{ s.serviceLibelle ?? '-' }}</td>
                             <td>{{ s.agentLibelle ?? '-' }}</td>
                             <td class="text-end">
@@ -212,7 +223,7 @@
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 Aucune saisie pour ces criteres.
                             </td>
                         </tr>
@@ -230,6 +241,7 @@
                     <tr>
                         <th>Date sortie</th>
                         <th>Type Stock</th>
+                        <th>Nature</th>
                         <th>Motif</th>
                         <th>Emplacement</th>
                         <th>Service</th>
@@ -243,6 +255,7 @@
                         <tr>
                             <td>{{ o.dateSortie ? o.dateSortie|date('d/m/Y H:i') : '-' }}</td>
                             <td><span class="fw-semibold">{{ o.rubrique }}</span></td>
+                            <td>{{ o.nature ?? '-' }}</td>
                             <td>{{ o.motif }}</td>
                             <td>{{ o.emplacementLibelle ?? '-' }}</td>
                             <td>{{ o.serviceLibelle ?? '-' }}</td>

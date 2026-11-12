@@ -1,0 +1,146 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reunions — CITRAC{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Reunions et presences</h1>
+            <p class="text-muted mb-0">Creez une reunion, ouvrez les inscriptions, chargez le compte rendu puis cloturez.</p>
+        </div>
+    </div>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    {# ---------- Reunion active : code QR a scanner ---------- #}
+    {% if reunionActive %}
+        <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                {% if qrImage %}
+                    <img src="{{ qrImage }}" alt="Code QR d'enregistrement"
+                         style="width:150px; height:150px; background:#fff; padding:5px; border:1px solid #e9ded5; border-radius:10px;">
+                {% endif %}
+                <div class="flex-grow-1">
+                    <div class="small text-uppercase fw-bold mb-1" style="letter-spacing:.08em; color:#a9765a;">Reunion active</div>
+                    <div class="h6 mb-1">{{ reunionActive.titre }}</div>
+                    <div class="text-muted small">
+                        {{ reunionActive.dateDebut ? reunionActive.dateDebut|date('d/m/Y à H:i') : '-' }}
+                        {% if reunionActive.lieu %} · {{ reunionActive.lieu }}{% endif %}
+                        · {{ reunionActive.nombreParticipants }} present{{ reunionActive.nombreParticipants > 1 ? 's' : '' }}
+                    </div>
+                    <div class="small mt-2" style="color:#6b4a38;">
+                        Les participants scannent ce code pour renseigner leurs informations.
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap mt-2">
+                        <a href="{{ path('app_presence_reunion_qr', {jeton: reunionActive.jeton}) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">QR code en grand</a>
+                        <a href="{{ path('app_admin_reunions_detail', {id: reunionActive.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir la reunion</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                {% for e in erreurs %}<li>{{ e }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="row g-3">
+        {# ---------- Nouvelle reunion ---------- #}
+        <div class="col-lg-5">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-3" style="color:#7a4c33; font-weight:700;">Nouvelle reunion</h6>
+                <form method="post" action="{{ path('app_admin_reunions') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('reunion_creation') }}">
+
+                    <div class="mb-2">
+                        <label class="form-label mb-1">Titre <span class="text-danger">*</span></label>
+                        <input type="text" name="titre" class="form-control" placeholder="Ex : Reunion mensuelle HSE" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-1">Objet</label>
+                        <textarea name="objet" class="form-control" rows="2" placeholder="Ordre du jour / objet de la reunion"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-1">Lieu</label>
+                        <input type="text" name="lieu" class="form-control" placeholder="Ex : Salle de conference">
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label mb-1">Debut <span class="text-danger">*</span></label>
+                            <input type="datetime-local" name="date_debut" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1">Fin (prevue)</label>
+                            <input type="datetime-local" name="date_fin" class="form-control">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-cacao w-100 mt-2">Publier la reunion</button>
+                    <small class="text-muted d-block mt-2">
+                        La reunion est immediatement ouverte : un lien public est genere pour l'enregistrement des presences.
+                    </small>
+                </form>
+            </div>
+        </div>
+
+        {# ---------- Liste ---------- #}
+        <div class="col-lg-7">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-3" style="color:#7a4c33; font-weight:700;">Reunions</h6>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Reunion</th>
+                                <th>Date</th>
+                                <th>Statut</th>
+                                <th class="text-end">Presents</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for r in reunions %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ r.titre }}</div>
+                                    {% if r.lieu %}<div class="text-muted small">{{ r.lieu }}</div>{% endif %}
+                                </td>
+                                <td class="small">
+                                    {{ r.dateDebut ? r.dateDebut|date('d/m/Y') : '-' }}
+                                    {% if r.dateDebut %}<div class="text-muted">{{ r.dateDebut|date('H:i') }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {% if r.ouverte %}
+                                        <span class="badge" style="background:#e3f4ec; color:#22684d;">Ouverte</span>
+                                    {% elseif r.cloturee %}
+                                        <span class="badge" style="background:#f7e2df; color:#9c2f27;">Cloturee</span>
+                                    {% else %}
+                                        <span class="badge" style="background:#f3ecdd; color:#8a6a2a;">En attente</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end fw-semibold">{{ r.nombreParticipants }}</td>
+                                <td class="text-end">
+                                    <a href="{{ path('app_admin_reunions_detail', {id: r.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir</a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">Aucune reunion pour le moment.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

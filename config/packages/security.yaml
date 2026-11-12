@@ -124,6 +124,9 @@ security:
         # 1) Routes PUBLIQUES (accessibles sans etre connecte)
         - { path: ^/Authentification, roles: PUBLIC_ACCESS }   # page de connexion web
         - { path: ^/api/login,        roles: PUBLIC_ACCESS }   # login JSON (app mobile)
+        # Enregistrement de presence a une reunion : page PUBLIQUE, hors session.
+        # Protegee par le jeton present dans l'URL (voir PresenceReunionController).
+        - { path: ^/presence/reunion, roles: PUBLIC_ACCESS }
 
         # 2) Zones STRICTEMENT reservees aux administrateurs
         #    (ces controleurs n'avaient aucune garde -> on les protege ici)

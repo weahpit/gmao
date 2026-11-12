@@ -19,7 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * Ecran web de consultation des stocks (saisies = entrees, sorties, solde)
  * + export CSV / PDF des saisies.
  *
- * Filtres : rubrique, service, agent, periode (du / au), texte libre.
+ * Filtres : rubrique, nature du produit, service, agent, periode (du / au), texte libre.
  * Par defaut, la periode affichee est celle du jour.
  * Vue : templates/saisie_stock/index.html.twig
  */
@@ -50,6 +50,7 @@ final class SaisieStockController extends AbstractController
 
         return [
             'rubrique' => trim((string) $request->query->get('rubrique', '')),
+            'nature'   => trim((string) $request->query->get('nature', '')),
             'service'  => trim((string) $request->query->get('service', '')),
             'agent'    => trim((string) $request->query->get('agent', '')),
             'q'        => trim((string) $request->query->get('q', '')),
@@ -68,7 +69,7 @@ final class SaisieStockController extends AbstractController
         $f = $this->lireFiltres($request);
 
         return [
-            $repo->findFiltre($f['du'], $f['au'], $f['rubrique'], $f['service'], $f['agent'], $f['q']),
+            $repo->findFiltre($f['du'], $f['au'], $f['rubrique'], $f['service'], $f['agent'], $f['q'], $f['nature']),
             $f,
         ];
     }
@@ -168,7 +169,8 @@ final class SaisieStockController extends AbstractController
             $filtres['rubrique'],
             $filtres['service'],
             $filtres['agent'],
-            $filtres['q']
+            $filtres['q'],
+            $filtres['nature']
         );
 
         return $this->render('saisie_stock/index.html.twig', [
@@ -177,6 +179,7 @@ final class SaisieStockController extends AbstractController
             'filtres'  => $filtres,
             'stats'    => $this->statistiques($saisies, $sorties, $filtres['rubrique']),
             'rubriques' => $this->referentiel->rubriques(),
+            'natures'   => $this->referentiel->natures(),
             'unites'   => SaisieStock::UNITES,
             'services' => $this->services(),
             'dossierPhotos' => $this->getParameter('photo_saisie_stock'),
@@ -198,12 +201,13 @@ final class SaisieStockController extends AbstractController
         $fh = fopen('php://temp', 'r+');
         // BOM UTF-8 pour Excel (accents corrects)
         fwrite($fh, "\xEF\xBB\xBF");
-        fputcsv($fh, ['Date saisie', 'Rubrique', 'Service', 'Agent', 'Quantite', 'Unite', 'Photo', 'Recu le'], ';');
+        fputcsv($fh, ['Date saisie', 'Rubrique', 'Nature', 'Service', 'Agent', 'Quantite', 'Unite', 'Photo', 'Recu le'], ';');
         foreach ($saisies as $s) {
             /** @var SaisieStock $s */
             fputcsv($fh, [
                 $s->getDateSaisie()?->format('d/m/Y H:i'),
                 $s->getRubrique(),
+                $s->getNature() ?? '',
                 $s->getServiceLibelle(),
                 $s->getAgentLibelle(),
                 number_format((float) $s->getQuantite(), 2, ',', ''),
@@ -235,8 +239,8 @@ final class SaisieStockController extends AbstractController
 
         [$saisies, $filtres] = $this->appliquerFiltres($request, $repo);
 
-        $entetes = ['Date saisie', 'Rubrique', 'Service', 'Agent', 'Quantite', 'Unite'];
-        $largeurs = [26, 50, 40, 40, 20, 18];
+        $entetes = ['Date saisie', 'Rubrique', 'Nature', 'Service', 'Agent', 'Quantite', 'Unite'];
+        $largeurs = [26, 44, 34, 38, 38, 20, 18];
         $lignes = [];
         $totalKg = 0.0;
         $totalLitres = 0.0;
@@ -245,6 +249,7 @@ final class SaisieStockController extends AbstractController
             $lignes[] = [
                 $s->getDateSaisie()?->format('d/m/Y H:i'),
                 $s->getRubrique(),
+                $s->getNature() ?? '-',
                 $s->getServiceLibelle() ?? '-',
                 $s->getAgentLibelle() ?? '-',
                 number_format((float) $s->getQuantite(), 2, ',', ' '),
@@ -256,8 +261,8 @@ final class SaisieStockController extends AbstractController
                 $totalKg += (float) $s->getQuantite();
             }
         }
-        $lignes[] = ['', '', '', 'TOTAL', number_format($totalKg, 2, ',', ' ') . ' Kg', ''];
-        $lignes[] = ['', '', '', 'TOTAL', number_format($totalLitres, 2, ',', ' ') . ' L', ''];
+        $lignes[] = ['', '', '', '', 'TOTAL', number_format($totalKg, 2, ',', ' ') . ' Kg', ''];
+        $lignes[] = ['', '', '', '', 'TOTAL', number_format($totalLitres, 2, ',', ' ') . ' L', ''];
 
         $sousTitre = 'Saisies de stock';
         if ($filtres['du'] || $filtres['au']) {
@@ -265,6 +270,9 @@ final class SaisieStockController extends AbstractController
         }
         if ($filtres['rubrique']) {
             $sousTitre .= ' - ' . $filtres['rubrique'];
+        }
+        if (!empty($filtres['nature'])) {
+            $sousTitre .= ' - nature : ' . $filtres['nature'];
         }
 
         $contenu = $pdfService->genererTableau(

@@ -1,0 +1,140 @@
+{% extends 'reunion/presence_base.html.twig' %}
+
+{% block title %}Enregistrement de presence — CITRAC{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .page.big { max-width: 660px; }
+    .qr-card { text-align: center; }
+    .qr-frame {
+        display: inline-block;
+        padding: 16px;
+        border-radius: 20px;
+        background: #fff;
+        border: 1px solid rgba(169, 118, 90, .25);
+        box-shadow: 0 10px 28px rgba(75, 44, 29, .12);
+        margin: 6px auto 12px;
+    }
+    .qr-frame img { display: block; width: 100%; max-width: 300px; height: auto; border-radius: 8px; }
+    .scan-hint {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: .84rem; color: var(--cacao-700); font-weight: 600;
+        background: rgba(245, 232, 221, .7); border-radius: 999px; padding: 7px 16px; margin-bottom: 4px;
+    }
+    .lien-box {
+        display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap;
+        margin-top: 16px; padding: 12px; border-radius: 12px; background: rgba(245, 232, 221, .5);
+        border: 1px dashed #d9c2b0; text-align: left;
+    }
+    .lien-box input {
+        flex: 1 1 220px; min-width: 0; padding: 9px 11px; border-radius: 9px;
+        border: 1px solid #e2cec0; background: #fffdfb; font-family: inherit; font-size: .82rem; color: var(--ink);
+    }
+    .lien-box input:focus { outline: none; border-color: var(--cacao-500); box-shadow: 0 0 0 3px rgba(169, 118, 90, .16); }
+    .etapes { text-align: left; margin: 18px auto 0; padding: 0; list-style: none; max-width: 380px; counter-reset: e; }
+    .etapes li {
+        counter-increment: e; position: relative; padding: 0 0 0 34px; margin-bottom: 10px;
+        font-size: .86rem; color: #5b4033; line-height: 1.45;
+    }
+    .etapes li::before {
+        content: counter(e); position: absolute; left: 0; top: -1px;
+        width: 23px; height: 23px; border-radius: 50%; background: linear-gradient(180deg, #8a5636, #6f422a);
+        color: #fff; font-size: .74rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    }
+    @media print {
+        .lien-box button, .scan-hint { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block presence_body %}
+
+    <div class="brand">
+        <img src="{{ asset('images/CITRAC.png') }}" alt="CITRAC">
+        <div class="sub">Enregistrement de presence</div>
+    </div>
+
+    {% if not reunion %}
+        <div class="card" style="text-align:center;">
+            <h1>Aucune reunion active</h1>
+            <p class="muted">
+                Aucune reunion n'est actuellement ouverte aux inscriptions.<br>
+                Merci de demander le lien d'enregistrement a l'organisateur de la reunion.
+            </p>
+        </div>
+    {% else %}
+        <div class="card qr-card">
+            <span class="pill open"><span class="dot"></span> Inscriptions ouvertes</span>
+            <h1 style="margin-top:10px;">{{ reunion.titre }}</h1>
+            {% if reunion.objet %}
+                <p class="muted">{{ reunion.objet }}</p>
+            {% endif %}
+
+            <div class="meta" style="justify-content:center; text-align:center;">
+                <div><b>{{ reunion.dateDebut ? reunion.dateDebut|date('d/m/Y') : '-' }}</b></div>
+                <div><b>{{ reunion.dateDebut ? reunion.dateDebut|date('H:i') : '' }}</b>{%- if reunion.dateFin %} à {{ reunion.dateFin|date('H:i') }}{% endif %}</div>
+                {% if reunion.lieu %}<div><b>Lieu :</b> {{ reunion.lieu }}</div>{% endif %}
+            </div>
+
+            <div style="margin-top:22px;">
+                <div class="scan-hint">Scannez ce code avec votre telephone</div>
+
+                {% if qrImage %}
+                    <div class="qr-frame">
+                        <img src="{{ qrImage }}" alt="Code QR d'enregistrement de presence — {{ reunion.titre }}">
+                    </div>
+                {% else %}
+                    <div class="alert err" style="text-align:left;">
+                        L'image du code QR ne peut pas etre generee.
+                        Utilisez le lien ci-dessous pour vous enregistrer.
+                    </div>
+                {% endif %}
+
+                <div class="lien-box">
+                    <input type="text" id="lienPublic" readonly value="{{ lien }}" aria-label="Lien d'enregistrement">
+                    <button type="button" class="btn btn-ghost btn-sm" id="copierLien">Copier le lien</button>
+                    <a class="btn btn-main btn-sm" href="{{ lien }}">Ouvrir la page</a>
+                </div>
+            </div>
+
+            <ol class="etapes">
+                <li>Ouvrez l'appareil photo ou l'application de scan de votre telephone.</li>
+                <li>Visez le code QR affiche ci-dessus.</li>
+                <li>Renseignez vos informations puis tracez votre signature.</li>
+                <li>Validez : votre presence est enregistree.</li>
+            </ol>
+        </div>
+
+        <div class="no-print" style="text-align:center; margin-top:14px;">
+            <a class="btn btn-ghost btn-sm" href="{{ path('app_presence_reunion_qr', {jeton: reunion.jeton}) }}" target="_blank" rel="noopener">
+                Afficher le code QR en grand (a projeter ou imprimer)
+            </a>
+        </div>
+    {% endif %}
+
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    var bouton = document.getElementById('copierLien');
+    var champ  = document.getElementById('lienPublic');
+    if (!bouton || !champ) { return; }
+
+    bouton.addEventListener('click', function () {
+        var texte = champ.value;
+        var fait = function () {
+            var ancien = bouton.textContent;
+            bouton.textContent = 'Lien copie';
+            setTimeout(function () { bouton.textContent = ancien; }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(texte).then(fait);
+        } else {
+            champ.select();
+            try { document.execCommand('copy'); fait(); } catch (e) {}
+        }
+    });
+})();
+</script>
+{% endblock %}

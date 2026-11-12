@@ -496,6 +496,9 @@
                             <a href="{{path('app_admin_db_manager') }}" class="nav-subitem">
                                 <span class="nav-label">Paramètres</span>
                             </a>
+                            <a href="{{ path('app_admin_reunions') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_admin_reunions' ? 'active' }}">
+                                <span class="nav-label">Réunions et présences</span>
+                            </a>
                             <a href="{{ path('app_gestion_journal_mvt') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_gestion_journal_mvt' ? 'active' }}">
                                 <span class="nav-label">Journal d'audit des mouvements</span>
                             </a>

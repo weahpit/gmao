@@ -1,0 +1,313 @@
+{% extends 'reunion/presence_base.html.twig' %}
+
+{% block title %}Presence a une reunion — CITRAC{% endblock %}
+
+{% block presence_body %}
+
+    <div class="brand">
+        <img src="{{ asset('images/CITRAC.png') }}" alt="CITRAC">
+        <div class="sub">Enregistrement de presence</div>
+    </div>
+
+    {% if introuvable is defined and introuvable %}
+        <div class="card" style="text-align:center;">
+            <h1>Lien invalide</h1>
+            <p class="muted">Cet enregistrement de presence n'existe pas ou n'est plus accessible.<br>Merci de demander le bon lien a l'organisateur de la reunion.</p>
+        </div>
+    {% else %}
+
+        {# ---------- En-tete de la reunion ---------- #}
+        <div class="card">
+            {% if reunion.isOuverte %}
+                <span class="pill open"><span class="dot"></span> Inscriptions ouvertes</span>
+            {% elseif reunion.isCloturee %}
+                <span class="pill closed"><span class="dot"></span> Reunion cloturee</span>
+            {% else %}
+                <span class="pill wait"><span class="dot"></span> Inscriptions non ouvertes</span>
+            {% endif %}
+
+            <h1 style="margin-top:10px;">{{ reunion.titre }}</h1>
+            {% if reunion.objet %}
+                <p class="muted">{{ reunion.objet }}</p>
+            {% endif %}
+
+            <div class="meta">
+                <div><b>{{ reunion.dateDebut ? reunion.dateDebut|date('d/m/Y') : '-' }}</b></div>
+                <div>
+                    <b>{{ reunion.dateDebut ? reunion.dateDebut|date('H:i') : '' }}</b>
+                    {%- if reunion.dateFin %} à {{ reunion.dateFin|date('H:i') }}{% endif %}
+                </div>
+                {% if reunion.lieu %}<div><b>Lieu :</b> {{ reunion.lieu }}</div>{% endif %}
+            </div>
+        </div>
+
+        {# ---------- Compte rendu consultable (reunion cloturee + CR publie) ---------- #}
+        {% if reunion.compteRenduConsultable %}
+            <div class="card">
+                <h2>Compte rendu de la reunion</h2>
+                <div class="cr-box">
+                    <div>
+                        <div class="t">Compte rendu disponible</div>
+                        <div class="muted">
+                            {%- if reunion.compteRenduAjouteLe %}Mis en ligne le {{ reunion.compteRenduAjouteLe|date('d/m/Y a H:i') }}{% endif -%}
+                        </div>
+                    </div>
+                    <a class="btn btn-main btn-sm" href="{{ path('app_presence_reunion_cr', {jeton: reunion.jeton}) }}" target="_blank" rel="noopener">
+                        Ouvrir le PDF
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+
+        {# ---------- Formulaire d'enregistrement ---------- #}
+        {% if reunion.isOuverte %}
+            {% if envoye %}
+                <div class="card">
+                    <div class="alert ok">
+                        <b>Presence enregistree avec succes.</b><br>
+                        Merci {{ dernier.nomComplet }}, votre participation a bien ete prise en compte.
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+                        <a class="btn btn-ghost btn-sm" href="{{ path('app_presence_reunion_recu', {jeton: reunion.jeton, id: dernier.id}) }}" target="_blank" rel="noopener">
+                            Imprimer mon recu de presence
+                        </a>
+                        <a class="btn btn-ghost btn-sm" href="{{ path('app_presence_reunion', {jeton: reunion.jeton}) }}">
+                            Enregistrer une autre personne
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card">
+                    <h2>Je signale ma presence</h2>
+
+                    {% if erreurs is not empty %}
+                        <div class="alert err">
+                            Merci de corriger les points suivants :
+                            <ul>
+                                {% for e in erreurs %}<li>{{ e }}</li>{% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <form method="post" action="{{ path('app_presence_reunion_signer', {jeton: reunion.jeton}) }}" id="formPresence" novalidate>
+                        <input type="hidden" name="_token" value="{{ csrf_token('presence_' ~ reunion.jeton) }}">
+                        <input type="hidden" name="signature_data" id="signatureData" value="">
+
+                        <div class="grid">
+                            <div>
+                                <label for="nom">Nom <span class="req">*</span></label>
+                                <input type="text" id="nom" name="nom" value="{{ ancien.nom|default('') }}" placeholder="Ex : KOUASSI" autocomplete="family-name" required>
+                            </div>
+                            <div>
+                                <label for="prenoms">Prenoms <span class="req">*</span></label>
+                                <input type="text" id="prenoms" name="prenoms" value="{{ ancien.prenoms|default('') }}" placeholder="Ex : Jean-Marc" autocomplete="given-name" required>
+                            </div>
+
+                            <div>
+                                <label for="service">Service</label>
+                                <select id="service" name="service">
+                                    <option value="">— Choisir un service —</option>
+                                    {% for s in services %}
+                                        <option value="{{ s.id }}" {{ ancien.serviceId|default('') == s.id|trim ? 'selected' }}>{{ s.libelle }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="aide">Si votre service n'apparait pas, saisissez-le ci-dessous.</div>
+                            </div>
+                            <div>
+                                <label for="service_libre">Autre service (si absent de la liste)</label>
+                                <input type="text" id="service_libre" name="service_libre" value="{{ ancien.serviceAuto|default('') }}" placeholder="Ex : Laboratoire qualite">
+                            </div>
+
+                            <div>
+                                <label for="qualite">Qualite / Fonction <span class="req">*</span></label>
+                                <input type="text" id="qualite" name="qualite" value="{{ ancien.qualite|default('') }}" placeholder="Ex : Responsable magasin" required>
+                            </div>
+                            <div>
+                                <label for="telephone">Numero de telephone <span class="req">*</span></label>
+                                <input type="tel" id="telephone" name="telephone" value="{{ ancien.telephone|default('') }}" placeholder="Ex : 07 00 00 00 00" inputmode="tel" required>
+                            </div>
+                            <div class="full">
+                                <label for="email">Adresse email</label>
+                                <input type="text" id="email" name="email" value="{{ ancien.email|default('') }}" placeholder="Ex : nom.prenoms@citrac.ci" inputmode="email" autocomplete="email">
+                                <div class="aide">Facultative — pour recevoir les informations de la reunion.</div>
+                            </div>
+
+                            <div class="full">
+                                <label>Signature manuscrite <span class="req">*</span></label>
+                                <div class="sig-wrap" id="sigWrap">
+                                    <canvas id="sigCanvas" aria-label="Zone de signature"></canvas>
+                                </div>
+                                <div class="sig-bar">
+                                    <span class="hint">Tracez votre signature avec le doigt ou la souris.</span>
+                                    <button type="button" class="btn btn-ghost btn-sm" id="sigClear">Effacer</button>
+                                </div>
+                            </div>
+
+                            <div class="actions">
+                                <button type="submit" class="btn btn-main" id="sigSubmit" style="flex:1; min-width:220px;">
+                                    Valider ma presence
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            {% endif %}
+        {% elseif reunion.isCloturee %}
+            <div class="card">
+                <h2>Reunion cloturee</h2>
+                <p class="muted">
+                    Cette reunion est terminee, les inscriptions sont closes.
+                    {% if not reunion.compteRenduConsultable %}
+                        Le compte rendu n'a pas encore ete publie par l'organisateur.
+                    {% endif %}
+                </p>
+            </div>
+        {% else %}
+            <div class="card">
+                <h2>Inscriptions non ouvertes</h2>
+                <p class="muted">L'enregistrement des presences n'est pas encore ouvert pour cette reunion. Merci de revenir un peu plus tard.</p>
+            </div>
+        {% endif %}
+
+        {# ---------- Liste des deja enregistres ---------- #}
+        {% if participants is defined and participants is not empty %}
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                    <h2 style="margin:0;">Participants enregistres</h2>
+                    <span class="count">{{ participants|length }} personne{{ participants|length > 1 ? 's' }}</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>N°</th>
+                                <th>Nom et prenoms</th>
+                                <th class="hide-sm">Service</th>
+                                <th class="hide-sm">Qualite</th>
+                                <th>Signature</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for p in participants %}
+                            <tr>
+                                <td class="num">{{ loop.index }}</td>
+                                <td>
+                                    <div class="nom">{{ p.nomComplet }}</div>
+                                    <div class="num">{{ p.telephone }}</div>
+                                    {% if p.email %}<div class="num">{{ p.email }}</div>{% endif %}
+                                </td>
+                                <td class="hide-sm">{{ p.service ?? '-' }}</td>
+                                <td class="hide-sm">{{ p.qualite ?? '-' }}</td>
+                                <td>
+                                    {% if p.signature %}
+                                        <img class="sig-thumb" src="{{ asset(dossierSignatures ~ p.signature) }}" alt="Signature {{ p.nomComplet }}">
+                                    {% else %}
+                                        <span class="num">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+
+    {% endif %}
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    var canvas = document.getElementById('sigCanvas');
+    if (!canvas) { return; }
+
+    var wrap    = document.getElementById('sigWrap');
+    var champ   = document.getElementById('signatureData');
+    var form    = document.getElementById('formPresence');
+    var effacer = document.getElementById('sigClear');
+    var ctx     = canvas.getContext('2d');
+    var dessine = false;
+    var vide    = true;
+
+    function redimensionner() {
+        var ratio = Math.max(window.devicePixelRatio || 1, 1);
+        var rect  = canvas.getBoundingClientRect();
+        var donnees = vide ? null : canvas.toDataURL('image/png');
+
+        canvas.width  = Math.round(rect.width * ratio);
+        canvas.height = Math.round(rect.height * ratio);
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#33211a';
+
+        if (donnees) {
+            var img = new Image();
+            img.onload = function () { ctx.drawImage(img, 0, 0, rect.width, rect.height); };
+            img.src = donnees;
+        }
+    }
+
+    function position(e) {
+        var rect = canvas.getBoundingClientRect();
+        var p = e.touches ? e.touches[0] : e;
+        return { x: p.clientX - rect.left, y: p.clientY - rect.top };
+    }
+
+    function debut(e) {
+        e.preventDefault();
+        dessine = true;
+        var p = position(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    }
+
+    function trace(e) {
+        if (!dessine) { return; }
+        e.preventDefault();
+        var p = position(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        if (vide) {
+            vide = false;
+            wrap.classList.add('has');
+        }
+    }
+
+    function fin(e) {
+        if (!dessine) { return; }
+        e.preventDefault();
+        dessine = false;
+        champ.value = vide ? '' : canvas.toDataURL('image/png');
+    }
+
+    canvas.addEventListener('mousedown', debut);
+    canvas.addEventListener('mousemove', trace);
+    window.addEventListener('mouseup', fin);
+    canvas.addEventListener('touchstart', debut, { passive: false });
+    canvas.addEventListener('touchmove', trace, { passive: false });
+    canvas.addEventListener('touchend', fin, { passive: false });
+
+    effacer.addEventListener('click', function () {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        vide = true;
+        champ.value = '';
+        wrap.classList.remove('has');
+    });
+
+    form.addEventListener('submit', function (e) {
+        if (!vide) { champ.value = canvas.toDataURL('image/png'); }
+        if (!champ.value) {
+            e.preventDefault();
+            alert('Merci de signer dans le cadre avant de valider.');
+            wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
+    redimensionner();
+    window.addEventListener('resize', redimensionner);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'reunion/presence_base.html.twig' %}
+
+{% block title %}Recu de presence — {{ reunion.titre }}{% endblock %}
+
+{% block presence_body %}
+    <div class="brand no-print">
+        <img src="{{ asset('images/CITRAC.png') }}" alt="CITRAC">
+        <div class="sub">Recu de presence</div>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+            <img src="{{ asset('images/CITRAC.png') }}" alt="CITRAC" style="height:42px;">
+            <div style="text-align:right;">
+                <div class="muted" style="font-size:.72rem; letter-spacing:.1em; text-transform:uppercase;">Recu de presence</div>
+                <div class="muted">N° {{ participant.id|slice(0, 8)|upper }}</div>
+            </div>
+        </div>
+
+        <h1 style="margin-top:16px;">{{ reunion.titre }}</h1>
+        <p class="muted">
+            {{ reunion.dateDebut ? reunion.dateDebut|date('d/m/Y') : '' }}
+            {% if reunion.dateDebut %} à {{ reunion.dateDebut|date('H:i') }}{% endif %}
+            {% if reunion.lieu %} · {{ reunion.lieu }}{% endif %}
+        </p>
+
+        <table style="margin-top:14px;">
+            <tbody>
+                <tr><td style="width:34%; color:#8a6a58;">Nom et prenoms</td><td class="nom">{{ participant.nomComplet }}</td></tr>
+                <tr><td style="color:#8a6a58;">Service</td><td>{{ participant.service ?? '-' }}</td></tr>
+                <tr><td style="color:#8a6a58;">Qualite</td><td>{{ participant.qualite ?? '-' }}</td></tr>
+                <tr><td style="color:#8a6a58;">Telephone</td><td>{{ participant.telephone ?? '-' }}</td></tr>
+                <tr><td style="color:#8a6a58;">Email</td><td>{{ participant.email ?? '-' }}</td></tr>
+                <tr><td style="color:#8a6a58;">Enregistre le</td><td>{{ participant.createdAt ? participant.createdAt|date('d/m/Y à H:i') : '-' }}</td></tr>
+                <tr>
+                    <td style="color:#8a6a58;">Signature</td>
+                    <td>
+                        {% if participant.signature %}
+                            <img src="{{ asset(dossierSignatures ~ participant.signature) }}" alt="Signature" style="height:56px; width:auto; max-width:220px; object-fit:contain;">
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="no-print" style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-main btn-sm" onclick="window.print()">Imprimer ce recu</button>
+            <a class="btn btn-ghost btn-sm" href="{{ path('app_presence_reunion', {jeton: reunion.jeton}) }}">Retour</a>
+        </div>
+    </div>
+{% endblock %}

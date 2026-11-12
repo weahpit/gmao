@@ -1,0 +1,199 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ reunion.titre }} — Presences{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <a href="{{ path('app_admin_reunions') }}" class="small text-decoration-none">&larr; Toutes les reunions</a>
+            <h1 class="h4 mb-1 mt-1">{{ reunion.titre }}</h1>
+            <p class="text-muted mb-0">
+                {{ reunion.dateDebut ? reunion.dateDebut|date('d/m/Y') : '-' }}
+                {% if reunion.dateDebut %} à {{ reunion.dateDebut|date('H:i') }}{% endif %}
+                {% if reunion.dateFin %} — fin {{ reunion.dateFin|date('H:i') }}{% endif %}
+                {% if reunion.lieu %} · {{ reunion.lieu }}{% endif %}
+            </p>
+        </div>
+        <div>
+            {% if reunion.ouverte %}
+                <span class="badge" style="background:#e3f4ec; color:#22684d; font-size:.8rem;">Ouverte aux inscriptions</span>
+            {% elseif reunion.cloturee %}
+                <span class="badge" style="background:#f7e2df; color:#9c2f27; font-size:.8rem;">Cloturee le {{ reunion.clotureeLe ? reunion.clotureeLe|date('d/m/Y à H:i') : '' }}</span>
+            {% else %}
+                <span class="badge" style="background:#f3ecdd; color:#8a6a2a; font-size:.8rem;">En attente</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="row g-3">
+        <div class="col-lg-5">
+
+            {# ---------- Lien public d'enregistrement ---------- #}
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-2" style="color:#7a4c33; font-weight:700;">Lien d'enregistrement (hors session)</h6>
+                <div class="input-group">
+                    <input type="text" class="form-control" readonly id="lienPublic"
+                           value="{{ app.request.schemeAndHttpHost ~ lienPublic }}">
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="navigator.clipboard.writeText(document.getElementById('lienPublic').value)">Copier</button>
+                </div>
+                <div class="d-flex gap-2 mt-2 flex-wrap">
+                    <a href="{{ lienPublic }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Ouvrir la page</a>
+                    <a href="{{ path('app_presence_reunion_qr', {jeton: reunion.jeton}) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Afficher le QR code</a>
+                    <span class="text-muted small align-self-center">A partager aux participants (aucune connexion requise).</span>
+                </div>
+
+                {# Code QR a scanner par les participants #}
+                <div class="d-flex align-items-center gap-3 mt-3 p-2" style="background:#fbf5f0; border-radius:12px;">
+                    {% if qrImage %}
+                        <img src="{{ qrImage }}" alt="Code QR d'enregistrement" style="width:132px; height:132px; border-radius:8px; background:#fff; padding:4px; border:1px solid #e9ded5;">
+                    {% endif %}
+                    <div class="small">
+                        <div class="fw-semibold">Affiche a l'entree de la salle</div>
+                        <div class="text-muted">Les participants scannent ce code pour s'enregistrer.<br>Un ecran dedie affiche le QR code de la reunion en cours.</div>
+                        <a href="{{ path('app_presence_reunion_accueil') }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary mt-2">Voir l'ecran public</a>
+                    </div>
+                </div>
+            </div>
+
+            {# ---------- Statut ---------- #}
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-2" style="color:#7a4c33; font-weight:700;">Statut de la reunion</h6>
+                <div class="d-flex gap-2 flex-wrap">
+                    {% if not reunion.ouverte and not reunion.cloturee %}
+                        <form method="post" action="{{ path('app_admin_reunions_statut', {id: reunion.id, statut: 'ouverte'}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reunion_statut_' ~ reunion.id) }}">
+                            <button class="btn btn-sm btn-success">Ouvrir les inscriptions</button>
+                        </form>
+                    {% endif %}
+                    {% if reunion.ouverte %}
+                        <form method="post" action="{{ path('app_admin_reunions_statut', {id: reunion.id, statut: 'en_attente'}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reunion_statut_' ~ reunion.id) }}">
+                            <button class="btn btn-sm btn-outline-secondary">Suspendre les inscriptions</button>
+                        </form>
+                    {% endif %}
+                    {% if not reunion.cloturee %}
+                        <form method="post" action="{{ path('app_admin_reunions_cloturer', {id: reunion.id}) }}"
+                              onsubmit="return confirm('Cloturer la reunion ? Les inscriptions seront definitivement fermees.');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reunion_cloture_' ~ reunion.id) }}">
+                            <button class="btn btn-sm btn-danger">Cloturer la reunion</button>
+                        </form>
+                    {% endif %}
+                    <a href="{{ path('app_admin_reunions_csv', {id: reunion.id}) }}" class="btn btn-sm btn-outline-secondary">Export CSV</a>
+                </div>
+                {% if reunion.cloturee and not reunion.compteRenduConsultable %}
+                    <p class="text-muted small mb-0 mt-2">Reunion cloturee : chargez et publiez le compte rendu pour qu'il soit consultable.</p>
+                {% endif %}
+            </div>
+
+            {# ---------- Compte rendu ---------- #}
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h6 class="mb-2" style="color:#7a4c33; font-weight:700;">Compte rendu (PDF)</h6>
+
+                {% if reunion.compteRendu %}
+                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap p-2 mb-2"
+                         style="background:#fbf5f0; border-radius:10px;">
+                        <div class="small">
+                            <div class="fw-semibold">{{ reunion.compteRenduNomOriginal ?? 'compte-rendu.pdf' }}</div>
+                            <div class="text-muted">Ajoute le {{ reunion.compteRenduAjouteLe ? reunion.compteRenduAjouteLe|date('d/m/Y à H:i') : '-' }}</div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{{ path('app_admin_reunions_cr_voir', {id: reunion.id}) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Voir</a>
+                            <form method="post" action="{{ path('app_admin_reunions_cr_publier', {id: reunion.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('reunion_cr_pub_' ~ reunion.id) }}">
+                                <button class="btn btn-sm {{ reunion.compteRenduPublie ? 'btn-outline-danger' : 'btn-success' }}">
+                                    {{ reunion.compteRenduPublie ? 'Retirer des participants' : 'Publier aux participants' }}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="small mb-2">
+                        Etat :
+                        {% if reunion.compteRenduPublie %}
+                            <span class="badge" style="background:#e3f4ec; color:#22684d;">Visible par les participants</span>
+                        {% else %}
+                            <span class="badge" style="background:#f3ecdd; color:#8a6a2a;">Non publie</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <form method="post" action="{{ path('app_admin_reunions_cr', {id: reunion.id}) }}" enctype="multipart/form-data">
+                    <input type="hidden" name="_token" value="{{ csrf_token('reunion_cr_' ~ reunion.id) }}">
+                    <label class="form-label mb-1 small">{{ reunion.compteRendu ? 'Remplacer le fichier' : 'Charger le fichier PDF' }}</label>
+                    <input type="file" name="compte_rendu" class="form-control form-control-sm" accept="application/pdf" required>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="publier" value="1" id="publierCr"
+                               {{ reunion.compteRenduPublie ? 'checked' }}>
+                        <label class="form-check-label small" for="publierCr">Rendre consultable par les participants</label>
+                    </div>
+                    <button class="btn btn-sm btn-cacao mt-2 w-100">Enregistrer le compte rendu</button>
+                    <small class="text-muted d-block mt-1">PDF uniquement, 15 Mo maximum.</small>
+                </form>
+            </div>
+
+            {% if reunion.objet %}
+                <div class="p-3 mt-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                    <h6 class="mb-1" style="color:#7a4c33; font-weight:700;">Objet</h6>
+                    <p class="mb-0 small">{{ reunion.objet|nl2br }}</p>
+                </div>
+            {% endif %}
+        </div>
+
+        {# ---------- Participants ---------- #}
+        <div class="col-lg-7">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                    <h6 class="mb-0" style="color:#7a4c33; font-weight:700;">Liste de presence</h6>
+                    <span class="badge" style="background:#f5e8dd; color:#7a4c33;">{{ participants|length }} present{{ participants|length > 1 ? 's' }}</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nom et prenoms</th>
+                                <th>Service / Qualite</th>
+                                <th>Contact</th>
+                                <th>Signature</th>
+                                <th>Le</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for p in participants %}
+                            <tr>
+                                <td class="text-muted">{{ loop.index }}</td>
+                                <td class="fw-semibold">{{ p.nomComplet }}</td>
+                                <td class="small">
+                                    {{ p.service ?? '-' }}
+                                    {% if p.qualite %}<div class="text-muted">{{ p.qualite }}</div>{% endif %}
+                                </td>
+                                <td class="small">
+                                    {{ p.telephone ?? '-' }}
+                                    {% if p.email %}<div class="text-muted">{{ p.email }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {% if p.signature %}
+                                        <img src="{{ asset('data/reunions/signatures/' ~ p.signature) }}" alt="Signature" style="height:28px; width:auto; max-width:120px; object-fit:contain;">
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td class="small text-muted">{{ p.createdAt ? p.createdAt|date('d/m H:i') : '-' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">Aucun participant enregistre pour l'instant.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

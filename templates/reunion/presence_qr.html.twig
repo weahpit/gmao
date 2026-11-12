@@ -1,0 +1,67 @@
+{% extends 'reunion/presence_base.html.twig' %}
+
+{% block title %}Code QR — {{ reunion.titre }}{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .page.qr-page { max-width: 720px; }
+    .qr-affiche {
+        background: #fff; border-radius: 22px; padding: 26px 24px 22px; text-align: center;
+        border: 1px solid rgba(169, 118, 90, .22);
+        box-shadow: 0 18px 44px rgba(75, 44, 29, .12);
+    }
+    .qr-affiche .entete { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px; }
+    .qr-affiche .entete img { height: 46px; width: auto; }
+    .qr-affiche .entete .org { text-align: left; font-size: .74rem; letter-spacing: .16em; text-transform: uppercase; color: var(--cacao-500); font-weight: 700; }
+    .qr-affiche h1 { font-size: 1.7rem; }
+    .qr-big {
+        display: inline-block; padding: 14px; border-radius: 18px; background: #fff;
+        border: 1px solid #ecd7c6; margin: 12px auto 10px;
+    }
+    .qr-big img { display: block; width: 100%; max-width: 380px; height: auto; }
+    .qr-affiche .url {
+        font-size: .78rem; color: #7a5c4c; word-break: break-all; max-width: 520px; margin: 8px auto 0;
+    }
+    .qr-affiche .meta { justify-content: center; text-align: center; }
+    .barre { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+    @media print {
+        body { background: #fff !important; }
+        body::before { display: none; }
+        .qr-affiche { box-shadow: none; border: 2px solid #4b2c1d; }
+        .barre, footer.page-foot { display: none !important; }
+    }
+</style>
+{% endblock %}
+
+{% block presence_body %}
+    <div class="qr-affiche">
+        <div class="entete">
+            <img src="{{ asset('images/CITRAC.png') }}" alt="CITRAC">
+            <div class="org">Enregistrement de presence</div>
+        </div>
+
+        <h1>{{ reunion.titre }}</h1>
+        <div class="meta">
+            <div><b>{{ reunion.dateDebut ? reunion.dateDebut|date('d/m/Y') : '-' }}</b></div>
+            <div><b>{{ reunion.dateDebut ? reunion.dateDebut|date('H:i') : '' }}</b>{%- if reunion.dateFin %} à {{ reunion.dateFin|date('H:i') }}{% endif %}</div>
+            {% if reunion.lieu %}<div><b>Lieu :</b> {{ reunion.lieu }}</div>{% endif %}
+        </div>
+
+        {% if qrImage %}
+            <div class="qr-big">
+                <img src="{{ qrImage }}" alt="Code QR d'enregistrement de presence — {{ reunion.titre }}">
+            </div>
+        {% else %}
+            <div class="card" style="margin:14px 0;">
+                <p class="muted mb-0">L'image du code QR ne peut pas etre generee. Utilisez le lien ci-dessous.</p>
+            </div>
+        {% endif %}
+
+        <div class="url">{{ lien }}</div>
+
+        <div class="barre">
+            <button type="button" class="btn btn-main btn-sm" onclick="window.print()">Imprimer l'affiche</button>
+            <a class="btn btn-ghost btn-sm" href="{{ path('app_presence_reunion_accueil') }}">Retour</a>
+        </div>
+    </div>
+{% endblock %}

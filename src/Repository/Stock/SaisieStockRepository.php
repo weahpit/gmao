@@ -58,7 +58,8 @@ class SaisieStockRepository extends ServiceEntityRepository
         ?string $rubrique = null,
         ?string $serviceId = null,
         ?string $agent = null,
-        ?string $q = null
+        ?string $q = null,
+        ?string $nature = null
     ): array {
         $qb = $this->createQueryBuilder('s')
             ->leftJoin('s.service', 'svc')->addSelect('svc')
@@ -68,6 +69,9 @@ class SaisieStockRepository extends ServiceEntityRepository
         if ($rubrique !== null && $rubrique !== '') {
             $qb->andWhere('s.rubrique = :rubrique')->setParameter('rubrique', $rubrique);
         }
+        if ($nature !== null && $nature !== '') {
+            $qb->andWhere('s.nature = :nature')->setParameter('nature', $nature);
+        }
         if ($serviceId !== null && $serviceId !== '') {
             $qb->andWhere('svc.id = :serviceId')->setParameter('serviceId', $serviceId);
         }
@@ -76,7 +80,7 @@ class SaisieStockRepository extends ServiceEntityRepository
                ->setParameter('agent', '%' . mb_strtolower($agent) . '%');
         }
         if ($q !== null && $q !== '') {
-            $qb->andWhere('(LOWER(s.rubrique) LIKE :q OR LOWER(s.serviceLibelle) LIKE :q OR LOWER(s.agentLibelle) LIKE :q)')
+            $qb->andWhere('(LOWER(s.rubrique) LIKE :q OR LOWER(s.serviceLibelle) LIKE :q OR LOWER(s.agentLibelle) LIKE :q OR LOWER(s.nature) LIKE :q)')
                ->setParameter('q', '%' . mb_strtolower($q) . '%');
         }
         try {
