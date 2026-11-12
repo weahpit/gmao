@@ -481,7 +481,7 @@ function getArticlesFromStock(ctrl_name, ctrl_type, type_operation) {
                             ? `
             <div class="mt-3 p-2" style="border:1px solid #e0d5cc;border-radius:6px;background:#faf6f2;">
                 <label class="d-flex align-items-center" style="cursor:pointer;margin:0;gap:8px;">
-                    <input type="checkbox" id="chkGenererBon" checked
+                    <input type="checkbox" id="chkGenererBon"
                            style="width:18px;height:18px;accent-color:#5a371e;">
                     <span style="color:#5a371e;font-weight:600;">
                         Générer un bon de sortie CITRAC

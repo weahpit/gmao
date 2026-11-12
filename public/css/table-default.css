@@ -1,0 +1,136 @@
+/* ============================================================
+   CITRAC GMAO — Style de table PAR DÉFAUT
+   ------------------------------------------------------------
+   Reprend le style de la table « tbl_articles_ » (tableau de bord
+   / getAllEquipementsFromTdb) et l'applique à TOUTES les tables
+   du projet :
+     - en-tête gris clair (#e5e4e4), texte noir, compact, collant ;
+     - lignes compactes, fond blanc, police 14px ;
+     - survol pointeur + léger fond ;
+     - ligne sélectionnée surlignée (jaune doux).
+
+   Fichier chargé APRÈS les autres feuilles de table (app.css,
+   table.css, MvtsStocks/table.css) : il fixe l'apparence commune.
+   Les couleurs sont pilotées par des variables -> ajustables en
+   un seul endroit, et retirer le <link> restaure l'ancien style.
+
+   Couvre les 3 familles de tables du projet :
+     .table (Bootstrap), .dt-wrapper (tables élégantes),
+     .modern-table (MvtsStocks).
+   ============================================================ */
+
+:root {
+  --tbl-head-bg: #e5e4e4;      /* fond de l'en-tête (gris clair)   */
+  --tbl-head-ink: #111111;     /* texte de l'en-tête               */
+  --tbl-head-border: #555555;  /* liseré bas de l'en-tête          */
+  --tbl-row-bg: #ffffff;       /* fond des lignes                  */
+  --tbl-row-ink: #1f2937;      /* texte des cellules               */
+  --tbl-cell-border: #ececec;  /* séparateur de lignes             */
+  --tbl-hover-bg: #f3f3f3;     /* survol                           */
+  --tbl-selected-bg: #fff3cd;  /* ligne sélectionnée               */
+  --tbl-selected-ink: #664d03; /* texte ligne sélectionnée         */
+}
+
+/* ------------------------------------------------------------
+   EN-TÊTE — gris clair, texte noir, compact
+------------------------------------------------------------ */
+html body .table thead th,
+html body .dt-wrapper thead th,
+html body .modern-table thead th {
+  background: var(--tbl-head-bg) !important;
+  color: var(--tbl-head-ink) !important;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--tbl-head-border);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* En-tête collant (se fige en haut lors du défilement) */
+html body .table thead th,
+html body .table thead.sticky-top th,
+html body .table.sticky-top thead th,
+html body .dt-wrapper thead th,
+html body .modern-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* On conserve les coins arrondis des tables « modern-table » */
+html body .modern-table thead th:first-child { border-top-left-radius: 14px; }
+html body .modern-table thead th:last-child  { border-top-right-radius: 14px; }
+
+/* ------------------------------------------------------------
+   CORPS — lignes compactes, fond blanc, 14px
+------------------------------------------------------------ */
+html body .table tbody td,
+html body .dt-wrapper tbody td,
+html body .modern-table tbody td {
+  background: var(--tbl-row-bg);
+  color: var(--tbl-row-ink);
+  padding: 4px 8px;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--tbl-cell-border);
+}
+
+html body .table tbody tr,
+html body .dt-wrapper tbody tr,
+html body .modern-table tbody tr {
+  font-size: 14px;
+}
+
+/* ------------------------------------------------------------
+   SURVOL — pointeur + léger fond
+------------------------------------------------------------ */
+html body .table tbody tr:hover,
+html body .dt-wrapper tbody tr:hover,
+html body .modern-table tbody tr:hover {
+  background: var(--tbl-hover-bg) !important;
+  cursor: pointer;
+}
+html body .table tbody tr:hover td,
+html body .dt-wrapper tbody tr:hover td,
+html body .modern-table tbody tr:hover td {
+  background: var(--tbl-hover-bg) !important;
+}
+
+/* ------------------------------------------------------------
+   LIGNE SÉLECTIONNÉE — surlignée (jaune doux)
+------------------------------------------------------------ */
+html body .table tbody tr.selected-row,
+html body .table tbody tr.selected,
+html body .dt-wrapper tbody tr.selected-row,
+html body .dt-wrapper tbody tr.selected,
+html body .modern-table tbody tr.selected-row,
+html body .modern-table tbody tr.selected {
+  background: var(--tbl-selected-bg) !important;
+  box-shadow: inset 4px 0 0 #e0b000;
+}
+html body .table tbody tr.selected-row td,
+html body .table tbody tr.selected td,
+html body .dt-wrapper tbody tr.selected-row td,
+html body .dt-wrapper tbody tr.selected td,
+html body .modern-table tbody tr.selected-row td,
+html body .modern-table tbody tr.selected td {
+  background: var(--tbl-selected-bg) !important;
+  color: var(--tbl-selected-ink);
+}
+html body .selected-row td a,
+html body .selected td a {
+  color: var(--tbl-selected-ink) !important;
+}
+
+/* ------------------------------------------------------------
+   Conteneur défilant — même cadre que tbl_articles_
+   (s'applique si la table est dans un .table-responsive)
+------------------------------------------------------------ */
+html body .table-responsive {
+  border: 1px solid var(--tbl-cell-border);
+  border-radius: 8px;
+}

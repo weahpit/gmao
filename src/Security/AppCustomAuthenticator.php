@@ -22,13 +22,31 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public const LOGIN_ROUTE = 'app_login';
 
-    public function __construct(private UrlGeneratorInterface $urlGenerator)
-    {
+    public function __construct(
+        private UrlGeneratorInterface $urlGenerator,
+        private LoginThrottler $throttler,
+    ) {
     }
 
     public function authenticate(Request $request): Passport
     {
         $email = $request->getPayload()->getString('email');
+
+        // Verrouillage : si trop de tentatives ont echoue pour cet identifiant
+        // et cette adresse IP, on bloque la page de connexion jusqu'a la fin du
+        // delai (5 min / 15 min / 1 h selon le nombre d'echecs).
+        $key = $this->throttler->buildKey($email, $request->getClientIp());
+        $lock = $this->throttler->getLockState($key);
+        if ($lock['locked']) {
+            $minutes = (int) ceil($lock['seconds'] / 60);
+            throw new AccountLockedException(
+                sprintf(
+                    'Trop de tentatives de connexion. Page verrouillee, reessayez dans %d minute%s.',
+                    $minutes,
+                    $minutes > 1 ? 's' : ''
+                )
+            );
+        }
 
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
 

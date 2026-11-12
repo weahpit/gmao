@@ -1,0 +1,656 @@
+/* ============================================================
+   CITRAC GMAO — Thèmes de couleurs (couche superposée)
+   ------------------------------------------------------------
+   Fichier chargé EN DERNIER. Il ne fait que SURCHARGER des
+   variables de couleur, sans toucher à la structure. Retirer
+   le <link> de ce fichier restaure l'apparence d'origine.
+
+   Le thème agit à 3 niveaux (toutes les feuilles du projet) :
+     1. app.css              -> --green-* / --gold-*
+     2. sidebar-cacao.css    -> --cc-*        (menu latéral)
+     3. table.css            -> --cacao-*     (tables élégantes)
+        MvtsStocks/table.css -> --primary*    (tables/contrôles)
+   + un bloc « contrôles » re-stylise les composants Bootstrap
+     (boutons, champs, onglets, dropdowns...) à partir du thème.
+
+   Les sélecteurs html[data-theme="..."] ont une spécificité
+   supérieure à :root : ils l'emportent même sur les feuilles
+   chargées APRÈS celle-ci (tables de page, etc.).
+
+   4 thèmes : base (eucalyptus/menthe, par défaut), cacao doux,
+   vert doux, orange doux.
+   ============================================================ */
+
+/* ==========================================================
+   THÈME BASE — eucalyptus / menthe (par défaut)
+   Calqué sur la page « Opérations d'entrée » (#509b80).
+========================================================== */
+html:not([data-theme]),
+html[data-theme="base"] {
+  /* Marque (app.css) */
+  --green-900: #22413a;
+  --green-800: #2a4f45;
+  --green-700: #35675a;
+  --green-600: #418472;
+  --green-500: #509b80;
+  --green-200: #d4f0e8;
+  --green-100: #e7f6f1;
+  --green-50:  rgba(239, 250, 246, 0.7);
+  --gold-600: #3f8f74;
+  --gold-500: #4ba588;
+  --gold-400: #73c3aa;
+  --gold-100: #e6f6f1;
+  --gold-50:  #f0faf6;
+
+  /* Menu latéral (sidebar-cacao.css) */
+  --cc-bg-top: #35675a;
+  --cc-bg-bot: #22413a;
+  --cc-ink: #f3f8f6;
+  --cc-ink-soft: #d4e7e0;
+  --cc-line: #a9cfc3;
+  --cc-active: #d4f0e8;
+  --cc-active-ink: #1f3d34;
+  --cc-hover: rgba(255, 255, 255, 0.08);
+  --cc-accent: #509b80;
+  --cc-accent-d: #3f8f74;
+  --cc-brand: #eafaf4;
+
+  /* Tables / contrôles MvtsStocks (MvtsStocks/table.css) */
+  --primary: #509b80;
+  --primary-dark: #3f8f74;
+  --primary-light: #22413a;
+  --primary-soft: #d4f0e8;
+
+  /* Table élégante (table.css) */
+  --cacao-50:  #f1f9f6;
+  --cacao-100: #e2f1ec;
+  --cacao-200: #cfe8df;
+  --cacao-300: #6b9488;
+  --cacao-400: #6bbf9f;
+  --cacao-500: #4f9b80;
+  --cacao-600: #3f8f74;
+  --cacao-700: #ffffff;
+  --cacao-800: #1f3d34;
+  --cacao-muted: #76a394;
+}
+
+/* ==========================================================
+   THÈME CACAO DOUX — brun cacao (palette d'origine)
+========================================================== */
+html[data-theme="cacao"] {
+  --green-900: #3e3023;
+  --green-800: #483928;
+  --green-700: #5f4a2d;
+  --green-600: #7d5e3a;
+  --green-500: #9a794a;
+  --green-200: #efeeec;
+  --green-100: #f3f5f3;
+  --green-50:  rgba(250, 248, 244, 0.7);
+  --gold-600: #c8953a;
+  --gold-500: #d4a54b;
+  --gold-400: #e0bd6e;
+  --gold-100: #fdf4e3;
+  --gold-50:  #fefaf0;
+
+  --cc-bg-top: #6c583d;
+  --cc-bg-bot: #4e4538;
+  --cc-ink: #f7f5f4;
+  --cc-ink-soft: #e1dfdd;
+  --cc-line: #d8c7b2;
+  --cc-active: #ddc9b2;
+  --cc-active-ink: #3c2b1d;
+  --cc-hover: rgba(78, 58, 42, 0.08);
+  --cc-accent: #a86f41;
+  --cc-accent-d: #8c5a31;
+  --cc-brand: #f7ebe3;
+
+  --primary: #8a5a3b;
+  --primary-dark: #6c4a2f;
+  --primary-light: #3e3023;
+  --primary-soft: #f3ebe2;
+
+  --cacao-50:  #faf6f1;
+  --cacao-100: #f3ebe2;
+  --cacao-200: #e7d8c9;
+  --cacao-300: #857567;
+  --cacao-400: #b9906b;
+  --cacao-500: #a9754f;
+  --cacao-600: #8a5a3b;
+  --cacao-700: #ffffff;
+  --cacao-800: #4a2d1a;
+  --cacao-muted: #a68c76;
+}
+
+/* ==========================================================
+   THÈME VERT DOUX — vert sauge doux et élégant
+========================================================== */
+html[data-theme="vert"] {
+  --green-900: #2f4034;
+  --green-800: #394d3f;
+  --green-700: #4a6b54;
+  --green-600: #5f8468;
+  --green-500: #7aa07f;
+  --green-200: #e3efe4;
+  --green-100: #eef5ef;
+  --green-50:  rgba(244, 250, 245, 0.7);
+  --gold-600: #9aa86a;
+  --gold-500: #aeb97e;
+  --gold-400: #c6cf9c;
+  --gold-100: #f0f3e6;
+  --gold-50:  #f7f9f0;
+
+  --cc-bg-top: #4a6b54;
+  --cc-bg-bot: #2f4034;
+  --cc-ink: #f4f8f4;
+  --cc-ink-soft: #dbe8dc;
+  --cc-line: #aec7b0;
+  --cc-active: #e0efe1;
+  --cc-active-ink: #263a2b;
+  --cc-hover: rgba(255, 255, 255, 0.08);
+  --cc-accent: #7aa07f;
+  --cc-accent-d: #5f8468;
+  --cc-brand: #eef6ef;
+
+  --primary: #5f8468;
+  --primary-dark: #4a6b54;
+  --primary-light: #2f4034;
+  --primary-soft: #e3efe4;
+
+  --cacao-50:  #f4faf4;
+  --cacao-100: #e8f1e9;
+  --cacao-200: #d7e7d9;
+  --cacao-300: #6f8f74;
+  --cacao-400: #8cbf8f;
+  --cacao-500: #7aa07f;
+  --cacao-600: #5f8468;
+  --cacao-700: #ffffff;
+  --cacao-800: #263a2b;
+  --cacao-muted: #89a98e;
+}
+
+/* ==========================================================
+   THÈME ORANGE DOUX — terracotta / orangé doux
+========================================================== */
+html[data-theme="orange"] {
+  --green-900: #5a3a28;
+  --green-800: #6b4630;
+  --green-700: #8a5a3a;
+  --green-600: #a86f46;
+  --green-500: #c58a5c;
+  --green-200: #f6e7dc;
+  --green-100: #fbf2ea;
+  --green-50:  rgba(252, 246, 240, 0.7);
+  --gold-600: #d98f4b;
+  --gold-500: #e3a263;
+  --gold-400: #edbd8a;
+  --gold-100: #fbeede;
+  --gold-50:  #fef8f1;
+
+  --cc-bg-top: #8a5a3a;
+  --cc-bg-bot: #5a3a28;
+  --cc-ink: #faf4ef;
+  --cc-ink-soft: #eeddd0;
+  --cc-line: #d8b596;
+  --cc-active: #f3e2d4;
+  --cc-active-ink: #4a2d1a;
+  --cc-hover: rgba(255, 255, 255, 0.08);
+  --cc-accent: #d98f4b;
+  --cc-accent-d: #b8743a;
+  --cc-brand: #fbeede;
+
+  --primary: #c58a5c;
+  --primary-dark: #a86f46;
+  --primary-light: #5a3a28;
+  --primary-soft: #f6e7dc;
+
+  --cacao-50:  #fdf6f0;
+  --cacao-100: #f8eee6;
+  --cacao-200: #f0ddcc;
+  --cacao-300: #9a7558;
+  --cacao-400: #dca87a;
+  --cacao-500: #c58a5c;
+  --cacao-600: #a86f46;
+  --cacao-700: #ffffff;
+  --cacao-800: #4a2d1a;
+  --cacao-muted: #b89a80;
+}
+
+/* ==========================================================
+   THÈME BLEU LÉGER — bleu doux et aéré
+========================================================== */
+html[data-theme="bleu"] {
+  --green-900: #1e3a5f;
+  --green-800: #24496f;
+  --green-700: #2f5f8c;
+  --green-600: #3f77aa;
+  --green-500: #5a93c4;
+  --green-200: #dbe9f6;
+  --green-100: #eaf3fb;
+  --green-50:  rgba(240, 246, 252, 0.7);
+  --gold-600: #4f90c0;
+  --gold-500: #6aa6d2;
+  --gold-400: #93c1e3;
+  --gold-100: #e8f2fb;
+  --gold-50:  #f2f8fd;
+
+  --cc-bg-top: #3f77aa;
+  --cc-bg-bot: #24496f;
+  --cc-ink: #f3f8fc;
+  --cc-ink-soft: #d4e5f3;
+  --cc-line: #a9c9e3;
+  --cc-active: #dbe9f6;
+  --cc-active-ink: #1e3a5f;
+  --cc-hover: rgba(255, 255, 255, 0.08);
+  --cc-accent: #5a93c4;
+  --cc-accent-d: #3f77aa;
+  --cc-brand: #eaf3fb;
+
+  --primary: #3f77aa;
+  --primary-dark: #2f5f8c;
+  --primary-light: #1e3a5f;
+  --primary-soft: #dbe9f6;
+
+  --cacao-50:  #f3f8fd;
+  --cacao-100: #e7f0fa;
+  --cacao-200: #d3e4f4;
+  --cacao-300: #6f8aa5;
+  --cacao-400: #7fb0db;
+  --cacao-500: #5a93c4;
+  --cacao-600: #3f77aa;
+  --cacao-700: #ffffff;
+  --cacao-800: #1e3a5f;
+  --cacao-muted: #8aa6c0;
+}
+
+/* ==========================================================
+   THÈME GRIS LÉGER — gris ardoise doux
+========================================================== */
+html[data-theme="gris"] {
+  --green-900: #303338;
+  --green-800: #3a3e44;
+  --green-700: #4c525a;
+  --green-600: #626a74;
+  --green-500: #808892;
+  --green-200: #e4e6e9;
+  --green-100: #eef0f1;
+  --green-50:  rgba(245, 246, 247, 0.7);
+  --gold-600: #6f7883;
+  --gold-500: #868e98;
+  --gold-400: #a7adb5;
+  --gold-100: #eceef0;
+  --gold-50:  #f5f6f7;
+
+  --cc-bg-top: #4c525a;
+  --cc-bg-bot: #303338;
+  --cc-ink: #f4f5f6;
+  --cc-ink-soft: #d8dbdf;
+  --cc-line: #aeb3b9;
+  --cc-active: #e4e6e9;
+  --cc-active-ink: #2a2d31;
+  --cc-hover: rgba(255, 255, 255, 0.08);
+  --cc-accent: #808892;
+  --cc-accent-d: #626a74;
+  --cc-brand: #eef0f1;
+
+  --primary: #626a74;
+  --primary-dark: #4c525a;
+  --primary-light: #303338;
+  --primary-soft: #e4e6e9;
+
+  --cacao-50:  #f6f7f8;
+  --cacao-100: #eef0f1;
+  --cacao-200: #e0e2e5;
+  --cacao-300: #767b82;
+  --cacao-400: #9aa0a8;
+  --cacao-500: #808892;
+  --cacao-600: #626a74;
+  --cacao-700: #ffffff;
+  --cacao-800: #2a2d31;
+  --cacao-muted: #9298a0;
+}
+
+/* ==========================================================
+   THÈME BLANC — clair et aéré, menu latéral clair
+========================================================== */
+html[data-theme="blanc"] {
+  --green-900: #2c2c2e;
+  --green-800: #3a3a3c;
+  --green-700: #4d4d4f;
+  --green-600: #6b6b6e;
+  --green-500: #8e8e90;
+  --green-200: #ececec;
+  --green-100: #f5f5f5;
+  --green-50:  rgba(250, 250, 250, 0.7);
+  --gold-600: #8a8a8c;
+  --gold-500: #a0a0a2;
+  --gold-400: #c2c2c4;
+  --gold-100: #f0f0f0;
+  --gold-50:  #f8f8f8;
+
+  /* Menu latéral CLAIR : fond quasi blanc, texte sombre */
+  --cc-bg-top: #ffffff;
+  --cc-bg-bot: #f4f4f5;
+  --cc-ink: #2c2c2e;
+  --cc-ink-soft: #6b6b6e;
+  --cc-line: #e2e2e4;
+  --cc-active: #ececec;
+  --cc-active-ink: #1f1f21;
+  --cc-hover: rgba(0, 0, 0, 0.05);
+  --cc-accent: #6b6b6e;
+  --cc-accent-d: #4d4d4f;
+  --cc-brand: #2c2c2e;
+
+  --primary: #5a5a5c;
+  --primary-dark: #3a3a3c;
+  --primary-light: #2c2c2e;
+  --primary-soft: #ececec;
+
+  --cacao-50:  #fafafa;
+  --cacao-100: #f3f3f3;
+  --cacao-200: #e6e6e6;
+  --cacao-300: #7a7a7c;
+  --cacao-400: #a8a8aa;
+  --cacao-500: #8e8e90;
+  --cacao-600: #6b6b6e;
+  --cacao-700: #ffffff;
+  --cacao-800: #1f1f21;
+  --cacao-muted: #9a9a9c;
+}
+
+/* ==========================================================
+   CONTRÔLES — harmonisation Bootstrap & composants
+   ----------------------------------------------------------
+   Ces règles utilisent les variables de thème : elles suivent
+   donc automatiquement le thème choisi. Le préfixe
+   html[data-theme] augmente la spécificité pour passer devant
+   Bootstrap et les feuilles de page.
+========================================================== */
+
+/* --- Boutons Bootstrap « primary » --- */
+html[data-theme] .btn-primary {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+  color: #fff;
+}
+html[data-theme] .btn-primary:hover,
+html[data-theme] .btn-primary:focus,
+html[data-theme] .btn-primary:active {
+  background-color: var(--green-600);
+  border-color: var(--green-600);
+  color: #fff;
+}
+html[data-theme] .btn-outline-primary {
+  color: var(--green-700);
+  border-color: var(--green-700);
+}
+html[data-theme] .btn-outline-primary:hover,
+html[data-theme] .btn-outline-primary:focus,
+html[data-theme] .btn-outline-primary:active {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+  color: #fff;
+}
+
+/* --- Boutons Bootstrap « success » (harmonisés avec le thème) --- */
+html[data-theme] .btn-success {
+  background-color: var(--green-600);
+  border-color: var(--green-600);
+  color: #fff;
+}
+html[data-theme] .btn-success:hover,
+html[data-theme] .btn-success:focus,
+html[data-theme] .btn-success:active {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+  color: #fff;
+}
+html[data-theme] .btn-outline-success {
+  color: var(--green-600);
+  border-color: var(--green-600);
+}
+html[data-theme] .btn-outline-success:hover {
+  background-color: var(--green-600);
+  border-color: var(--green-600);
+  color: #fff;
+}
+
+/* --- Utilitaires de couleur Bootstrap (!important côté Bootstrap) --- */
+html[data-theme] .text-primary { color: var(--green-700) !important; }
+html[data-theme] .bg-primary { background-color: var(--green-700) !important; color: #fff; }
+html[data-theme] .border-primary { border-color: var(--green-700) !important; }
+html[data-theme] .text-bg-primary { background-color: var(--green-700) !important; color: #fff !important; }
+html[data-theme] .link-primary { color: var(--green-700) !important; }
+
+/* --- Badges Bootstrap primary --- */
+html[data-theme] .badge.bg-primary,
+html[data-theme] .badge.text-bg-primary { background-color: var(--green-700) !important; }
+
+/* --- Champs de formulaire (focus) --- */
+html[data-theme] .form-control:focus,
+html[data-theme] .form-select:focus {
+  border-color: var(--green-500);
+  box-shadow: 0 0 0 0.2rem var(--green-200);
+}
+html[data-theme] .form-check-input:checked {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+}
+html[data-theme] .form-check-input:focus {
+  border-color: var(--green-500);
+  box-shadow: 0 0 0 0.2rem var(--green-200);
+}
+html[data-theme] .form-switch .form-check-input:checked {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+}
+
+/* --- Onglets / pilules Bootstrap --- */
+html[data-theme] .nav-pills .nav-link.active,
+html[data-theme] .nav-pills .show > .nav-link {
+  background-color: var(--green-700);
+  color: #fff;
+}
+html[data-theme] .nav-tabs .nav-link.active {
+  color: var(--green-800);
+  border-color: var(--green-200) var(--green-200) #fff;
+}
+html[data-theme] .nav-link { color: var(--green-700); }
+html[data-theme] .nav-link:hover { color: var(--green-800); }
+
+/* --- Menus déroulants Bootstrap --- */
+html[data-theme] .dropdown-item.active,
+html[data-theme] .dropdown-item:active {
+  background-color: var(--green-700);
+  color: #fff;
+}
+html[data-theme] .dropdown-item:focus,
+html[data-theme] .dropdown-item:hover {
+  background-color: var(--green-100);
+  color: var(--green-800);
+}
+
+/* --- Pagination Bootstrap --- */
+html[data-theme] .page-link { color: var(--green-700); }
+html[data-theme] .page-item.active .page-link {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+  color: #fff;
+}
+
+/* --- Listes / tableaux Bootstrap à accent primary --- */
+html[data-theme] .list-group-item.active {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+  color: #fff;
+}
+html[data-theme] .table-primary {
+  --bs-table-bg: var(--green-100);
+  --bs-table-border-color: var(--green-200);
+}
+
+/* --- Barres de progression / spinners --- */
+html[data-theme] .progress-bar { background-color: var(--green-600); }
+html[data-theme] .spinner-border.text-primary,
+html[data-theme] .spinner-grow.text-primary { color: var(--green-700) !important; }
+
+/* --- Choices.js (selects riches) --- */
+html[data-theme] .choices,
+html[data-theme] .choices__inner,
+html[data-theme] .choices__item {
+  background-color: var(--green-50);
+}
+html[data-theme] .choices__list--dropdown .choices__item--selectable.is-highlighted {
+  background-color: var(--green-100);
+}
+
+/* --- Liens génériques dans le contenu --- */
+html[data-theme] a.link,
+html[data-theme] .card-link,
+html[data-theme] .breadcrumb-item a:hover { color: var(--green-700); }
+
+/* --- Menu latéral : titres de section (fond dégradé suivant le thème) --- */
+html[data-theme] .nav-section-title {
+  background: linear-gradient(125deg, var(--cc-bg-bot), var(--cc-bg-top));
+}
+
+/* --- Survol des lignes de tableau (app.css : vert codé en dur) --- */
+html[data-theme] .table tbody tr:hover { background-color: var(--green-500); }
+
+/* ============================================================
+   SÉLECTEUR DE THÈME (barre supérieure + page de connexion)
+   ============================================================ */
+.theme-switcher {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.theme-switcher__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--green-200);
+  border-radius: 10px;
+  background: var(--green-50);
+  color: var(--green-700);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.theme-switcher__btn:hover {
+  background: var(--green-100);
+  border-color: var(--green-500);
+  color: var(--green-800);
+}
+
+.theme-switcher__btn .lucide {
+  width: 20px;
+  height: 20px;
+}
+
+.theme-switcher__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 190px;
+  padding: 6px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1200;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.theme-switcher.open .theme-switcher__menu {
+  display: flex;
+}
+
+.theme-switcher__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--gray-500);
+  padding: 4px 8px 6px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray-700);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.theme-option:hover {
+  background: var(--gray-100);
+}
+
+.theme-option.active {
+  background: var(--green-100);
+  border-color: var(--green-500);
+  color: var(--green-800);
+  font-weight: 600;
+}
+
+.theme-option .swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex: 0 0 auto;
+}
+
+.theme-option .swatch--base   { background: linear-gradient(135deg, #c2f1ed, #509b80); }
+.theme-option .swatch--cacao  { background: linear-gradient(135deg, #7d5e3a, #3e3023); }
+.theme-option .swatch--vert   { background: linear-gradient(135deg, #7aa07f, #2f4034); }
+.theme-option .swatch--orange { background: linear-gradient(135deg, #e3a263, #8a5a3a); }
+.theme-option .swatch--bleu   { background: linear-gradient(135deg, #eaf3fb, #5a93c4); }
+.theme-option .swatch--gris   { background: linear-gradient(135deg, #eef0f1, #808892); }
+.theme-option .swatch--blanc  { background: linear-gradient(135deg, #ffffff, #e2e2e4); border-color: rgba(0, 0, 0, 0.2); }
+
+/* Variante compacte pour la page de connexion */
+.login-wrapper .theme-switcher {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+/* ============================================================
+   PAGE DE CONNEXION — fond cacao en dégradé très léger (fixe)
+   La page de connexion n'a PAS de sélecteur de thème : elle
+   garde toujours ce dégradé cacao doux, indépendamment du
+   thème de l'application.
+   ============================================================ */
+.login-wrapper {
+  background: linear-gradient(135deg, #faf6f1 0%, #f3ebe2 42%, #ead9c6 100%);
+  background-attachment: fixed;
+}
+
+.login-wrapper::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 55% at 18% 12%, rgba(168, 111, 65, 0.10), transparent 70%),
+    radial-gradient(55% 50% at 88% 88%, rgba(126, 94, 58, 0.08), transparent 72%);
+}
+
+@media (max-width: 768px) {
+  .theme-switcher__menu { right: -4px; }
+}

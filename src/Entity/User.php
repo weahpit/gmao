@@ -94,6 +94,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?bool $signataire = null;
 
+    /**
+     * Theme de couleurs prefere de l'utilisateur (sélecteur de thème).
+     * Valeurs possibles : base (eucalyptus, defaut), cacao, vert, orange.
+     */
+    #[ORM\Column(length: 20, nullable: true, options: ['default' => 'base'])]
+    private ?string $theme = 'base';
+
     public function __construct()
     {
         $this->notifications = new ArrayCollection();
@@ -420,6 +427,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setSignataire(bool $signataire): static
     {
         $this->signataire = $signataire;
+
+        return $this;
+    }
+
+    /**
+     * Retourne le theme prefere ; 'base' si aucun n'a ete enregistre.
+     */
+    public function getTheme(): string
+    {
+        return $this->theme ?: 'base';
+    }
+
+    public function setTheme(?string $theme): static
+    {
+        $allowed = ['base', 'cacao', 'vert', 'orange', 'bleu', 'gris', 'blanc'];
+        $this->theme = in_array($theme, $allowed, true) ? $theme : 'base';
 
         return $this;
     }
