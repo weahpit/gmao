@@ -1,0 +1,16 @@
+# Libelles de l'interface — francais (langue de reference)
+menu:
+    accueil: "Accueil"
+header:
+    rechercher: "Rechercher..."
+langue:
+    francais: "Francais"
+    anglais: "English"
+presence:
+    arrivee: "Arrivee le"
+    en_retard: "(retard de %minutes% min)"
+    a_lheure: "A l'heure"
+    heure_arrivee: "Heure d'arrivee"
+    retard: "Retard"
+    legende_retard: "Ligne en rouge : participant arrive 15 minutes ou plus apres le debut de la reunion."
+    enregistre_le: "Enregistre le"

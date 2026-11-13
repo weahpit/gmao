@@ -284,12 +284,19 @@ class pdfService
         // --- QR code (en haut à droite) ---
         $qrFile = $this->genererQrImage($qrData);
         if ($qrFile) {
-            $pdf->Image($qrFile, $pdf->GetPageWidth() - 42, 50, 30, 30, 'PNG');
+            // Cadre blanc autour du QR (quiet zone) : indispensable pour que le
+            // lecteur accroche meme si le bon est photocopie ou scanne.
+            $qrTaille = 38;
+            $qrX = $pdf->GetPageWidth() - 10 - $qrTaille;
+            $qrY = 48;
+            $pdf->SetFillColor(255, 255, 255);
+            $pdf->Rect($qrX - 2, $qrY - 2, $qrTaille + 4, $qrTaille + 4, 'F');
+            $pdf->Image($qrFile, $qrX, $qrY, $qrTaille, $qrTaille, 'PNG');
             @unlink($qrFile);
             $pdf->SetFont('Arial', '', 6);
             $pdf->SetTextColor(120, 120, 120);
-            $pdf->SetXY($pdf->GetPageWidth() - 42, 80);
-            $pdf->Cell(30, 4, $pdf->txt('Scanner à la guérite pour valider'), 0, 0, 'C');
+            $pdf->SetXY($qrX - 2, $qrY + $qrTaille + 2);
+            $pdf->Cell($qrTaille + 4, 4, $pdf->txt('Scanner à la guérite pour valider'), 0, 0, 'C');
         }
 
         // --- Bloc : informations de la sortie ---
@@ -501,7 +508,9 @@ class pdfService
                 /** @var object $writer */
                 $writer = new $writerClass();
                 /** @var object $qr */
-                $qr = $qrClass::create($data)->setSize(300)->setMargin(10);
+                // 600 px pour un QR imprime en 38 mm : les modules restent nets a
+                // l'impression et a l'ecran (300 px donnaient un code trop dense).
+                $qr = $qrClass::create($data)->setSize(600)->setMargin(24);
                 $result = $writer->write($qr);
 
                 $tmp = tempnam(sys_get_temp_dir(), 'qr_');

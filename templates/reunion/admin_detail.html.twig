@@ -216,22 +216,26 @@
                             <tr>
                                 <th>#</th>
                                 <th>Nom et prenoms</th>
+                                <th>{{ 'presence.heure_arrivee'|trans }}</th>
                                 <th>Service / Qualite</th>
                                 <th>Contact</th>
                                 <th>Signature</th>
-                                <th>Le</th>
+                                <th>{{ 'presence.retard'|trans }}</th>
                             </tr>
                         </thead>
                         <tbody>
                         {% for p in participants %}
-                            <tr>
-                                <td class="text-muted">{{ loop.index }}</td>
-                                <td class="fw-semibold">{{ p.nomComplet }}</td>
-                                <td class="small">
+                            <tr{% if p.enRetard %} style="background:rgba(220,38,38,.07);"{% endif %}>
+                                <td class="text-muted"{% if p.enRetard %} style="color:#b71c1c !important; font-weight:700;"{% endif %}>{{ loop.index }}</td>
+                                <td class="fw-semibold"{% if p.enRetard %} style="color:#b71c1c;"{% endif %}>{{ p.nomComplet }}</td>
+                                <td class="small"{% if p.enRetard %} style="color:#b71c1c;"{% endif %}>
+                                    {{ p.instantArrivee ? p.instantArrivee|date('d/m H:i') : '-' }}
+                                </td>
+                                <td class="small"{% if p.enRetard %} style="color:#b71c1c;"{% endif %}>
                                     {{ p.service ?? '-' }}
                                     {% if p.qualite %}<div class="text-muted">{{ p.qualite }}</div>{% endif %}
                                 </td>
-                                <td class="small">
+                                <td class="small"{% if p.enRetard %} style="color:#b71c1c;"{% endif %}>
                                     {{ p.telephone ?? '-' }}
                                     {% if p.email %}<div class="text-muted">{{ p.email }}</div>{% endif %}
                                 </td>
@@ -240,10 +244,20 @@
                                         <img src="{{ asset('data/reunions/signatures/' ~ p.signature) }}" alt="Signature" style="height:28px; width:auto; max-width:120px; object-fit:contain;">
                                     {% else %}-{% endif %}
                                 </td>
-                                <td class="small text-muted">{{ p.createdAt ? p.createdAt|date('d/m H:i') : '-' }}</td>
+                                <td class="small">
+                                    {% if p.enRetard %}
+                                        <span class="badge" style="background:#dc2626; color:#fff; font-weight:700;">
+                                            +{{ p.retardMinutes }} min
+                                        </span>
+                                    {% elseif p.instantArrivee %}
+                                        <span class="badge" style="background:#e3f4ec; color:#22684d;">{{ 'presence.a_lheure'|trans }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="6" class="text-center text-muted py-4">Aucun participant enregistre pour l'instant.</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted py-4">Aucun participant enregistre pour l'instant.</td></tr>
                         {% endfor %}
                         </tbody>
                     </table>

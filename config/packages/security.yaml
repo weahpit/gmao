@@ -62,7 +62,10 @@ security:
     # Hierarchie des roles : un ADMIN herite de PDR et USER, etc.
     # (evite d'avoir a cocher plusieurs roles pour un meme utilisateur)
     role_hierarchy:
-        ROLE_ADMIN:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_DG, ROLE_USER]
+        # ROLE_COURRIER : agent en charge de l'enregistrement du courrier
+        # (application mobile et module web). ROLE_ADMIN en herite.
+        ROLE_ADMIN:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_DG, ROLE_COURRIER, ROLE_USER]
+        ROLE_COURRIER:   ROLE_USER
         ROLE_PDR:        ROLE_USER
         ROLE_TECHNICIAN: ROLE_USER
         ROLE_VIGIL:      ROLE_USER

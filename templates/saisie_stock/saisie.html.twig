@@ -77,12 +77,17 @@
                     <option value="{{ u }}" {{ saisie.unite == u ? 'selected' }}>{{ u }}</option>
                 {% endfor %}
             </select>
+            {# Les valeurs viennent de la table stock_unite (web + mobile). #}
             {% if erreurs.unite is defined %}<div class="ss-errors">{{ erreurs.unite }}</div>{% endif %}
         </div>
 
         <div class="col-md-3">
             <label class="mb-1" for="date_saisie">Date et heure de la saisie</label>
-            <input id="date_saisie" type="datetime-local" name="date_saisie" class="form-control" disabled value="{{ dateValeur }}">
+            {# Date opération GRISÉE : elle est fixée par le serveur, non modifiable. #}
+            <input id="date_saisie" type="datetime-local" name="date_saisie" class="form-control ss-date-figee"
+                   value="{{ dateValeur }}" readonly aria-readonly="true" tabindex="-1"
+                   title="Date et heure fixées automatiquement">
+            <div class="ss-hint">Date fixée automatiquement par le serveur.</div>
             {% if erreurs.dateSaisie is defined %}<div class="ss-errors">{{ erreurs.dateSaisie }}</div>{% endif %}
         </div>
 

@@ -96,4 +96,49 @@ class SaisieStockRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * Entrees d'une rubrique, eventuellement a partir d'une date (exclue).
+     * Utilise par le calcul du stock initial (voir StockInitialService).
+     *
+     * @return SaisieStock[]
+     */
+    public function findByRubrique(string $rubrique, ?\DateTimeInterface $apres = null): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->andWhere('s.rubrique = :rubrique')
+            ->setParameter('rubrique', $rubrique);
+
+        if ($apres !== null) {
+            // strictement posterieur : l'inventaire du jour meme inclut la journee
+            $qb->andWhere('s.dateSaisie > :apres')->setParameter('apres', $apres);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Somme des entrees posterieures a une date, par unite.
+     *
+     * @return array<string, float> ex. ['Kg' => 120.5, 'Litres' => 0]
+     */
+    public function sommeParUniteApres(string $rubrique, ?\DateTimeInterface $apres = null): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->select('s.unite AS unite', 'SUM(s.quantite) AS total')
+            ->andWhere('s.rubrique = :rubrique')
+            ->setParameter('rubrique', $rubrique)
+            ->groupBy('s.unite');
+
+        if ($apres !== null) {
+            $qb->andWhere('s.dateSaisie > :apres')->setParameter('apres', $apres);
+        }
+
+        $out = [];
+        foreach ($qb->getQuery()->getArrayResult() as $r) {
+            $out[(string) $r['unite']] = (float) $r['total'];
+        }
+
+        return $out;
+    }
 }

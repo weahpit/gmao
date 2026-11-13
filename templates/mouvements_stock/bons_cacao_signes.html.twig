@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bons de sortie cacao signés — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Bons cacao signés</span>
+{% endblock %}
+
+{% block body %}
+<style>
+    :root { --cacao:#5a371e; --cacao-fonce:#3b2412; }
+    .bc-wrap { padding: 8px 4px 40px; }
+    .bc-title { color: var(--cacao-fonce); font-weight: 700; }
+    .bc-table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.06); }
+    .bc-table thead th { background:var(--cacao); color:#fff; font-size:12.5px; font-weight:600; padding:12px 10px; text-align:left; }
+    .bc-table tbody td { font-size:13px; padding:10px; border-bottom:1px solid #efe9e3; vertical-align:middle; }
+    .bc-table tbody tr:nth-child(even) td { background:#faf7f4; }
+    .badge-valide { background:#e6f4ea; color:#1b5e20; font-weight:600; padding:5px 10px; border-radius:20px; font-size:12px; }
+    .bc-empty { text-align:center; color:#8a8a8a; padding:40px; }
+    .btn-cacao { background:var(--cacao); border:none; color:#fff; border-radius:8px; padding:8px 16px; font-weight:600; }
+    .bc-pdf { font-size:11.5px; color:#8b5a2b; text-decoration:none; }
+</style>
+
+<div class="bc-wrap">
+    <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
+        <div>
+            <h1 class="bc-title h4 mb-1">Bons de sortie CACAO signés</h1>
+            <p class="text-muted" style="font-size:13px;">
+                Bons signés par la Direction Générale — {{ nbTotal }} bon{{ nbTotal > 1 ? 's' : '' }}.
+            </p>
+        </div>
+        {% if is_granted('ROLE_DG') %}
+            <a href="{{ path('app_bons_cacao_a_signer') }}" class="btn-cacao">Bons à signer</a>
+        {% endif %}
+    </div>
+    <hr>
+
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+        <div>
+            <label style="font-size:12px;color:#6b6b6b;display:block;">Signé du</label>
+            <input type="date" name="du" value="{{ du }}" style="border:1px solid #d8cfc6;border-radius:8px;padding:7px 10px;">
+        </div>
+        <div>
+            <label style="font-size:12px;color:#6b6b6b;display:block;">au</label>
+            <input type="date" name="au" value="{{ au }}" style="border:1px solid #d8cfc6;border-radius:8px;padding:7px 10px;">
+        </div>
+        <button type="submit" class="btn-cacao">Filtrer</button>
+        <a href="{{ path('app_bons_cacao_signes') }}" class="btn btn-light" style="border:1px solid #ddd;">Réinitialiser</a>
+    </form>
+
+    {% if bons is empty %}
+        <div class="bc-table"><div class="bc-empty">Aucun bon de sortie cacao signé sur la période.</div></div>
+    {% else %}
+    <div style="overflow-x:auto;">
+    <table class="bc-table">
+        <thead>
+            <tr>
+                <th>Référence</th>
+                <th>Date de sortie</th>
+                <th>Type de stock</th>
+                <th>Motif</th>
+                <th class="text-end">Quantité</th>
+                <th>Service</th>
+                <th>Agent</th>
+                <th>Signé par</th>
+                <th>Signé le</th>
+                <th class="text-center">Statut</th>
+                <th>Bon</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for b in bons %}
+            <tr>
+                <td class="fw-bold" style="color:var(--cacao-fonce);">{{ b.reference }}</td>
+                <td>{{ b.dateSortie ? b.dateSortie|date('d/m/Y H:i') : '' }}</td>
+                <td>{{ b.rubrique }}</td>
+                <td>{{ b.motif }}</td>
+                <td class="text-end">{{ b.quantite|number_format(2, ',', ' ') }} {{ b.unite }}</td>
+                <td>{{ b.serviceLibelle ?? '-' }}</td>
+                <td>{{ b.agentLibelle ?? '-' }}</td>
+                <td>{{ b.signePar ?? '-' }}</td>
+                <td>{{ b.signeAt ? b.signeAt|date('d/m/Y H:i') : '-' }}</td>
+                <td class="text-center"><span class="badge-valide">✓ Validé</span></td>
+                <td>
+                    <a class="bc-pdf" target="_blank" rel="noopener"
+                       href="{{ path('app_bon_cacao_pdf', { reference: b.reference }) }}">Imprimer</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

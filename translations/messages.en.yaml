@@ -1,0 +1,16 @@
+# Interface labels — English
+menu:
+    accueil: "Home"
+header:
+    rechercher: "Search..."
+langue:
+    francais: "Francais"
+    anglais: "English"
+presence:
+    arrivee: "Arrived on"
+    en_retard: "(%minutes% min late)"
+    a_lheure: "On time"
+    heure_arrivee: "Arrival time"
+    retard: "Late"
+    legende_retard: "Red row: participant arrived 15 minutes or more after the meeting started."
+    enregistre_le: "Registered on"

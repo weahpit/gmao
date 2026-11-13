@@ -7,6 +7,7 @@ use App\Entity\EtatEquipement;
 use App\Entity\NatureEquipement;
 use App\Entity\Production\Produit;
 use App\Entity\Stock\Rubrique;
+use App\Entity\Stock\Unite;
 use App\Entity\TypeZoneExploitation;
 use App\Entity\User;
 use App\Entity\ZoneExploitation;
@@ -112,6 +113,28 @@ class AppFixtures extends Fixture
             $rubrique->setActive(true);
             $rubrique->setPosition($i);
             $manager->persist($rubrique);
+        }
+
+        // --- Unites de mesure du stock (table stock_unite) ---
+        // Liste de reference PARTAGEE web + mobile : les formulaires d'entree
+        // (saisie) et de sortie lisent leurs valeurs ici. Ajouter une ligne
+        // ici (ou dans la table) suffit a proposer une nouvelle unite.
+        $unitesStock = [
+            ['libelle' => 'Kg',      'symbole' => 'kg', 'defaut' => true],
+            ['libelle' => 'Litres',  'symbole' => 'L',  'defaut' => false],
+            ['libelle' => 'Sacs',    'symbole' => 'sac', 'defaut' => false],
+            ['libelle' => 'Tonnes',  'symbole' => 't',  'defaut' => false],
+            ['libelle' => 'Cartons', 'symbole' => 'crt', 'defaut' => false],
+            ['libelle' => 'Pieces',  'symbole' => 'pce', 'defaut' => false],
+        ];
+        foreach ($unitesStock as $i => $u) {
+            $unite = new Unite();
+            $unite->setLibelle($u['libelle']);
+            $unite->setSymbole($u['symbole']);
+            $unite->setParDefaut($u['defaut']);
+            $unite->setActive(true);
+            $unite->setPosition($i);
+            $manager->persist($unite);
         }
 
         // --- Produits (referentiel Production) ---

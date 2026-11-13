@@ -1,0 +1,321 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Initialisation des stocks{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'saisie_stock/_styles.html.twig' %}
+    <style>
+        .ss-card .val.final { color: #1e7e46; }
+        .ss-card .val.init { color: var(--ss-cacao-clair); }
+        .si-regle {
+            background: #fffaf3; border: 1px dashed var(--ss-accent); border-radius: 12px;
+            padding: 12px 16px; font-size: .86rem; color: #6b5a4a; margin-bottom: 18px;
+        }
+        .si-regle strong { color: var(--ss-cacao); }
+        .ss-table td.num, .ss-table th.num { text-align: right; white-space: nowrap; }
+        .si-croix { color: var(--ss-cacao-clair); font-weight: 700; }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_saisies_stock') }}">Gestion du stock</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Initialisation des stocks</span>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="ss-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h1>Initialisation des stocks</h1>
+            <p>Déclarer la quantité réellement comptée lors de l'inventaire physique, par type de stock et à une date précise</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_saisies_stock') }}" class="btn btn-outline-light" style="border-radius:10px;">Consulter les stocks</a>
+            <a href="{{ path('app_saisie_stock_nouvelle') }}" class="btn btn-outline-light" style="border-radius:10px;">Entrée stock</a>
+        </div>
+    </div>
+
+    <div class="si-regle">
+        <strong>Règle de calcul :</strong> Stock final = <strong>quantité inventoriée</strong>
+        + <strong>entrées postérieures</strong> à la date d'inventaire
+        &minus; <strong>sorties postérieures</strong> à la date d'inventaire.<br>
+        Les mouvements antérieurs ou du jour de l'inventaire sont ignorés : ils sont déjà compris dans le comptage physique.
+    </div>
+
+    {% if erreur %}
+        <div class="alert alert-danger">{{ erreur }}</div>
+    {% endif %}
+
+    {# ------------------------------------------------ Bandeau de synthèse #}
+    {% set t = apercu.totaux %}
+    <div class="ss-cards">
+        <div class="ss-card">
+            <div class="lbl">Stock initial (Kg)</div>
+            <div class="val init">{{ t.stockInitialKg|number_format(2, ',', ' ') }}</div>
+            <div class="sub">{{ apercu.dateInventaire ? 'inventaire du ' ~ apercu.dateInventaire|date('d/m/Y') : 'aucune initialisation' }}</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Stock initial (Litres)</div>
+            <div class="val init">{{ t.stockInitialLitres|number_format(2, ',', ' ') }}</div>
+            <div class="sub">quantités inventoriées</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Entrées après inventaire</div>
+            <div class="val">{{ (t.entreeKg + t.entreeLitres)|number_format(2, ',', ' ') }}</div>
+            <div class="sub">{{ t.nbEntrees }} mouvement(s)</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Sorties après inventaire</div>
+            <div class="val">{{ (t.sortieKg + t.sortieLitres)|number_format(2, ',', ' ') }}</div>
+            <div class="sub">{{ t.nbSorties }} mouvement(s)</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Stock final (Kg)</div>
+            <div class="val final">{{ t.stockFinalKg|number_format(2, ',', ' ') }}</div>
+            <div class="sub">après mouvements</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Stock final (Litres)</div>
+            <div class="val final">{{ t.stockFinalLitres|number_format(2, ',', ' ') }}</div>
+            <div class="sub">après mouvements</div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        {# ------------------------------------------------ Formulaire #}
+        <div class="col-12 col-xl-5">
+            <div class="ss-filtres">
+                <h2 class="ss-section-title mt-0">Nouvelle initialisation</h2>
+
+                {% if not peutModifier %}
+                    <div class="alert alert-warning mb-0">
+                        Seul un administrateur peut initialiser les stocks. Vous pouvez consulter les valeurs ci-contre.
+                    </div>
+                {% else %}
+                <form method="post" action="{{ path('app_stock_initialisation') }}" autocomplete="off">
+                    <input type="hidden" name="_token" value="{{ csrf_token('initialisation_stock') }}">
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="mb-1" for="rubrique">Type de stock *</label>
+                            <select id="rubrique" name="rubrique" class="form-select" required>
+                                <option value="">— Choisir —</option>
+                                {% for r in rubriques %}
+                                    <option value="{{ r }}" {{ saisie.rubrique == r ? 'selected' }}>{{ r }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="mb-1" for="nature">Nature du produit (facultatif)</label>
+                            <select id="nature" name="nature" class="form-select">
+                                <option value="">— Tous types du stock —</option>
+                                {% for n in natures %}
+                                    <option value="{{ n }}" {{ saisie.nature == n ? 'selected' }}>{{ n }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="sub" style="font-size:.76rem;color:#a89b8c;margin-top:4px;">
+                                Laissez vide pour initialiser le type de stock dans son ensemble.
+                            </div>
+                        </div>
+
+                        <div class="col-7">
+                            <label class="mb-1" for="quantite">Quantité inventoriée *</label>
+                            <input id="quantite" name="quantite" type="text" inputmode="decimal" class="form-control"
+                                   value="{{ saisie.quantite }}" placeholder="0,00" required>
+                        </div>
+                        <div class="col-5">
+                            <label class="mb-1" for="unite">Unité *</label>
+                            <select id="unite" name="unite" class="form-select" required>
+                                {% for u in unites %}
+                                    <option value="{{ u }}" {{ saisie.unite == u ? 'selected' }}>{{ u }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="mb-1" for="dateInventaire">Date de l'inventaire physique *</label>
+                            <input id="dateInventaire" name="dateInventaire" type="date" class="form-control"
+                                   max="{{ 'now'|date('Y-m-d') }}" value="{{ saisie.dateInventaire }}" required>
+                            <div style="font-size:.76rem;color:#a89b8c;margin-top:4px;">
+                                Seuls les mouvements strictement postérieurs à cette date seront ajoutés.
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="mb-1" for="observation">Observation / référence du PV d'inventaire</label>
+                            <textarea id="observation" name="observation" class="form-control" rows="2"
+                                      placeholder="Ex : inventaire physique du service, PV n°12">{{ saisie.observation }}</textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="remplacer" name="remplacer" {{ saisie.remplacer ? 'checked' }}>
+                                <label class="form-check-label" for="remplacer" style="font-size:.85rem;">
+                                    Marquer comme remplaçant une initialisation précédente
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-cacao px-4">
+                                <i data-lucide="save" style="height:16px;vertical-align:-2px;"></i>
+                                Enregistrer l'initialisation
+                            </button>
+                            <a href="{{ path('app_stock_initialisation') }}" class="btn btn-outline-cacao">Réinitialiser</a>
+                        </div>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ------------------------------------------------ Tableau du calcul #}
+        <div class="col-12 col-xl-7">
+            <h2 class="ss-section-title mt-0">Calcul du stock final par type de stock</h2>
+            <div class="ss-table table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Type de stock</th>
+                            <th>Inventaire</th>
+                            <th class="num">Stock initial (Kg)</th>
+                            <th class="num">+ Entrées (Kg)</th>
+                            <th class="num">&minus; Sorties (Kg)</th>
+                            <th class="num">Stock final (Kg)</th>
+                            <th class="num">Final (Litres)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rubrique, l in apercu.parRubrique %}
+                            <tr>
+                                <td>{{ rubrique }}</td>
+                                <td>
+                                    {% if l.dateInventaire %}
+                                        <span class="ss-badge">{{ l.dateInventaire|date('d/m/Y') }}</span>
+                                    {% else %}
+                                        <span class="ss-zero">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="num">{{ l.stockInitialKg|number_format(2, ',', ' ') }}</td>
+                                <td class="num">{{ l.entreeKg|number_format(2, ',', ' ') }}</td>
+                                <td class="num">{{ l.sortieKg|number_format(2, ',', ' ') }}</td>
+                                <td class="num {{ l.stockFinalKg < 0 ? 'ss-neg' : '' }}">
+                                    <strong>{{ l.stockFinalKg|number_format(2, ',', ' ') }}</strong>
+                                </td>
+                                <td class="num">{{ l.stockFinalLitres|number_format(2, ',', ' ') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:var(--ss-creme);font-weight:700;color:var(--ss-cacao);">
+                            <th colspan="2">Total</th>
+                            <th class="num">{{ t.stockInitialKg|number_format(2, ',', ' ') }}</th>
+                            <th class="num">{{ t.entreeKg|number_format(2, ',', ' ') }}</th>
+                            <th class="num">{{ t.sortieKg|number_format(2, ',', ' ') }}</th>
+                            <th class="num">{{ t.stockFinalKg|number_format(2, ',', ' ') }}</th>
+                            <th class="num">{{ t.stockFinalLitres|number_format(2, ',', ' ') }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ------------------------------------------------ Initialisations actives #}
+    <h2 class="ss-section-title">Initialisations actives</h2>
+    <div class="ss-table table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Type de stock</th>
+                    <th>Nature</th>
+                    <th class="num">Quantité</th>
+                    <th>Unité</th>
+                    <th>Date d'inventaire</th>
+                    <th class="num">Ancien stock</th>
+                    <th class="num">Écart</th>
+                    <th>Observation</th>
+                    <th>Auteur</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for init in initialisations %}
+                    <tr>
+                        <td><strong>{{ init.rubrique }}</strong></td>
+                        <td>{{ init.nature ?? '—' }}</td>
+                        <td class="num">{{ init.quantite|number_format(2, ',', ' ') }}</td>
+                        <td><span class="ss-badge kg">{{ init.unite }}</span></td>
+                        <td>{{ init.dateInventaire ? init.dateInventaire|date('d/m/Y') : '—' }}</td>
+                        <td class="num">{{ init.stockTheorique is not null ? init.stockTheorique|number_format(2, ',', ' ') : '—' }}</td>
+                        <td class="num {{ init.ecart is not null and init.ecart < 0 ? 'ss-neg' : '' }}">
+                            {{ init.ecart is not null ? init.ecart|number_format(2, ',', ' ') : '—' }}
+                        </td>
+                        <td>{{ init.observation ?? '—' }}</td>
+                        <td>{{ init.auteurLibelle ?? '—' }}</td>
+                        <td class="text-end">
+                            {% if peutModifier %}
+                                <form method="post" action="{{ path('app_stock_initialisation_desactiver', {id: init.id}) }}"
+                                      onsubmit="return confirm('Désactiver cette initialisation ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('desactiver_initialisation_' ~ init.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-cacao">Désactiver</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center ss-zero py-4">
+                            Aucune initialisation enregistrée : le stock est calculé sur l'ensemble des mouvements.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# ------------------------------------------------ Historique #}
+    <h2 class="ss-section-title">Historique des initialisations</h2>
+    <div class="ss-table table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Type de stock</th>
+                    <th>Nature</th>
+                    <th class="num">Quantité</th>
+                    <th>Date d'inventaire</th>
+                    <th>Auteur</th>
+                    <th>État</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for init in historique %}
+                    <tr>
+                        <td>{{ init.rubrique }}</td>
+                        <td>{{ init.nature ?? '—' }}</td>
+                        <td class="num">{{ init.quantite|number_format(2, ',', ' ') }} {{ init.unite }}</td>
+                        <td>{{ init.dateInventaire ? init.dateInventaire|date('d/m/Y') : '—' }}</td>
+                        <td>{{ init.auteurLibelle ?? '—' }}</td>
+                        <td>
+                            {% if init.isDesactive %}
+                                <span class="ss-zero">Remplacée / désactivée</span>
+                            {% else %}
+                                <span class="ss-badge" style="background:rgba(39,174,96,.14);color:#1e7e46;">Active</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="text-center ss-zero py-3">Aucun historique.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

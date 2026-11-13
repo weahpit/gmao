@@ -12,6 +12,7 @@ use App\Entity\Marque;
 use App\Entity\MouvementEquipement;
 use App\Entity\NatureEquipement;
 use App\Entity\Services;
+use App\Entity\Stock\SortieStock;
 use App\Entity\TypeEquipement;
 use App\Repository\EquipementRepository;
 use App\Repository\EquipementTypeRepository;
@@ -781,7 +782,21 @@ final class ApiMouvementsStockController extends AbstractController
                         ];
                     }
                 }
-                $qrData = $this->construireQrData($reference, '');
+                // Ancien bon (avant la table bon_sortie) : le jeton doit
+                // quand meme etre lisible. On retrouve la fiche de sortie
+                // stock portant la meme reference pour reutiliser SON jeton ;
+                // a defaut on encode la reference seule (le scanner la
+                // reconnait et l'API la resout par reference).
+                $tokenAncien = '';
+                try {
+                    $sortie = $this->em->getRepository(SortieStock::class)->findOneBy(['reference' => $reference]);
+                    if ($sortie) {
+                        $tokenAncien = (string) $sortie->getToken();
+                    }
+                } catch (\Throwable) {
+                    $tokenAncien = '';
+                }
+                $qrData = $this->construireQrData($reference, $tokenAncien);
             }
 
             $contenu = $servicePdf->genererBonSortie($bonInfos, $bonLignes, $qrData);
@@ -811,6 +826,35 @@ final class ApiMouvementsStockController extends AbstractController
     }
 
     /**
+     * MOBILE : fiche d'un bon de sortie PDR a partir de sa reference.
+     *
+     * Sert de secours quand le QR code ne porte pas de jeton (bons imprimes
+     * avant la table bon_sortie) : le scanner lit « ref » puis appelle cette
+     * route. Elle renvoie le meme format que api/bonSortie/scan/{token}.
+     */
+    #[Route('api/bonSortie/reference/{reference}', name: 'app_bon_sortie_par_reference', methods: ['GET'])]
+    public function bonSortieParReference(string $reference): JsonResponse
+    {
+        if (!$this->getUser()){
+            return new JsonResponse(['code' => 'error', 'msg' => 'Non authentifié.'], 401);
+        }
+        if (!($this->isGranted("ROLE_VIGIL") or $this->isGranted("ROLE_DG") or $this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR"))) {
+            return new JsonResponse(['code' => 'error', 'msg' => 'Accès refusé.'], 403);
+        }
+
+        $bon = $this->em->getRepository(BonSortie::class)->findOneBy(['reference' => $reference]);
+        if (!$bon) {
+            return new JsonResponse(['code' => 'warning', 'msg' => 'Bon de sortie introuvable.'], 404);
+        }
+
+        return new JsonResponse([
+            'code' => 'success',
+            'msg'  => 'Bon trouvé.',
+            'data' => $this->serialiserBon($bon),
+        ]);
+    }
+
+    /**
      * MOBILE (guérite) : après le scan du QR, récupère les détails du bon
      * et son statut, pour que le vigil voie ce qu'il s'apprête à valider.
      */
@@ -820,7 +864,10 @@ final class ApiMouvementsStockController extends AbstractController
         if (!$this->getUser()){
             return new JsonResponse(['code' => 'error', 'msg' => 'Non authentifié.'], 401);
         }
-        if (!($this->isGranted("ROLE_VIGIL") or $this->isGranted("ROLE_ADMIN"))) {
+        // Le scan est aussi ouvert au DG (qui vise le bon) et aux autres
+        // agents : l'application mobile doit pouvoir afficher le bon avant
+        // d'offrir l'action autorisee (voir la cle « actions » ci-dessous).
+        if (!($this->isGranted("ROLE_VIGIL") or $this->isGranted("ROLE_DG") or $this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_PDR"))) {
             return new JsonResponse(['code' => 'error', 'msg' => 'Accès refusé.'], 403);
         }
 
@@ -973,6 +1020,8 @@ final class ApiMouvementsStockController extends AbstractController
     private function serialiserBon(BonSortie $bon): array
     {
         return [
+            'type'           => 'BON_SORTIE',
+            'token'          => (string) $bon->getToken(),
             'reference'      => $bon->getReference(),
             'statut'         => $bon->getStatut(),
             'statut_label'   => $bon->getStatutLabel(),
@@ -988,6 +1037,12 @@ final class ApiMouvementsStockController extends AbstractController
             'cloture_par'    => $bon->getCloturePar(),
             'cloture_at'     => $bon->getClotureAt() ? $bon->getClotureAt()->format('d/m/Y à H:i') : '',
             'poste_controle' => $bon->getPosteControle(),
+            // Ce que l'application mobile peut faire sur ce bon, selon le role
+            // de l'utilisateur connecte (aucune regle n'est dupliquee côté app).
+            'actions'        => [
+                'peut_signer'  => $this->isGranted('ROLE_DG') && $bon->isEnAttente(),
+                'peut_cloturer'=> $this->isGranted('ROLE_VIGIL') && $bon->isValide(),
+            ],
         ];
     }
 

@@ -1,0 +1,157 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bons de sortie cacao à signer — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Bons cacao à signer (DG)</span>
+{% endblock %}
+
+{% block body %}
+<style>
+    :root { --cacao:#5a371e; --cacao-clair:#8b5a2b; --cacao-fonce:#3b2412; }
+    .bs-wrap { padding: 8px 4px 40px; }
+    .bs-title { color: var(--cacao-fonce); font-weight: 700; }
+    .bs-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin: 14px 0 22px; }
+    .bs-card { border-radius: 14px; padding: 6px 7px; color: #ffffff; box-shadow: 0 6px 16px rgba(90,55,30,.18); }
+    .bs-card .lbl { font-size: 16px; opacity: .9; }
+    .bs-card .val { font-size: 32px; font-weight: 800; line-height: 1.1; }
+    .bs-c-wait { background: linear-gradient(135deg, #fa4242, #ab1717); }
+    .bs-filters { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin-bottom:16px; }
+    .bs-filters label { font-size:12px; color:#6b6b6b; display:block; margin-bottom:2px; }
+    .bs-filters input[type=date], .bs-filters input[type=text] { border:1px solid #d8cfc6; border-radius:8px; padding:7px 10px; }
+    .bs-table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.06); }
+    .bs-table thead th { background:var(--cacao); color:#fff; font-size:12.5px; font-weight:600; padding:12px 10px; text-align:left; position:sticky; top:0; }
+    .bs-table tbody td { font-size:13px; padding:10px; border-bottom:1px solid #efe9e3; vertical-align:middle; }
+    .bs-table tbody tr:nth-child(4n+1) td { background:#faf7f4; }
+    .bs-table tbody tr.bs-row:hover td { background:#f1e7df; }
+    .badge-attente { background:#fdecea; color:#b71c1c; font-weight:600; padding:5px 10px; border-radius:20px; font-size:12px; }
+    .bs-empty { text-align:center; color:#8a8a8a; padding:40px; }
+    .btn-cacao { background:var(--cacao); border:none; color:#fff; border-radius:8px; padding:8px 16px; font-weight:600; }
+    .btn-signer-bon-cacao { background:#5a371e; border:none; color:#fff; padding:7px 14px; border-radius:8px; font-weight:600; font-size:12.5px; cursor:pointer; }
+    .btn-signer-bon-cacao:hover { background:#3b2412; }
+    .btn-annuler-bon-cacao { background:#fff; border:1px solid #b71c1c; color:#b71c1c; padding:6px 12px; border-radius:8px; font-weight:600; font-size:12.5px; cursor:pointer; }
+    .bs-link-pdf { font-size:11.5px; color:#8b5a2b; text-decoration:none; }
+</style>
+
+<div class="bs-wrap">
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="bs-title h4 mb-1">Bons de sortie CACAO en attente de signature</h1>
+            <p class="text-muted" style="font-size:13px;">
+                Sorties de cacao enregistrées au magasin, non encore signées par le Directeur Général.
+                La marchandise ne peut quitter le magasin qu'après signature du bon.
+            </p>
+        </div>
+
+        <div class="bs-cards">
+            <div class="bs-card bs-c-wait d-flex justify-content-between" style="width: 300px;">
+                <div class="lbl">En attente de votre signature</div>
+                <div class="val text-center" id="bsCompteur">{{ nbTotal }}</div>
+            </div>
+        </div>
+    </div>
+    <hr>
+
+    <form method="get" class="bs-filters">
+        <div>
+            <label>Du</label>
+            <input type="date" name="du" value="{{ du }}">
+        </div>
+        <div>
+            <label>au</label>
+            <input type="date" name="au" value="{{ au }}">
+        </div>
+        <div>
+            <button type="submit" class="btn-cacao">Filtrer</button>
+            <a href="{{ path('app_bons_cacao_a_signer') }}" class="btn btn-light" style="border:1px solid #ddd;">Réinitialiser</a>
+        </div>
+        <div style="margin-left:auto;">
+            <label>Recherche</label>
+            <input type="text" id="bsSearch" placeholder="Référence, service, agent..." style="width:240px;">
+        </div>
+        <div>
+            <a href="{{ path('app_bons_cacao_signes') }}" class="btn btn-light" style="border:1px solid #ddd;">
+                Voir les bons signés
+            </a>
+        </div>
+    </form>
+
+    {% if bons is empty %}
+        <div class="bs-table"><div class="bs-empty">Aucun bon de sortie cacao en attente de signature.</div></div>
+    {% else %}
+    <div style="overflow-x:auto;">
+    <table class="bs-table" id="bsTable">
+        <thead>
+            <tr>
+                <th>Référence</th>
+                <th>Date de sortie</th>
+                <th>Type de stock</th>
+                <th>Nature</th>
+                <th>Motif</th>
+                <th class="text-end">Quantité</th>
+                <th>Service</th>
+                <th>Agent</th>
+                <th>Établi par</th>
+                <th class="text-center">Statut</th>
+                <th style="width:210px;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for b in bons %}
+            <tr class="bs-row" data-bon-token="{{ b.token }}"
+                data-search="{{ (b.reference ~ ' ' ~ b.serviceLibelle ~ ' ' ~ b.agentLibelle ~ ' ' ~ b.rubrique)|lower }}">
+                <td class="fw-bold" style="color:var(--cacao-fonce);">
+                    {{ b.reference }}
+                    <a class="bs-link-pdf d-block" target="_blank" rel="noopener"
+                       href="{{ path('app_bon_cacao_pdf', { reference: b.reference }) }}">Imprimer le bon</a>
+                </td>
+                <td>{{ b.dateSortie ? b.dateSortie|date('d/m/Y H:i') : '' }}</td>
+                <td>{{ b.rubrique }}</td>
+                <td>{{ b.nature ?? '-' }}</td>
+                <td>{{ b.motif }}</td>
+                <td class="text-end fw-bold">{{ b.quantite|number_format(2, ',', ' ') }} {{ b.unite }}</td>
+                <td>{{ b.serviceLibelle ?? '-' }}</td>
+                <td>{{ b.agentLibelle ?? '-' }}</td>
+                <td>{{ b.createdAt ? b.createdAt|date('d/m/Y H:i') : '' }}</td>
+                <td class="text-center"><span class="badge-attente statut-bon">En cours de validation</span></td>
+                <td>
+                    <span class="bon-signature-zone d-inline-flex align-items-center gap-2" data-token="{{ b.token }}">
+                        {% if is_granted('ROLE_DG') %}
+                        <button type="button" class="btn-signer-bon-cacao" data-token="{{ b.token }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                 stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;">
+                                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                            </svg>Signer
+                        </button>
+                        <button type="button" class="btn-annuler-bon-cacao" data-token="{{ b.token }}">Annuler</button>
+                        {% else %}
+                            <span class="badge" style="background:#fdecea;color:#b71c1c;font-weight:600;padding:8px 12px;">
+                                En attente de la signature du Directeur Général
+                            </span>
+                        {% endif %}
+                    </span>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+(function () {
+    var search = document.getElementById('bsSearch');
+    if (!search) return;
+    search.addEventListener('input', function () {
+        var q = this.value.toLowerCase().trim();
+        document.querySelectorAll('#bsTable tbody tr.bs-row').forEach(function (row) {
+            row.style.display = (row.getAttribute('data-search').indexOf(q) !== -1) ? '' : 'none';
+        });
+    });
+})();
+</script>
+{% endblock %}

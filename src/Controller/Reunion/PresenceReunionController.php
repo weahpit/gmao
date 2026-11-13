@@ -145,6 +145,7 @@ final class PresenceReunionController extends AbstractController
             'qualite'     => trim((string) $request->request->get('qualite', '')),
             'telephone'   => trim((string) $request->request->get('telephone', '')),
             'email'       => trim((string) $request->request->get('email', '')),
+            'arrivee'     => trim((string) $request->request->get('arrivee_at', '')),
         ];
 
         // Seule une reunion ouverte accepte de nouvelles presences.
@@ -233,9 +234,16 @@ final class PresenceReunionController extends AbstractController
         }
 
         $participant = new ParticipantReunion();
+
+        // Heure d'ARRIVEE : saisie par le participant (heure reelle de son
+        // arrivee) ; a defaut, l'instant d'enregistrement. C'est cette heure
+        // qui permet de detecter les retards (>= 15 min apres le debut).
+        $arrivee = $this->arriveeDepuisSaisie($ancien['arrivee'] ?? '', $reunion);
+
         $participant->setReunion($reunion)
             ->setNom(mb_strtoupper($ancien['nom']))
             ->setPrenoms($ancien['prenoms'])
+            ->setArriveeAt($arrivee)
             ->setService($serviceLibelle !== '' ? $serviceLibelle : null)
             ->setQualite($ancien['qualite'])
             ->setTelephone($tel)
@@ -253,6 +261,42 @@ final class PresenceReunionController extends AbstractController
             'ancien'       => [],
             'dernier'      => $participant,
         ]));
+    }
+
+    /**
+     * Convertit la saisie d'heure d'arrivee (HH:MM) en DateTimeImmutable
+     * positionne sur le jour de la reunion. Si la reunion est aujourd'hui et
+     * que l'heure saisie est tres en avance par rapport a l'heure courante
+     * (ex. 23:00 saisie a 08:00), on ramene la valeur a « maintenant ».
+     * En cas de saisie vide ou invalide : instant courant.
+     */
+    private function arriveeDepuisSaisie(string $saisie, ?Reunion $reunion): \DateTimeImmutable
+    {
+        $maintenant = new \DateTimeImmutable();
+        if ($saisie === '') {
+            return $maintenant;
+        }
+
+        $base = ($reunion && $reunion->getDateDebut()) ? $reunion->getDateDebut() : $maintenant;
+        $jour = $base->format('Y-m-d');
+
+        if (preg_match('/^(\d{1,2})[:hH](\d{2})$/', $saisie, $m)) {
+            $h = min(23, max(0, (int) $m[1]));
+            $i = min(59, max(0, (int) $m[2]));
+            try {
+                $date = new \DateTimeImmutable(sprintf('%s %02d:%02d:00', $jour, $h, $i));
+                // Heure manifestement saisie par erreur (plus de 6 h dans le futur) : on garde l'instant reel.
+                if ($date->getTimestamp() > $maintenant->getTimestamp() + 6 * 3600) {
+                    return $maintenant;
+                }
+
+                return $date;
+            } catch (\Throwable) {
+                return $maintenant;
+            }
+        }
+
+        return $maintenant;
     }
 
     /** Recu individuel imprimable (preuve de presence). */

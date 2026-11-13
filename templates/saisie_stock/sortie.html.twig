@@ -26,6 +26,37 @@
         </a>
     </div>
 
+    {# RAPPEL : toute sortie de stock passe par un bon signé par le DG #}
+    <div class="alert d-flex flex-wrap justify-content-between align-items-center gap-2"
+         style="background:#fdf6ec;border:1px solid #ecdcc4;border-radius:12px;color:#5A371E;">
+        <div style="font-size:.9rem;">
+            <strong>Bon de sortie :</strong> toute sortie de stock, quel que soit le type, génère un <strong>bon de sortie</strong> qui doit être
+            <strong>signé par le Directeur Général</strong> avant que la marchandise ne quitte le magasin.
+            {% if is_granted('ROLE_DG') %}
+                <a href="{{ path('app_bons_stock_a_signer') }}" style="color:#8b5a2b;font-weight:600;">Signer les bons en attente &rarr;</a>
+            {% elseif is_granted('ROLE_PDR') %}
+                <a href="{{ path('app_bons_stock_signes') }}" style="color:#8b5a2b;font-weight:600;">Voir les bons signés</a>
+            {% endif %}
+            {% if nbBonsEnAttente > 0 %}
+                <span class="badge" style="background:#fdecea;color:#b71c1c;font-weight:600;">
+                    {{ nbBonsEnAttente }} bon{{ nbBonsEnAttente > 1 ? 's' : '' }} en attente de signature
+                </span>
+            {% endif %}
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if is_granted('ROLE_DG') %}
+                <a href="{{ path('app_bons_stock_a_signer') }}" class="btn btn-outline-cacao btn-sm">
+                    Bons de sortie à signer
+                </a>
+            {% endif %}
+            {% if is_granted('ROLE_DG') or is_granted('ROLE_PDR') %}
+                <a href="{{ path('app_bons_stock_signes') }}" class="btn btn-outline-cacao btn-sm">
+                    Bons de sortie signés
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
     {% if erreurs._global is defined %}
         <div class="alert alert-danger">{{ erreurs._global }}</div>
     {% endif %}
@@ -74,7 +105,11 @@
 
         <div class="col-md-4">
             <label class="mb-1" for="date_sortie">Date et heure de la sortie</label>
-            <input id="date_sortie" type="datetime-local" name="date_sortie" class="form-control" value="{{ dateValeur }}">
+            {# Date opération GRISÉE : elle est fixée par le serveur, non modifiable. #}
+            <input id="date_sortie" type="datetime-local" name="date_sortie" class="form-control ss-date-figee"
+                   value="{{ dateValeur }}" readonly aria-readonly="true" tabindex="-1"
+                   title="Date et heure fixées automatiquement">
+            <div class="ss-hint">Date fixée automatiquement par le serveur.</div>
             {% if erreurs.dateSortie is defined %}<div class="ss-errors">{{ erreurs.dateSortie }}</div>{% endif %}
         </div>
 
@@ -139,6 +174,7 @@
                         <th>Service</th>
                         <th>Agent</th>
                         <th class="text-end">Quantité</th>
+                        <th>Bon de sortie</th>
                         <th>Photo</th>
                     </tr>
                 </thead>
@@ -156,6 +192,25 @@
                                 <span class="ss-badge sortie">− {{ o.quantite|number_format(2, ',', ' ') }} {{ o.unite }}</span>
                             </td>
                             <td>
+                                {% if o.reference %}
+                                    {# Bon de sortie : émis pour TOUTE sortie (toutes rubriques). #}
+                                    <div style="font-size:.78rem;font-weight:600;color:#5A371E;">{{ o.reference }}</div>
+                                    {% if o.statut == 'EN_ATTENTE' %}
+                                        <span class="badge" style="background:#fdecea;color:#b71c1c;font-weight:600;">En cours de validation</span>
+                                    {% elseif o.statut == 'VALIDE' %}
+                                        <span class="badge" style="background:#e6f4ea;color:#1b5e20;font-weight:600;">Validé</span>
+                                    {% elseif o.statut == 'ANNULE' %}
+                                        <span class="badge" style="background:#eceff1;color:#37474f;font-weight:600;">Annulé</span>
+                                    {% endif %}
+                                    <a href="{{ path('app_bon_stock_pdf', { reference: o.reference }) }}"
+                                       class="d-block" style="font-size:.75rem;color:#8B5A2B;" target="_blank" rel="noopener">
+                                        Imprimer le bon
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 {% if o.photo %}
                                     <img src="{{ asset(dossierPhotos ~ o.photo) }}"
                                          class="ss-thumb"
@@ -171,7 +226,7 @@
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Aucune sortie enregistrée aujourd'hui.</td>
+                            <td colspan="10" class="text-center text-muted py-4">Aucune sortie enregistrée aujourd'hui.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

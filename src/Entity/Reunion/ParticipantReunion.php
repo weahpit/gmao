@@ -54,6 +54,41 @@ class ParticipantReunion
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
 
+    /**
+     * Date et heure d'ARRIVEE du participant (saisie a l'enregistrement de la
+     * presence). Null pour les enregistrements anterieurs : createdAt fait foi.
+     */
+    #[ORM\Column(name: 'arrivee_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $arriveeAt = null;
+
+    /** Seuil (en minutes) au-dela duquel un participant est considere en retard. */
+    public const SEUIL_RETARD_MINUTES = 15;
+
+    public function getArriveeAt(): ?\DateTimeImmutable { return $this->arriveeAt; }
+    public function setArriveeAt(?\DateTimeImmutable $v): static { $this->arriveeAt = $v; return $this; }
+
+    /** Instant d'arrivee effectif (arriveeAt, sinon createdAt). */
+    public function getInstantArrivee(): ?\DateTimeImmutable { return $this->arriveeAt ?? $this->createdAt; }
+
+    /** Retard en minutes par rapport au debut de la reunion (0 si a l'heure). */
+    public function getRetardMinutes(): int
+    {
+        $debut = $this->reunion?->getDateDebut();
+        $arrivee = $this->getInstantArrivee();
+        if (!$debut || !$arrivee) {
+            return 0;
+        }
+        $minutes = (int) floor(($arrivee->getTimestamp() - $debut->getTimestamp()) / 60);
+
+        return max(0, $minutes);
+    }
+
+    /** Le participant est-il en retard (arrivee >= 15 min apres le debut) ? */
+    public function isEnRetard(): bool
+    {
+        return $this->getRetardMinutes() >= self::SEUIL_RETARD_MINUTES;
+    }
+
     /** Adresse IP de l'enregistrement (tracabilite). */
     #[ORM\Column(length: 45, nullable: true)]
     private ?string $ip = null;

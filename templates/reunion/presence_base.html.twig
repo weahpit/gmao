@@ -4,7 +4,7 @@
     Fond : degrade cacao leger et clair, logo CITRAC en filigrane + en tete.
 #}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ app.request.locale|default('fr') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -53,6 +53,12 @@
         .brand { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; margin-bottom: 22px; }
         .brand img { height: 58px; width: auto; }
         .brand .sub { font-size: 12.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--cacao-500); font-weight: 600; }
+        /* Selecteur de langue FR / EN (page publique) */
+        .langue-switch { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(169, 118, 90, .30); border-radius: 999px; background: rgba(255, 255, 255, .75); }
+        .langue-switch .langue-btn { display: inline-block; padding: 3px 10px; font-size: 11.5px; font-weight: 700; letter-spacing: .3px; color: #8a6a58; text-decoration: none; border-radius: 999px; transition: background-color .15s ease, color .15s ease; }
+        .langue-switch .langue-btn:hover { background: #f0e6dd; color: #6b4f3f; }
+        .langue-switch .langue-btn.actif { background: #7a5a3e; color: #fff; }
+        .langue-barre { display: flex; justify-content: flex-end; margin-bottom: 6px; }
 
         .card {
             background: rgba(255, 255, 255, .86);
@@ -125,6 +131,18 @@
         .nom { font-weight: 600; color: var(--cacao-900); }
         .num { color: #9c8272; font-size: .76rem; }
 
+        /* ------- retards (arrivee >= 15 min apres le debut) ------- */
+        tbody tr.en-retard td { background: rgba(220, 38, 38, .08); color: #b71c1c; }
+        tbody tr.en-retard .nom { color: #b71c1c; }
+        tbody tr.en-retard td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
+        .tag-retard { display: inline-block; background: #dc2626; color: #fff; font-size: .68rem;
+            font-weight: 700; letter-spacing: .03em; border-radius: 999px; padding: 2px 8px; margin-left: 6px;
+            text-transform: uppercase; }
+        .tag-heure { display: inline-block; background: rgba(31, 97, 70, .12); color: #1f6146; font-size: .7rem;
+            border-radius: 999px; padding: 2px 8px; font-weight: 600; }
+        .legend-retard { font-size: .76rem; color: #7a5c4c; margin-top: 10px; display: flex; align-items: center; gap: 6px; }
+        .legend-retard .dot { width: 12px; height: 12px; border-radius: 3px; background: #dc2626; display: inline-block; }
+
         /* ------- compte rendu ------- */
         .cr-box { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 16px; border-radius: 14px; background: linear-gradient(120deg, #fdf6ef, #f8ece1); border: 1px solid #eed9c8; }
         .cr-box .t { font-weight: 600; color: var(--cacao-900); }
@@ -150,6 +168,13 @@
 </head>
 <body>
     <div class="page">
+        {% set langue_active = app.request.locale|default('fr') %}
+        <div class="langue-barre no-print">
+            <div class="langue-switch" role="group" aria-label="Langue de l'interface">
+                <a href="{{ path('app_langue_changer', {_locale: 'fr'}) }}" class="langue-btn {{ langue_active == 'fr' ? 'actif' }}" title="Francais">FR</a>
+                <a href="{{ path('app_langue_changer', {_locale: 'en'}) }}" class="langue-btn {{ langue_active == 'en' ? 'actif' }}" title="English">EN</a>
+            </div>
+        </div>
         {% block presence_body %}{% endblock %}
         <footer class="page-foot">
             CITRAC Process — San-Pedro, Côte d'Ivoire

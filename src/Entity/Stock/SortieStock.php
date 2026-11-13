@@ -17,6 +17,11 @@ use Symfony\Component\Validator\Constraints as Assert;
  * justificative facultative.
  *
  * Le solde d'une rubrique = somme des saisies (entrées) - somme des sorties.
+ *
+ * CIRCUIT DE VALIDATION : TOUTE sortie, quel que soit le type de stock
+ * (cacao, PDR, consommables...), génère un BON DE SORTIE soumis à la
+ * signature du Directeur Général (ROLE_DG dont ROLE_ADMIN hérite),
+ * exactement comme les bons de sortie PDR de l'entité App\Entity\BonSortie.
  */
 #[ORM\Entity(repositoryClass: SortieStockRepository::class)]
 #[ORM\Table(name: 'sortie_stock')]
@@ -35,6 +40,29 @@ class SortieStock
 
     /** Nature du produit : liste FERMEE (valeurs imposees, cf. SaisieStock::NATURES). */
     public const NATURES = SaisieStock::NATURES;
+
+    /* ------------------------------------------------------------------
+     * CIRCUIT DE VALIDATION DU BON DE SORTIE (toutes rubriques)
+     * Identique au circuit des bons de sortie PDR (entite BonSortie) :
+     *   1. EN_ATTENTE : sortie enregistree (magasinier / agent) -> bon emis
+     *   2. VALIDE     : bon signe par le Directeur General (ROLE_DG / ROLE_ADMIN)
+     *   3. ANNULE     : bon refuse / annule par la Direction Generale
+     * ------------------------------------------------------------------ */
+    public const STATUT_EN_ATTENTE = 'EN_ATTENTE';
+    public const STATUT_VALIDE     = 'VALIDE';
+    public const STATUT_ANNULE     = 'ANNULE';
+
+    public const LIBELLES_STATUT = [
+        self::STATUT_EN_ATTENTE => 'En cours de validation',
+        self::STATUT_VALIDE     => 'Validé',
+        self::STATUT_ANNULE     => 'Annulé',
+    ];
+
+    /**
+     * Rubrique cacao (information metier uniquement : elle ne conditionne
+     * PLUS le circuit de validation, qui s'applique a toutes les sorties).
+     */
+    public const RUBRIQUES_CACAO = ['cacao', 'feves de cacao', 'fèves de cacao', 'graines de cacao'];
 
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
@@ -89,7 +117,13 @@ class SortieStock
     #[ORM\Column(type: Types::FLOAT)]
     private ?float $quantite = null;
 
-    #[Assert\Choice(choices: SaisieStock::UNITES, message: 'Unité invalide.')]
+    /**
+     * Unite de mesure (table stock_unite). La liste n'est plus fermee dans
+     * l'entite : elle est validee contre le referentiel partage web + mobile
+     * (App\Service\Stock\ReferentielStock::uniteValide) pour qu'une unite
+     * ajoutee dans la table soit immediatement acceptee, sans redéploiement.
+     */
+    #[Assert\NotBlank(message: 'Choisissez une unité.')]
     #[ORM\Column(length: 20)]
     private ?string $unite = 'Kg';
 
@@ -157,4 +191,91 @@ class SortieStock
 
     public function getCreatedAt(): ?\DateTimeImmutable { return $this->createdAt; }
     public function setCreatedAt(?\DateTimeImmutable $v): static { $this->createdAt = $v; return $this; }
+
+    // ------------------------------------------------------------------
+    // BON DE SORTIE CACAO (validation par la Direction Generale)
+    // ------------------------------------------------------------------
+
+    /** Identifiant d'envoi mobile (idempotence) — même principe que SaisieStock. */
+    #[ORM\Column(length: 64, unique: true, nullable: true)]
+    private ?string $clientUuid = null;
+
+    /** Référence lisible du bon de sortie (BS-AAAAMMJJ-XXXXXX). */
+    #[ORM\Column(name: 'bon_reference', length: 50, nullable: true)]
+    private ?string $reference = null;
+
+    /** Jeton de signature (sert d'identifiant confidentiel dans l'URL de signature). */
+    #[ORM\Column(name: 'bon_token', length: 64, nullable: true)]
+    private ?string $token = null;
+
+    /**
+     * Statut de validation du bon :
+     *   null       -> sortie ordinaire (anciennes données, aucun bon émis)
+     *   EN_ATTENTE -> bon émis, en attente de la signature du DG
+     *   VALIDE     -> signé par la Direction Générale
+     *   ANNULE     -> annulé / refusé
+     */
+    #[ORM\Column(name: 'bon_statut', length: 20, nullable: true)]
+    private ?string $statut = null;
+
+    #[ORM\Column(name: 'signe_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $signeAt = null;
+
+    #[ORM\Column(name: 'signe_par', length: 255, nullable: true)]
+    private ?string $signePar = null;
+
+    /** Observation saisie par le signataire (facultative). */
+    #[ORM\Column(name: 'observation_signature', length: 255, nullable: true)]
+    private ?string $observationSignature = null;
+
+    public function getClientUuid(): ?string { return $this->clientUuid; }
+    public function setClientUuid(?string $v): static { $this->clientUuid = $v; return $this; }
+
+    public function getReference(): ?string { return $this->reference; }
+    public function setReference(?string $v): static { $this->reference = $v; return $this; }
+
+    public function getToken(): ?string { return $this->token; }
+    public function setToken(?string $v): static { $this->token = $v; return $this; }
+
+    public function getStatut(): ?string { return $this->statut; }
+    public function setStatut(?string $v): static { $this->statut = $v; return $this; }
+
+    public function getSigneAt(): ?\DateTimeImmutable { return $this->signeAt; }
+    public function setSigneAt(?\DateTimeImmutable $v): static { $this->signeAt = $v; return $this; }
+
+    public function getSignePar(): ?string { return $this->signePar; }
+    public function setSignePar(?string $v): static { $this->signePar = $v; return $this; }
+
+    public function getObservationSignature(): ?string { return $this->observationSignature; }
+    public function setObservationSignature(?string $v): static { $this->observationSignature = $v; return $this; }
+
+    /** Le bon de sortie est-il en attente de signature du DG ? */
+    public function isEnAttente(): bool { return $this->statut === self::STATUT_EN_ATTENTE; }
+
+    /** Le bon de sortie est-il signé (validé) par la Direction Générale ? */
+    public function isValide(): bool { return $this->statut === self::STATUT_VALIDE; }
+
+    /** Libellé métier du statut (chaîne vide si sortie ordinaire sans bon). */
+    public function getStatutLibelle(): string
+    {
+        return $this->statut === null ? '' : (self::LIBELLES_STATUT[$this->statut] ?? (string) $this->statut);
+    }
+
+    /** La rubrique de cette sortie est-elle le cacao (information metier, sans effet sur le circuit) ? */
+    public function estRubriqueCacao(): bool
+    {
+        return self::rubriqueEstCacao($this->rubrique);
+    }
+
+    /** Comparaison normalisée (minuscules, sans accents) d'un libellé de rubrique avec la liste cacao. */
+    public static function rubriqueEstCacao(?string $rubrique): bool
+    {
+        if ($rubrique === null || trim($rubrique) === '') {
+            return false;
+        }
+        $n = mb_strtolower(trim($rubrique));
+        $n = str_replace(['é', 'è', 'ê', 'ë'], 'e', $n);
+
+        return str_contains($n, 'cacao') || in_array($n, self::RUBRIQUES_CACAO, true);
+    }
 }

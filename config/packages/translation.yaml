@@ -1,5 +1,9 @@
 framework:
-    default_locale: en
+    # Langue par defaut de l'application : francais.
+    # La langue reellement affichee est choisie par LocaleSubscriber :
+    # session (choix de l'utilisateur) puis navigateur (fr/en), puis ce defaut.
+    default_locale: fr
     translator:
         default_path: '%kernel.project_dir%/translations'
-        providers:
+        fallbacks:
+            - fr

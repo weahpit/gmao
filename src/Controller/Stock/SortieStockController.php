@@ -4,10 +4,10 @@ namespace App\Controller\Stock;
 
 use App\Entity\Emplacement;
 use App\Entity\Services;
-use App\Entity\Stock\SaisieStock;
 use App\Entity\Stock\SortieStock;
 use App\Entity\User;
 use App\Repository\Stock\SortieStockRepository;
+use App\Service\Stock\BonSortieStockService;
 use App\Service\Stock\ReferentielStock;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,6 +42,7 @@ final class SortieStockController extends AbstractController
         private EntityManagerInterface $em,
         private ValidatorInterface $validator,
         private ReferentielStock $referentiel,
+        private BonSortieStockService $bonsSortie,
         #[Autowire('%photo_sortie_stock%')] private string $dossierPhotos,
     ) {}
 
@@ -84,14 +85,21 @@ final class SortieStockController extends AbstractController
                         $photo->move($this->dossierPhotos, $nomPhoto);
                         $sortie->setPhoto($nomPhoto);
                     }
+
+                    // TOUTE sortie de stock (quel que soit le type) émet un bon de
+                    // sortie soumis à la signature du Directeur Général
+                    // (même circuit que les bons de sortie PDR).
+                    $this->bonsSortie->emettreBon($sortie);
+
                     $this->em->persist($sortie);
                     $this->em->flush();
 
                     $this->addFlash('success', sprintf(
-                        'Sortie enregistrée : %s %s — %s.',
+                        'Sortie enregistrée : %s %s — %s. Bon %s émis, en attente de la signature du Directeur Général.',
                         number_format((float) $sortie->getQuantite(), 2, ',', ' '),
                         $sortie->getUnite(),
-                        $sortie->getRubrique()
+                        $sortie->getRubrique(),
+                        $sortie->getReference()
                     ));
 
                     return $this->redirectToRoute('app_sorties_stock', [], Response::HTTP_SEE_OTHER);
@@ -109,19 +117,25 @@ final class SortieStockController extends AbstractController
 
         $aujourdhui = (new \DateTimeImmutable('today'))->format('Y-m-d');
 
+        $sorties = $repo->findFiltre($aujourdhui, $aujourdhui);
+        $nbBonsEnAttente = count($repo->findBonsEnAttente());
+
         return $this->render('saisie_stock/sortie.html.twig', [
             'sortie'        => $sortie,
             'erreurs'       => $erreurs,
-            'dateValeur'    => $sortie->getDateSortie()?->format('Y-m-d\TH:i'),
+            'dateValeur'    => ($sortie->getDateSortie()
+                ?? $sortie->getCreatedAt()
+                ?? new \DateTime())->format('Y-m-d\TH:i'),
             'serviceId'     => (string) $sortie->getService()?->getId(),
             'emplacementId' => (string) $sortie->getEmplacement()?->getId(),
             'rubriques'     => $this->referentiel->rubriques(),
-            'unites'        => SaisieStock::UNITES,
+            'unites'        => $this->referentiel->unites(),
             'natures'       => $this->referentiel->natures(),
             'motifs'        => SortieStock::MOTIFS,
             'services'      => $this->em->getRepository(Services::class)->findBy([], ['libelle' => 'ASC']),
             'emplacements'  => $this->em->getRepository(Emplacement::class)->findBy([], ['libelle' => 'ASC']),
-            'sorties'       => $repo->findFiltre($aujourdhui, $aujourdhui),
+            'sorties'       => $sorties,
+            'nbBonsEnAttente' => $nbBonsEnAttente,
             'dossierPhotos' => $this->dossierPhotos,
         ], $reponse);
     }
@@ -137,7 +151,7 @@ final class SortieStockController extends AbstractController
         $sortie->setAgentLibelle(trim(($user->getPrenoms() ?? '') . ' ' . ($user->getNom() ?? '')));
         $sortie->setRubrique(trim((string) $in->get('rubrique')));
         $sortie->setQuantite(is_numeric($brut) ? (float) $brut : null);
-        $sortie->setUnite(trim((string) $in->get('unite')) ?: 'Kg');
+        $sortie->setUnite(trim((string) $in->get('unite')) ?: $this->referentiel->uniteDefaut());
         $sortie->setMotif(trim((string) $in->get('motif')));
         $sortie->setNature(trim((string) $in->get('nature')) ?: null);
 
@@ -151,16 +165,9 @@ final class SortieStockController extends AbstractController
         $sortie->setEmplacement($emplacement);
         $sortie->setEmplacementLibelle($emplacement?->getLibelle());
 
-        $date = trim((string) $in->get('date_sortie'));
-        if ($date === '') {
-            $sortie->setDateSortie(new \DateTime());
-        } else {
-            try {
-                $sortie->setDateSortie(new \DateTime($date));
-            } catch (\Throwable) {
-                $sortie->setDateSortie(null); // signalée par la contrainte NotNull
-            }
-        }
+        // Date operation : GRISEE dans le formulaire, c'est l'heure du SERVEUR
+        // qui fait foi (+/- 3 minutes de tolerance pour un decalage d'horloge).
+        $sortie->setDateSortie($this->dateOperationServeur($in->get('date_sortie')));
     }
 
     /**
@@ -212,5 +219,29 @@ final class SortieStockController extends AbstractController
         } catch (\Throwable) {
             return null;
         }
+    }
+    /**
+     * Date operation "grisee" : la reference est l'heure du SERVEUR.
+     * La valeur envoyee par le navigateur n'est retenue que si elle reste
+     * a moins de 3 minutes de l'heure serveur (simple decalage d'horloge).
+     */
+    private function dateOperationServeur(mixed $valeurEnvoyee): \DateTime
+    {
+        $serveur = new \DateTime();
+        $envoyee = trim((string) $valeurEnvoyee);
+        if ($envoyee === '') {
+            return $serveur;
+        }
+
+        try {
+            $dateNavigateur = new \DateTime($envoyee);
+            if (abs($dateNavigateur->getTimestamp() - $serveur->getTimestamp()) <= 180) {
+                return $dateNavigateur;
+            }
+        } catch (\Throwable) {
+            // valeur illisible : on garde l'heure serveur
+        }
+
+        return $serveur;
     }
 }

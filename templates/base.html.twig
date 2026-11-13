@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="fr" class="h-full">
+<html lang="{{ app.request.locale|default('fr') }}" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,6 +47,36 @@
     {% block stylesheets %}{% endblock %}
 
     <style>
+        /* Selecteur de langue FR / EN dans l'en-tete (habillage cacao) */
+        .langue-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            padding: 2px;
+            margin-right: 8px;
+            border: 1px solid var(--green-100, #e6ded6);
+            border-radius: 999px;
+            background: #fbf8f5;
+        }
+        .langue-switch .langue-btn {
+            display: inline-block;
+            padding: 3px 10px;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: .3px;
+            line-height: 1.2;
+            color: #8a6a58;
+            text-decoration: none;
+            border-radius: 999px;
+            transition: background-color .15s ease, color .15s ease;
+        }
+        .langue-switch .langue-btn:hover { background: #f0e6dd; color: #6b4f3f; }
+        .langue-switch .langue-btn.actif { background: #8b6b4a; color: #fff; }
+        @media (max-width: 575.98px) {
+            .langue-switch { margin-right: 4px; }
+            .langue-switch .langue-btn { padding: 3px 7px; font-size: 11px; }
+        }
+
         /* Ligne sélectionnée */
         .table tbody tr.selected-row {
             background-color: #fff9c4 !important; /* jaune clair */
@@ -330,7 +360,8 @@
                     or app.request.attributes.get('_route') starts with 'app_mouvements_stock'
                     or app.request.attributes.get('_route') starts with 'app_saisies_stock'
                     or app.request.attributes.get('_route') starts with 'app_saisie_stock_nouvelle'
-                    or app.request.attributes.get('_route') starts with 'app_sorties_stock' %}
+                    or app.request.attributes.get('_route') starts with 'app_sorties_stock'
+                    or app.request.attributes.get('_route') starts with 'app_stock_initialisation' %}
                 <div class="nav-group">
                     <button type="button" class="nav-item has-submenu {{ stockActive ? 'has-active' }}">
                         <i data-lucide="package"></i>
@@ -380,6 +411,11 @@
                             <a href="{{ path('app_saisies_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisies_stock' ? 'active' }}">
                                 <span class="nav-label">Consultations</span>
                             </a>
+                            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') %}
+                            <a href="{{ path('app_stock_initialisation') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_stock_initialisation' ? 'active' }}">
+                                <span class="nav-label">Initialisation des stocks</span>
+                            </a>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -438,6 +474,19 @@
                         </a>
                         <a href="{{ path('app_bons_signes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_bons_signes' ? 'active' }}">
                             <span class="nav-label">Visualisation Bons de sortie</span>
+                        </a>
+
+                        {# --- Bons de sortie de stock, toutes rubriques (même circuit de signature que le PDR) --- #}
+                        <a href="{{ path('app_bons_stock_a_signer') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_bons_stock_a_signer' or app.request.attributes.get('_route') starts with 'app_bon_stock' ? 'active' }}">
+                            <span class="nav-label">
+                                <span class="fw-bold text-danger bg-white badge">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" style="height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil-line preview-icon me-1"><path d="M13 21h8"/><path d="m15 5 4 4"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                                    Signer le bon de sortie
+                                </span>
+                            </span>
+                        </a>
+                        <a href="{{ path('app_bons_stock_signes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_bons_stock_signes' ? 'active' }}">
+                            <span class="nav-label">Bons de sortie signés</span>
                         </a>
                     </div>
                 </div>
@@ -561,14 +610,24 @@
             </button>
             <div class="breadcrumb">
                 {% block breadcrumb %}
-                    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+                    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">{{ 'menu.accueil'|trans }}</a></span>
                 {% endblock %}
             </div>
             <div class="banner-actions">
                 <div class="search-bar" onclick="document.getElementById('search-input').focus()">
                     <i data-lucide="search" class="search-icon"></i>
-                    <label for="search-input"></label><input id="search-input" type="text" placeholder="Rechercher... (⌘K)" class="search-input">
+                    <label for="search-input"></label><input id="search-input" type="text" placeholder="{{ 'header.rechercher'|trans }} (⌘K)" class="search-input">
                     <kbd class="search-kbd">⌘K</kbd>
+                </div>
+                <!-- Selecteur de langue FR / EN (langue memorisee en session) -->
+                {% set langue_active = app.request.locale|default('fr') %}
+                <div class="langue-switch" role="group" aria-label="Langue de l'interface">
+                    <a href="{{ path('app_langue_changer', {_locale: 'fr'}) }}"
+                       class="langue-btn {{ langue_active == 'fr' ? 'actif' }}"
+                       title="Francais" aria-current="{{ langue_active == 'fr' ? 'true' : 'false' }}">FR</a>
+                    <a href="{{ path('app_langue_changer', {_locale: 'en'}) }}"
+                       class="langue-btn {{ langue_active == 'en' ? 'actif' }}"
+                       title="English" aria-current="{{ langue_active == 'en' ? 'true' : 'false' }}">EN</a>
                 </div>
                 <button class="notification-bell" aria-label="Notifications">
                     <i data-lucide="bell"></i>
@@ -594,8 +653,9 @@
 
 <!-- Modal Add/Edit Equipement-->
 <div class="modal fade" id="modalEq" tabindex="-1" aria-labelledby="modalAddEquipementLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-fullscreen">
         <div class="modal-content"  style="border-radius: 0;">
+
             <div class="modal-header" style="background: var(--green-100)">
                 <h1 class="modal-title fs-5" id="exampleModalLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-box preview-icon"><path d="M14 2v5a1 1 0 001 1h5"/><path d="M14.692 22H18a2 2 0 002-2V8a2.4 2.4 0 00-.706-1.706l-3.588-3.588A2.4 2.4 0 0014 2H6a2 2 0 00-2 2v3.804"/><path d="M2.264 13.752 7 16.5l4.737-2.748"/><path d="M2.995 13.014A2 2 0 002 14.744v3.516a2 2 0 00.996 1.73l3 1.74a2 2 0 002.008 0l3-1.74A2 2 0 0012 18.26v-3.517a2 2 0 00-.995-1.73l-3-1.742a2 2 0 00-1.892-.064z"/><path d="M7 16.5V22"/></svg> Gestion des articles</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -729,6 +789,7 @@
 <script src="{{ asset('js/api/references/TypeEmplacement.js') }}"></script>
 <script src="{{ asset('js/api/stock/RequetesStock.js') }}"></script>
 <script src="{{ asset('js/api/stock/BonSortie.js') }}"></script>
+<script src="{{ asset('js/api/stock/BonSortieStock.js') }}"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>

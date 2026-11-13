@@ -1,0 +1,83 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Références [Unites Stock] — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Unites Stock</span>
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Unites Stock</h1>
+    <a href="#"  id="btn_add_stock_unite" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddStockUnite">
+        <img src="{{ asset('icons/stock_unite.png') }}" class="me-2" alt="" height="16"> Nouvelle unité
+    </a>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+
+    </div>
+</div>
+
+    <!-- Modal Add/Edit Unites-->
+    <div class="modal fade" id="modalAddStockUnite" tabindex="-1" aria-labelledby="modalAddStockUniteLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><img class="me-2" src="{{ asset('icons/stock_unite.png') }}" height="40" alt=""> Enregistrer une  unité</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formStockUnite" >
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="stock_unite" style="width: 150px;">Libelle</label>
+                            <input type="text" class="input" id="stock_unite" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="symbole" style="width: 150px;">Symbole</label>
+                            <input type="text" class="input" id="symbole">
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="position" style="width: 150px;">Position</label>
+                            <input type="number" class="input" id="position">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveStockUnite">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/StockUnite.js') }}"></script>
+    <script>
+
+        let idStockUnite = 0;
+       getAllStockUnites(document.querySelector(".card-body"), 1)
+       clearForm("formStockUnite", "stock_unite")
+        ValidateOnKeypress(document.getElementById("stock_unite"), document.getElementById("saveStockUnite"), "formStockUnite")
+
+        document.querySelector("#btn_add_stock_unite").addEventListener("click", function () {
+           clearForm("formStockUnite", "stock_unite")
+       })
+
+       document.querySelector("#saveStockUnite").addEventListener("click", function () {
+           let FormDataStockUnite = new FormData();
+           FormDataStockUnite.append('id_stock_unite', idStockUnite)
+           FormDataStockUnite.append('libelle', document.querySelector("#stock_unite").value)
+           FormDataStockUnite.append('symbole', document.querySelector("#symbole").value)
+           FormDataStockUnite.append('position', document.querySelector("#position").value)
+           saveStockUnite(FormDataStockUnite, document.querySelector(".card-body"), 1)
+       })
+    </script>
+{% endblock %}

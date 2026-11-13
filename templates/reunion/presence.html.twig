@@ -103,6 +103,19 @@
                                 <input type="text" id="prenoms" name="prenoms" value="{{ ancien.prenoms|default('') }}" placeholder="Ex : Jean-Marc" autocomplete="given-name" required>
                             </div>
 
+                            {# Heure d'arrivee : pre-remplie a l'heure courante, modifiable si
+                               le participant s'est presente plus tot. Sert a detecter
+                               les retards (>= 15 min apres le debut de la reunion). #}
+                            <div>
+                                <label for="arrivee_at">{{ 'presence.heure_arrivee'|trans }} <span class="req">*</span></label>
+                                <input type="time" id="arrivee_at" name="arrivee_at"
+                                       value="{{ ancien.arrivee|default('now'|date('H:i')) }}" step="60" required>
+                                <div class="aide">
+                                    Debut de la reunion :
+                                    {{ reunion.dateDebut ? reunion.dateDebut|date('d/m/Y a H:i') : 'non precise' }}
+                                </div>
+                            </div>
+
                             <div>
                                 <label for="service">Service</label>
                                 <select id="service" name="service">
@@ -182,6 +195,7 @@
                             <tr>
                                 <th>N°</th>
                                 <th>Nom et prenoms</th>
+                                <th>{{ 'presence.heure_arrivee'|trans }}</th>
                                 <th class="hide-sm">Service</th>
                                 <th class="hide-sm">Qualite</th>
                                 <th>Signature</th>
@@ -189,12 +203,21 @@
                         </thead>
                         <tbody>
                         {% for p in participants %}
-                            <tr>
+                            <tr{% if p.enRetard %} class="en-retard" title="Retard de {{ p.retardMinutes }} minutes"{% endif %}>
                                 <td class="num">{{ loop.index }}</td>
                                 <td>
-                                    <div class="nom">{{ p.nomComplet }}</div>
+                                    <div class="nom">{{ p.nomComplet }}
+                                        {% if p.enRetard %}<span class="tag-retard">Retard {{ p.retardMinutes }} min</span>{% endif %}
+                                    </div>
                                     <div class="num">{{ p.telephone }}</div>
                                     {% if p.email %}<div class="num">{{ p.email }}</div>{% endif %}
+                                </td>
+                                <td class="num">
+                                    {% if p.instantArrivee %}
+                                        <span class="tag-heure">{{ p.instantArrivee|date('d/m/Y H:i') }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
                                 </td>
                                 <td class="hide-sm">{{ p.service ?? '-' }}</td>
                                 <td class="hide-sm">{{ p.qualite ?? '-' }}</td>
@@ -209,6 +232,10 @@
                         {% endfor %}
                         </tbody>
                     </table>
+                </div>
+                <div class="legend-retard">
+                    <span class="dot"></span>
+                    En rouge : participant arrive 15 minutes ou plus apres le debut de la reunion.
                 </div>
             </div>
         {% endif %}

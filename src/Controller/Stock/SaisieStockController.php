@@ -8,6 +8,7 @@ use App\Entity\Stock\SortieStock;
 use App\Repository\Stock\SaisieStockRepository;
 use App\Repository\Stock\SortieStockRepository;
 use App\Service\Stock\ReferentielStock;
+use App\Service\Stock\StockInitialService;
 use App\Services\pdfService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +30,7 @@ final class SaisieStockController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private ReferentielStock $referentiel,
+        private StockInitialService $stockInitial,
     ) {}
 
     /**
@@ -86,6 +88,8 @@ final class SaisieStockController extends AbstractController
             'sortieLitres' => 0.0,
             'soldeKg'      => 0.0,
             'soldeLitres'  => 0.0,
+            // Detail par nature du produit : [nature => ligneVide()]
+            'parNature'    => [],
         ];
     }
 
@@ -94,6 +98,21 @@ final class SaisieStockController extends AbstractController
     {
         $ligne[$sens . ($unite === 'Litres' ? 'Litres' : 'Kg')] += $quantite;
         $ligne['nb' . ($sens === 'entree' ? 'Entrees' : 'Sorties')]++;
+    }
+
+    /**
+     * Ajoute un mouvement au detail par nature de la rubrique, avec la meme
+     * regle de sens (entree / sortie) et d'unite (Kg / Litres) que la ligne
+     * principale : la somme des natures egale donc le total de la rubrique.
+     */
+    private function ajouterNature(array &$ligne, ?string $nature, string $sens, ?string $unite, float $quantite): void
+    {
+        $cle = trim((string) $nature);
+        if ($cle === '') {
+            $cle = 'Nat. non precisee';
+        }
+        $ligne['parNature'][$cle] ??= $this->ligneVide();
+        $this->ajouter($ligne['parNature'][$cle], $sens, $unite, $quantite);
     }
 
     /**
@@ -106,7 +125,7 @@ final class SaisieStockController extends AbstractController
      * @param SaisieStock[] $saisies
      * @param SortieStock[] $sorties
      */
-    private function statistiques(array $saisies, array $sorties, string $rubriqueFiltre): array
+    private function statistiques(array $saisies, array $sorties, string $rubriqueFiltre, array $stockInitial = []): array
     {
         $rubriques = in_array($rubriqueFiltre, $this->referentiel->rubriques(), true)
             ? [$rubriqueFiltre]
@@ -122,21 +141,56 @@ final class SaisieStockController extends AbstractController
             $r = $s->getRubrique() ?? 'Inconnu';
             $parRubrique[$r] ??= $this->ligneVide();
             $this->ajouter($parRubrique[$r], 'entree', $s->getUnite(), (float) $s->getQuantite());
+            $this->ajouterNature($parRubrique[$r], $s->getNature(), 'entree', $s->getUnite(), (float) $s->getQuantite());
         }
         foreach ($sorties as $s) {
             /** @var SortieStock $s */
             $r = $s->getRubrique() ?? 'Inconnu';
             $parRubrique[$r] ??= $this->ligneVide();
             $this->ajouter($parRubrique[$r], 'sortie', $s->getUnite(), (float) $s->getQuantite());
+            $this->ajouterNature($parRubrique[$r], $s->getNature(), 'sortie', $s->getUnite(), (float) $s->getQuantite());
         }
 
         $totaux = $this->ligneVide();
-        foreach ($parRubrique as &$ligne) {
+        foreach ($parRubrique as $r => &$ligne) {
             $ligne['soldeKg']     = round($ligne['entreeKg'] - $ligne['sortieKg'], 3);
             $ligne['soldeLitres'] = round($ligne['entreeLitres'] - $ligne['sortieLitres'], 3);
             foreach ($totaux as $cle => $valeur) {
+                if ($cle === 'parNature') {
+                    continue;
+                }
                 $totaux[$cle] += $ligne[$cle];
             }
+
+            // Detail par nature : solde, quantite a afficher et unite.
+            // Les natures sans mouvement sont ignorees, puis la liste est
+            // classee de la plus grosse quantite a la plus petite.
+            $natures = [];
+            $liste = $ligne['parNature'];
+            if (isset($stockInitial['parRubrique'][$r]) && is_array($stockInitial['parRubrique'][$r]['parNature'] ?? null)) {
+                $liste = $stockInitial['parRubrique'][$r]['parNature'];
+            }
+            foreach ($liste as $nomNature => $n) {
+                if ($n['nbEntrees'] === 0 && $n['nbSorties'] === 0 && $n['entreeKg'] == 0 && $n['sortieKg'] == 0
+                    && $n['entreeLitres'] == 0 && $n['sortieLitres'] == 0) {
+                    continue;
+                }
+                $n['soldeKg']     = round($n['entreeKg'] - $n['sortieKg'], 3);
+                $n['soldeLitres'] = round($n['entreeLitres'] - $n['sortieLitres'], 3);
+                $estLitres        = $n['entreeLitres'] > 0 || $n['sortieLitres'] > 0;
+                $n['unite']       = $estLitres ? 'Litres' : 'Kg';
+                $n['stockInitial'] = $estLitres ? ($n['stockInitialLitres'] ?? 0.0) : ($n['stockInitialKg'] ?? 0.0);
+                $n['stockFinal']   = $estLitres ? ($n['stockFinalLitres'] ?? 0.0) : ($n['stockFinalKg'] ?? 0.0);
+                $n['entrees']     = $estLitres ? $n['entreeLitres'] : $n['entreeKg'];
+                $n['sorties']     = $estLitres ? $n['sortieLitres'] : $n['sortieKg'];
+                $n['solde']       = $estLitres ? $n['soldeLitres'] : $n['soldeKg'];
+                $n['nom']         = $nomNature;
+                $natures[]        = $n;
+            }
+            usort($natures, static fn (array $a, array $b): int => [$b['entrees'], $b['sorties']] <=> [$a['entrees'], $a['sorties']]);
+            $ligne['natures']   = $natures;
+            $ligne['nbNatures'] = count($natures);
+            $ligne['parNature'] = [];
         }
         unset($ligne);
 
@@ -173,14 +227,19 @@ final class SaisieStockController extends AbstractController
             $filtres['nature']
         );
 
+        // Stock initial (inventaire physique) et stock final :
+        // stock final = quantite inventoriee + mouvements posterieurs a l'inventaire.
+        $stockInitial = $this->stockInitial->apercu(null, $filtres['rubrique'] !== '' ? $filtres['rubrique'] : null);
+
         return $this->render('saisie_stock/index.html.twig', [
+            'stockInitial' => $stockInitial,
             'saisies'  => $saisies,
             'sorties'  => $sorties,
             'filtres'  => $filtres,
-            'stats'    => $this->statistiques($saisies, $sorties, $filtres['rubrique']),
+            'stats'    => $this->statistiques($saisies, $sorties, $filtres['rubrique'], $stockInitial),
             'rubriques' => $this->referentiel->rubriques(),
             'natures'   => $this->referentiel->natures(),
-            'unites'   => SaisieStock::UNITES,
+            'unites'   => $this->referentiel->unites(),
             'services' => $this->services(),
             'dossierPhotos' => $this->getParameter('photo_saisie_stock'),
             'dossierPhotosSorties' => $this->getParameter('photo_sortie_stock'),

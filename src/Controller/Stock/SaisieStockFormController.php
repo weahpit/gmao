@@ -115,11 +115,13 @@ final class SaisieStockFormController extends AbstractController
         return $this->render('saisie_stock/saisie.html.twig', [
             'saisie'      => $saisie,
             'erreurs'     => $erreurs,
-            'dateValeur'  => $saisie->getDateSaisie()?->format('Y-m-d\\TH:i'),
+            'dateValeur'  => ($saisie->getDateSaisie()
+                ?? $saisie->getCreatedAt()
+                ?? new \DateTime())->format('Y-m-d\\TH:i'),
             'serviceId'   => (string) $saisie->getService()?->getId(),
             'emplacementId' => (string) $saisie->getEmplacement()?->getId(),
             'rubriques'   => $this->referentiel->rubriques(),
-            'unites'      => SaisieStock::UNITES,
+            'unites'      => $this->referentiel->unites(),
             'natures'     => $this->referentiel->natures(),
             'sources'     => SaisieStock::SOURCES,
             'motifs'      => SaisieStock::MOTIFS,
@@ -141,7 +143,7 @@ final class SaisieStockFormController extends AbstractController
         $saisie->setAgentLibelle(trim(($user->getPrenoms() ?? '') . ' ' . ($user->getNom() ?? '')));
         $saisie->setRubrique(trim((string) $in->get('rubrique')));
         $saisie->setQuantite(is_numeric($brut) ? (float) $brut : null);
-        $saisie->setUnite(trim((string) $in->get('unite')) ?: 'Kg');
+        $saisie->setUnite(trim((string) $in->get('unite')) ?: $this->referentiel->uniteDefaut());
         $saisie->setNature(trim((string) $in->get('nature')) ?: null);
         $saisie->setSource(trim((string) $in->get('source')) ?: null);
         $saisie->setMotif(trim((string) $in->get('motif')) ?: null);
@@ -156,16 +158,11 @@ final class SaisieStockFormController extends AbstractController
         $saisie->setEmplacement($emplacement);
         $saisie->setEmplacementLibelle($emplacement?->getLibelle());
 
-        $date = trim((string) $in->get('date_saisie'));
-        if ($date === '') {
-            $saisie->setDateSaisie(new \DateTime());
-        } else {
-            try {
-                $saisie->setDateSaisie(new \DateTime($date));
-            } catch (\Throwable) {
-                $saisie->setDateSaisie(null); // signalé par la validation ci-dessous
-            }
-        }
+        // Date operation : elle est GRISEE dans le formulaire, la valeur qui
+        // fait foi est celle du SERVEUR. Une date envoyee par le navigateur
+        // n'est acceptee que si elle reste dans +/- 3 minutes (decalage
+        // d'horloge), sinon elle est ignoree : impossible de l'antidater.
+        $saisie->setDateSaisie($this->dateOperationServeur($in->get('date_saisie')));
     }
 
     /**
@@ -186,7 +183,7 @@ final class SaisieStockFormController extends AbstractController
         } elseif ($saisie->getQuantite() <= 0) {
             $erreurs['quantite'] = 'La quantité doit être supérieure à zéro.';
         }
-        if (!in_array($saisie->getUnite(), SaisieStock::UNITES, true)) {
+        if (!$this->referentiel->uniteValide($saisie->getUnite())) {
             $erreurs['unite'] = 'Unité invalide.';
         }
         if (($saisie->getNature() ?? '') === '') {
@@ -240,5 +237,29 @@ final class SaisieStockFormController extends AbstractController
         } catch (\Throwable) {
             return null;
         }
+    }
+    /**
+     * Date operation "grisee" : la reference est l'heure du SERVEUR.
+     * La valeur envoyee par le navigateur n'est retenue que si elle reste
+     * a moins de 3 minutes de l'heure serveur (simple decalage d'horloge).
+     */
+    private function dateOperationServeur(mixed $valeurEnvoyee): \DateTime
+    {
+        $serveur = new \DateTime();
+        $envoyee = trim((string) $valeurEnvoyee);
+        if ($envoyee === '') {
+            return $serveur;
+        }
+
+        try {
+            $dateNavigateur = new \DateTime($envoyee);
+            if (abs($dateNavigateur->getTimestamp() - $serveur->getTimestamp()) <= 180) {
+                return $dateNavigateur;
+            }
+        } catch (\Throwable) {
+            // valeur illisible : on garde l'heure serveur
+        }
+
+        return $serveur;
     }
 }

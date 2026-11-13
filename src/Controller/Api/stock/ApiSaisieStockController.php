@@ -55,9 +55,10 @@ final class ApiSaisieStockController extends AbstractController
                 // Listes partagees web + mobile : rubriques depuis la table
                 // stock_rubrique, natures depuis le referentiel Produit.
                 'rubriques' => $this->referentiel->rubriques(),
-                'unites'    => SaisieStock::UNITES,
+                // Unites lues dans la table stock_unite (liste partagee web + mobile).
+                'unites'    => $this->referentiel->unites(),
                 'natures'   => $this->referentiel->natures(),
-                'uniteDefaut' => 'Kg',
+                'uniteDefaut' => $this->referentiel->uniteDefaut(),
                 'services'  => $services,
                 'agent'     => [
                     'id'        => (string) $user->getId(),
@@ -71,7 +72,14 @@ final class ApiSaisieStockController extends AbstractController
                     // menus cote application mobile.
                     'roles'     => array_values($user->getRoles()),
                 ],
+                // Date et heure SERVEUR : c'est cette valeur qui est enregistree
+                // comme date operation (le champ est grise cote application).
                 'date' => (new \DateTime())->format('Y-m-d H:i:s'),
+                'dateOperation' => [
+                    'grise'   => true,
+                    'origine' => 'serveur',
+                    'libelle' => 'Date et heure de la saisie',
+                ],
             ],
         ]);
     }
@@ -92,7 +100,7 @@ final class ApiSaisieStockController extends AbstractController
 
         $rubrique   = trim((string) $request->request->get('rubrique'));
         $quantite   = $request->request->get('quantite');
-        $unite      = trim((string) $request->request->get('unite')) ?: 'Kg';
+        $unite      = trim((string) $request->request->get('unite')) ?: $this->referentiel->uniteDefaut();
         $nature     = trim((string) $request->request->get('nature'));
         $serviceId  = $request->request->get('service');
         $dateSaisie = $request->request->get('date_saisie');
@@ -111,7 +119,8 @@ final class ApiSaisieStockController extends AbstractController
         if (!$this->referentiel->rubriqueValide($rubrique)) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Rubrique invalide.'], 200);
         }
-        if (!in_array($unite, SaisieStock::UNITES, true)) {
+        // Unite validee contre la table stock_unite (et non plus une constante).
+        if (!$this->referentiel->uniteValide($unite)) {
             return new JsonResponse(['code' => 'warning', 'msg' => 'Unite invalide.'], 200);
         }
         if (!$this->referentiel->natureValide($nature)) {
@@ -147,14 +156,23 @@ final class ApiSaisieStockController extends AbstractController
             $saisie->setServiceLibelle($service->getLibelle());
         }
 
-        // Date de saisie declaree par l'appareil (sinon maintenant).
+        // Date operation : le champ est GRISE cote application, la valeur qui
+        // fait foi est celle du SERVEUR. Une date envoyee par l'appareil n'est
+        // acceptee que si elle reste dans une tolerance de +/- 3 minutes
+        // (simple decalage de fuseau / d'horloge) ; sinon on l'ignore.
+        $dateServeur = new \DateTime();
         if ($dateSaisie) {
             try {
-                $saisie->setDateSaisie(new \DateTime($dateSaisie));
+                $dateAppareil = new \DateTime($dateSaisie);
+                $ecart = abs($dateAppareil->getTimestamp() - $dateServeur->getTimestamp());
+                if ($ecart <= 180) {
+                    $dateServeur = $dateAppareil;
+                }
             } catch (\Throwable) {
-                // on garde la date par defaut du constructeur
+                // date illisible : on garde la date serveur
             }
         }
+        $saisie->setDateSaisie($dateServeur);
 
         // Photo facultative.
         $photo = $request->files->get('photo');

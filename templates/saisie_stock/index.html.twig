@@ -61,6 +61,42 @@
             <div class="sub">justificatifs joints</div>
         </div>
     </div>
+
+    {% if stockInitial is defined and stockInitial.initialise %}
+    {% set si = stockInitial.totaux %}
+    <div class="ss-cards">
+        <div class="ss-card">
+            <div class="lbl">Stock initial (inventaire)</div>
+            <div class="val" style="color:#8B5A2B;">{{ si.stockInitialKg|number_format(2, ',', ' ') }}</div>
+            <div class="sub">Kg — au {{ stockInitial.dateInventaire ? stockInitial.dateInventaire|date('d/m/Y') : '—' }}</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">+ Entrées après inventaire</div>
+            <div class="val">{{ si.entreeKg|number_format(2, ',', ' ') }}</div>
+            <div class="sub">Kg — {{ si.nbEntrees }} mouvement(s)</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">&minus; Sorties après inventaire</div>
+            <div class="val">{{ si.sortieKg|number_format(2, ',', ' ') }}</div>
+            <div class="sub">Kg — {{ si.nbSorties }} mouvement(s)</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Stock final (Kg)</div>
+            <div class="val {{ si.stockFinalKg < 0 ? 'ss-neg' }}" style="color:#1e7e46;">{{ si.stockFinalKg|number_format(2, ',', ' ') }}</div>
+            <div class="sub">initial + entrées − sorties</div>
+        </div>
+        <div class="ss-card">
+            <div class="lbl">Stock final (Litres)</div>
+            <div class="val {{ si.stockFinalLitres < 0 ? 'ss-neg' }}">{{ si.stockFinalLitres|number_format(2, ',', ' ') }}</div>
+            <div class="sub">après mouvements</div>
+        </div>
+        {% if is_granted('ROLE_ADMIN') %}
+        <div class="ss-card d-flex flex-column justify-content-center">
+            <a href="{{ path('app_stock_initialisation') }}" class="btn btn-outline-cacao btn-sm">Gérer l'initialisation</a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
     <form method="get" class="ss-filtres row m-1 mt-2" style="background: #efefef;">
         <h6 class="mb-0" style="color: var(--ss-cacao); font-weight:700;">Filtrer...</h6>
         <div class="col-md-2">
@@ -124,7 +160,7 @@
                 {% else %}
                     Période : toutes les dates
                 {% endif %}
-                · solde = entrées − sorties de la période
+                · quantités saisies dans la période, par unité du stock
             </small>
         </div>
         <div class="table-responsive">
@@ -132,44 +168,132 @@
                 <thead>
                 <tr>
                     {% set th = 'background: #547cd3;color: white' %}
+                    <th style="{{ th }};width:34px"></th>
                     <th style="{{ th }}">Type Stock</th>
-                    <th class="text-end" style="{{ th }}">Nb entrées</th>
-                    <th class="text-end" style="{{ th }}">Entrées Kg</th>
-                    <th class="text-end" style="{{ th }}">Entrées Litres</th>
-                    <th class="text-end" style="{{ th }}">Nb sorties</th>
-                    <th class="text-end" style="{{ th }}">Sorties Kg</th>
-                    <th class="text-end" style="{{ th }}">Sorties Litres</th>
-                    <th class="text-end" style="{{ th }}">Solde Kg</th>
-                    <th class="text-end" style="{{ th }}">Solde Litres</th>
+                    <th class="text-end" style="{{ th }}">Entrées</th>
+                    <th class="text-end" style="{{ th }}">Sorties</th>
+                    <th class="text-end" style="{{ th }}">Unité</th>
+                    {% if stockInitial is defined and stockInitial.initialise %}
+                        <th class="text-end" style="{{ th }}">Stock initial</th>
+                        <th class="text-end" style="{{ th }}">Stock final</th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody>
+                {# Une ligne par type de stock : total Entrées et total Sorties dans
+                   l'unité du stock (Kg ou Litres), sans distinguer les deux unités. #}
                 {% for rubrique, v in stats.parRubrique %}
-                    <tr>
-                        <td>{{ rubrique }}</td>
-                        <td class="text-end {{ v.nbEntrees == 0 ? 'ss-zero' }}">{{ v.nbEntrees }}</td>
-                        <td class="text-end {{ v.entreeKg == 0 ? 'ss-zero' }}" style=";background: #f9eded;color: #c53030;{% if (v.entreeKg > 0)  %}font-weight: bold;{% endif %}">{{ v.entreeKg|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end {{ v.entreeLitres == 0 ? 'ss-zero' }}">{{ v.entreeLitres|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end {{ v.nbSorties == 0 ? 'ss-zero' }}">{{ v.nbSorties }}</td>
-                        <td class="text-end {{ v.sortieKg == 0 ? 'ss-zero' }}" style=";background: #ecf9ef;color: #1d692e;{% if (v.sortieKg > 0)  %}font-weight: bold;{% endif %}">{{ v.sortieKg|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end {{ v.sortieLitres == 0 ? 'ss-zero' }}">{{ v.sortieLitres|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end fw-semibold {{ v.soldeKg < 0 ? 'ss-neg' : (v.soldeKg == 0 ? 'ss-zero') }}">{{ v.soldeKg|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end fw-semibold {{ v.soldeLitres < 0 ? 'ss-neg' : (v.soldeLitres == 0 ? 'ss-zero') }}">{{ v.soldeLitres|number_format(2, ',', ' ') }}</td>
+                    {% set estLitres = v.entreeLitres > 0 or v.sortieLitres > 0 %}
+                    {% set qteEntrees = estLitres ? v.entreeLitres : v.entreeKg %}
+                    {% set qteSorties = estLitres ? v.sortieLitres : v.sortieKg %}
+                    {% set unite = estLitres ? 'Litres' : 'Kg' %}
+                    {% set natures = v.natures ?? [] %}
+                    {% set i = loop.index %}
+                    <tr class="ss-ligne {{ natures|length > 0 ? 'ss-depliable' : '' }}"
+                        {{ natures|length > 0 ? 'data-cible="ss-natures-' ~ i ~ '" tabindex="0" role="button" title="Voir le detail par nature"' : '' }}>
+                        <td class="ss-chev" style="width:34px">
+                            {% if natures|length > 0 %}
+                                <span class="ss-chevron" aria-hidden="true"></span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="ss-rubrique">{{ rubrique }}</span>
+                            {% if natures|length > 0 %}
+                                <span class="ss-nb-natures">{{ natures|length }} nature{{ natures|length > 1 ? 's' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-semibold {{ qteEntrees == 0 ? 'ss-zero' }}">{{ qteEntrees|number_format(2, ',', ' ') }}</td>
+                        <td class="text-end fw-semibold {{ qteSorties == 0 ? 'ss-zero' }}">{{ qteSorties|number_format(2, ',', ' ') }}</td>
+                        <td class="text-end"><span class="ss-badge {{ estLitres ? '' : 'kg' }}">{{ unite }}</span></td>
+                        {% if stockInitial is defined and stockInitial.initialise %}
+                            {% set sl = stockInitial.parRubrique[rubrique] ?? null %}
+                            {% set initUnite = (sl is not null and sl.stockInitialLitres > 0) ? 'Litres' : unite %}
+                            <td class="text-end {{ sl is null or (sl.stockInitialKg == 0 and sl.stockInitialLitres == 0) ? 'ss-zero' }}">
+                                {{ sl is null ? '—' : ((initUnite == 'Litres' ? sl.stockInitialLitres : sl.stockInitialKg)|number_format(2, ',', ' ')) ~ ' ' ~ initUnite }}
+                            </td>
+                            <td class="text-end fw-bold {{ sl is null ? 'ss-zero' }}" style="color:#1e7e46;">
+                                {% if sl is null %}
+                                    —
+                                {% else %}
+                                    {% set finalQte = (initUnite == 'Litres') ? sl.stockFinalLitres : sl.stockFinalKg %}
+                                    {{ (finalQte < 0 ? '-' : '') ~ (finalQte|abs)|number_format(2, ',', ' ') }} {{ initUnite }}
+                                {% endif %}
+                            </td>
+                        {% endif %}
                     </tr>
+
+                    {% if natures|length > 0 %}
+                        {# Ligne de detail : un sous-total par nature du produit.
+                           Meme unite et meme calcul que la ligne du type de stock. #}
+                        <tr class="ss-natures" id="ss-natures-{{ i }}" hidden>
+                            <td></td>
+                            <td colspan="{{ 4 + ((stockInitial is defined and stockInitial.initialise) ? 2 : 0) }}" style="padding:0">
+                                <div class="ss-natures-box">
+                                    <div class="ss-natures-head">
+                                        <span><strong>{{ rubrique }}</strong> &middot; d&eacute;tail par nature</span>
+                                        <span class="ss-natures-total">{{ qteEntrees|number_format(2, ',', ' ') }} {{ unite }}</span>
+                                    </div>
+                                    <table class="ss-natures-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Nature</th>
+                                            <th class="text-end">Entr&eacute;es</th>
+                                            <th class="text-end">Sorties</th>
+                                            <th class="text-end">Unite</th>
+                                            {% if stockInitial is defined and stockInitial.initialise %}
+                                                <th class="text-end">Stock initial</th>
+                                                <th class="text-end">Stock final</th>
+                                            {% endif %}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for n in natures %}
+                                            <tr>
+                                                <td><span class="ss-nature-puce"></span>{{ n.nom }}</td>
+                                                <td class="text-end {{ n.entrees == 0 ? 'ss-zero' }}">{{ n.entrees|number_format(2, ',', ' ') }}</td>
+                                                <td class="text-end {{ n.sorties == 0 ? 'ss-zero' }}">{{ n.sorties|number_format(2, ',', ' ') }}</td>
+                                                <td class="text-end"><span class="ss-badge {{ n.unite == 'Litres' ? '' : 'kg' }}">{{ n.unite }}</span></td>
+                                                {% if stockInitial is defined and stockInitial.initialise %}
+                                                    <td class="text-end {{ (n.stockInitial ?? 0) == 0 ? 'ss-zero' }}">{{ (n.stockInitial ?? 0)|number_format(2, ',', ' ') }}</td>
+                                                    <td class="text-end fw-bold {{ (n.stockFinal ?? 0) < 0 ? 'ss-neg' }}" style="color:{{ (n.stockFinal ?? 0) < 0 ? '' : '#1e7e46' }};">
+                                                        {{ (n.stockFinal ?? 0)|number_format(2, ',', ' ') }}
+                                                    </td>
+                                                {% endif %}
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
                 {% endfor %}
                 </tbody>
                 <tfoot>
                     <tr class="fw-bold" style="background: rgba(84,124,211,.12);">
+                        <td></td>
                         <td>TOTAL</td>
-                        <td class="text-end">{{ t.nbEntrees }}</td>
-                        <td class="text-end">{{ t.entreeKg|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end">{{ t.entreeLitres|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end">{{ t.nbSorties }}</td>
-                        <td class="text-end">{{ t.sortieKg|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end">{{ t.sortieLitres|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end {{ t.soldeKg < 0 ? 'ss-neg' }}">{{ t.soldeKg|number_format(2, ',', ' ') }}</td>
-                        <td class="text-end {{ t.soldeLitres < 0 ? 'ss-neg' }}">{{ t.soldeLitres|number_format(2, ',', ' ') }}</td>
+                        <td class="text-end">{{ t.entreeKg|number_format(2, ',', ' ') }} Kg</td>
+                        <td class="text-end">{{ t.sortieKg|number_format(2, ',', ' ') }} Kg</td>
+                        <td class="text-end">Kg</td>
+                        {% if stockInitial is defined and stockInitial.initialise %}
+                            <td class="text-end">{{ stockInitial.totaux.stockInitialKg|number_format(2, ',', ' ') }} Kg</td>
+                            <td class="text-end" style="color:#1e7e46;">{{ stockInitial.totaux.stockFinalKg|number_format(2, ',', ' ') }} Kg</td>
+                        {% endif %}
                     </tr>
+                    {% if t.entreeLitres > 0 or t.sortieLitres > 0 %}
+                    <tr class="fw-bold" style="background: rgba(84,124,211,.07);">
+                        <td></td>
+                        <td>&nbsp;</td>
+                        <td class="text-end">{{ t.entreeLitres|number_format(2, ',', ' ') }} Litres</td>
+                        <td class="text-end">{{ t.sortieLitres|number_format(2, ',', ' ') }} Litres</td>
+                        <td class="text-end">Litres</td>
+                        {% if stockInitial is defined and stockInitial.initialise %}
+                            <td class="text-end">{{ stockInitial.totaux.stockInitialLitres|number_format(2, ',', ' ') }} Litres</td>
+                            <td class="text-end" style="color:#1e7e46;">{{ stockInitial.totaux.stockFinalLitres|number_format(2, ',', ' ') }} Litres</td>
+                        {% endif %}
+                    </tr>
+                    {% endif %}
                 </tfoot>
             </table>
         </div>
@@ -319,5 +443,44 @@
             });
         });
     </script>
+
+<script>
+// Recapitulatif des stocks : deplier / replier la ligne d'un type de stock
+// pour afficher le detail par nature du produit.
+document.addEventListener('DOMContentLoaded', function () {
+    var lignes = document.querySelectorAll('tr.ss-ligne.ss-depliable');
+    var basculer = function (ligne) {
+        var cible = document.getElementById(ligne.getAttribute('data-cible'));
+        if (!cible) return;
+        var ouverture = cible.hasAttribute('hidden');
+        if (ouverture) {
+            cible.removeAttribute('hidden');
+            ligne.classList.add('ss-ouvert');
+        } else {
+            cible.setAttribute('hidden', '');
+            ligne.classList.remove('ss-ouvert');
+        }
+    };
+
+    Array.prototype.forEach.call(lignes, function (ligne) {
+        ligne.addEventListener('click', function (e) {
+            // Un clic sur un lien ou un bouton de la ligne garde son action.
+            var cible = e.target;
+            while (cible && cible !== ligne) {
+                if (cible.tagName === 'A' || cible.tagName === 'BUTTON') return;
+                cible = cible.parentNode;
+            }
+            basculer(ligne);
+        });
+        ligne.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                basculer(ligne);
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %}
 
