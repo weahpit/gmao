@@ -1,0 +1,688 @@
+{% extends 'reunion/presence_base.html.twig' %}
+{% block title %}Supervision CITRAC{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Page autonome : on neutralise la carte centree du gabarit */
+        .page { max-width: 100% !important; padding: 14px 0 0 !important; background: transparent !important; box-shadow: none !important; }
+        .page .langue-barre { display: none; }
+    </style>
+    <style>
+        :root {
+            --sup-fond: #fbf9f6;
+            --sup-carte: #ffffff;
+            --sup-bord: #eee7de;
+            --sup-texte: #3f2f24;
+            --sup-doux: #8d7c6d;
+            --sup-cacao: #8a5a34;
+            --sup-cacao-clair: #c9a583;
+            --sup-vert: #6f8f6a;
+            --sup-ocre: #c58b3f;
+            --sup-rouge: #b95c50;
+        }
+        body { background: var(--sup-fond) !important; }
+        .sup-page { padding: 22px 26px 40px; max-width: 1680px; margin: 0 auto; }
+
+        /* ---------- Barre superieure ---------- */
+        .sup-entete { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+            background: var(--sup-carte); border: 1px solid var(--sup-bord); border-radius: 18px;
+            padding: 16px 22px; margin-bottom: 20px; box-shadow: 0 10px 26px rgba(93, 63, 38, .06); }
+        .sup-entete-gauche { display: flex; align-items: center; gap: 16px; }
+        .sup-logo { height: 58px; width: auto; }
+        .sup-titre { font-size: 1.32rem; font-weight: 700; color: var(--sup-texte); margin: 0; letter-spacing: .2px; }
+        .sup-sous-titre { font-size: .88rem; color: var(--sup-doux); margin: 2px 0 0; }
+        .sup-entete-droite { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .sup-horloge { font-variant-numeric: tabular-nums; font-size: .95rem; color: var(--sup-cacao); font-weight: 600;
+            background: #f7f1ea; border-radius: 999px; padding: 8px 16px; }
+        .sup-btn { border: 1px solid var(--sup-bord); background: #fff; color: var(--sup-texte); border-radius: 999px;
+            padding: 9px 18px; font-size: .9rem; font-weight: 600; text-decoration: none; transition: .18s; }
+        .sup-btn:hover { background: #f4ece3; color: var(--sup-cacao); }
+        .sup-btn--sombre { background: var(--sup-cacao); color: #fff; border-color: var(--sup-cacao); }
+        .sup-btn--sombre:hover { background: #6f4726; color: #fff; }
+
+        /* ---------- Bandeau KPI ---------- */
+        .sup-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .kpi { background: var(--sup-carte); border: 1px solid var(--sup-bord); border-radius: 16px; padding: 16px 18px;
+            position: relative; overflow: hidden; box-shadow: 0 8px 20px rgba(93, 63, 38, .05); }
+        .kpi::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--kpi-c); }
+        .kpi-lib { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--sup-doux); font-weight: 600; }
+        .kpi-val { font-size: 1.72rem; font-weight: 700; color: var(--sup-texte); line-height: 1.15; margin-top: 6px; font-variant-numeric: tabular-nums; }
+        .kpi-unit { font-size: .82rem; font-weight: 500; color: var(--sup-doux); margin-left: 3px; }
+        .kpi-note { font-size: .76rem; color: var(--sup-doux); margin-top: 4px; }
+
+        /* ---------- Grille des panneaux ---------- */
+        .sup-grille { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; }
+        .panneau { background: var(--sup-carte); border: 1px solid var(--sup-bord); border-radius: 18px;
+            padding: 18px 20px 20px; box-shadow: 0 10px 24px rgba(93, 63, 38, .05); display: flex; flex-direction: column; }
+        .panneau-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+        .panneau-titre { font-size: 1rem; font-weight: 700; color: var(--sup-texte); margin: 0; display: flex; align-items: center; gap: 8px; }
+        .panneau-titre::before { content: ''; width: 9px; height: 9px; border-radius: 3px; background: var(--p-c, var(--sup-cacao)); }
+        .panneau-info { font-size: .78rem; color: var(--sup-doux); }
+        .graph{position:relative;width:100%;}
+        .panneau .graph { flex: 1 1 auto; }
+        .panneau .sup-table { flex: 0 0 auto; }
+        .graph--240{height:240px;}
+        .graph--230{height:230px;}
+        .graph--215{height:215px;}
+        .graph--220{height:220px;}
+        .graph--200{height:200px;}
+
+        .c4  { grid-column: span 4; }
+        .c5  { grid-column: span 5; }
+        .c6  { grid-column: span 6; }
+        .c7  { grid-column: span 7; }
+        .c8  { grid-column: span 8; }
+        .c12 { grid-column: span 12; }
+
+        /* ---------- Point du stock cacao par jour ---------- */
+        .cj-barre { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .cj-pilule { display: inline-flex; border: 1px solid var(--sup-bord); border-radius: 999px; overflow: hidden; }
+        .cj-pilule a, .cj-pilule button { border: 0; background: #fff; color: var(--sup-doux); font-size: .8rem; font-weight: 600;
+            padding: 6px 13px; text-decoration: none; cursor: pointer; font-family: inherit; }
+        .cj-pilule a + a, .cj-pilule button + button { border-left: 1px solid var(--sup-bord); }
+        .cj-pilule .actif { background: var(--sup-cacao); color: #fff; }
+        .cj-corps { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+        .cj-graph { height: 250px; }
+        .cj-cartes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+        .cj-carte { background: #fdfaf6; border: 1px solid #f3ebe1; border-radius: 12px; padding: 9px 12px; }
+        .cj-carte span { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--sup-doux); font-weight: 600; }
+        .cj-carte strong { display: block; font-size: 1.06rem; color: var(--sup-texte); margin-top: 2px; font-variant-numeric: tabular-nums; }
+        .cj-carte strong.baisse { color: var(--sup-rouge); }
+        .cj-carte strong.hausse { color: #4f7a4a; }
+        .cj-detail { max-height: 330px; overflow: auto; }
+        .cj-type { border: 1px solid #f3ebe1; border-radius: 12px; margin-bottom: 10px; background: #fff; overflow: hidden; }
+        .cj-type-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px;
+            background: #fdfaf6; cursor: pointer; }
+        .cj-type-tete .nom { font-weight: 700; font-size: .88rem; color: var(--sup-texte); }
+        .cj-type-tete .val { font-weight: 700; font-size: .86rem; color: var(--sup-cacao); font-variant-numeric: tabular-nums; }
+        .cj-mini { width: 100%; border-collapse: collapse; font-size: .8rem; }
+        .cj-mini th { text-align: left; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--sup-doux);
+            padding: 5px 10px; border-bottom: 1px solid var(--sup-bord); font-weight: 600; }
+        .cj-mini td { padding: 6px 10px; border-bottom: 1px solid #f6f1ea; color: var(--sup-texte); }
+        .cj-mini tr:last-child td { border-bottom: 0; }
+        .cj-mini td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .cj-vide { color: #a99a8c; font-size: .85rem; padding: 14px 2px; }
+        @media (max-width: 1100px) {
+            .cj-corps { grid-template-columns: minmax(0, 1fr); }
+            .cj-cartes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            .cj-graph { height: 210px; }
+            .cj-detail { max-height: none; }
+        }
+
+        /* ---------- Tableau compact ---------- */
+        .sup-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+        .sup-table th { text-align: left; font-size: .74rem; text-transform: uppercase; letter-spacing: .05em;
+            color: var(--sup-doux); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--sup-bord); }
+        .sup-table td { padding: 10px; border-bottom: 1px solid #f6f1ea; color: var(--sup-texte); }
+        .sup-table tr:last-child td { border-bottom: 0; }
+        .sup-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+        .jauge { height: 8px; border-radius: 99px; background: #f3ece4; overflow: hidden; }
+        .jauge > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #c9a583, #8a5a34); }
+
+        /* ---------- Liste d'alertes ---------- */
+        .sup-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+        .sup-liste li { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border-radius: 12px;
+            background: #fdfaf6; border: 1px solid #f4ece2; }
+        .pastille { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+        .sup-liste .lib { flex: 1; font-size: .9rem; color: var(--sup-texte); }
+        .sup-liste .val { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--sup-texte); }
+
+        /* Chaque panneau occupe toute la hauteur de sa ligne : les blocs
+           d'une meme rangee s'alignent parfaitement. */
+        .panneau { height: 100%; }
+        .sup-grille { align-items: stretch; }
+        /* Etirement bidirectionnel : les voisins d'une meme rangee prennent
+           la hauteur du plus grand ET les elements internes se partagent
+           l'espace restant (fini les vides sous les graphiques). */
+        .sup-grille > .panneau > .graph,
+        .sup-grille > .panneau > .sup-embarqu,
+        .sup-grille > .panneau > .sup-liste { flex: 1 1 auto; min-height: 0; }
+        .sup-grille > .panneau > .sup-embarqu .graph { height: auto; }
+        .sup-totaux { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: auto; padding-top: 16px; }
+        .sup-total { background: #fdfaf6; border: 1px solid #f3ebe1; border-radius: 12px; padding: 10px 12px; }
+        .sup-total span { display: block; font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--sup-doux); font-weight: 600; }
+        .sup-total strong { display: block; font-size: 1.18rem; color: var(--sup-texte); margin-top: 3px; font-variant-numeric: tabular-nums; }
+        .sup-total strong.rouge { color: var(--sup-rouge); }
+        .sup-embarqu { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+        .sup-liste--compacte { flex: 1 1 180px; }
+        .sup-liste--compacte li { padding: 8px 11px; }
+        .sup-pied { margin-top: 22px; font-size: .78rem; color: #a99a8c; text-align: center; }
+        .sup-maj { font-size: .78rem; color: var(--sup-doux); }
+        .sup-maj .point { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #7fa876; margin-right: 6px; }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 1400px) {
+            .sup-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 1100px) {
+            .c3, .c4, .c5, .c6, .c7, .c8 { grid-column: span 12; }
+        }
+        @media (max-width: 640px) {
+            .sup-page { padding: 14px 12px 28px; }
+            .sup-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .kpi-val { font-size: 1.4rem; }
+            .sup-entete { padding: 14px 16px; }
+            .sup-logo { height: 44px; }
+            .sup-titre { font-size: 1.08rem; }
+        }
+    </style>
+{% endblock %}
+
+{% block presence_body %}
+{% set g = donnees.gmao %}
+{% set s = donnees.stock %}
+{% set c = donnees.cacao %}
+{% set co = donnees.courrier %}
+{% set a = donnees.achats %}
+{% set e = donnees.embarqu %}
+{% set cj = donnees.cacaoJour ?? {} %}
+{% set cjJours = cj.jours ?? 7 %}
+{% set cjMode = cj.mode ?? 'MOVEMENTES' %}
+
+<div class="sup-page">
+
+    {# ================= EN-TETE ================= #}
+    <header class="sup-entete">
+        <div class="sup-entete-gauche">
+            <img class="sup-logo" src="{{ asset('images/CITRAC.png') }}" alt="CITRAC">
+            <div>
+                <h1 class="sup-titre">Supervision GMAO</h1>
+                <p class="sup-sous-titre">Tableau de bord general — stocks, cacao, courrier, achats, embarquements</p>
+            </div>
+        </div>
+        <div class="sup-entete-droite">
+            <span class="sup-maj" id="sup-maj"><span class="point"></span>Mis a jour {{ donnees.genere }}</span>
+            <span class="sup-horloge" id="sup-horloge">--:--:--</span>
+            <a class="sup-btn" href="{{ path('app_supervision') }}" id="sup-actualiser">Actualiser</a>
+            <a class="sup-btn sup-btn--sombre" href="{{ path('app_supervision_quitter') }}">Quitter</a>
+        </div>
+    </header>
+
+    {# ================= BANDEAU KPI ================= #}
+    <section class="sup-kpis">
+        <div class="kpi" style="--kpi-c:#8a5a34">
+            <div class="kpi-lib">Parc equipements</div>
+            <div class="kpi-val" data-kpi="equipements">{{ g.equipements }}</div>
+            <div class="kpi-note">{{ g.rupture }} en rupture</div>
+        </div>
+        <div class="kpi" style="--kpi-c:#c58b3f">
+            <div class="kpi-lib">Interventions</div>
+            <div class="kpi-val" data-kpi="interventions">{{ g.interventions }}</div>
+            <div class="kpi-note">{{ g.interventionsEnCours }} en cours</div>
+        </div>
+        <div class="kpi" style="--kpi-c:#6f8f6a">
+            <div class="kpi-lib">Entrees stock PDR</div>
+            <div class="kpi-val" data-kpi="entrees">{{ s.entrees|number_format(0, ',', ' ') }}</div>
+            <div class="kpi-note">{{ s.sorties|number_format(0, ',', ' ') }} en sorties</div>
+        </div>
+        <div class="kpi" style="--kpi-c:#b95c50">
+            <div class="kpi-lib">Sorties en attente</div>
+            <div class="kpi-val" data-kpi="enAttente">{{ s.enAttente }}</div>
+            <div class="kpi-note">a valider / signer</div>
+        </div>
+        <div class="kpi" style="--kpi-c:#7d6a99">
+            <div class="kpi-lib">Courriers</div>
+            <div class="kpi-val" data-kpi="courrier">{{ co.total }}</div>
+            <div class="kpi-note">{{ co.entrants }} entrants · {{ co.sortants }} sortants</div>
+        </div>
+        <div class="kpi" style="--kpi-c:#5f7f8f">
+            <div class="kpi-lib">Embarquements</div>
+            <div class="kpi-val" data-kpi="dossiers">{{ e.dossiers }}</div>
+            <div class="kpi-note">{{ e.tonnage|number_format(0, ',', ' ') }} T declarees</div>
+        </div>
+    </section>
+
+    {# ================= GRILLE ================= #}
+    <section class="sup-grille">
+
+        {# ============ Point du stock cacao par jour (EN TETE) ============ #}
+        <article class="panneau c12" style="--p-c:#8a5a34">
+            <div class="panneau-entete">
+                <h2 class="panneau-titre">Point du stock cacao par jour</h2>
+                <div class="cj-barre">
+                    <span class="panneau-info">du {{ cj.dateDebut }} au {{ cj.dateFin }} · kg</span>
+                    <span class="cj-pilule" id="cjPeriode">
+                        <a href="{{ path('app_supervision', {j: 7, mode: cjMode}) }}" class="{{ cjJours == 7 ? 'actif' }}" data-jours="7">7 jours</a>
+                        <a href="{{ path('app_supervision', {j: 14, mode: cjMode}) }}" class="{{ cjJours == 14 ? 'actif' }}" data-jours="14">14 jours</a>
+                        <a href="{{ path('app_supervision', {j: 30, mode: cjMode}) }}" class="{{ cjJours == 30 ? 'actif' }}" data-jours="30">30 jours</a>
+                        <a href="{{ path('app_supervision', {j: 60, mode: cjMode}) }}" class="{{ cjJours == 60 ? 'actif' }}" data-jours="60">60 jours</a>
+                    </span>
+                    <span class="cj-pilule" id="cjMode">
+                        <button type="button" class="{{ cjMode == 'MOVEMENTES' ? 'actif' }}" data-mode="MOVEMENTES">Types mouvementes</button>
+                        <button type="button" class="{{ cjMode == 'CACAO' ? 'actif' }}" data-mode="CACAO">Types cacao</button>
+                        <button type="button" class="{{ cjMode == 'TOUTES' ? 'actif' }}" data-mode="TOUTES">Tous les types</button>
+                    </span>
+                </div>
+            </div>
+
+            <div class="cj-corps">
+                <div>
+                    <div class="graph cj-graph"><canvas id="graphCacaoJour"></canvas></div>
+                    <div class="cj-cartes">
+                        <div class="cj-carte"><span>Stock du jour</span><strong id="cjStock">{{ (cj.duJour.stock ?? 0)|number_format(0, ',', ' ') }} kg</strong></div>
+                        <div class="cj-carte"><span>Entrees du jour</span><strong id="cjEntrees">{{ (cj.duJour.entrees ?? 0)|number_format(2, ',', ' ') }}</strong></div>
+                        <div class="cj-carte"><span>Sorties du jour</span><strong id="cjSorties">{{ (cj.duJour.sorties ?? 0)|number_format(2, ',', ' ') }}</strong></div>
+                        <div class="cj-carte"><span>Variation periode</span><strong id="cjVariation" class="{{ (cj.variationPeriode ?? 0) < 0 ? 'baisse' : 'hausse' }}">{{ (cj.variationPeriode ?? 0)|number_format(2, ',', ' ') }}</strong></div>
+                    </div>
+                </div>
+                <div class="cj-detail" id="cjDetail">
+                    {% for r in cj.rubriques %}
+                        <div class="cj-type">
+                            <div class="cj-type-tete">
+                                <span class="nom">{{ r.rubrique }}</span>
+                                <span class="val">{{ r.stock|number_format(0, ',', ' ') }} kg</span>
+                            </div>
+                            <table class="cj-mini">
+                                <thead>
+                                <tr><th>Nature de stock</th><th style="text-align:right">Entrees</th><th style="text-align:right">Sorties</th><th style="text-align:right">Solde</th></tr>
+                                </thead>
+                                <tbody>
+                                {% for n in r.natures %}
+                                    <tr>
+                                        <td>{{ n.nature }}</td>
+                                        <td class="num">{{ n.entrees|number_format(2, ',', ' ') }}</td>
+                                        <td class="num">{{ n.sorties|number_format(2, ',', ' ') }}</td>
+                                        <td class="num">{{ n.solde|number_format(2, ',', ' ') }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="4" style="color:#a99a8c">Aucun mouvement sur la periode.</td></tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="cj-vide">Aucun mouvement de stock sur la periode. Choisissez « Tous les types » pour voir l'ensemble des types de stock.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+
+        {# Ligne 1 : cacao (barres) + courrier (anneau) #}
+        <article class="panneau c7" style="--p-c:#8a5a34">
+            <div class="panneau-entete">
+                <h2 class="panneau-titre">Stock cacao par rubrique</h2>
+                <span class="panneau-info">quantites en kg</span>
+            </div>
+            <div class="graph graph--240"><canvas id="graphCacao"></canvas></div>
+        </article>
+
+        <article class="panneau c5" style="--p-c:#7d6a99">
+            <div class="panneau-entete">
+                <h2 class="panneau-titre">Courrier par statut</h2>
+                <span class="panneau-info">{{ co.total }} au total</span>
+            </div>
+            <div class="graph graph--240"><canvas id="graphCourrier"></canvas></div>
+        </article>
+
+        {# Ligne 2 : stock PDR + nature des interventions + demandes d'achat #}
+        <article class="panneau c6" style="--p-c:#6f8f6a">
+            <div class="panneau-entete">
+                <h2 class="panneau-titre">Entrees de stock PDR par rubrique</h2>
+                <span class="panneau-info">quantites</span>
+            </div>
+            <div class="graph graph--215"><canvas id="graphStock"></canvas></div>
+        </article>
+
+        <article class="panneau c3" style="--p-c:#c58b3f">
+            <div class="panneau-entete">
+                <h2 class="panneau-titre">Interventions</h2>
+            </div>
+            <div class="graph graph--215"><canvas id="graphGmao"></canvas></div>
+        </article>
+
+        <article class="panneau c3" style="--p-c:#5f7f8f">
+            <div class="panneau-entete">
+                <h2 class="panneau-titre">Demandes d'achat</h2>
+            </div>
+            <ul class="sup-liste" id="listeAchats">
+                {% for lib, n in a.parStatut %}
+                    <li><span class="pastille" style="background:#8a5a34"></span><span class="lib">{{ lib }}</span><span class="val">{{ n }}</span></li>
+                {% else %}
+                    <li><span class="lib">Aucune demande enregistree</span></li>
+                {% endfor %}
+            </ul>
+        </article>
+
+        {# Ligne 3 : detail des stocks cacao + embarquements #}
+        <article class="panneau c6" style="--p-c:#8a5a34">
+            <div class="panneau-entete">
+                <h2 class="panneau-titre">Detail des stocks cacao</h2>
+                <span class="panneau-info">{{ c.lignes|length }} rubrique(s)</span>
+            </div>
+            <table class="sup-table">
+                <thead><tr><th>Rubrique</th><th style="text-align:right">Stock final</th><th style="width:34%">Part</th></tr></thead>
+                <tbody id="tableCacao">
+                {% set maxCacao = 1 %}
+                {% for l in c.lignes %}{% if l.kg > maxCacao %}{% set maxCacao = l.kg %}{% endif %}{% endfor %}
+                {% for l in c.lignes %}
+                    <tr>
+                        <td>{{ l.rubrique }}</td>
+                        <td class="num">{{ l.kg|number_format(0, ',', ' ') }} kg</td>
+                        <td><div class="jauge"><span style="width:{{ max(3, (l.kg / maxCacao * 100))|round }}"></span></div></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="3" style="color:#a99a8c">Aucune initialisation de stock cacao.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <div class="sup-totaux">
+                <div class="sup-total"><span>Entrees PDR</span><strong>{{ s.entrees|number_format(0, ',', ' ') }}</strong></div>
+                <div class="sup-total"><span>Sorties PDR</span><strong>{{ s.sorties|number_format(0, ',', ' ') }}</strong></div>
+                <div class="sup-total"><span>En attente</span><strong class="rouge">{{ s.enAttente }}</strong></div>
+            </div>
+        </article>
+
+        <article class="panneau c6" style="--p-c:#5f7f8f">
+            <div class="panneau-entete">
+                <h2 class="panneau-titre">Embarquements</h2>
+                <span class="panneau-info">{{ e.dossiers }} dossier(s)</span>
+            </div>
+            <div class="sup-embarqu">
+                <div class="graph graph--215" style="max-width:56%"><canvas id="graphEmbarq"></canvas></div>
+                <ul class="sup-liste sup-liste--compacte">
+                    <li><span class="pastille" style="background:#6f8f6a"></span><span class="lib">Clotures</span><span class="val">{{ e.clotures }}</span></li>
+                    <li><span class="pastille" style="background:#c58b3f"></span><span class="lib">En cours</span><span class="val">{{ e.enCours }}</span></li>
+                    <li><span class="pastille" style="background:#8a5a34"></span><span class="lib">Tonnage</span><span class="val">{{ e.tonnage|number_format(0, ',', ' ') }} T</span></li>
+                </ul>
+            </div>
+        </article>
+
+    </section>
+
+    <p class="sup-pied">CITRAC — Supervision · Donnees rafraichies automatiquement toutes les 60 secondes · Acces protege par code administrateur</p>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script>
+    (function () {
+        'use strict';
+        var PALETTE = ['#8a5a34', '#c9a583', '#6f8f6a', '#c58b3f', '#7d6a99', '#5f7f8f', '#b95c50', '#a8a196'];
+        var donnees = {{ donnees|json_encode|raw }};
+        var graphs = {};
+
+        function nb(v) { return Math.round((Number(v) || 0) * 100) / 100; }
+        function libelles(objet) { return Object.keys(objet || {}); }
+        function valeurs(objet) { return Object.values(objet || {}).map(nb); }
+
+        var baseOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(63,47,36,.94)',
+                    padding: 10,
+                    cornerRadius: 8,
+                    titleFont: { size: 12 },
+                    bodyFont: { size: 12 }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#8d7c6d', font: { size: 11 } } },
+                y: { beginAtZero: true, grid: { color: '#f3ece4' }, border: { display: false }, ticks: { color: '#8d7c6d', font: { size: 11 } } }
+            }
+        };
+
+        function creer(id, config) {
+            var el = document.getElementById(id);
+            if (!el) { return; }
+            if (graphs[id]) { graphs[id].destroy(); }
+            graphs[id] = new Chart(el, config);
+        }
+
+        function dessinerSecteur(id, objet) {
+            var opts = JSON.parse(JSON.stringify(baseOptions));
+            delete opts.scales;
+            opts.plugins.legend = { position: 'bottom', labels: { boxWidth: 9, boxHeight: 9, usePointStyle: true, pointStyle: 'circle', color: '#6b5544', font: { size: 11.5 }, padding: 10 }, title: { display: false } };
+            creer(id, {
+                type: 'doughnut',
+                data: { labels: libelles(objet), datasets: [{ data: valeurs(objet), backgroundColor: PALETTE, borderColor: '#fff', borderWidth: 2, hoverOffset: 6 }] },
+                options: Object.assign(opts, { cutout: '60%' })
+            });
+        }
+
+        function fr(n, dec) {
+            return (Number(n) || 0).toLocaleString('fr-FR', { minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0 });
+        }
+
+        // Point du stock cacao par jour : courbe du stock + barres du mouvement.
+        function dessinerCacaoJour() {
+            var d = (donnees && donnees.cacaoJour) ? donnees.cacaoJour : null;
+            if (!d) { return; }
+            var serie = d.series || [];
+            var opts = JSON.parse(JSON.stringify(baseOptions));
+            opts.plugins.legend = { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', color: '#6b5544', font: { size: 11.5 }, padding: 12 }, title: { display: false } };
+            opts.plugins.tooltip.callbacks = {
+                label: function (ctx) {
+                    var lbl = ctx.dataset.label || '';
+                    return lbl + ' : ' + fr(ctx.parsed.y, 2) + ' kg';
+                }
+            };
+            opts.interaction = { mode: 'index', intersect: false };
+            opts.scales.y2 = null;
+
+            creer('graphCacaoJour', {
+                data: {
+                    labels: serie.map(function (j) { return j.jour; }),
+                    datasets: [
+                        {
+                            type: 'bar', label: 'Entrees', order: 3,
+                            data: serie.map(function (j) { return nb(j.entrees); }),
+                            backgroundColor: 'rgba(111,143,106,.55)', borderRadius: 4, maxBarThickness: 16
+                        },
+                        {
+                            type: 'bar', label: 'Sorties', order: 3,
+                            data: serie.map(function (j) { return -Math.abs(Number(j.sorties) || 0); }),
+                            backgroundColor: 'rgba(185,92,80,.45)', borderRadius: 4, maxBarThickness: 16
+                        },
+                        {
+                            type: 'line', label: 'Stock fin de jour', order: 1,
+                            data: serie.map(function (j) { return nb(j.stock); }),
+                            borderColor: '#8a5a34', backgroundColor: '#8a5a34', borderWidth: 2.4,
+                            pointRadius: 3, pointHoverRadius: 5, tension: .32, fill: false
+                        }
+                    ]
+                },
+                options: opts
+            });
+
+            // Cartes de synthese
+            var du = d.duJour || {};
+            var setTxt = function (id, v) { var el = document.getElementById(id); if (el) { el.textContent = v; } };
+            setTxt('cjStock', fr(du.stock, 0) + ' kg');
+            setTxt('cjEntrees', fr(du.entrees, 2));
+            setTxt('cjSorties', fr(du.sorties, 2));
+            var varEl = document.getElementById('cjVariation');
+            if (varEl) {
+                var v = Number(d.variationPeriode) || 0;
+                varEl.textContent = (v > 0 ? '+' : '') + fr(v, 2);
+                varEl.className = v < 0 ? 'baisse' : 'hausse';
+            }
+
+            // Detail par type et nature
+            var zone = document.getElementById('cjDetail');
+            if (!zone) { return; }
+            var rubriques = d.rubriques || [];
+            zone.innerHTML = rubriques.length ? rubriques.map(function (r) {
+                var lignes = (r.natures || []).map(function (n) {
+                    return '<tr><td>' + echapper(n.nature) + '</td><td class="num">' + fr(n.entrees, 2) +
+                        '</td><td class="num">' + fr(n.sorties, 2) + '</td><td class="num">' + fr(n.solde, 2) + '</td></tr>';
+                }).join('');
+                if (!lignes) {
+                    lignes = '<tr><td colspan="4" style="color:#a99a8c">Aucun mouvement sur la periode.</td></tr>';
+                }
+                return '<div class="cj-type"><div class="cj-type-tete"><span class="nom">' + echapper(r.rubrique) +
+                    '</span><span class="val">' + fr(r.stock, 0) + ' kg</span></div>' +
+                    '<table class="cj-mini"><thead><tr><th>Nature de stock</th><th style="text-align:right">Entrees</th>' +
+                    '<th style="text-align:right">Sorties</th><th style="text-align:right">Solde</th></tr></thead><tbody>' +
+                    lignes + '</tbody></table></div>';
+            }).join('') : '<p class="cj-vide">Aucun mouvement de stock sur la periode. Choisissez « Tous les types » pour voir l\'ensemble des types de stock.</p>';
+        }
+
+        function dessiner() {
+            var d = donnees;
+
+            dessinerCacaoJour();
+
+            // 1) Cacao : barres horizontales arrondies
+            var lignesCacao = (d.cacao && d.cacao.lignes) ? d.cacao.lignes : [];
+            var optsCacao = JSON.parse(JSON.stringify(baseOptions));
+            optsCacao.indexAxis = 'y';
+            optsCacao.scales.x.grid = { color: '#f3ece4' };
+            optsCacao.scales.y.grid = { display: false };
+            creer('graphCacao', {
+                type: 'bar',
+                data: {
+                    labels: lignesCacao.map(function (l) { return l.rubrique; }),
+                    datasets: [{
+                        data: lignesCacao.map(function (l) { return nb(l.kg); }),
+                        backgroundColor: 'rgba(138,90,52,.82)',
+                        hoverBackgroundColor: '#8a5a34',
+                        borderRadius: 8,
+                        barThickness: 18
+                    }]
+                },
+                options: optsCacao
+            });
+
+            // 2) Courrier : secteur par statut
+            dessinerSecteur('graphCourrier', (d.courrier && d.courrier.parStatut) ? d.courrier.parStatut : {});
+
+            // 3) Stock PDR : barres verticales
+            creer('graphStock', {
+                type: 'bar',
+                data: {
+                    labels: libelles(d.stock && d.stock.parRubrique),
+                    datasets: [{
+                        data: valeurs(d.stock && d.stock.parRubrique),
+                        backgroundColor: 'rgba(111,143,106,.85)',
+                        hoverBackgroundColor: '#6f8f6a',
+                        borderRadius: 8,
+                        maxBarThickness: 46
+                    }]
+                },
+                options: JSON.parse(JSON.stringify(baseOptions))
+            });
+
+            // 4) GMAO : preventif / correctif
+            dessinerSecteur('graphGmao', {
+                'Preventives': d.gmao ? d.gmao.preventives : 0,
+                'Correctives': d.gmao ? d.gmao.correctives : 0
+            });
+
+            // 5) Embarquements : clotures / en cours
+            dessinerSecteur('graphEmbarq', {
+                'Clotures': d.embarqu ? d.embarqu.clotures : 0,
+                'En cours': d.embarqu ? d.embarqu.enCours : 0
+            });
+
+            // 6) Tableau cacao
+            var tbody = document.getElementById('tableCacao');
+            if (tbody && lignesCacao.length) {
+                var max = Math.max.apply(null, lignesCacao.map(function (l) { return Number(l.kg) || 0; }).concat([1]));
+                tbody.innerHTML = lignesCacao.map(function (l) {
+                    var pct = Math.max(3, Math.round((Number(l.kg) || 0) / max * 100));
+                    return '<tr><td>' + echapper(l.rubrique) + '</td><td class="num">' +
+                        Math.round(Number(l.kg) || 0).toLocaleString('fr-FR') + ' kg</td>' +
+                        '<td><div class="jauge"><span style="width:' + pct + '%"></span></div></td></tr>';
+                }).join('');
+            }
+
+            // 7) Liste demandes d'achat
+            var liste = document.getElementById('listeAchats');
+            if (liste && d.achats && d.achats.parStatut) {
+                var cles = Object.keys(d.achats.parStatut);
+                liste.innerHTML = cles.length ? cles.map(function (k, i) {
+                    return '<li><span class="pastille" style="background:' + PALETTE[i % PALETTE.length] + '"></span>' +
+                        '<span class="lib">' + echapper(k) + '</span><span class="val">' + d.achats.parStatut[k] + '</span></li>';
+                }).join('') : '<li><span class="lib">Aucune demande enregistree</span></li>';
+            }
+
+            // 8) KPI
+            var map = {
+                equipements: d.gmao ? d.gmao.equipements : 0,
+                interventions: d.gmao ? d.gmao.interventions : 0,
+                entrees: Math.round((d.stock ? d.stock.entrees : 0)).toLocaleString('fr-FR'),
+                enAttente: d.stock ? d.stock.enAttente : 0,
+                courrier: d.courrier ? d.courrier.total : 0,
+                dossiers: d.embarqu ? d.embarqu.dossiers : 0
+            };
+            Object.keys(map).forEach(function (k) {
+                var el = document.querySelector('[data-kpi="' + k + '"]');
+                if (el) { el.textContent = map[k]; }
+            });
+
+            var maj = document.getElementById('sup-maj');
+            if (maj && d.genere) { maj.innerHTML = '<span class="point"></span>Mis a jour ' + echapper(d.genere); }
+        }
+
+        function echapper(t) {
+            return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        // Horloge
+        function horloge() {
+            var el = document.getElementById('sup-horloge');
+            if (el) { el.textContent = new Date().toLocaleTimeString('fr-FR'); }
+        }
+        horloge();
+        setInterval(horloge, 1000);
+
+        // Rafraichissement des donnees toutes les 60 s (sans recharger la page)
+        function rafraichir() {
+            fetch('{{ path('app_supervision_donnees') }}', { headers: { 'X-Requested-With': 'fetch' } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (json) {
+                    if (!json || json.code !== 'success') { return; }
+                    donnees = json.data;
+                    dessiner();
+                })
+                .catch(function () {});
+        }
+        // Periode / mode du point cacao : rechargement des donnees sans quitter la page.
+        var cjJours = {{ cjJours }};
+        var cjMode = '{{ cjMode }}';
+        function chargerCacao() {
+            var url = '{{ path('app_supervision_donnees') }}?j=' + encodeURIComponent(cjJours) + '&mode=' + encodeURIComponent(cjMode);
+            fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (json) {
+                    if (!json || json.code !== 'success') { return; }
+                    donnees = json.data;
+                    dessiner();
+                })
+                .catch(function () {});
+        }
+        Array.prototype.forEach.call(document.querySelectorAll('#cjPeriode [data-jours]'), function (a) {
+            a.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                cjJours = a.getAttribute('data-jours');
+                Array.prototype.forEach.call(document.querySelectorAll('#cjPeriode [data-jours]'), function (x) { x.classList.toggle('actif', x === a); });
+                chargerCacao();
+            });
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('#cjMode [data-mode]'), function (b) {
+            b.addEventListener('click', function () {
+                cjMode = b.getAttribute('data-mode');
+                Array.prototype.forEach.call(document.querySelectorAll('#cjMode [data-mode]'), function (x) { x.classList.toggle('actif', x === b); });
+                chargerCacao();
+            });
+        });
+
+        var bouton = document.getElementById('sup-actualiser');
+        if (bouton) {
+            bouton.addEventListener('click', function (ev) { ev.preventDefault(); rafraichir(); });
+        }
+        setInterval(rafraichir, 60000);
+
+        if (window.Chart) { dessiner(); }
+    })();
+    </script>
+{% endblock %}

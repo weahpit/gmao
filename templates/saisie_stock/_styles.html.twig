@@ -153,4 +153,17 @@
             .ss-natures-table tbody td, .ss-natures-table thead th { padding: 4px 4px; }
             .ss-nb-natures { display: none; }
         }
+
+        /* --- Detail par nature : cumul et nature filtree --- */
+        .ss-natures-total { display: inline-flex; align-items: baseline; gap: 6px; }
+        .ss-natures-legende {
+            font-size: .68rem; text-transform: uppercase; letter-spacing: .05em;
+            color: var(--ss-cacao-clair); font-weight: 700;
+        }
+        .ss-natures-table tfoot th {
+            padding: 6px 8px; font-size: .74rem; text-transform: uppercase; letter-spacing: .04em;
+            color: var(--ss-cacao); border-top: 1px solid #e6dccf; background: rgba(200,145,43,.06);
+        }
+        .ss-nature-active td { background: rgba(200,145,43,.10); font-weight: 600; }
+        .ss-ligne.ss-depliable:focus-visible { outline: 2px solid var(--ss-accent); outline-offset: -2px; }
 </style>

@@ -1,0 +1,453 @@
+{#
+    Page PUBLIQUE de scan QR des bons de sortie (guerite / magasin).
+
+    - Camera du telephone / de la tablette (BarcodeDetector du navigateur si
+      disponible, sinon saisie du code lu par un lecteur USB ou a la main).
+    - La fiche du bon est demandee a /api/scan/{code} : aucun compte n&rsquo;est
+      requis, la page est en lecture seule.
+    - Gabarit autonome presence_base : pas de sidebar, fond cacao clair,
+      logo CITRAC en filigrane.
+#}
+{% extends 'reunion/presence_base.html.twig' %}
+{% block title %}Controle des bons de sortie — CITRAC{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .page { max-width: 880px; }
+
+        /* ---------- Bloc camera ---------- */
+        .cam-cadre {
+            position: relative; border-radius: 16px; overflow: hidden;
+            background: #2b1d15; aspect-ratio: 4 / 3; display: flex;
+            align-items: center; justify-content: center; margin-bottom: 12px;
+        }
+        .cam-cadre video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .cam-cadre .cam-voile { position: absolute; inset: 14%; border: 2px dashed rgba(255, 255, 255, .55); border-radius: 14px; pointer-events: none; }
+        .cam-cadre .cam-attente { color: #e9d9c9; font-size: .9rem; text-align: center; padding: 24px; line-height: 1.5; }
+        .cam-cadre .cam-ligne {
+            position: absolute; left: 14%; right: 14%; height: 2px; top: 50%;
+            background: linear-gradient(90deg, rgba(197, 139, 63, 0), #e0a860, rgba(197, 139, 63, 0));
+            animation: cam-balayage 2.4s ease-in-out infinite;
+        }
+        @keyframes cam-balayage { 0%, 100% { top: 22%; } 50% { top: 78%; } }
+
+        .actions-scan { display: flex; flex-wrap: wrap; gap: 9px; }
+        .btn-scan {
+            flex: 1 1 auto; min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 12px 16px; border-radius: 12px; font-size: .92rem; font-weight: 650; cursor: pointer;
+            border: 1px solid rgba(169, 118, 90, .30); background: #fffdfb; color: var(--cacao-900);
+            transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+        }
+        .btn-scan:hover { background: #f7ece2; }
+        .btn-scan.principal { background: var(--cacao-700); border-color: var(--cacao-700); color: #fff; }
+        .btn-scan.principal:hover { background: #6a4029; }
+        .btn-scan[disabled] { opacity: .55; cursor: default; }
+
+        .saisie-ref { display: flex; gap: 8px; margin-top: 12px; }
+        .saisie-ref input {
+            flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(169, 118, 90, .32);
+            background: #fffdfb; font-family: inherit; font-size: 1rem; text-transform: uppercase;
+            letter-spacing: .04em; color: var(--ink);
+        }
+        .saisie-ref input:focus { outline: none; border-color: var(--cacao-500); box-shadow: 0 0 0 3px rgba(169, 118, 90, .16); }
+        .saisie-ref button {
+            padding: 12px 18px; border-radius: 12px; border: 0; background: var(--cacao-700);
+            color: #fff; font-weight: 700; font-size: .92rem; cursor: pointer;
+        }
+
+        .aide { font-size: .78rem; color: #9a7f6d; margin: 10px 0 0; line-height: 1.5; }
+
+        /* ---------- Bandeau verdict ---------- */
+        .verdict {
+            display: flex; gap: 12px; align-items: flex-start; padding: 15px 17px; border-radius: 14px;
+            border: 1px solid transparent; margin: 0 0 16px; animation: apparait .25s ease-out;
+        }
+        .verdict .v-icone {
+            width: 40px; height: 40px; border-radius: 50%; flex: 0 0 40px; display: flex;
+            align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; color: #fff;
+        }
+        .verdict .v-titre { font-weight: 700; font-size: .98rem; margin: 1px 0 3px; }
+        .verdict .v-texte { font-size: .86rem; line-height: 1.5; }
+        .verdict.ok { background: #eef7f1; border-color: #bfe0cd; color: #245c42; }
+        .verdict.ok .v-icone { background: var(--ok); }
+        .verdict.attente { background: #fdf4e6; border-color: #f0dcb8; color: #8a5c14; }
+        .verdict.attente .v-icone { background: #c58b3f; }
+        .verdict.ko { background: #fceeec; border-color: #f3cfca; color: #97302a; }
+        .verdict.ko .v-icone { background: var(--err); }
+
+        @keyframes apparait { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+        /* ---------- Fiche du bon ---------- */
+        .fiche-entete { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin-bottom: 12px; }
+        .fiche-entete .ref { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.75rem; color: var(--cacao-900); margin: 0; line-height: 1.1; }
+        .badge-statut {
+            display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .74rem; font-weight: 700;
+            letter-spacing: .04em; text-transform: uppercase; color: #fff;
+        }
+        .fiche-type { font-size: .8rem; color: #9a7f6d; width: 100%; }
+
+        .grille-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 18px; margin: 14px 0 4px; }
+        .grille-info div { font-size: .85rem; color: #6b4a38; }
+        .grille-info span { display: block; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: #a58b78; margin-bottom: 2px; }
+        .grille-info b { color: var(--cacao-900); font-weight: 600; }
+
+        .table-lignes { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: .87rem; }
+        .table-lignes th {
+            text-align: left; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase; color: #a58b78;
+            padding: 8px 8px; border-bottom: 1px solid rgba(169, 118, 90, .22); font-weight: 700;
+        }
+        .table-lignes td { padding: 10px 8px; border-bottom: 1px solid rgba(169, 118, 90, .12); color: #4b2c1d; vertical-align: top; }
+        .table-lignes td.qte { font-weight: 700; white-space: nowrap; }
+        .table-lignes tr:last-child td { border-bottom: 0; }
+
+        .signatures { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
+        .signature {
+            border: 1px dashed rgba(169, 118, 90, .35); border-radius: 12px; padding: 11px 13px; font-size: .82rem; color: #6b4a38;
+            background: rgba(255, 253, 251, .7);
+        }
+        .signature span { display: block; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: #a58b78; margin-bottom: 3px; }
+        .signature b { color: var(--cacao-900); font-weight: 650; }
+        .signature .vide { color: #b9a696; font-style: italic; }
+
+        .pied-fiche { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+        .pied-fiche button, .pied-fiche a { font-size: .82rem; padding: 9px 14px; border-radius: 10px; border: 1px solid rgba(169, 118, 90, .3);
+            background: #fff; color: var(--cacao-700); text-decoration: none; cursor: pointer; font-family: inherit; }
+
+        .vide-zone { text-align: center; padding: 26px 10px; color: #9a7f6d; font-size: .9rem; }
+        .chargement { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(122, 76, 51, .25);
+            border-top-color: var(--cacao-700); border-radius: 50%; animation: tourne .8s linear infinite; vertical-align: -4px; }
+        @keyframes tourne { to { transform: rotate(360deg); } }
+
+        @media (max-width: 620px) {
+            .fiche-entete .ref { font-size: 1.45rem; }
+            .table-lignes th.stock, .table-lignes td.stock { display: none; }
+        }
+    </style>
+{% endblock %}
+
+{% block presence_body %}
+
+<div class="brand no-print">
+    <img src="{{ asset('images/CITRAC.png') }}" alt="CITRAC">
+    <span class="sub">Controle des bons de sortie</span>
+</div>
+
+{# ---------------- Scan ---------------- #}
+<section class="card no-print" id="carte-scan">
+    <h1>Scanner un bon</h1>
+    <p class="muted">Presentez le QR code imprime sur le bon de sortie devant la camera, ou saisissez la reference du bon.</p>
+
+    <div class="cam-cadre" id="cam-cadre" hidden>
+        <video id="cam-video" playsinline muted></video>
+        <div class="cam-voile"></div>
+        <div class="cam-ligne"></div>
+    </div>
+
+    <div class="actions-scan">
+        <button type="button" class="btn-scan principal" id="btn-camera">Ouvrir la camera</button>
+        <button type="button" class="btn-scan" id="btn-arreter" hidden>Arreter la camera</button>
+    </div>
+
+    <form class="saisie-ref" id="form-ref" autocomplete="off">
+        <input type="text" id="champ-ref" name="ref" placeholder="Reference du bon — ex. BS-2026-0001"
+               aria-label="Reference du bon de sortie" maxlength="80" spellcheck="false">
+        <button type="submit">Rechercher</button>
+    </form>
+
+    <p class="aide">
+        Le QR code du bon est reconnu automatiquement. La page fonctionne aussi avec un lecteur de code-barres USB
+        (le code est saisi puis recherche tout seul).
+    </p>
+</section>
+
+{# ---------------- Resultat ---------------- #}
+<section class="card" id="carte-fiche"{% if not cible_initiale %} hidden{% endif %}>
+    <div id="zone-fiche">{% if not cible_initiale %}<div class="vide-zone" id="zone-vide">Le bon scanne s&rsquo;affichera ici.</div>{% endif %}</div>
+</section>
+
+<script type="application/json" id="cible-initiale">{{ cible_initiale ? cible_initiale|json_encode|raw : 'null' }}</script>
+
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    'use strict';
+
+    var URL_API      = {{ url_api|json_encode|raw }};
+    var PAGE_BON     = {{ url_page_bon|json_encode|raw }};
+    var cibleInitiale = JSON.parse(document.getElementById('cible-initiale').textContent || 'null');
+
+    var carteFiche = document.getElementById('carte-fiche');
+    var zoneFiche  = document.getElementById('zone-fiche');
+    var champRef   = document.getElementById('champ-ref');
+    var formRef    = document.getElementById('form-ref');
+    var btnCamera  = document.getElementById('btn-camera');
+    var btnArreter = document.getElementById('btn-arreter');
+    var cadre      = document.getElementById('cam-cadre');
+    var video      = document.getElementById('cam-video');
+
+    var flux = null, detecteur = null, boucle = null, dernierCode = '', dernierAt = 0, enCours = false;
+
+    /* ---------- Utilitaires ---------- */
+    function echapper(txt) {
+        return String(txt == null ? '' : txt)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    /** Extrait le code du bon du contenu du QR (JSON CITRAC, URL, ou code brut). */
+    function codeDepuisContenu(brut) {
+        var txt = String(brut || '').trim();
+        if (!txt) { return ''; }
+
+        // 1) JSON imprime sur le bon : {"app":"CITRAC","typ":"BON_SORTIE","ref":"...","tok":"..."}
+        if (txt.charAt(0) === '{') {
+            try {
+                var obj = JSON.parse(txt);
+                var code = obj.tok || obj.token || obj.ref || obj.reference || '';
+                if (code) { return String(code).trim(); }
+            } catch (e) { /* contenu non JSON : on continue */ }
+        }
+
+        // 2) Lien vers cette page : .../scan/<code>
+        var lien = txt.match(/\/scan\/([A-Za-z0-9_.\-]{6,80})\s*$/);
+        if (lien) { return lien[1]; }
+
+        // 3) Code brut (lecteur USB, QR d'ancien format)
+        return txt.slice(0, 80);
+    }
+
+    function couleurStatut(statut) {
+        switch (statut) {
+            case 'VALIDE':   return '#2f7d5d';
+            case 'CLOTURE':  return '#6f7b8a';
+            case 'ANNULE':   return '#b3352c';
+            default:         return '#c58b3f';
+        }
+    }
+
+    /* ---------- Affichage de la fiche ---------- */
+    /** Encode un texte en HTML sur : les balises de mise en forme sont construites ici. */
+    function h(txt) { return echapper(txt); }
+
+    function afficherMessage(classe, titre, texte) {
+        carteFiche.hidden = false;
+        zoneFiche.innerHTML =
+            '<div class="verdict ' + classe + '">' +
+                '<div class="v-icone">' + (classe === 'ok' ? '\u2713' : (classe === 'ko' ? '\u2715' : '!')) + '</div>' +
+                '<div><div class="v-titre">' + echapper(titre) + '</div>' +
+                '<div class="v-texte">' + h(texte) + '</div></div>' +
+            '</div>';
+    }
+
+    function afficherBon(bon) {
+        carteFiche.hidden = false;
+
+        var v = 'attente', icone = '!', titre = 'En attente de signature';
+        if (bon.statut === 'VALIDE') {
+            v = 'ok'; icone = '\u2713'; titre = 'Sortie autorisee';
+        } else if (bon.statut === 'CLOTURE' || bon.statut === 'ANNULE') {
+            v = 'ko'; icone = '\u2715';
+            titre = bon.statut === 'ANNULE' ? 'Bon annule' : 'Bon deja cloture';
+        }
+        var texte = '';
+        if (bon.statut === 'VALIDE') {
+            texte = 'Ce bon est signe par la Direction Generale : verifiez les quantites avec le porteur, puis cloturez le bon depuis l&rsquo;application mobile.';
+        } else if (bon.statut === 'CLOTURE') {
+            texte = 'Ce bon a deja ete cloture a la guerite' + (bon.cloture_at ? ' le ' + bon.cloture_at : '') +
+                (bon.cloture_par ? ' par ' + bon.cloture_par : '') + ' : la marchandise est deja sortie.';
+        } else if (bon.statut === 'ANNULE') {
+            texte = 'Ce bon a ete annule : la sortie N&rsquo;EST PAS autorisee.';
+        } else {
+            texte = 'Ce bon attend la signature du Directeur General : la sortie n&rsquo;est pas autorisee pour le moment.';
+        }
+
+        var html = '';
+        html += '<div class="verdict ' + v + '">' +
+                    '<div class="v-icone">' + icone + '</div>' +
+                    '<div><div class="v-titre">' + echapper(titre) + '</div>' +
+                    '<div class="v-texte">' + h(texte) + '</div></div>' +
+                '</div>';
+
+        html += '<div class="fiche-entete">' +
+                    '<h2 class="ref">' + echapper(bon.reference || 'Sans reference') + '</h2>' +
+                    '<span class="badge-statut" style="background:' + couleurStatut(bon.statut) + '">' +
+                        echapper(bon.statut_label || bon.statut) + '</span>' +
+                    '<div class="fiche-type">' + echapper(bon.type_label || '') +
+                        (bon.date ? '  \u00b7  ' + echapper(bon.date) : '') + '</div>' +
+                '</div>';
+
+        var infos = [
+            ['Service', bon.service],
+            ['Demandeur', bon.demandeur],
+            ['Emplacement', bon.emplacement],
+            ['Etabli par', bon.etabli_par]
+        ];
+        var infosHtml = '';
+        for (var i = 0; i < infos.length; i++) {
+            if (!infos[i][1]) { continue; }
+            infosHtml += '<div><span>' + echapper(infos[i][0]) + '</span><b>' + echapper(infos[i][1]) + '</b></div>';
+        }
+        if (infosHtml) { html += '<div class="grille-info">' + infosHtml + '</div>'; }
+
+        var lignes = bon.lignes || [];
+        if (lignes.length) {
+            html += '<table class="table-lignes"><thead><tr>' +
+                        '<th>Article / rubrique</th><th>Quantite</th>' +
+                        '<th class="stock">Stock avant</th><th class="stock">Stock apres</th>' +
+                    '</tr></thead><tbody>';
+            for (var j = 0; j < lignes.length; j++) {
+                var l = lignes[j] || {};
+                html += '<tr>' +
+                            '<td>' + echapper(l.designation || l.code || '') +
+                                (l.code && l.designation ? '<div class="aide" style="margin:2px 0 0">Code : ' + echapper(l.code) + '</div>' : '') +
+                                (l.mention ? '<div class="aide" style="margin:2px 0 0">Motif : ' + echapper(l.mention) + '</div>' : '') +
+                            '</td>' +
+                            '<td class="qte">' + echapper(l.qte || '') + '</td>' +
+                            '<td class="stock">' + echapper(l.stock_avant || '') + '</td>' +
+                            '<td class="stock">' + echapper(l.stock_apres || '') + '</td>' +
+                        '</tr>';
+            }
+            html += '</tbody></table>';
+        }
+
+        html += '<div class="signatures">' +
+                    '<div class="signature"><span>Signature Direction Generale</span>' +
+                        (bon.signe_par ? '<b>' + echapper(bon.signe_par) + '</b>' : '<span class="vide">Pas encore signe</span>') +
+                        (bon.signe_at ? '<br>' + echapper(bon.signe_at) : '') +
+                        (bon.observation_signature ? '<br>' + echapper(bon.observation_signature) : '') +
+                    '</div>' +
+                    '<div class="signature"><span>Controle a la guerite</span>' +
+                        (bon.cloture_at
+                            ? '<b>' + echapper(bon.cloture_par || 'Cloture enregistree') + '</b><br>' + echapper(bon.cloture_at) +
+                              (bon.poste_controle ? '<br>' + echapper(bon.poste_controle) : '')
+                            : '<span class="vide">Non encore cloture</span>') +
+                    '</div>' +
+                '</div>';
+
+        html += '<div class="pied-fiche">' +
+                    '<button type="button" id="btn-nouveau">Scanner un autre bon</button>' +
+                    '<a href="' + PAGE_BON.replace('__CODE__', encodeURIComponent(bon.token || bon.reference || '')) + '">Lien permanent de ce bon</a>' +
+                '</div>';
+
+        zoneFiche.innerHTML = html;
+
+        var btnNouveau = document.getElementById('btn-nouveau');
+        if (btnNouveau) { btnNouveau.addEventListener('click', reinitialiser); }
+    }
+
+    function reinitialiser() {
+        zoneFiche.innerHTML = '<div class="vide-zone">Le bon scanne s&rsquo;affichera ici.</div>';
+        carteFiche.hidden = true;
+        champRef.value = '';
+        champRef.focus();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ---------- Recherche du bon ---------- */
+    function rechercher(code) {
+        code = String(code || '').trim();
+        if (!code || enCours) { return; }
+        enCours = true;
+
+        carteFiche.hidden = false;
+        zoneFiche.innerHTML = '<div class="vide-zone"><span class="chargement"></span>  Recherche du bon ' + echapper(code) + '...</div>';
+        var url = URL_API.replace('__CODE__', encodeURIComponent(code));
+
+        fetch(url, { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json().catch(function () { return { code: 'error', msg: 'Reponse illisible du serveur.' }; }); })
+            .then(function (reponse) {
+                if (reponse && reponse.code === 'success' && reponse.data) {
+                    afficherBon(reponse.data);
+                } else {
+                    var msg = (reponse && reponse.msg) ? reponse.msg : 'Bon introuvable.';
+                    afficherMessage('ko', 'Bon introuvable', msg);
+                }
+            })
+            .catch(function () {
+                afficherMessage('ko', 'Connexion impossible', 'Le serveur ne repond pas. Verifiez la connexion, puis reessayez.');
+            })
+            .then(function () { enCours = false; });
+    }
+
+    formRef.addEventListener('submit', function (e) {
+        e.preventDefault();
+        rechercher(codeDepuisContenu(champRef.value));
+    });
+
+    /* ---------- Camera ---------- */
+    function arreterCamera() {
+        if (boucle) { clearTimeout(boucle); boucle = null; }
+        if (flux) { flux.getTracks().forEach(function (t) { t.stop(); }); flux = null; }
+        video.srcObject = null;
+        cadre.hidden = true;
+        btnArreter.hidden = true;
+        btnCamera.hidden = false;
+    }
+
+    /** Boucle de detection : BarcodeDetector (navigateur recent), sinon
+     *  message invitant a saisir la reference. */
+    function lancerDetection() {
+        if (!detecteur) { return; }
+        detecteur.detect(video).then(function (codes) {
+            if (codes && codes.length) {
+                var valeur = codeDepuisContenu(codes[0].rawValue);
+                var maintenant = Date.now();
+                if (valeur && (valeur !== dernierCode || maintenant - dernierAt > 4000)) {
+                    dernierCode = valeur;
+                    dernierAt = maintenant;
+                    if (navigator.vibrate) { navigator.vibrate(60); }
+                    champRef.value = '';
+                    rechercher(valeur);
+                }
+            }
+        }).catch(function () { /* image non exploitable : on continue */ })
+          .then(function () { boucle = setTimeout(lancerDetection, 450); });
+    }
+
+    btnCamera.addEventListener('click', function () {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            afficherMessage('ko', 'Camera indisponible',
+                'Ce navigateur ne permet pas d&rsquo;ouvrir la camera (page non securisee en HTTPS, ou camera sans autorisation). Saisissez la reference imprimee sur le bon.');
+            champRef.focus();
+            return;
+        }
+        if (!('BarcodeDetector' in window)) {
+            afficherMessage('attente', 'Lecture du QR non prise en charge',
+                'Ce navigateur ne sait pas lire les QR code. Utilisez Chrome ou Edge recent, un lecteur USB, ou saisissez la reference du bon ci-dessus.');
+        }
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+            .then(function (f) {
+                flux = f;
+                video.srcObject = f;
+                video.play();
+                cadre.hidden = false;
+                btnCamera.hidden = true;
+                btnArreter.hidden = false;
+                if ('BarcodeDetector' in window) {
+                    detecteur = new window.BarcodeDetector({ formats: ['qr_code', 'code_128', 'code_39'] });
+                    lancerDetection();
+                }
+            })
+            .catch(function () {
+                afficherMessage('ko', 'Camera non autorisee',
+                    'L&rsquo;acces a la camera a ete refuse. Autorisez-le dans le navigateur, ou saisissez la reference imprimee sur le bon.');
+            });
+    });
+
+    btnArreter.addEventListener('click', arreterCamera);
+    window.addEventListener('pagehide', arreterCamera);
+
+    /* ---------- Au chargement ---------- */
+    if (cibleInitiale) {
+        afficherBon(cibleInitiale);
+    } else {
+        // Lien direct sans bon : on place le curseur dans la saisie.
+        champRef.focus();
+    }
+})();
+</script>
+{% endblock %}

@@ -91,9 +91,16 @@
 
                     <form method="post" action="{{ path('app_presence_reunion_signer', {jeton: reunion.jeton}) }}" id="formPresence" novalidate>
                         <input type="hidden" name="_token" value="{{ csrf_token('presence_' ~ reunion.jeton) }}">
+                        {# Memoire du navigateur (cookie) : les informations du
+                           dernier participant enregistre sont pre-remplies.
+                           Le participant peut les modifier d'un clic. #}
+                        <div id="blocSouvenir" class="souvenir" hidden>
+                            <span class="souvenir-txt">Bonjour <b id="souvenirNom"></b>, vos informations sont deja remplies.</span>
+                            <button type="button" class="btn btn-ghost btn-sm" id="btnAutrePersonne">Autre personne</button>
+                        </div>
                         <input type="hidden" name="signature_data" id="signatureData" value="">
 
-                        <div class="grid">
+                        <div class="grid grid-clair">
                             {# Formulaire reduit : Nom et prenoms, Contact, Service,
                                Email et Signature. L'heure d'arrivee n'est plus
                                saisie : elle est prise automatiquement par le
@@ -103,7 +110,7 @@
                                 <input type="text" id="nom_complet" name="nom_complet"
                                        value="{{ ancien.nomComplet|default('') }}"
                                        placeholder="Ex : KOUASSI Jean-Marc" autocomplete="name" required>
-                                <div class="aide">Ecrivez votre nom puis vos prenoms.</div>
+                                <div class="aide">Ecrivez d'abord votre nom (en majuscules de preference), puis vos prenoms.</div>
                             </div>
 
                             <div>
@@ -113,7 +120,7 @@
                             </div>
 
                             <div>
-                                <label for="service">Service</label>
+                                <label for="service">Service <span class="opt">(facultatif)</span></label>
                                 <select id="service" name="service">
                                     <option value="">— Choisir un service —</option>
                                     {% for s in services %}
@@ -123,7 +130,7 @@
                             </div>
 
                             <div>
-                                <label for="email">Email</label>
+                                <label for="email">Email <span class="opt">(facultatif)</span></label>
                                 <input type="text" id="email" name="email" value="{{ ancien.email|default('') }}"
                                        placeholder="Ex : nom.prenoms@citrac.ci" inputmode="email" autocomplete="email">
                             </div>
@@ -326,8 +333,87 @@
     majHeure();
     setInterval(majHeure, 30000);
 
+    // ------------------------------------------------------------------
+    // Memoire du participant (cookie « citrac_presence_v1 ») :
+    // nom, contact, service et email sont repris automatiquement pour
+    // eviter la ressaisie lors des reunions suivantes.
+    // ------------------------------------------------------------------
+    var CLE_SOUVENIR = 'citrac_presence_v1';
+    var champNom     = document.getElementById('nom_complet');
+    var champTel     = document.getElementById('telephone');
+    var champMail    = document.getElementById('email');
+    var champService = document.getElementById('service');
+    var blocSouvenir = document.getElementById('blocSouvenir');
+
+    function lireSouvenir() {
+        try {
+            var brut = localStorage.getItem(CLE_SOUVENIR);
+            return brut ? JSON.parse(brut) : null;
+        } catch (e) { return null; }
+    }
+
+    function ecrireSouvenir(infos) {
+        try { localStorage.setItem(CLE_SOUVENIR, JSON.stringify(infos)); } catch (e) {}
+    }
+
+    function viderSouvenir() {
+        try { localStorage.removeItem(CLE_SOUVENIR); } catch (e) {}
+    }
+
+    // Signale visuellement les champs remplis (contour plus net).
+    [champNom, champTel, champMail].forEach(function (c) {
+        if (!c) { return; }
+        function maj() { c.classList.toggle('rempli', c.value.trim() !== ''); }
+        c.addEventListener('input', maj);
+        maj();
+    });
+
+    (function preRemplir() {
+        var infos = lireSouvenir();
+        if (!infos) { return; }
+        var dejaSaisi = (champNom && champNom.value.trim() !== '') ||
+                        (champTel && champTel.value.trim() !== '') ||
+                        (champMail && champMail.value.trim() !== '');
+        if (dejaSaisi) { return; } // erreurs de validation : on garde la saisie du serveur
+        if (champNom && infos.nom) { champNom.value = infos.nom; }
+        if (champTel && infos.tel) { champTel.value = infos.tel; }
+        if (champMail && infos.mail) { champMail.value = infos.mail; }
+        if (champService && infos.service) {
+            for (var i = 0; i < champService.options.length; i++) {
+                if (champService.options[i].value === infos.service) {
+                    champService.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+        if (blocSouvenir && infos.nom) {
+            document.getElementById('souvenirNom').textContent = infos.nom;
+            blocSouvenir.hidden = false;
+        }
+    })();
+
+    if (blocSouvenir) {
+        document.getElementById('btnAutrePersonne').addEventListener('click', function () {
+            viderSouvenir();
+            if (champNom) { champNom.value = ''; }
+            if (champTel) { champTel.value = ''; }
+            if (champMail) { champMail.value = ''; }
+            if (champService) { champService.selectedIndex = 0; }
+            blocSouvenir.hidden = true;
+            if (champNom) { champNom.focus(); }
+        });
+    }
+
     form.addEventListener('submit', function (e) {
         majHeure();
+        // Memorise les informations pour la prochaine reunion.
+        ecrireSouvenir({
+            nom:     champNom ? champNom.value.trim() : '',
+            tel:     champTel ? champTel.value.trim() : '',
+            mail:    champMail ? champMail.value.trim() : '',
+            service: champService ? champService.value : '',
+            date:    new Date().toISOString()
+        });
         if (!vide) { champ.value = canvas.toDataURL('image/png'); }
         if (!champ.value) {
             e.preventDefault();

@@ -1,0 +1,43 @@
+{% extends 'reunion/presence_base.html.twig' %}
+{% block title %}Supervision CITRAC - Acces{% endblock %}
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Page autonome : on neutralise la carte centree du gabarit */
+        .page { max-width: 100% !important; padding: 14px 0 0 !important; background: transparent !important; box-shadow: none !important; }
+        .page .langue-barre { display: none; }
+    </style>
+    <style>
+        body { background: #fdfcf9 !important; }
+        .pin-voile { min-height: 78vh; display: flex; align-items: center; justify-content: center; padding: 28px 16px; }
+        .pin-carte { width: 100%; max-width: 430px; background: #fffdfa; border: 1px solid #efe6da; border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(91, 58, 34, .10); padding: 32px 30px 28px; text-align: center; }
+        .pin-logo { height: 74px; margin-bottom: 12px; }
+        .pin-titre { font-size: 1.35rem; font-weight: 700; color: #4a2f1d; margin: 0 0 6px; letter-spacing: .2px; }
+        .pin-sous { font-size: .95rem; color: #8b7a6b; margin: 0 0 22px; }
+        .pin-champ { font-size: 1.6rem; letter-spacing: .45em; text-align: center; padding: 12px 10px;
+            border: 2px solid #e2d3c1; border-radius: 12px; width: 100%; color: #4a2f1d; background: #fff; }
+        .pin-champ:focus { outline: none; border-color: #a9744a; box-shadow: 0 0 0 4px rgba(169, 116, 74, .14); }
+        .pin-bouton { margin-top: 18px; width: 100%; border: 0; border-radius: 12px; padding: 14px;
+            background: #5b3a22; color: #fff; font-size: 1.02rem; font-weight: 600; cursor: pointer; }
+        .pin-bouton:hover { background: #6e4728; }
+        .pin-erreur { margin-top: 14px; background: #fdecec; color: #a12d2d; border: 1px solid #f6cfcf;
+            border-radius: 10px; padding: 10px 12px; font-size: .92rem; }
+        .pin-note { margin-top: 18px; font-size: .82rem; color: #a1938a; }
+    </style>
+{% endblock %}
+{% block presence_body %}
+<div class="pin-voile">
+    <form class="pin-carte" method="post" action="{{ path('app_supervision') }}" autocomplete="off">
+        <img class="pin-logo" src="{{ asset('images/CITRAC.png') }}" alt="CITRAC">
+        <h1 class="pin-titre">Supervision GMAO</h1>
+        <p class="pin-sous">Tableau de bord public protege par code</p>
+        <label for="pin" style="display:block;text-align:left;font-size:.9rem;color:#6b5544;margin-bottom:6px;">Code administrateur</label>
+        <input class="pin-champ" id="pin" type="password" name="pin" inputmode="numeric" maxlength="12"
+               placeholder="......" autofocus required>
+        <button class="pin-bouton" type="submit">Ouvrir le tableau de bord</button>
+        {% if erreur %}<div class="pin-erreur">{{ erreur }}</div>{% endif %}
+        <p class="pin-note">Acces reserve a la direction. Code defini dans la configuration (CITRAC_SUPERVISION_PIN).</p>
+    </form>
+</div>
+{% endblock %}

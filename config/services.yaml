@@ -7,6 +7,11 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Code PIN du tableau de bord public de supervision (/supervision).
+    # A remplacer par votre propre code avant la mise en ligne.
+    supervision_pin: '%env(default:supervision_pin_defaut:CITRAC_SUPERVISION_PIN)%'
+    supervision_pin_defaut: 'citrac2026'
+
     photo_equipement: 'data/equipements/'
     photo_users: 'data/users/photos/'
     photos_alertes_anomalies: 'data/maintenance/alertes/anomalies/'

@@ -108,6 +108,83 @@
         .aide.auto { color: #9c8272; font-style: italic; }
         .aide { font-size: .72rem; color: #9c8272; margin-top: 4px; }
 
+        /* ------- lisibilite : champs plus grands et mieux identifies -------
+           Objectif : une saisie confortable sur telephone, tablette et PC,
+           avec des libelles nets et des zones de saisie bien delimitees. */
+        .grid-clair { gap: 20px 20px; }
+        .grid-clair label {
+            font-size: .93rem;            /* libelle plus grand */
+            font-weight: 700;
+            color: var(--cacao-900);
+            margin-bottom: 8px;
+            letter-spacing: .01em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .grid-clair label::before {
+            content: '';
+            width: 4px; height: 15px; border-radius: 2px;
+            background: linear-gradient(180deg, var(--cacao-500), var(--cacao-700));
+            flex: 0 0 auto;
+        }
+        .grid-clair input[type=text],
+        .grid-clair input[type=tel],
+        .grid-clair input[type=email],
+        .grid-clair input[type=time],
+        .grid-clair select {
+            width: 100%;
+            font-size: 1.06rem;           /* texte saisi plus grand */
+            padding: 14px 15px;
+            border-radius: 12px;
+            border: 2px solid #d9c3b3;    /* contour franc : champ bien visible */
+            background: #ffffff;
+            color: var(--ink);
+            min-height: 52px;
+            transition: border-color .15s, box-shadow .15s, background-color .15s;
+        }
+        .grid-clair input::placeholder { color: #b8a294; font-size: 1rem; }
+        .grid-clair input[type=text]:hover,
+        .grid-clair input[type=tel]:hover,
+        .grid-clair input[type=email]:hover,
+        .grid-clair select:hover { border-color: var(--cacao-500); }
+        .grid-clair input[type=text]:focus,
+        .grid-clair input[type=tel]:focus,
+        .grid-clair input[type=email]:focus,
+        .grid-clair select:focus {
+            border-color: var(--cacao-700);
+            background: #fffefc;
+            box-shadow: 0 0 0 4px rgba(169, 118, 90, .18);
+        }
+        /* Etat rempli : le champ se signale discretement */
+        .grid-clair input.rempli { border-color: #c9b1a0; background: #fffdfb; }
+        .grid-clair select {
+            appearance: none; -webkit-appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, #8a6a58 50%),
+                              linear-gradient(135deg, #8a6a58 50%, transparent 50%);
+            background-position: calc(100% - 21px) 50%, calc(100% - 15px) 50%;
+            background-size: 6px 6px, 6px 6px;
+            background-repeat: no-repeat;
+            padding-right: 40px;
+        }
+        .grid-clair .aide { font-size: .8rem; margin-top: 6px; }
+        .grid-clair .opt { font-size: .74rem; font-weight: 600; color: #a08b7d; text-transform: uppercase; letter-spacing: .05em; }
+
+        /* ------- rappel du dernier participant (memoire navigateur) ------- */
+        .souvenir {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            flex-wrap: wrap;
+            margin: 4px 0 18px;
+            padding: 11px 14px;
+            border-radius: 12px;
+            border: 1px solid #dccdbc;
+            background: linear-gradient(180deg, #fffaf4, #f8efe5);
+            font-size: .86rem; color: #6b4a38;
+        }
+        .souvenir b { color: var(--cacao-900); }
+        .souvenir[hidden] { display: none; }
+
+
         /* ------- signature ------- */
         .sig-wrap { position: relative; border: 1.5px dashed #d9c2b0; border-radius: 12px; background: #fffefc; }
         .sig-wrap.has { border-style: solid; border-color: var(--cacao-500); }
@@ -162,6 +239,8 @@
 
         @media (max-width: 620px) {
             .grid { grid-template-columns: 1fr; }
+        .grid-clair { gap: 18px; }
+        .grid-clair input[type=text], .grid-clair input[type=tel], .grid-clair input[type=email], .grid-clair select { font-size: 1.08rem; padding: 15px 16px; }
             .page { padding: 22px 12px 48px; }
             .card { padding: 20px 16px; }
             h1 { font-size: 1.55rem; }

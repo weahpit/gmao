@@ -163,14 +163,19 @@ final class SaisieStockController extends AbstractController
             }
 
             // Detail par nature : solde, quantite a afficher et unite.
-            // Les natures sans mouvement sont ignorees, puis la liste est
-            // classee de la plus grosse quantite a la plus petite.
+            // Les mouvements filtres (periode, service, agent...) et le detail
+            // de l'inventaire sont fusionnes nature par nature : le cumul de la
+            // periode et le stock initial/final figurent ainsi sur la meme
+            // ligne. Les natures vides sont ignorees, puis la liste est classee
+            // de la plus grosse quantite a la plus petite.
             $natures = [];
             $liste = $ligne['parNature'];
             if (isset($stockInitial['parRubrique'][$r]) && is_array($stockInitial['parRubrique'][$r]['parNature'] ?? null)) {
-                $liste = $stockInitial['parRubrique'][$r]['parNature'];
+                $liste = $this->fusionnerNatures($ligne['parNature'], $stockInitial['parRubrique'][$r]['parNature']);
             }
             foreach ($liste as $nomNature => $n) {
+                // Une nature sans aucun mouvement (periode filtree) est ignoree :
+                // elle n'apporte pas de cumul a afficher.
                 if ($n['nbEntrees'] === 0 && $n['nbSorties'] === 0 && $n['entreeKg'] == 0 && $n['sortieKg'] == 0
                     && $n['entreeLitres'] == 0 && $n['sortieLitres'] == 0) {
                     continue;
@@ -201,6 +206,65 @@ final class SaisieStockController extends AbstractController
             'totaux'      => $totaux,
             'nbPhotos'    => count(array_filter($saisies, $avecPhoto)) + count(array_filter($sorties, $avecPhoto)),
         ];
+    }
+
+    /**
+     * Fusionne le detail par nature des mouvements filtres avec celui de
+     * l'inventaire (stock initial + mouvements posterieurs).
+     *
+     * Les quantites de mouvement de l'inventaire ne sont reprises que pour les
+     * natures absentes des mouvements filtres : sinon elles seraient comptees
+     * deux fois. Les stocks initial/final viennent toujours de l'inventaire.
+     *
+     * @param array<string, array<string, float|int>> $mouvements
+     * @param array<string, array<string, float|int>> $inventaire
+     *
+     * @return array<string, array<string, float|int>>
+     */
+    private function fusionnerNatures(array $mouvements, array $inventaire): array
+    {
+        $cles = ['entreeKg', 'entreeLitres', 'sortieKg', 'sortieLitres'];
+        $out  = [];
+
+        foreach ($inventaire as $nom => $n) {
+            $m = $mouvements[$nom] ?? null;
+            $ligne = [
+                'entreeKg' => 0.0, 'entreeLitres' => 0.0,
+                'sortieKg' => 0.0, 'sortieLitres' => 0.0,
+                'nbEntrees' => 0, 'nbSorties' => 0,
+                'stockInitialKg' => (float) ($n['stockInitialKg'] ?? 0),
+                'stockInitialLitres' => (float) ($n['stockInitialLitres'] ?? 0),
+                'stockFinalKg' => (float) ($n['stockFinalKg'] ?? 0),
+                'stockFinalLitres' => (float) ($n['stockFinalLitres'] ?? 0),
+            ];
+            foreach ($cles as $c) {
+                $ligne[$c] = $m !== null ? (float) ($m[$c] ?? 0) : (float) ($n[$c] ?? 0);
+            }
+            if ($m !== null) {
+                $ligne['nbEntrees'] = (int) ($m['nbEntrees'] ?? 0);
+                $ligne['nbSorties'] = (int) ($m['nbSorties'] ?? 0);
+            } else {
+                $ligne['nbEntrees'] = (int) ($n['nbEntrees'] ?? 0);
+                $ligne['nbSorties'] = (int) ($n['nbSorties'] ?? 0);
+            }
+            $out[$nom] = $ligne;
+        }
+
+        // Natures presentes uniquement dans les mouvements filtres.
+        foreach ($mouvements as $nom => $m) {
+            if (isset($out[$nom])) {
+                continue;
+            }
+            $out[$nom] = [
+                'entreeKg' => (float) ($m['entreeKg'] ?? 0), 'entreeLitres' => (float) ($m['entreeLitres'] ?? 0),
+                'sortieKg' => (float) ($m['sortieKg'] ?? 0), 'sortieLitres' => (float) ($m['sortieLitres'] ?? 0),
+                'nbEntrees' => (int) ($m['nbEntrees'] ?? 0), 'nbSorties' => (int) ($m['nbSorties'] ?? 0),
+                'stockInitialKg' => 0.0, 'stockInitialLitres' => 0.0,
+                'stockFinalKg' => 0.0, 'stockFinalLitres' => 0.0,
+            ];
+        }
+
+        return $out;
     }
 
     private function services(): array

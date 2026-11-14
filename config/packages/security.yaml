@@ -130,6 +130,12 @@ security:
         # Enregistrement de presence a une reunion : page PUBLIQUE, hors session.
         # Protegee par le jeton present dans l'URL (voir PresenceReunionController).
         - { path: ^/presence/reunion, roles: PUBLIC_ACCESS }
+        # Tableau de bord public de supervision : code PIN fourni par
+        # l'administrateur (voir SupervisionController).
+        - { path: ^/supervision, roles: PUBLIC_ACCESS }
+        # Scan public des codes QR des bons de sortie (page mobile).
+        - { path: ^/scan,        roles: PUBLIC_ACCESS }
+        - { path: ^/api/scan,    roles: PUBLIC_ACCESS }
 
         # 2) Zones STRICTEMENT reservees aux administrateurs
         #    (ces controleurs n'avaient aucune garde -> on les protege ici)

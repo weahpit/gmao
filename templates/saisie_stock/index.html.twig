@@ -2,6 +2,7 @@
 
 {% block title %}Consultation des stocks{% endblock %}
 
+
 {% block stylesheets %}
     {{ parent() }}
     {% include 'saisie_stock/_styles.html.twig' %}
@@ -189,8 +190,13 @@
                     {% set unite = estLitres ? 'Litres' : 'Kg' %}
                     {% set natures = v.natures ?? [] %}
                     {% set i = loop.index %}
-                    <tr class="ss-ligne {{ natures|length > 0 ? 'ss-depliable' : '' }}"
-                        {{ natures|length > 0 ? 'data-cible="ss-natures-' ~ i ~ '" tabindex="0" role="button" title="Voir le detail par nature"' : '' }}>
+                    {# Un clic sur la ligne (ou Entree / Espace) deplie le detail
+                       par nature. Si un filtre de nature est actif, le detail
+                       est ouvert d'emblee sur la nature concernee. #}
+                    {% set ouvert = natures|length > 0 and filtres.nature is not empty %}
+                    <tr class="ss-ligne {{ natures|length > 0 ? 'ss-depliable' : '' }}{{ ouvert ? ' ss-ouvert' : '' }}"
+                        id="ss-ligne-{{ i }}"
+                        {{ natures|length > 0 ? 'data-cible="ss-natures-' ~ i ~ '" tabindex="0" role="button" aria-expanded="' ~ (ouvert ? 'true' : 'false') ~ '" aria-controls="ss-natures-' ~ i ~ '" title="' ~ (ouvert ? 'Masquer le detail par nature' : 'Voir le detail par nature') ~ '"' : '' }}>
                         <td class="ss-chev" style="width:34px">
                             {% if natures|length > 0 %}
                                 <span class="ss-chevron" aria-hidden="true"></span>
@@ -225,13 +231,16 @@
                     {% if natures|length > 0 %}
                         {# Ligne de detail : un sous-total par nature du produit.
                            Meme unite et meme calcul que la ligne du type de stock. #}
-                        <tr class="ss-natures" id="ss-natures-{{ i }}" hidden>
+                        <tr class="ss-natures" id="ss-natures-{{ i }}"{{ ouvert ? '' : ' hidden' }}>
                             <td></td>
                             <td colspan="{{ 4 + ((stockInitial is defined and stockInitial.initialise) ? 2 : 0) }}" style="padding:0">
                                 <div class="ss-natures-box">
                                     <div class="ss-natures-head">
                                         <span><strong>{{ rubrique }}</strong> &middot; d&eacute;tail par nature</span>
-                                        <span class="ss-natures-total">{{ qteEntrees|number_format(2, ',', ' ') }} {{ unite }}</span>
+                                        <span class="ss-natures-total">
+                                            <span class="ss-natures-legende">Entr&eacute;es</span>
+                                            {{ qteEntrees|number_format(2, ',', ' ') }} {{ unite }}
+                                        </span>
                                     </div>
                                     <table class="ss-natures-table">
                                         <thead>
@@ -248,7 +257,7 @@
                                         </thead>
                                         <tbody>
                                         {% for n in natures %}
-                                            <tr>
+                                            <tr{{ filtres.nature is not empty and n.nom == filtres.nature ? ' class="ss-nature-active"' : '' }}>
                                                 <td><span class="ss-nature-puce"></span>{{ n.nom }}</td>
                                                 <td class="text-end {{ n.entrees == 0 ? 'ss-zero' }}">{{ n.entrees|number_format(2, ',', ' ') }}</td>
                                                 <td class="text-end {{ n.sorties == 0 ? 'ss-zero' }}">{{ n.sorties|number_format(2, ',', ' ') }}</td>
@@ -262,6 +271,23 @@
                                             </tr>
                                         {% endfor %}
                                         </tbody>
+                                        {% if (natures|last).entrees is defined %}
+                                        <tfoot>
+                                        <tr>
+                                            <th>Cumul {{ natures|length }} nature{{ natures|length > 1 ? 's' : '' }}</th>
+                                            <th class="text-end">
+                                                {{ natures|reduce((t, item) => t + item.entrees, 0)|number_format(2, ',', ' ') }}
+                                            </th>
+                                            <th class="text-end">
+                                                {{ natures|reduce((t, item) => t + item.sorties, 0)|number_format(2, ',', ' ') }}
+                                            </th>
+                                            <th class="text-end">{{ unite }}</th>
+                                            {% if stockInitial is defined and stockInitial.initialise %}
+                                                <th></th><th></th>
+                                            {% endif %}
+                                        </tr>
+                                        </tfoot>
+                                        {% endif %}
                                     </table>
                                 </div>
                             </td>
@@ -444,14 +470,15 @@
         });
     </script>
 
+{# --- Depliage des lignes du recapitulatif : script place DANS le bloc body
+       (il etait auparavant apres la fin du bloc, donc jamais rendu). --- #}
 <script>
-// Recapitulatif des stocks : deplier / replier la ligne d'un type de stock
-// pour afficher le detail par nature du produit.
-document.addEventListener('DOMContentLoaded', function () {
-    var lignes = document.querySelectorAll('tr.ss-ligne.ss-depliable');
-    var basculer = function (ligne) {
+(function () {
+    'use strict';
+
+    function basculer(ligne) {
         var cible = document.getElementById(ligne.getAttribute('data-cible'));
-        if (!cible) return;
+        if (!cible) { return; }
         var ouverture = cible.hasAttribute('hidden');
         if (ouverture) {
             cible.removeAttribute('hidden');
@@ -460,26 +487,101 @@ document.addEventListener('DOMContentLoaded', function () {
             cible.setAttribute('hidden', '');
             ligne.classList.remove('ss-ouvert');
         }
-    };
+        ligne.setAttribute('aria-expanded', ouverture ? 'true' : 'false');
+        ligne.setAttribute('title', ouverture ? 'Masquer le detail par nature' : 'Voir le detail par nature');
+    }
 
-    Array.prototype.forEach.call(lignes, function (ligne) {
-        ligne.addEventListener('click', function (e) {
-            // Un clic sur un lien ou un bouton de la ligne garde son action.
-            var cible = e.target;
-            while (cible && cible !== ligne) {
-                if (cible.tagName === 'A' || cible.tagName === 'BUTTON') return;
-                cible = cible.parentNode;
-            }
-            basculer(ligne);
-        });
-        ligne.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
+    function initDepliage() {
+        var lignes = document.querySelectorAll('tr.ss-ligne.ss-depliable');
+        Array.prototype.forEach.call(lignes, function (ligne) {
+            if (ligne.dataset.ssPret === '1') { return; }
+            ligne.dataset.ssPret = '1';
+
+            ligne.addEventListener('click', function (e) {
+                // Un clic sur un lien, un bouton ou une image garde son action.
+                var cible = e.target;
+                while (cible && cible !== ligne) {
+                    var tag = cible.tagName;
+                    if (tag === 'A' || tag === 'BUTTON' || tag === 'IMG' || tag === 'INPUT') { return; }
+                    cible = cible.parentNode;
+                }
+                // Ne pas deplier en selectionnant du texte.
+                if (window.getSelection && String(window.getSelection()).length > 0) { return; }
                 basculer(ligne);
-            }
+            });
+
+            ligne.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    basculer(ligne);
+                }
+            });
         });
-    });
-});
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDepliage);
+    } else {
+        initDepliage();
+    }
+})();
+</script>
+
+# --- Depliage des lignes du recapitulatif : script place DANS le bloc body
+       (il etait auparavant apres la fin du bloc, donc jamais rendu). --- #}
+<script>
+(function () {
+    'use strict';
+
+    function basculer(ligne) {
+        var cible = document.getElementById(ligne.getAttribute('data-cible'));
+        if (!cible) { return; }
+        var ouverture = cible.hasAttribute('hidden');
+        if (ouverture) {
+            cible.removeAttribute('hidden');
+            ligne.classList.add('ss-ouvert');
+        } else {
+            cible.setAttribute('hidden', '');
+            ligne.classList.remove('ss-ouvert');
+        }
+        ligne.setAttribute('aria-expanded', ouverture ? 'true' : 'false');
+        ligne.setAttribute('title', ouverture ? 'Masquer le detail par nature' : 'Voir le detail par nature');
+    }
+
+    function initDepliage() {
+        var lignes = document.querySelectorAll('tr.ss-ligne.ss-depliable');
+        Array.prototype.forEach.call(lignes, function (ligne) {
+            if (ligne.dataset.ssPret === '1') { return; }
+            ligne.dataset.ssPret = '1';
+
+            ligne.addEventListener('click', function (e) {
+                // Un clic sur un lien, un bouton ou une image garde son action.
+                var cible = e.target;
+                while (cible && cible !== ligne) {
+                    var tag = cible.tagName;
+                    if (tag === 'A' || tag === 'BUTTON' || tag === 'IMG' || tag === 'INPUT') { return; }
+                    cible = cible.parentNode;
+                }
+                // Ne pas deplier en selectionnant du texte.
+                if (window.getSelection && String(window.getSelection()).length > 0) { return; }
+                basculer(ligne);
+            });
+
+            ligne.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    basculer(ligne);
+                }
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDepliage);
+    } else {
+        initDepliage();
+    }
+})();
 </script>
 
 {% endblock %}

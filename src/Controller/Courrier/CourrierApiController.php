@@ -307,6 +307,12 @@ class CourrierApiController extends AbstractController
         }
 
         $erreurs = $this->deposerPieces($courrier, $request);
+        if ($erreurs === [] && (int) $request->request->get('pieces_annoncees', 0) > 0 && $this->piecesRecues($request) === 0) {
+            // Le telephone a annonce des pieces mais le serveur n'a recu aucun
+            // fichier : dossier temporaire plein ou limites PHP trop basses.
+            $erreurs[] = 'Aucune piece jointe n\'a ete recue par le serveur (limites PHP : upload_max_filesize '
+                . ini_get('upload_max_filesize') . ', post_max_size ' . ini_get('post_max_size') . ').';
+        }
         if ($erreurs === []) {
             $courrier->touch();
             $this->em->flush();
@@ -515,6 +521,23 @@ class CourrierApiController extends AbstractController
         }
 
         return $erreurs;
+    }
+
+    /** Nombre de fichiers reellement recus dans le champ « pieces[] ». */
+    private function piecesRecues(Request $request): int
+    {
+        $fichiers = $request->files->get('pieces', []);
+        if (!is_array($fichiers)) {
+            $fichiers = [$fichiers];
+        }
+        $n = 0;
+        foreach ($fichiers as $fichier) {
+            if ($fichier instanceof UploadedFile && (int) $fichier->getError() === UPLOAD_ERR_OK) {
+                $n++;
+            }
+        }
+
+        return $n;
     }
 
     private function videOuValeur(mixed $valeur): ?string
