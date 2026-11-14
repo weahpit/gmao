@@ -333,6 +333,7 @@
                     </div>
                 </div>
             </div>
+            {% if is_granted('ROLE_COURRIER') %}
             <div class="nav-section">
                 <!-- DA avec sous-menu -->
                 <div class="nav-group">
@@ -351,7 +352,7 @@
                     </div>
                 </div>
             </div>
-
+            {% endif %}
             <div class="nav-section">
                 {#<span class="nav-section-title">Stocks</span>#}
                 <!-- Groupe Stock avec sous-menu -->
@@ -411,12 +412,13 @@
                             <a href="{{ path('app_saisies_stock') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_saisies_stock' ? 'active' }}">
                                 <span class="nav-label">Consultations</span>
                             </a>
+                          {% endif %}
                             {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') %}
                             <a href="{{ path('app_stock_initialisation') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_stock_initialisation' ? 'active' }}">
                                 <span class="nav-label">Initialisation des stocks</span>
                             </a>
                             {% endif %}
-                        {% endif %}
+
                     </div>
                 </div>
             </div>
@@ -492,7 +494,7 @@
                 </div>
             </div>
             {% endif %}
-
+            {% if is_granted('ROLE_MAINTENANCE') %}
             <div class="nav-section">
                 {#<span class="nav-section-title">GMAO</span>#}
                 <!-- Groupe Maintenance avec sous-menu -->

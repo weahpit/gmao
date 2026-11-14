@@ -64,12 +64,15 @@ security:
     role_hierarchy:
         # ROLE_COURRIER : agent en charge de l'enregistrement du courrier
         # (application mobile et module web). ROLE_ADMIN en herite.
-        ROLE_ADMIN:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_DG, ROLE_COURRIER, ROLE_USER]
+        ROLE_ADMIN:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_DG, ROLE_COURRIER, ROLE_USER, ROLE_MAINTENANCE, ROLE_LOGISTIQUE, ROLE_DG]
+        ROLE_DG:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_DG, ROLE_COURRIER, ROLE_USER, ROLE_MAINTENANCE, ROLE_LOGISTIQUE]
         ROLE_COURRIER:   ROLE_USER
+        ROLE_SAISIE_STOCK:   ROLE_USER
+        ROLE_LOGISTIQUE:   ROLE_USER
         ROLE_PDR:        ROLE_USER
         ROLE_TECHNICIAN: ROLE_USER
+        ROLE_MAINTENANCE: ROLE_USER
         ROLE_VIGIL:      ROLE_USER
-        ROLE_DG:         ROLE_USER
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
