@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Uid\Uuid;
 
 final class ApiMenuController extends AbstractController
@@ -69,7 +70,7 @@ final class ApiMenuController extends AbstractController
         }
 
     #[Route('api/getSingleMenu/{$id_menu}', name: 'app_api_get_single_menu')]
-    public function app_api_get_single_menu(int $id_menu): Response
+    public function app_api_get_single_menuzq(int $id_menu): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
@@ -98,8 +99,49 @@ final class ApiMenuController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
+
+    #[Route('api/getSingleMenu', name: 'app_api_get_single_menu')]
+    public function app_api_get_single_menu(Request $request): Response
+    {
+        $reponse = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_USER")) {
+            try {
+
+
+                $id_menu = $request->request->get('id_menu');
+                $uuid = Uuid::fromString($id_menu);
+                $menu = $this->em->getRepository(Menu::class)->find($uuid);
+
+                if ($menu){
+                    $reponse = array(
+                        'code'=>'success',
+                        'msg'=>'Success',
+                        'id'=>$menu->getId(),
+                        'nom_menu'=>$menu->getNomMenu(),
+                        'parent_menu'=>$menu->getParentM() ? $menu->getParentM()->getId() : "0",
+                        'classname_menu'=>$menu->getClassnameMenu()
+                    );
+                } else {
+                    $reponse = array(
+                        'code'=>'warning',
+                        'msg'=>'Merci de sélectionner un menu  dans la liste !'
+                    );
+                }
+
+            } catch (\Throwable $throwable) {
+                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
+
+
     #[Route('api/saveMenu', name: 'app_api_save_menu')]
-    public function app_api_save_menu(Request $request): Response
+    public function app_api_save_menu(Request $request, RouterInterface $router): Response
     {
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
@@ -110,29 +152,32 @@ final class ApiMenuController extends AbstractController
                 $parent_menu = $request->request->get('parent_menu');
                 $classname_menu = $request->request->get('classname_menu');
 
-                $reference = $this->em->getRepository(Menu::class)->findOneBy(['classname_menu'=>$classname_menu]);
+                $routes = $router->getRouteCollection();
+                if (!$routes->get($classname_menu)) { $reponse = ['code' => 'error', 'msg' => 'Ce nom de route n\'exite pas dans la collection de routes ! Contactez votre administrateur' ]; return new JsonResponse($reponse); }
 
-                if (!$libelle_menu) {
-                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir la menu !'];
+                // Recherche du Parent Menu
+                $pMenu = $this->em->getRepository(Menu::class)->find(Uuid::fromString($parent_menu));
+
+                if (!$libelle_menu || !$pMenu) {
+                    $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir toutes les valeurs !'];
                 } else {
-                    if ($classname_menu && $reference){
-                        $reponse = ['code' => 'warning', 'msg' => 'Cette reference existe déjà !'];
-                    } else {
-                        $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_menu);
-                        $menu = $this->em->getRepository(Menu::class)->find($uuid);
-                        $isNew = false;
-                        if (!$menu) {
-                            $menu = new Menu();
+                    $reference = $this->em->getRepository(Menu::class)->findOneBy(['classname_menu'=>$classname_menu]);
+                    if ($id_menu =="0"){
+                        if ($reference) {
+                            $reponse = ['code' => 'warning', 'msg' => 'Cette reference existe déjà !'];
+                            return new JsonResponse($reponse);
+                        } else {
                             $isNew = true;
+                            $menu = new Menu();
                         }
+                    } else {
+                        $isNew = false;
+                        $menu = $this->em->getRepository(Menu::class)->find(Uuid::fromString($id_menu));
+                        if (!$menu) { $reponse = ['code' => 'warning', 'msg' => 'Merci de sélectionner un menu !'];  return new JsonResponse($reponse); }
+                    }
 
                         $menu->setNomMenu(strtoupper($libelle_menu));
-                        if (Uuid::isValid($parent_menu)) {
-                            $uuid_parent = Uuid::fromString($parent_menu);
-                            $pMenu = $this->em->getRepository(Menu::class)->find($uuid_parent);
-                            $menu->setParentM($pMenu);
-                        }
-
+                        $menu->setParentM($pMenu);
                         $menu->setClassnameMenu($classname_menu);
 
                         $this->em->persist($menu);
@@ -142,7 +187,7 @@ final class ApiMenuController extends AbstractController
                             'code' => 'success',
                             'msg' => $isNew ? 'Menu créé avec succès !' : 'Menu  mis à jour avec succès !'
                         ];
-                    }
+
                 }
             } catch (\Throwable $throwable) {
                 $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];

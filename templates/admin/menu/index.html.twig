@@ -65,7 +65,7 @@
     <script src="{{ asset('js/api/references/Fournisseur.js') }}"></script>
     <script>
 
-        let idMenu = 0;
+        let idMenu = "0";
         getAllMenus(document.querySelector(".card-body"), 1)
         clearForm("formMenu", "nom_menu")
 
@@ -75,12 +75,12 @@
         document.querySelector("#btn_add_menu").addEventListener("click", function () {
             clearForm("formMenu", "nom_menu")
             getParentMenu(document.getElementById("parent_menu"))
-            getStateClassname(document.getElementById("parent_menu").value)
+            /*getStateClassname(document.getElementById("parent_menu").value)*/
         })
 
-        document.querySelector("#parent_menu").addEventListener("change", function () {
+        /*document.querySelector("#parent_menu").addEventListener("change", function () {
             getStateClassname(document.getElementById("parent_menu").value)
-        })
+        })*/
 
         document.querySelector("#saveMenu").addEventListener("click", function () {
             let FormDataMenu= new FormData();
@@ -91,7 +91,7 @@
             saveMenu(FormDataMenu, document.querySelector(".card-body"), 1)
             setTimeout(()=>{
                 getParentMenu(document.getElementById("parent_menu")) ;
-                getStateClassname(document.getElementById("parent_menu").value) ;
+                /*getStateClassname(document.getElementById("parent_menu").value) ;*/
                 clearForm("formMenu", "nom_menu") ;
             }, 500)
         })
@@ -105,5 +105,26 @@
                 document.getElementById("classname_menu").focus()
             }
         }
+
+        $("body").on('click', '.a_menu', function(){
+            idMenu = this.id;
+
+            $("#modalAddMenu").modal('show')
+            let formMenu = new FormData()
+            formMenu.append('id_menu', idMenu)
+            document.getElementById("parent_menu").disbled = true;
+            document.getElementById("classname_menu").disbled = true;
+            getParentMenu(document.getElementById("parent_menu")) ;
+            getSingleMenu(formMenu)
+                .then(menu => {
+                    document.getElementById("nom_menu").value = menu.nom_menu
+                    document.getElementById("classname_menu").value = menu.classname_menu
+                    document.getElementById("parent_menu").value = menu.parent_menu
+
+                })
+                .catch(err => {
+                    console.error("Erreur :", err);
+                });
+        })
     </script>
 {% endblock %}

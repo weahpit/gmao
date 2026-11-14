@@ -94,26 +94,22 @@
                         <input type="hidden" name="signature_data" id="signatureData" value="">
 
                         <div class="grid">
-                            <div>
-                                <label for="nom">Nom <span class="req">*</span></label>
-                                <input type="text" id="nom" name="nom" value="{{ ancien.nom|default('') }}" placeholder="Ex : KOUASSI" autocomplete="family-name" required>
-                            </div>
-                            <div>
-                                <label for="prenoms">Prenoms <span class="req">*</span></label>
-                                <input type="text" id="prenoms" name="prenoms" value="{{ ancien.prenoms|default('') }}" placeholder="Ex : Jean-Marc" autocomplete="given-name" required>
+                            {# Formulaire reduit : Nom et prenoms, Contact, Service,
+                               Email et Signature. L'heure d'arrivee n'est plus
+                               saisie : elle est prise automatiquement par le
+                               systeme au moment de la validation. #}
+                            <div class="full">
+                                <label for="nom_complet">Nom &amp; Prenoms <span class="req">*</span></label>
+                                <input type="text" id="nom_complet" name="nom_complet"
+                                       value="{{ ancien.nomComplet|default('') }}"
+                                       placeholder="Ex : KOUASSI Jean-Marc" autocomplete="name" required>
+                                <div class="aide">Ecrivez votre nom puis vos prenoms.</div>
                             </div>
 
-                            {# Heure d'arrivee : pre-remplie a l'heure courante, modifiable si
-                               le participant s'est presente plus tot. Sert a detecter
-                               les retards (>= 15 min apres le debut de la reunion). #}
                             <div>
-                                <label for="arrivee_at">{{ 'presence.heure_arrivee'|trans }} <span class="req">*</span></label>
-                                <input type="time" id="arrivee_at" name="arrivee_at"
-                                       value="{{ ancien.arrivee|default('now'|date('H:i')) }}" step="60" required>
-                                <div class="aide">
-                                    Debut de la reunion :
-                                    {{ reunion.dateDebut ? reunion.dateDebut|date('d/m/Y a H:i') : 'non precise' }}
-                                </div>
+                                <label for="telephone">Contact <span class="req">*</span></label>
+                                <input type="tel" id="telephone" name="telephone" value="{{ ancien.telephone|default('') }}"
+                                       placeholder="Ex : 07 00 00 00 00" inputmode="tel" autocomplete="tel" required>
                             </div>
 
                             <div>
@@ -124,29 +120,24 @@
                                         <option value="{{ s.id }}" {{ ancien.serviceId|default('') == s.id|trim ? 'selected' }}>{{ s.libelle }}</option>
                                     {% endfor %}
                                 </select>
-                                <div class="aide">Si votre service n'apparait pas, saisissez-le ci-dessous.</div>
-                            </div>
-                            <div>
-                                <label for="service_libre">Autre service (si absent de la liste)</label>
-                                <input type="text" id="service_libre" name="service_libre" value="{{ ancien.serviceAuto|default('') }}" placeholder="Ex : Laboratoire qualite">
                             </div>
 
                             <div>
-                                <label for="qualite">Qualite / Fonction <span class="req">*</span></label>
-                                <input type="text" id="qualite" name="qualite" value="{{ ancien.qualite|default('') }}" placeholder="Ex : Responsable magasin" required>
+                                <label for="email">Email</label>
+                                <input type="text" id="email" name="email" value="{{ ancien.email|default('') }}"
+                                       placeholder="Ex : nom.prenoms@citrac.ci" inputmode="email" autocomplete="email">
                             </div>
+
                             <div>
-                                <label for="telephone">Numero de telephone <span class="req">*</span></label>
-                                <input type="tel" id="telephone" name="telephone" value="{{ ancien.telephone|default('') }}" placeholder="Ex : 07 00 00 00 00" inputmode="tel" required>
-                            </div>
-                            <div class="full">
-                                <label for="email">Adresse email</label>
-                                <input type="text" id="email" name="email" value="{{ ancien.email|default('') }}" placeholder="Ex : nom.prenoms@citrac.ci" inputmode="email" autocomplete="email">
-                                <div class="aide">Facultative — pour recevoir les informations de la reunion.</div>
+                                <label for="arrivee_at">{{ 'presence.heure_arrivee'|trans }}</label>
+                                <input type="time" id="arrivee_at" name="arrivee_at"
+                                       value="{{ 'now'|date('H:i') }}" step="60" readonly tabindex="-1"
+                                       class="champ-fige" aria-readonly="true">
+                                <div class="aide auto">Renseignee automatiquement par le systeme — pas de saisie necessaire.</div>
                             </div>
 
                             <div class="full">
-                                <label>Signature manuscrite <span class="req">*</span></label>
+                                <label>Signature <span class="req">*</span></label>
                                 <div class="sig-wrap" id="sigWrap">
                                     <canvas id="sigCanvas" aria-label="Zone de signature"></canvas>
                                 </div>
@@ -197,7 +188,6 @@
                                 <th>Nom et prenoms</th>
                                 <th>{{ 'presence.heure_arrivee'|trans }}</th>
                                 <th class="hide-sm">Service</th>
-                                <th class="hide-sm">Qualite</th>
                                 <th>Signature</th>
                             </tr>
                         </thead>
@@ -220,7 +210,6 @@
                                     {% endif %}
                                 </td>
                                 <td class="hide-sm">{{ p.service ?? '-' }}</td>
-                                <td class="hide-sm">{{ p.qualite ?? '-' }}</td>
                                 <td>
                                     {% if p.signature %}
                                         <img class="sig-thumb" src="{{ asset(dossierSignatures ~ p.signature) }}" alt="Signature {{ p.nomComplet }}">
@@ -324,7 +313,21 @@
         wrap.classList.remove('has');
     });
 
+    // Horodatage : l'heure d'arrivee affichee est celle du systeme, rafraichie
+    // en continu ; elle reste non modifiable par le participant.
+    var champHeure = document.getElementById('arrivee_at');
+    function majHeure() {
+        if (!champHeure) { return; }
+        var d = new Date();
+        var h = ('0' + d.getHours()).slice(-2);
+        var m = ('0' + d.getMinutes()).slice(-2);
+        champHeure.value = h + ':' + m;
+    }
+    majHeure();
+    setInterval(majHeure, 30000);
+
     form.addEventListener('submit', function (e) {
+        majHeure();
         if (!vide) { champ.value = canvas.toDataURL('image/png'); }
         if (!champ.value) {
             e.preventDefault();

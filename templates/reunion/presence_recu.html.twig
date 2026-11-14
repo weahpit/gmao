@@ -28,7 +28,6 @@
             <tbody>
                 <tr><td style="width:34%; color:#8a6a58;">Nom et prenoms</td><td class="nom">{{ participant.nomComplet }}</td></tr>
                 <tr><td style="color:#8a6a58;">Service</td><td>{{ participant.service ?? '-' }}</td></tr>
-                <tr><td style="color:#8a6a58;">Qualite</td><td>{{ participant.qualite ?? '-' }}</td></tr>
                 <tr><td style="color:#8a6a58;">Telephone</td><td>{{ participant.telephone ?? '-' }}</td></tr>
                 <tr><td style="color:#8a6a58;">Email</td><td>{{ participant.email ?? '-' }}</td></tr>
                 <tr><td style="color:#8a6a58;">{{ 'presence.arrivee'|trans }}</td><td>{{ participant.instantArrivee ? participant.instantArrivee|date('d/m/Y à H:i') : '-' }}{% if participant.enRetard %} <span style="color:#b71c1c; font-weight:700;">{{ 'presence.en_retard'|trans({'%minutes%': participant.retardMinutes}) }}</span>{% endif %}</td></tr>

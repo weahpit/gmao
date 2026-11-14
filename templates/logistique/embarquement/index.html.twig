@@ -760,7 +760,7 @@
     function affiche_docs_empotage(){
         let contenu = '';
         let contenu_other = '';
-        let j = 0;
+        let j = "0";
         $.ajax({
             url : '{{ url('app_login') }}api/getDossiersFiles/' + id_dossier,
             type : 'POST',

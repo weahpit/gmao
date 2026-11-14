@@ -458,7 +458,7 @@
     <script src="{{ asset('js/api/references/TypeEmplacement.js') }}"></script>
 
     <script>
-        let type_ajout = 0
+        let type_ajout = "0"
         let code = document.getElementById('CodeEquipement');
         let eqType = document.getElementById('eqType');
         let nom = document.getElementById('nomEquipement');
@@ -686,7 +686,7 @@
 
 
         /* Enregistrement Marques */
-        let idMarque = 0;
+        let idMarque = "0";
         clearForm("formMarque", "libelle_marque")
         ValidateOnKeypress(document.getElementById("libelle_marque"), document.getElementById("saveMarque"), "formMarque")
         document.querySelector("#saveMarque").addEventListener("click", function () {
@@ -699,7 +699,7 @@
 
 
 
-        let idType = 0;
+        let idType = "0";
 
         getAllFamilles(document.querySelector("#code_famille"), 2)
         clearForm("formType", "typeEquipement")
@@ -718,7 +718,7 @@
         })
 
         /*Familles Equipements*/
-        let idFamille = 0;
+        let idFamille = "0";
         clearForm("formFamille", "famille")
 
         ValidateOnKeypress(document.getElementById("famille"), document.getElementById("saveFamille"),"formFamille",)

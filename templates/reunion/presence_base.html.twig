@@ -95,6 +95,17 @@
             transition: border-color .15s, box-shadow .15s;
         }
         input:focus, select:focus { outline: none; border-color: var(--cacao-500); box-shadow: 0 0 0 3px rgba(169, 118, 90, .16); }
+        /* Champ fige : valeur fournie par le systeme (heure d'arrivee). */
+        input[type=time] {
+            width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2cec0;
+            background: #fffdfb; font-family: inherit; font-size: .92rem; color: var(--ink);
+        }
+        input[type=time].champ-fige,
+        input[type=time].champ-fige:focus {
+            background: #efe8e1; color: #8a7463; border-color: #ddcfc3; cursor: not-allowed;
+            box-shadow: none; opacity: 1; pointer-events: none;
+        }
+        .aide.auto { color: #9c8272; font-style: italic; }
         .aide { font-size: .72rem; color: #9c8272; margin-top: 4px; }
 
         /* ------- signature ------- */

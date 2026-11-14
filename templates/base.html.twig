@@ -795,7 +795,7 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
-    idEquipement = 0
+    idEquipement = "0"
     document.addEventListener('DOMContentLoaded', function () {
         {% if not (app.user) %} document.location.href =  {{ path('app_login') }} {%endif %}
         const ACCORDION = true;   // true = un seul sous-menu ouvert à la fois
@@ -905,7 +905,7 @@
         })
 
         function effaceChamps(){
-            idEquipement = 0
+            idEquipement = "0"
             document.getElementById("tdb_CodeEquipement").value = "";
             document.getElementById("tdb_nomEquipement").value = "";
             /*document.getElementById("tdb_seuil").value = Eq.code;*/

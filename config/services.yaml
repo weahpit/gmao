@@ -30,6 +30,8 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        exclude:
+            - '../src/Migrations/'
 
     # QR code du lien public des reunions (endroid/qr-code, sans etat interne)
     App\Service\Reunion\QrCodeReunion:

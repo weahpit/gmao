@@ -137,15 +137,23 @@ final class PresenceReunionController extends AbstractController
             ], new Response('', 404));
         }
 
+        // Formulaire simplifie : un seul champ « Nom & Prenoms », le contact,
+        // le service, l'email et la signature. L'heure d'arrivee n'est plus
+        // saisie : elle est horodatee par le systeme a la validation.
+        $nomComplet = trim((string) $request->request->get('nom_complet', ''));
+
+        // Retro-compatibilite : ancien formulaire en deux champs.
+        if ($nomComplet === '') {
+            $nomComplet = trim(
+                trim((string) $request->request->get('nom', '')) . ' ' . trim((string) $request->request->get('prenoms', ''))
+            );
+        }
+
         $ancien = [
-            'nom'         => trim((string) $request->request->get('nom', '')),
-            'prenoms'     => trim((string) $request->request->get('prenoms', '')),
+            'nomComplet'  => $nomComplet,
             'serviceId'   => trim((string) $request->request->get('service', '')),
-            'serviceAuto' => trim((string) $request->request->get('service_libre', '')),
-            'qualite'     => trim((string) $request->request->get('qualite', '')),
             'telephone'   => trim((string) $request->request->get('telephone', '')),
             'email'       => trim((string) $request->request->get('email', '')),
-            'arrivee'     => trim((string) $request->request->get('arrivee_at', '')),
         ];
 
         // Seule une reunion ouverte accepte de nouvelles presences.
@@ -164,11 +172,10 @@ final class PresenceReunionController extends AbstractController
             $erreurs[] = 'Votre session a expire, merci de renvoyer le formulaire.';
         }
 
-        if ($ancien['nom'] === '') {
-            $erreurs[] = 'Le nom est obligatoire.';
-        }
-        if ($ancien['prenoms'] === '') {
-            $erreurs[] = 'Les prenoms sont obligatoires.';
+        [$nomSaisi, $prenomsSaisis] = $this->decouperNomComplet($ancien['nomComplet']);
+
+        if ($nomSaisi === '') {
+            $erreurs[] = 'Indiquez votre nom et vos prenoms.';
         }
 
         $tel = preg_replace('/[^0-9+]/', '', $ancien['telephone']);
@@ -182,16 +189,13 @@ final class PresenceReunionController extends AbstractController
             $erreurs[] = 'L\'adresse email saisie n\'est pas valide.';
         }
 
-        // Service : choisi dans la liste, ou saisi librement s'il n'existe pas.
-        $serviceLibelle = $ancien['serviceAuto'];
+        // Service : un seul menu deroulant, choisi dans la liste des services.
+        $serviceLibelle = '';
         if ($ancien['serviceId'] !== '') {
             $service = $this->em->getRepository(Services::class)->find($ancien['serviceId']);
             if ($service) {
                 $serviceLibelle = (string) $service->getLibelle();
             }
-        }
-        if ($ancien['qualite'] === '') {
-            $erreurs[] = 'La qualite (fonction) est obligatoire.';
         }
 
         // Signature manuscrite : image PNG transmise en base64 par le canvas.
@@ -201,7 +205,7 @@ final class PresenceReunionController extends AbstractController
         }
 
         if ($erreurs === []) {
-            if ($participants->existeDeja($reunion, $ancien['nom'], $tel, $email)) {
+            if ($participants->existeDeja($reunion, $nomSaisi, $tel, $email)) {
                 $erreurs[] = 'Ce participant semble deja enregistre pour cette reunion (meme nom et meme telephone).';
             }
         }
@@ -235,17 +239,16 @@ final class PresenceReunionController extends AbstractController
 
         $participant = new ParticipantReunion();
 
-        // Heure d'ARRIVEE : saisie par le participant (heure reelle de son
-        // arrivee) ; a defaut, l'instant d'enregistrement. C'est cette heure
-        // qui permet de detecter les retards (>= 15 min apres le debut).
-        $arrivee = $this->arriveeDepuisSaisie($ancien['arrivee'] ?? '', $reunion);
+        // Heure d'ARRIVEE : horodatee automatiquement par le systeme au moment
+        // de la validation (aucune saisie, champ grise cote formulaire). C'est
+        // cette heure qui permet de detecter les retards (>= 15 min apres le debut).
+        $arrivee = new \DateTimeImmutable();
 
         $participant->setReunion($reunion)
-            ->setNom(mb_strtoupper($ancien['nom']))
-            ->setPrenoms($ancien['prenoms'])
+            ->setNom(mb_strtoupper($nomSaisi))
+            ->setPrenoms($prenomsSaisis)
             ->setArriveeAt($arrivee)
             ->setService($serviceLibelle !== '' ? $serviceLibelle : null)
-            ->setQualite($ancien['qualite'])
             ->setTelephone($tel)
             ->setEmail($email !== '' ? $email : null)
             ->setSignature($nomFichierSignature)
@@ -261,6 +264,25 @@ final class PresenceReunionController extends AbstractController
             'ancien'       => [],
             'dernier'      => $participant,
         ]));
+    }
+
+    /**
+     * Decoupe « KOUASSI Jean-Marc » en nom (premier mot, en majuscules) et
+     * prenoms (le reste, dans l'ordre saisi). Un seul mot : il sert de nom.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function decouperNomComplet(string $saisie): array
+    {
+        $morceaux = preg_split('/\s+/u', trim($saisie), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if ($morceaux === []) {
+            return ['', ''];
+        }
+
+        $nom     = mb_strtoupper(array_shift($morceaux));
+        $prenoms = implode(' ', $morceaux);
+
+        return [$nom, $prenoms];
     }
 
     /**

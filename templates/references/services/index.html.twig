@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Services — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Services</span>
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Services</h1>
+    <a href="#"  id="btn_add_services" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddServices">
+        <img src="{{ asset('icons/services.png') }}" class="me-2" alt="" height="16"> Nouveau service
+    </a>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+
+    </div>
+</div>
+
+    <!-- Modal Add/Edit Services-->
+    <div class="modal fade" id="modalAddServices" tabindex="-1" aria-labelledby="modalAddServicesLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-round-group preview-icon"><path d="M17 21a5 5 0 00-10 0"/><path d="M22 10.5a3.5 3.5 0 00-5.507-2.868"/><path d="M7.507 7.632A3.5 3.5 0 002 10.5"/><circle cx="12" cy="13" r="3"/><circle cx="18.5" cy="4.5" r="2.5"/><circle cx="5.5" cy="4.5" r="2.5"/></svg> Enregistrer un service</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formServices" >
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="services" style="width: 150px;">Libelle</label>
+                            <input type="text" class="input" id="services" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="direction" style="width: 150px;">Direction</label>
+                            <select class="input" name="direction" id="direction"></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveService">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/Services.js') }}"></script>
+    <script src="{{ asset('js/api/references/Directions.js') }}"></script>
+    <script>
+
+        let idServices = "0";
+       getAllServices(document.querySelector(".card-body"), 1)
+       getAllDirections(document.querySelector("#direction"), 2)
+       clearForm("formServices", "services")
+        ValidateOnKeypress(document.getElementById("services"), document.getElementById("saveService"), "formServices")
+
+        document.querySelector("#btn_add_services").addEventListener("click", function () {
+           clearForm("formServices", "services")
+       })
+
+       document.querySelector("#saveService").addEventListener("click", function () {
+           let FormDataServices = new FormData();
+           FormDataServices.append('id_service', idServices)
+           FormDataServices.append('service', document.querySelector("#services").value)
+           FormDataServices.append('direction', document.querySelector("#direction").value)
+           saveService(FormDataServices, document.querySelector(".card-body"), 1)
+       })
+    </script>
+{% endblock %}

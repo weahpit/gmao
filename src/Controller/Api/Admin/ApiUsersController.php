@@ -94,7 +94,7 @@ final class ApiUsersController extends AbstractController
             } else {
                 $reponse = array(
                     'code'=>'warning',
-                    'msg'=>'Merci de sélectionner une user  dans la liste !'
+                    'msg'=>'Merci de sélectionner un utilisateur  dans la liste !'
                 );
             }
 

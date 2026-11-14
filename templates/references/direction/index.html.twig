@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Directions — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_references') }}">Références</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Directions</span>
+{% endblock %}
+
+{% block body %}
+<div class="page-header">
+    <h1 class="page-title">Directions</h1>
+    <a href="#"  id="btn_add_direction" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddDirections">
+        <img src="{{ asset('icons/direction.png') }}" class="me-2" alt="" height="16"> Nouvelle direction
+    </a>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+
+    </div>
+</div>
+
+    <!-- Modal Add/Edit Directions-->
+    <div class="modal fade" id="modalAddDirections" tabindex="-1" aria-labelledby="modalAddDirectionsLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--green-700); line-height: 1.6; -webkit-font-smoothing: antialiased;color:lightgrey;">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building-complex preview-icon"><path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/></svg> Enregistrer une direction</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background: rgba(205,218,195,0.52)">
+                    <form id="formDirections" >
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="direction" style="width: 150px;">Libelle</label>
+                            <input type="text" class="input" id="direction" style="text-transform: uppercase;">
+                        </div>
+                        <div class="d-flex justify-content-start mb-2">
+                            <label class="fw-bold span " for="position" style="width: 150px;">Position</label>
+                            <input type="number" class="input" id="position" style="text-transform: uppercase;">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: linear-gradient(#dbf0ce, #b4d6c9) ">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveDirections">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/references/Directions.js') }}"></script>
+    <script>
+
+        let idDirections = "0";
+       getAllDirections(document.querySelector(".card-body"), 1)
+       clearForm("formDirections", "direction")
+        ValidateOnKeypress(document.getElementById("direction"), document.getElementById("saveDirections"), "formDirections")
+
+        document.querySelector("#btn_add_direction").addEventListener("click", function () {
+           clearForm("formDirections", "direction")
+       })
+
+       document.querySelector("#saveDirections").addEventListener("click", function () {
+           let FormDataDirections = new FormData();
+           FormDataDirections.append('id_direction', idDirections)
+           FormDataDirections.append('direction', document.querySelector("#direction").value)
+           saveDirection(FormDataDirections, document.querySelector(".card-body"), 1)
+       })
+    </script>
+{% endblock %}

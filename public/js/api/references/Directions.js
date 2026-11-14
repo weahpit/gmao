@@ -9,7 +9,7 @@ function getAllDirections(ctrl_name, ctrl_type){
                 contentCtrl +=`
                 <table class="table table-hover">
                     <thead><tr>
-                            <th>Liste des Directions</th>
+                            <th>Direction</th>
                     </tr></thead>
                     <tbody>
                 `
@@ -22,14 +22,14 @@ function getAllDirections(ctrl_name, ctrl_type){
             } else {
                 contentCtrl += '<option value="0">-- Directions --</option>'
                 for (var i=0;i < reponse.data.length;i++) {
-                    contentCtrl += '<option value="' + reponse.data[i].id + '"  style="text-transform: uppercase;">' + reponse.data[i].direction + '</option>'
+                    contentCtrl += '<option value="' + reponse.data[i].id + '">' + reponse.data[i].direction + '</option>'
                 }
             }
             ctrl_name.innerHTML = contentCtrl
-            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'direction.csv' })}
+            if (ctrl_type === 1){ enhanceTable(".table",{ pageSize: 10, filename: 'directions.csv' })}
         },
         error : function (response){
-            showToast(response.msg, {title: 'Erreur sur Chargement des Directions', type: 'error', duration: 4000 })
+            showToast(response.msg, {title: 'Erreur sur Chargement des  Directions}', type: 'error', duration: 4000 })
         }
     })
 }
@@ -39,7 +39,7 @@ function saveDirection(formData, ctrl_name, ctrl_type){
         .then(data => {
             showToast(data.msg, {
                 type : data.code,
-                duration: 4000,
+                duration: 2000,
                 title: 'Direction'
             })
             if (data.code === "success") {
@@ -49,8 +49,8 @@ function saveDirection(formData, ctrl_name, ctrl_type){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Direction', duration: 4000}));
 }
-function deleteDirection(id_nature_equipement){
-    fetch( URL_APP + "api/deleteDirection", { method: "POST", body: id_nature_equipement })
+function deleteDirection(id_direction){
+    fetch( URL_APP + "api/deleteDirection", { method: "POST", body: id_direction })
         .then(res => res.json())
         .then(data => {
             showToast(data.msg, {
@@ -61,10 +61,10 @@ function deleteDirection(id_nature_equipement){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Direction', duration: 4000}));
 }
-function getSingleDirection(id_nature_equipement) {
+function getSingleDirection(id_direction) {
     return new Promise((resolve, reject) => {
         $.ajax({
-            url:  URL_APP + 'api/getSingleDirection' + id_nature_equipement,
+            url:  URL_APP + 'api/getSingleDirection' + id_direction,
             type: 'POST',
             success: function(response) {
                 if (response.code === "success") {
@@ -82,22 +82,4 @@ function getSingleDirection(id_nature_equipement) {
             }
         });
     });
-}
-function getParentDirection(ctrl_name){
-    let contentCtrl = ''
-    $.ajax({
-        url : URL_APP + 'api/getParentDirection',
-        type : 'POST',
-        success: function (response){
-            let reponse = JSON.parse(response)
-                contentCtrl += '<option value="0">-- parents Directions --</option>'
-                for (var i=0;i < reponse.data.length;i++) {
-                    contentCtrl += '<option value="' + reponse.data[i].id + '"  style="text-transform: uppercase;">' + reponse.data[i].direction + '</option>'
-                }
-            ctrl_name.innerHTML = contentCtrl
-        },
-        error : function (response){
-            showToast(response.msg, {title: 'Erreur sur Chargement des parents Directions', type: 'error', duration: 4000 })
-        }
-    })
 }

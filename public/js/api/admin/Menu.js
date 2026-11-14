@@ -15,7 +15,7 @@ function getAllMenus(ctrl_name, ctrl_type){
                     <tbody>
                 `
                 for (var i=0;i < reponse.data.length;i++){
-                    contentCtrl +='<tr>'
+                    contentCtrl +='<tr class="a_menu" id="' + reponse.data[i].id + '" >'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].menu + '</a></td>'
                     contentCtrl +='<td><span class="badge bg-warning p-2 text-dark">' + reponse.data[i].classname + '</span></td>'
                     contentCtrl +='<tr>'
@@ -63,26 +63,15 @@ function deleteMenu(id_nature_equipement){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Menu', duration: 4000}));
 }
-function getSingleMenu(id_nature_equipement) {
+function getSingleMenu(formData) {  // api/getSingleUser
     return new Promise((resolve, reject) => {
-        $.ajax({
-            url:  URL_APP + 'api/getSingleMenu' + id_nature_equipement,
-            type: 'POST',
-            success: function(response) {
-                if (response.code === "success") {
-                    resolve(response); // renvoie l'objet au .then()
-                } else {
-                    showToast(data.msg, {
-                        type : data.code,
-                        duration: 4000,
-                        title: 'Menu'
-                    })
-                }
-            },
-            error: function(err) {
-                showToast("❌ Erreur : " + err, {title: 'Menu', duration: 4000});
-            }
-        });
+        fetch( URL_APP + "api/getSingleMenu", { method: "POST", body: formData })
+            .then(res => res.json())
+            .then(data => {
+                resolve(data); // renvoie l'objet au .then()
+            })
+            .catch(err => showToast("❌ Erreur : " + err, {title: 'Menu', duration: 4000}));
+
     });
 }
 function getParentMenu(ctrl_name){
