@@ -177,7 +177,8 @@ final class SaisieStockController extends AbstractController
                 // Une nature sans aucun mouvement (periode filtree) est ignoree :
                 // elle n'apporte pas de cumul a afficher.
                 if ($n['nbEntrees'] === 0 && $n['nbSorties'] === 0 && $n['entreeKg'] == 0 && $n['sortieKg'] == 0
-                    && $n['entreeLitres'] == 0 && $n['sortieLitres'] == 0) {
+                    && $n['entreeLitres'] == 0 && $n['sortieLitres'] == 0
+                    && ($n['stockInitialKg'] ?? 0) == 0 && ($n['stockInitialLitres'] ?? 0) == 0) {
                     continue;
                 }
                 $n['soldeKg']     = round($n['entreeKg'] - $n['sortieKg'], 3);

@@ -92,8 +92,12 @@ final class SupervisionController extends AbstractController
     // ------------------------------------------------------------------
     private function collecter(?Request $request = null): array
     {
+        // Periode : 7, 14, 30 ou 60 jours (toute autre valeur retombe sur 7).
         $jours = (int) ($request?->query->get('j', 7));
-        $mode  = $request?->query->get('mode');
+        if (!in_array($jours, [7, 14, 30, 60], true)) { $jours = 7; }
+        // Mode : MOVEMENTES (types qui bougent), CACAO (types cacao) ou TOUTES.
+        $mode = strtoupper(trim((string) $request?->query->get('mode', 'MOVEMENTES')));
+        if (!in_array($mode, ['MOVEMENTES', 'CACAO', 'TOUTES'], true)) { $mode = 'MOVEMENTES'; }
 
         return [
             'genere'    => (new \DateTimeImmutable())->format('d/m/Y H:i'),

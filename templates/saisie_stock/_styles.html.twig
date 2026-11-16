@@ -111,6 +111,13 @@
             vertical-align: 1px;
         }
         .ss-chev { text-align: center; color: #a89b8c; }
+        /* La ligne de detail doit rester invisible tant que l'on n'a pas clique :
+           selecteurs precis pour resister a un reglage global de la feuille
+           (ex. .ss-table td { display: ... } ou un display pose sur tr). */
+        .ss-table tr.ss-natures { display: none; }
+        .ss-table tr.ss-natures:not([hidden]) { display: table-row; }
+        .ss-table tr.ss-natures > td { display: table-cell; }
+
         .ss-chevron {
             display: inline-block; width: 0; height: 0; vertical-align: middle;
             border-left: 5px solid currentColor;
@@ -165,5 +172,8 @@
             color: var(--ss-cacao); border-top: 1px solid #e6dccf; background: rgba(200,145,43,.06);
         }
         .ss-nature-active td { background: rgba(200,145,43,.10); font-weight: 600; }
+        /* Le chevron n'apparait que sur une ligne reellement depliable. */
+        .ss-ligne:not(.ss-depliable) .ss-chevron { visibility: hidden; }
+        .ss-ligne.ss-depliable:hover > td { background: rgba(120, 92, 45, .05); }
         .ss-ligne.ss-depliable:focus-visible { outline: 2px solid var(--ss-accent); outline-offset: -2px; }
 </style>

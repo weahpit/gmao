@@ -194,9 +194,10 @@
                        par nature. Si un filtre de nature est actif, le detail
                        est ouvert d'emblee sur la nature concernee. #}
                     {% set ouvert = natures|length > 0 and filtres.nature is not empty %}
-                    <tr class="ss-ligne {{ natures|length > 0 ? 'ss-depliable' : '' }}{{ ouvert ? ' ss-ouvert' : '' }}"
+                    {% set depliable = natures|length > 0 %}
+                    <tr class="ss-ligne{{ depliable ? ' ss-depliable' : '' }}{{ ouvert ? ' ss-ouvert' : '' }}"
                         id="ss-ligne-{{ i }}"
-                        {{ natures|length > 0 ? 'data-cible="ss-natures-' ~ i ~ '" tabindex="0" role="button" aria-expanded="' ~ (ouvert ? 'true' : 'false') ~ '" aria-controls="ss-natures-' ~ i ~ '" title="' ~ (ouvert ? 'Masquer le detail par nature' : 'Voir le detail par nature') ~ '"' : '' }}>
+                        {% if depliable %}data-cible="ss-natures-{{ i }}" tabindex="0" role="button" aria-controls="ss-natures-{{ i }}" aria-expanded="{{ ouvert ? 'true' : 'false' }}" title="{{ ouvert ? 'Masquer le detail par nature' : 'Voir le detail par nature' }}"{% endif %}>
                         <td class="ss-chev" style="width:34px">
                             {% if natures|length > 0 %}
                                 <span class="ss-chevron" aria-hidden="true"></span>
@@ -205,7 +206,7 @@
                         <td>
                             <span class="ss-rubrique">{{ rubrique }}</span>
                             {% if natures|length > 0 %}
-                                <span class="ss-nb-natures">{{ natures|length }} nature{{ natures|length > 1 ? 's' }}</span>
+                                <span class="ss-nb-natures">{{ natures|length }} nature{{ natures|length > 1 ? 's' : '' }}</span>
                             {% endif %}
                         </td>
                         <td class="text-end fw-semibold {{ qteEntrees == 0 ? 'ss-zero' }}">{{ qteEntrees|number_format(2, ',', ' ') }}</td>
@@ -228,7 +229,9 @@
                         {% endif %}
                     </tr>
 
-                    {% if natures|length > 0 %}
+                    {# Ligne de detail toujours presente pour un type de stock : si aucune
+                       nature n'est connue, la ligne le dit au lieu de ne rien afficher. #}
+                    {% if depliable %}
                         {# Ligne de detail : un sous-total par nature du produit.
                            Meme unite et meme calcul que la ligne du type de stock. #}
                         <tr class="ss-natures" id="ss-natures-{{ i }}"{{ ouvert ? '' : ' hidden' }}>
@@ -256,6 +259,9 @@
                                         </tr>
                                         </thead>
                                         <tbody>
+                                        {% if natures|length == 0 %}
+                                            <tr><td colspan="4" class="text-muted">Aucun mouvement par nature sur la p&eacute;riode.</td></tr>
+                                        {% endif %}
                                         {% for n in natures %}
                                             <tr{{ filtres.nature is not empty and n.nom == filtres.nature ? ' class="ss-nature-active"' : '' }}>
                                                 <td><span class="ss-nature-puce"></span>{{ n.nom }}</td>
@@ -271,7 +277,7 @@
                                             </tr>
                                         {% endfor %}
                                         </tbody>
-                                        {% if (natures|last).entrees is defined %}
+                                        {% if natures|length > 0 and (natures[0].entrees ?? null) is not null %}
                                         <tfoot>
                                         <tr>
                                             <th>Cumul {{ natures|length }} nature{{ natures|length > 1 ? 's' : '' }}</th>
@@ -458,131 +464,79 @@
     </div>
 </div>
 
+    {# --- Interaction de la page (DANS le bloc body : Twig ignore tout ce qui
+           suit un endblock, l'ancien script n'etait donc jamais envoye). --- #}
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+    (function () {
+        'use strict';
+
+        // 1) Depliage / repliage du detail par nature d'un type de stock.
+        function basculer(ligne) {
+            var cible = document.getElementById(ligne.getAttribute('data-cible'));
+            if (!cible) { return; }
+            var ouverture = cible.hasAttribute('hidden');
+            if (ouverture) {
+                cible.removeAttribute('hidden');
+                ligne.classList.add('ss-ouvert');
+            } else {
+                cible.setAttribute('hidden', '');
+                ligne.classList.remove('ss-ouvert');
+            }
+            ligne.setAttribute('aria-expanded', ouverture ? 'true' : 'false');
+            ligne.setAttribute('title', ouverture ? 'Masquer le detail par nature' : 'Voir le detail par nature');
+        }
+
+        function initDepliage() {
+            var lignes = document.querySelectorAll('tr.ss-ligne.ss-depliable');
+            Array.prototype.forEach.call(lignes, function (ligne) {
+                if (ligne.dataset.ssPret === '1') { return; }
+                ligne.dataset.ssPret = '1';
+
+                ligne.addEventListener('click', function (e) {
+                    // Un clic sur un lien, un bouton ou une photo garde son action.
+                    var noeud = e.target;
+                    while (noeud && noeud !== ligne) {
+                        var tag = noeud.tagName;
+                        if (tag === 'A' || tag === 'BUTTON' || tag === 'IMG' || tag === 'INPUT' || tag === 'SELECT') { return; }
+                        noeud = noeud.parentNode;
+                    }
+                    // Ne pas deplier quand on selectionne du texte.
+                    if (window.getSelection && String(window.getSelection()).length > 0) { return; }
+                    basculer(ligne);
+                });
+
+                ligne.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                        e.preventDefault();
+                        basculer(ligne);
+                    }
+                });
+            });
+        }
+
+        // 2) Visionneuse des photos de sortie de stock.
+        function initPhotos() {
             var modal = document.getElementById('photoModal');
+            if (!modal || modal.dataset.ssPret === '1') { return; }
+            modal.dataset.ssPret = '1';
             modal.addEventListener('show.bs.modal', function (event) {
                 var img = event.relatedTarget;
-                if (!img) return;
-                modal.querySelector('#photoModalImg').src = img.getAttribute('data-photo-url');
-                modal.querySelector('#photoModalInfo').textContent = img.getAttribute('data-photo-info');
+                if (!img) { return; }
+                var grande = modal.querySelector('#photoModalImg');
+                var titre = modal.querySelector('#photoModalInfo');
+                if (grande) { grande.src = img.getAttribute('data-photo-url') || ''; }
+                if (titre) { titre.textContent = img.getAttribute('data-photo-info') || ''; }
             });
-        });
+        }
+
+        function demarrer() { initDepliage(); initPhotos(); }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', demarrer);
+        } else {
+            demarrer();
+        }
+    })();
     </script>
 
-{# --- Depliage des lignes du recapitulatif : script place DANS le bloc body
-       (il etait auparavant apres la fin du bloc, donc jamais rendu). --- #}
-<script>
-(function () {
-    'use strict';
-
-    function basculer(ligne) {
-        var cible = document.getElementById(ligne.getAttribute('data-cible'));
-        if (!cible) { return; }
-        var ouverture = cible.hasAttribute('hidden');
-        if (ouverture) {
-            cible.removeAttribute('hidden');
-            ligne.classList.add('ss-ouvert');
-        } else {
-            cible.setAttribute('hidden', '');
-            ligne.classList.remove('ss-ouvert');
-        }
-        ligne.setAttribute('aria-expanded', ouverture ? 'true' : 'false');
-        ligne.setAttribute('title', ouverture ? 'Masquer le detail par nature' : 'Voir le detail par nature');
-    }
-
-    function initDepliage() {
-        var lignes = document.querySelectorAll('tr.ss-ligne.ss-depliable');
-        Array.prototype.forEach.call(lignes, function (ligne) {
-            if (ligne.dataset.ssPret === '1') { return; }
-            ligne.dataset.ssPret = '1';
-
-            ligne.addEventListener('click', function (e) {
-                // Un clic sur un lien, un bouton ou une image garde son action.
-                var cible = e.target;
-                while (cible && cible !== ligne) {
-                    var tag = cible.tagName;
-                    if (tag === 'A' || tag === 'BUTTON' || tag === 'IMG' || tag === 'INPUT') { return; }
-                    cible = cible.parentNode;
-                }
-                // Ne pas deplier en selectionnant du texte.
-                if (window.getSelection && String(window.getSelection()).length > 0) { return; }
-                basculer(ligne);
-            });
-
-            ligne.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-                    e.preventDefault();
-                    basculer(ligne);
-                }
-            });
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initDepliage);
-    } else {
-        initDepliage();
-    }
-})();
-</script>
-
-# --- Depliage des lignes du recapitulatif : script place DANS le bloc body
-       (il etait auparavant apres la fin du bloc, donc jamais rendu). --- #}
-<script>
-(function () {
-    'use strict';
-
-    function basculer(ligne) {
-        var cible = document.getElementById(ligne.getAttribute('data-cible'));
-        if (!cible) { return; }
-        var ouverture = cible.hasAttribute('hidden');
-        if (ouverture) {
-            cible.removeAttribute('hidden');
-            ligne.classList.add('ss-ouvert');
-        } else {
-            cible.setAttribute('hidden', '');
-            ligne.classList.remove('ss-ouvert');
-        }
-        ligne.setAttribute('aria-expanded', ouverture ? 'true' : 'false');
-        ligne.setAttribute('title', ouverture ? 'Masquer le detail par nature' : 'Voir le detail par nature');
-    }
-
-    function initDepliage() {
-        var lignes = document.querySelectorAll('tr.ss-ligne.ss-depliable');
-        Array.prototype.forEach.call(lignes, function (ligne) {
-            if (ligne.dataset.ssPret === '1') { return; }
-            ligne.dataset.ssPret = '1';
-
-            ligne.addEventListener('click', function (e) {
-                // Un clic sur un lien, un bouton ou une image garde son action.
-                var cible = e.target;
-                while (cible && cible !== ligne) {
-                    var tag = cible.tagName;
-                    if (tag === 'A' || tag === 'BUTTON' || tag === 'IMG' || tag === 'INPUT') { return; }
-                    cible = cible.parentNode;
-                }
-                // Ne pas deplier en selectionnant du texte.
-                if (window.getSelection && String(window.getSelection()).length > 0) { return; }
-                basculer(ligne);
-            });
-
-            ligne.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-                    e.preventDefault();
-                    basculer(ligne);
-                }
-            });
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initDepliage);
-    } else {
-        initDepliage();
-    }
-})();
-</script>
-
 {% endblock %}
-

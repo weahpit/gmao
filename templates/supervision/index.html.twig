@@ -178,7 +178,10 @@
 {% set co = donnees.courrier %}
 {% set a = donnees.achats %}
 {% set e = donnees.embarqu %}
-{% set cj = donnees.cacaoJour ?? {} %}
+{# Point du stock cacao : valeurs lues directement dans donnees.cacaoJour
+   (le service renvoie toujours la cle, meme vide). #}
+{% set cj = donnees.cacaoJour is defined and donnees.cacaoJour is iterable ? donnees.cacaoJour : {} %}
+{% set cjDuJour = cj.duJour ?? {} %}
 {% set cjJours = cj.jours ?? 7 %}
 {% set cjMode = cj.mode ?? 'MOVEMENTES' %}
 
@@ -262,9 +265,9 @@
                 <div>
                     <div class="graph cj-graph"><canvas id="graphCacaoJour"></canvas></div>
                     <div class="cj-cartes">
-                        <div class="cj-carte"><span>Stock du jour</span><strong id="cjStock">{{ (cj.duJour.stock ?? 0)|number_format(0, ',', ' ') }} kg</strong></div>
-                        <div class="cj-carte"><span>Entrees du jour</span><strong id="cjEntrees">{{ (cj.duJour.entrees ?? 0)|number_format(2, ',', ' ') }}</strong></div>
-                        <div class="cj-carte"><span>Sorties du jour</span><strong id="cjSorties">{{ (cj.duJour.sorties ?? 0)|number_format(2, ',', ' ') }}</strong></div>
+                        <div class="cj-carte"><span>Stock du jour</span><strong id="cjStock">{{ (cjDuJour.stock ?? 0)|number_format(0, ',', ' ') }} kg</strong></div>
+                        <div class="cj-carte"><span>Entrees du jour</span><strong id="cjEntrees">{{ (cjDuJour.entrees ?? 0)|number_format(2, ',', ' ') }}</strong></div>
+                        <div class="cj-carte"><span>Sorties du jour</span><strong id="cjSorties">{{ (cjDuJour.sorties ?? 0)|number_format(2, ',', ' ') }}</strong></div>
                         <div class="cj-carte"><span>Variation periode</span><strong id="cjVariation" class="{{ (cj.variationPeriode ?? 0) < 0 ? 'baisse' : 'hausse' }}">{{ (cj.variationPeriode ?? 0)|number_format(2, ',', ' ') }}</strong></div>
                     </div>
                 </div>
@@ -464,7 +467,13 @@
                 }
             };
             opts.interaction = { mode: 'index', intersect: false };
-            opts.scales.y2 = null;
+            // Une seule echelle (kg) : la ligne du stock et les barres des
+            // entrees/sorties sont donc directement comparables.
+            if (opts.scales && opts.scales.y2) { delete opts.scales.y2; }
+            if (opts.scales && opts.scales.y) {
+                opts.scales.y.grid = { color: '#f3ece4' };
+                opts.scales.y.title = { display: false };
+            }
 
             creer('graphCacaoJour', {
                 data: {
@@ -515,6 +524,9 @@
                 }).join('');
                 if (!lignes) {
                     lignes = '<tr><td colspan="4" style="color:#a99a8c">Aucun mouvement sur la periode.</td></tr>';
+                } else if (r.coherent === false) {
+                    // Controle de coherence : cumul des natures <> total du type.
+                    lignes = '<tr><td colspan="4" style="color:#b95c50">Ecart detecte entre le cumul des natures et le total du type.</td></tr>' + lignes;
                 }
                 return '<div class="cj-type"><div class="cj-type-tete"><span class="nom">' + echapper(r.rubrique) +
                     '</span><span class="val">' + fr(r.stock, 0) + ' kg</span></div>' +
@@ -635,12 +647,21 @@
         horloge();
         setInterval(horloge, 1000);
 
+        // Periode et mode du point cacao, lus dans les donnees chargees (les
+        // variables du bloc body ne sont pas visibles ici).
+        var cjSource = (donnees && donnees.cacaoJour) ? donnees.cacaoJour : {};
+        var cjJours = Number(cjSource.jours) || 7;
+        var cjMode = cjSource.mode || 'MOVEMENTES';
+
         // Rafraichissement des donnees toutes les 60 s (sans recharger la page)
         function rafraichir() {
-            fetch('{{ path('app_supervision_donnees') }}', { headers: { 'X-Requested-With': 'fetch' } })
+            // La periode et le mode choisis dans le panneau cacao sont
+            // conserves lors du rafraichissement automatique.
+            var url = '{{ path('app_supervision_donnees') }}?j=' + encodeURIComponent(cjJours) + '&mode=' + encodeURIComponent(cjMode);
+            fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .then(function (json) {
-                    if (!json || json.code !== 'success') { return; }
+                    if (!json || json.code !== 'success' || !json.data) { return; }
                     donnees = json.data;
                     dessiner();
                 })
@@ -650,16 +671,18 @@
         // Valeurs lues depuis les donnees deja chargees : elles restent
         // disponibles dans le bloc javascripts (les variables definies plus
         // haut dans le gabarit n'y existent plus).
-        var cjSource = (donnees && donnees.cacaoJour) ? donnees.cacaoJour : {};
-        var cjJours = Number(cjSource.jours) || 7;
-        var cjMode = cjSource.mode || 'MOVEMENTES';
         function chargerCacao() {
             var url = '{{ path('app_supervision_donnees') }}?j=' + encodeURIComponent(cjJours) + '&mode=' + encodeURIComponent(cjMode);
             fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .then(function (json) {
-                    if (!json || json.code !== 'success') { return; }
-                    donnees = json.data;
+                    if (!json || json.code !== 'success' || !json.data) { return; }
+                    // On ne remplace que le point cacao : les autres blocs de la
+                    // page ne dependaient pas de cette requete.
+                    donnees.cacaoJour = json.data.cacaoJour || donnees.cacaoJour;
+                    if (json.data.genere) { donnees.genere = json.data.genere; }
+                    cjJours = Number((donnees.cacaoJour || {}).jours) || cjJours;
+                    cjMode = (donnees.cacaoJour || {}).mode || cjMode;
                     dessiner();
                 })
                 .catch(function () {});
@@ -686,7 +709,16 @@
         }
         setInterval(rafraichir, 60000);
 
-        if (window.Chart) { dessiner(); }
+        // Chart.js est charge juste avant ce bloc ; si le CDN est indisponible,
+        // le graphique reste vide mais la page et les tableaux fonctionnent.
+        if (window.Chart) {
+            dessiner();
+        } else {
+            var bere = document.getElementById('graphCacaoJour');
+            if (bere && bere.parentNode) {
+                bere.parentNode.innerHTML = '<p style="color:#a99a8c;font-size:.85rem;text-align:center;padding:24px 0">Graphique indisponible (librairie Chart.js non chargee). Les chiffres du panneau restent exacts.</p>';
+            }
+        }
     })();
     </script>
 {% endblock %}

@@ -221,6 +221,18 @@ final class StockCacaoJourService
 
         $duJour = $series !== [] ? $series[count($series) - 1] : ['entrees' => 0.0, 'sorties' => 0.0, 'variation' => 0.0, 'stock' => 0.0];
 
+        // 5) Coherence : le cumul des natures doit egaler la ligne du type.
+        //    On arrondit les deux cotes pour eviter les ecarts de float.
+        foreach ($parRubrique as $k => $r) {
+            $e = 0.0;
+            $so = 0.0;
+            foreach ($r['natures'] as $n) {
+                $e  += (float) $n['entrees'];
+                $so += (float) $n['sorties'];
+            }
+            $parRubrique[$k]['coherent'] = abs(round($e - $so, 3) - (float) $r['variation']) < 0.01;
+        }
+
         return [
             'jours'      => $jours,
             'mode'       => $mode,
