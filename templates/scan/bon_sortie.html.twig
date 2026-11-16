@@ -248,7 +248,8 @@
 
 {% block javascripts %}
 {# Lecture QR locale (jsQR) + repli BarcodeDetector natif : fonctionne sur Chrome Android, iOS, tablettes. #}
-<script src="{{ asset('js/external/jsQR.js') }}" defer></script>
+<script src="{{ asset('js/external/jsQR.js') }}" defer
+        onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';document.head.appendChild(s);"></script>
 <script>
 (function () {
     'use strict';
@@ -257,6 +258,7 @@
     var URL_SORTIE   = {{ url_faire_sortir|json_encode|raw }};
     var URL_SIGNALER = {{ url_signaler|json_encode|raw }};
     var AGENT_CONNECTE = {{ (app.user is defined and app.user) ? 'true' : 'false' }};
+    
     var PAGE_BON     = {{ url_page_bon|json_encode|raw }};
     var cibleInitiale = JSON.parse(document.getElementById('cible-initiale').textContent || 'null');
 
@@ -343,19 +345,19 @@
         if (bon.statut === 'VALIDE') {
             texte = 'Ce bon est signe par la Direction Generale. Verifiez les quantites et la marchandise avec le porteur, puis touchez <b>Faire sortir</b> pour cloturer le bon, ou <b>Signaler</b> en cas de probleme.';
         } else if (bon.statut === 'CLOTURE') {
-            texte = 'Ce bon a deja ete cloture a la guerite' + (bon.cloture_at ? ' le ' + bon.cloture_at : '') +
-                (bon.cloture_par ? ' par ' + bon.cloture_par : '') + ' : la marchandise est deja sortie.';
+            texte = 'Ce bon a deja ete cloture a la guerite' + (bon.cloture_at ? ' le ' + echapper(bon.cloture_at) : '') +
+                (bon.cloture_par ? ' par ' + echapper(bon.cloture_par) : '') + ' : la marchandise est deja sortie.';
         } else if (bon.statut === 'ANNULE') {
-            texte = 'Ce bon a ete annule : la sortie N&rsquo;EST PAS autorisee.';
+            texte = 'Ce bon a ete annule : la sortie N\u2019EST PAS autorisee.';
         } else {
-            texte = 'Ce bon attend la signature du Directeur General : la sortie n&rsquo;est pas autorisee pour le moment.';
+            texte = 'Ce bon attend la signature du Directeur General : la sortie n\u2019est pas autorisee pour le moment.';
         }
 
         var html = '';
         html += '<div class="verdict ' + v + '">' +
                     '<div class="v-icone">' + icone + '</div>' +
                     '<div><div class="v-titre">' + echapper(titre) + '</div>' +
-                    '<div class="v-texte">' + h(texte) + '</div></div>' +
+                    '<div class="v-texte">' + texte + '</div></div>' +
                 '</div>';
 
         html += '<div class="fiche-entete">' +
@@ -424,7 +426,7 @@
                     '</div>' +
                     '<p class="note-envoi" id="note-envoi">' + (AGENT_CONNECTE
                         ? 'La cloture est enregistree a votre nom.'
-                        : 'Vous n&rsquo;etes pas connecte : la cloture sera enregistree sous « Guerite (page scan) ». <a href="#" id="lien-agent">Indiquer mon nom</a>') +
+                        : 'Vous n\u2019etes pas connecte : la cloture sera enregistree sous « Guerite (page scan) ». <a href="#" id="lien-agent">Indiquer mon nom</a>') +
                     '</p>';
         }
         if ((bon.statut === 'ANNULE') && bon.refus_motif) {
@@ -462,7 +464,7 @@
     }
 
     function reinitialiser() {
-        zoneFiche.innerHTML = '<div class="vide-zone">Le bon scanne s&rsquo;affichera ici.</div>';
+        zoneFiche.innerHTML = '<div class="vide-zone">Le bon scanne s\u2019affichera ici.</div>';
         carteFiche.hidden = true;
         champRef.value = '';
         champRef.focus();
@@ -717,13 +719,13 @@
     btnCamera.addEventListener('click', function () {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             afficherMessage('ko', 'Camera indisponible',
-                'Ce navigateur ne permet pas d&rsquo;ouvrir la camera : la page doit etre ouverte en HTTPS (ou sur localhost). Saisissez la reference imprimee sur le bon.');
+                'Ce navigateur ne permet pas d\u2019ouvrir la camera : la page doit etre ouverte en HTTPS (ou sur localhost). Saisissez la reference imprimee sur le bon.');
             champRef.focus();
             return;
         }
         if (!window.jsQR && !('BarcodeDetector' in window)) {
             afficherMessage('ko', 'Bibliotheque de lecture absente',
-                'Le lecteur de QR code n&rsquo;a pas pu etre charge (connexion interrompue). Rechargez la page en 4G/Wi-Fi, ou saisissez la reference imprimee sur le bon.');
+                'Le lecteur de QR code n\u2019a pas pu etre charge (connexion interrompue). Rechargez la page en 4G/Wi-Fi, ou saisissez la reference imprimee sur le bon.');
         }
 
         btnCamera.disabled = true;
@@ -750,7 +752,7 @@
                 detecteur = null;
                 if (!window.jsQR) {
                     afficherMessage('attente', 'Lecture du QR sur cet appareil',
-                        'Ce navigateur ne decode pas les QR nativement et le module de secours n&rsquo;a pas pu etre charge. Saisissez la reference du bon ci-dessus.');
+                        'Ce navigateur ne decode pas les QR nativement et le module de secours n\u2019a pas pu etre charge. Saisissez la reference du bon ci-dessus.');
                 }
             }
             lancerDetection();
@@ -759,13 +761,13 @@
             var nom = (err && err.name) || '';
             if (nom === 'NotAllowedError' || nom === 'SecurityError') {
                 afficherMessage('ko', 'Camera non autorisee',
-                    'L&rsquo;acces a la camera a ete refuse. Touchez l&rsquo;icone de cadenas dans la barre du navigateur, autorisez la camera, puis rechargez la page. Vous pouvez aussi saisir la reference du bon.');
+                    'L\u2019acces a la camera a ete refuse. Touchez l\u2019icone de cadenas dans la barre du navigateur, autorisez la camera, puis rechargez la page. Vous pouvez aussi saisir la reference du bon.');
             } else if (nom === 'NotFoundError' || nom === 'OverconstrainedError') {
                 afficherMessage('ko', 'Aucune camera detectee',
                     'Cet appareil ne signale aucune camera utilisable. Saisissez la reference imprimee sur le bon.');
             } else {
                 afficherMessage('ko', 'Camera indisponible',
-                    'La camera n&rsquo;a pas pu demarrer. Verifiez qu&rsquo;aucune autre application ne l&rsquo;utilise, en HTTPS, puis reessayez. La saisie de la reference reste possible.');
+                    'La camera n\u2019a pas pu demarrer. Verifiez qu\u2019aucune autre application ne l\u2019utilise, en HTTPS, puis reessayez. La saisie de la reference reste possible.');
             }
         });
     });
@@ -809,7 +811,7 @@
                     traiterContenu(brut || trouve);
                 } else {
                     afficherMessage('attente', 'QR non reconnu sur la photo',
-                        'Le code n&rsquo;a pas ete lu. Rapprochez-vous, evitez le reflet et cadrez uniquement le QR, puis reprenez la photo. Vous pouvez aussi saisir la reference du bon.');
+                        'Le code n\u2019a pas ete lu. Rapprochez-vous, evitez le reflet et cadrez uniquement le QR, puis reprenez la photo. Vous pouvez aussi saisir la reference du bon.');
                 }
             };
 
@@ -825,7 +827,7 @@
         };
         img.onerror = function () {
             URL.revokeObjectURL(url);
-            afficherMessage('ko', 'Photo illisible', 'La photo n&rsquo;a pas pu etre ouverte. Reprenez la photo, ou saisissez la reference du bon.');
+            afficherMessage('ko', 'Photo illisible', 'La photo n\u2019a pas pu etre ouverte. Reprenez la photo, ou saisissez la reference du bon.');
         };
         img.src = url;
     });

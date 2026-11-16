@@ -59,7 +59,7 @@ final class ScanBonSortieController extends AbstractController
      * le bon est affiche tout de suite, la camera reste disponible dessous
      * pour enchainer sur les bons suivants.
      */
-    #[Route('/{code}', name: 'app_scan_bon_code', methods: ['GET'], requirements: ['code' => '[A-Za-z0-9_\-#]{3,80}'])]
+    #[Route('/{code}', name: 'app_scan_bon_code', methods: ['GET'], requirements: ['code' => '[A-Za-z0-9_\-]{3,80}'])]
     public function pageCode(string $code): Response
     {
         return $this->rendre($code);
@@ -94,6 +94,9 @@ final class ScanBonSortieController extends AbstractController
         return $this->render('scan/bon_sortie.html.twig', [
             'cible_initiale' => $cible !== null ? $this->serialiser($cible) : null,
             'url_api'        => $this->generateUrl('app_scan_bon_api', ['code' => '__CODE__']),
+            // Actions du vigil : la page les attend (sinon "Faire sortir" / "Signaler" ne marchent pas).
+            'url_faire_sortir' => $this->generateUrl('app_scan_bon_faire_sortir'),
+            'url_signaler'     => $this->generateUrl('app_scan_bon_signaler'),
             'url_page_bon'   => $this->generateUrl('app_scan_bon_code', ['code' => '__CODE__']),
             'qr_page'        => $this->qr->dataUri(
                 $this->generateUrl('app_scan_bon', [], UrlGeneratorInterface::ABSOLUTE_URL),
@@ -322,7 +325,9 @@ final class ScanBonSortieController extends AbstractController
             $etat['deja_cloture'] = $bon->isCloture();
             $etat['cloture_at']   = $bon->getClotureAt() ? $bon->getClotureAt()->format('d/m/Y \a H:i') : '';
             $etat['deja_refuse']  = $bon->getStatut() === BonSortie::STATUT_ANNULE;
-            $etat['refus_motif']  = (string) $bon->getRefusMotif() ?: (string) $bon->getObservationSignature();
+            // NB : BonSortie n'a pas de getObservationSignature() (seul SortieStock en a un) :
+            // l'appeler faisait planter la fiche de tout bon materiel / PDR (erreur 500).
+            $etat['refus_motif']  = (string) $bon->getRefusMotif();
 
             if ($etat['deja_refuse']) {
                 $etat['raison'] = 'Ce bon a ete annule par la Direction Generale.';
@@ -400,7 +405,7 @@ final class ScanBonSortieController extends AbstractController
 
         // Caracteres parasites frequentes en fin de lecture (retour chariot, « # »
         // de fin d'URL, guillemets autour du code).
-        $txt = trim($txt, " \t\n\r\0\x0B\"'<>#.,;:");
+        $txt = trim($txt, " \t\n\r\0\x0B\"'<>.,;:");
 
         return [$txt, $txt];
     }
