@@ -2,897 +2,973 @@
 {% block title %}Enregistrement Embarquement{% endblock %}
 
 {% block body %}
-    <style>
-        .input-shipping {
-            border: 1px solid lightgrey;
-            background: #f7fbfc;
-            width: 100%;
-        }
-        .input-shipping:focus{
-            border: 1px solid #707070;
-        }
-    </style>
-    <link rel="stylesheet" href="{{ asset('css/Logistique/style.css') }}">
-    <div class="da-wrap">
-        <div class="da-hero">
-            <h1>Nouvel Embarquement</h1>
-            <p>Renseignez toutes les informations correspondant à l'Ordre de Transit..</p>
-      </div>
+{% include 'logistique/_styles_cacao.html.twig' %}
 
-      <div class="da-nav">
-        <a href="#" class="da-btn da-btn-light">Mes Dossiers</a>
-      </div>
+<div class="lg-page container-fluid px-3 px-lg-4 py-3">
 
-      <form method="post" action="{{ path('da_nouvelle') }}" id="da-form">
-        <div class="da-card p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-          <h2>Enregistrement de l'OT (Ordre de Transit)</h2>
-
-            <div class="da-field">
-              <label for="demandeur">N° OT</label>
-              <input type="text" id="demandeur" value="" required>
-            </div>
-            <div class="da-field">
-              <label for="code_proprietaire">Propriétaire</label>
-              <select name="code_proprietaire" id="code_proprietaire" required>
-              </select>
-            </div>
-            <div class="da-field">
-                <label for="code_produit">Produit</label>
-                <select name="code_produit" id="code_produit" required>
-                </select>
-            </div>
-
+    {# ============================ EN-TETE ============================ #}
+    <div class="lg-header">
+        <div>
+            <h1><i class="fa-solid fa-ship"></i> Enregistrement Embarquement</h1>
+            <p>Ordre de Transit (OT) : contrats de vente, client, expédition, conteneurs, échéances et documentation.</p>
         </div>
-        <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-              <h2>Contrats de ventes</h2>
-              <div class="da-grid">
-                  <div class="d-flex justify-content-between">
-                      <div class="da-field">
-                          <label for="cv_deblocage">N° CV Déblocage</label>
-                          <select name="select_cv_deblocage" id="select_cv_deblocage">
-                          </select>
-                      </div>
-                      <button  class="btn btn-light p-2 fw-bold text-danger btn-outline-success"  id="ajt_cv_deb" type="button"  style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;" data-bs-toggle="modal" data-bs-target="#modalCvDeblocage" title="ajouter un contrat de déblocage">...</button>
-                  </div>
-                  <div class="d-flex justify-content-between">
-                    <div class="da-field">
-                      <label for="select_cv_execution">N° CV Exécution</label>
-                      <select name="select_cv_execution" id="select_cv_execution" required></select>
-                    </div>
-                    <button class="btn btn-light p-2 fw-bold text-danger btn-outline-success" id="ajt_cv_exe" type="button" style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;" data-bs-toggle="modal" data-bs-target="#modalCvExecution" title="ajouter un contrat d'exécution">...</button>
-                  </div>
-                  <div class="da-field"></div>
-              </div>
-              <div class="da-grid">
-                  <div class="da-field">
-                      <label for="type_montant">Type Montant</label>
-                      <select name="type_montant" id="type_montant">
-                          <option value="Reversement">Reversement</option>
-                          <option value="Soutien">Soutien</option>
-                      </select>
-                  </div>
-                  <div class="da-field">
-                      <label for="montant_contrat">Montant</label>
-                      <input type="number" id="montant_contrat" value="">
-                  </div>
-                  <div class="da-field"></div>
-              </div>
-              <div class="da-grid">
-                  <div class="da-field">
-                      <label for="montant_contrat">N° Formule</label>
-                      <input type="text" id="montant_contrat" value="">
-                  </div>
-                  <div class="da-field">
-                      <label for="code_client">Charger la formule</label>
-                      <input type="file" class="p-0" id="formule_file" value="">
-                  </div>
-                  <div class="da-field"></div>
-              </div>
-              <hr>
-              <div class="da-grid">
-                  <div class="da-field">
-                      <label for="numero_contrat_africao">N° Contrat (AFRICAO)</label>
-                      <input type="text" id="numero_contrat_africao" value="">
-                  </div>
-                  <div class="d-flex justify-content-between">
-                  <div class="da-field">
-                      <label for="select_banque">Banque</label>
-                      <select name="select_banque" id="select_banque"></select>
-                  </div>
-                  <button  class="btn btn-light p-2 fw-bold text-danger btn-outline-success"  id="ajt_banque" type="button"  style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;" data-bs-toggle="modal" data-bs-target="#modalBanque" title="ajouter une banque">...</button>
-                  </div>
-                  <div class="da-field"></div>
+        <div class="lg-hero-actions">
+            <button type="button" class="btn" id="hero_annuler"><i class="fa-solid fa-rotate-left me-1"></i> Rétablir</button>
+            <button type="button" class="btn" id="hero_imprimer"><i class="fa-solid fa-print me-1"></i> Récapitulatif</button>
+        </div>
+    </div>
+
+    {# ============================ CARTES KPI ============================ #}
+    <div class="lg-cards">
+        <div class="lg-card">
+            <div class="lbl">N° OT</div>
+            <div class="val" id="kpi_ot" style="font-size:1.05rem;">—</div>
+            <div class="sub">Ordre de transit courant</div>
+        </div>
+        <div class="lg-card">
+            <div class="lbl">Conteneurs</div>
+            <div class="val" id="kpi_tc">0</div>
+            <div class="sub" id="kpi_tc_sub">Total poids net 0,00 Kg</div>
+        </div>
+        <div class="lg-card">
+            <div class="lbl">Poids SIGAM</div>
+            <div class="val" id="kpi_sigam">0,00</div>
+            <div class="sub">Kg — pesée portuaire</div>
+        </div>
+        <div class="lg-card is-accent">
+            <div class="lbl">Poids VGM</div>
+            <div class="val" id="kpi_vgm">0,00</div>
+            <div class="sub">Kg — poids embarquement</div>
+        </div>
+        <div class="lg-card is-accent">
+            <div class="lbl">Écart VGM / SIGAM</div>
+            <div class="val" id="kpi_ecart">0,00</div>
+            <div class="sub">Kg — à surveiller</div>
+        </div>
+        <div class="lg-card">
+            <div class="lbl">Contrôles validés</div>
+            <div class="val" id="kpi_controles">0 / 4</div>
+            <div class="sub">Formule, chèque, fumigation, étiquettes</div>
+        </div>
+    </div>
+
+    <form method="post" action="{{ path('da_nouvelle') }}" id="da-form" onsubmit="return false;">
+
+        {# ============================ 1. OT ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">1</span> Ordre de Transit (OT)
+                <span class="lg-hint">Identification du dossier</span>
+            </div>
+            <div class="lg-grille">
+                <div class="lg-champ">
+                    <label for="demandeur">N° OT <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control text-uppercase" id="demandeur" value="" placeholder="N° de l'ordre de transit" autocomplete="off">
                 </div>
-          </div>
-        <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-              <h2>Enregistrement du client</h2>
-                  <div class="da-field">
-                      <div class="d-flex content-justify-between">
-                          <div class="w-100">
-                              <label for="select_client">Client</label>
-                              <select class="w-100" name="select_client" id="select_client" required>
-                              </select>
-                          </div>
-                          <button class="btn btn-light ms-2 test-danger btn-outline-success" id="ajt_clt" type="button" data-bs-toggle="modal" data-bs-target="#modalClient" style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;"  title="ajouter un client">...</button>
-                      </div>
-                      <div class="da-field" id="infos_client"></div>
-                  </div>
-          </div>
-        <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-              <h2>Expédition</h2>
-              <div class="da-grid">
-                  <div class="da-field">
-                      <div class="d-flex content-justify-between">
-                          <div class=""><label for="select_navire">Navire</label>
-                              <select name="select_navire" id="select_navire" style="width: 250px;" required>
-                              </select></div>
-                          <button class="btn btn-light ms-2 test-danger btn-outline-success" id="ajt_navire"  data-bs-toggle="modal" data-bs-target="#modalNavire"  type="button" style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;" title="ajouter un navire">...</button>
-                      </div>
-                  </div>
-                  <div class="d-flex content-justify-between">
-                      <div class="da-field">
-                          <label for="pays_destination">Pays de destination</label>
-                          <select name="pays_destination" id="pays_destination">
-                          </select>
-                      </div>
-                      <button class="btn btn-light ms-2 test-danger btn-outline-success" id="ajt_pays"   data-bs-toggle="modal" data-bs-target="#modalPays"  type="button" style="height: 25px;margin-top: 25px;width: 25px;border-radius: 0;border:2px solid darkgreen;"  title="ajouter un pays">...</button>
-                  </div>
-                  <div class="da-field">
-                      <label for="port_destination">Port de destination</label>
-                      <input type="text" id="port_destination" value="">
-                  </div>
-              </div>
-          </div>
-          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-              <h2>Enregistrement des conteneurs</h2>
-                  <div class="da-field d-flex content-justify-between mb-2">
-                      <label for="poids_vgm">Poids Embarquement VGM (Kg)</label>
-                      <input class="input" type="text" id="poids_vgm" style="width: 120px;border-radius: 0;">
-                  </div>
-              <button class="btn mb-2" id="ajt_clt" style="background: #a6ebf9" type="button" data-bs-toggle="modal" data-bs-target="#modalTc" title="ajouter des conteneurs">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-container preview-icon"><path d="M22 7.7c0-.6-.4-1.2-.8-1.5l-6.3-3.9a1.72 1.72 0 0 0-1.7 0l-10.3 6c-.5.2-.9.8-.9 1.4v6.6c0 .5.4 1.2.8 1.5l6.3 3.9a1.72 1.72 0 0 0 1.7 0l10.3-6c.5-.3.9-1 .9-1.5Z"/><path d="M10 21.9V14L2.1 9.1"/><path d="m10 14 11.9-6.9"/><path d="M14 19.8v-8.1"/><path d="M18 17.5V9.4"/></svg>
-                  Ajouter des conteneurs
-              </button>
-              <div class="da-field col-9">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th style="background: #e9e9e9;color: black;">N°</th>
-                                <th style="background: #e9e9e9;color: black;">N° TC</th>
-                                <th style="background: #e9e9e9;color: black;">N° Plomb</th>
-                                <th style="background: #e9e9e9;color: black;">Lots</th>
-                                <th style="background: #e9e9e9;color: black;">Nb Cartons / Sacs / Big Bag</th>
-                                <th style="background: #e9e9e9;color: black;">Poids Brut (Kg)</th>
-                                <th style="background: #e9e9e9;color: black;">Poids Net (Kg)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-
-                        </tbody>
-                    </table>
-              </div>
-          </div>
-          <hr>
-          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-              <h2>Dates & Echéances</h2>
-              <div class="da-grid">
-                  <div class="da-field">
-                      <div class="d-flex content-justify-between">
-                          <div class="">
-                              <label for="date_eta">ETA</label>
-                                    <input type="date" id="date_eta" style="width: 250px;">
-                              </div>
-                      </div>
-                  </div>
-                  <div class="da-field">
-                      <div class="d-flex content-justify-between">
-                          <div class="">
-                              <label for="date_empotage">Empotage</label>
-                              <input type="date" id="date_empotage" style="width: 250px;">
-                          </div>
-                      </div>
-                  </div>
-              </div>
-              <div class="da-grid">
-                  <div class="da-field">
-                      <div class="d-flex content-justify-between">
-                          <div class="">
-                              <label for="date_relevage">Relevage</label>
-                              <input type="date" id="date_relevage" style="width: 250px;">
-                          </div>
-                      </div>
-                  </div>
-                  <div class="da-field">
-                      <div class="d-flex content-justify-between">
-                          <div class="">
-                              <label for="date_embarquement">Embarquement</label>
-                              <input type="date" id="date_embarquement" style="width: 250px;">
-                          </div>
-                      </div>
-                  </div>
-              </div>
-              <div class="da-field">
-                  <div class="d-flex content-justify-between">
-                      <div class="">
-                          <label for="date_remise">Remise Doc</label>
-                          <input type="date" id="date_remise" style="width: 250px;">
-                      </div>
-                  </div>
-              </div>
-          </div>
-
-          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-              <h2>Applications et Documentation</h2>
-              <div class="da-grid">
-                  <div class="">
-                      <h5 class="p-1"  style="background: linear-gradient(120deg, #bdfcf9, #b2e1fa)">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-virus-off preview-icon"><path d="M10.01 10h.01"/><path d="M12 14.991h.01"/><path d="M12 22v-3"/><path d="M12 2v3"/><path d="M13 22h-2"/><path d="M13 2h-2"/><path d="m16.5 19.794-1-1.733"/><path d="m16.5 4.205-1 1.732"/><path d="M18.891 13.235a7 7 0 00-8.126-8.126"/><path d="m19.794 7.5-1.732 1"/><path d="M2 12h3"/><path d="M2 13v-2"/><path d="m2 2 20 20"/><path d="M22 12h-3"/><path d="M22 13v-2"/><path d="m4.206 16.5 1.732-1"/><path d="m4.206 7.5 1.732 1"/><path d="M7.05 7.05a7 7 0 009.9 9.9"/><path d="m7.5 19.794 1-1.733"/><path d="M9 12h.01"/></svg>
-                          Traitement
-                      </h5>
-                      <div class="d-flex content-justify-between mb-2">
-                          <div style="width: 200px;">Formule établie ?</div>
-                          <div class="d-flex content-justify-between ms-2" style="height: 35px;">
-                              <input type="radio" class="btn-check" name="options-formule"   id="success-formule" autocomplete="off" checked>
-                              <label class="btn btn-outline-success btn-sm" for="success-formule">OUI</label>
-                              <input type="radio" class="btn-check" name="options-formule" id="danger-formule" autocomplete="off">
-                              <label class="btn btn-outline-danger btn-sm" for="danger-formule">NON</label>
-                          </div>
-                      </div>
-                      <div class="d-flex content-justify-between mb-2">
-                          <div style="width: 200px;">Chèque établi ?</div>
-                          <div class="d-flex content-justify-between ms-2" style="height: 35px;">
-                              <input type="radio" class="btn-check" name="options-cheque" id="success-cheque" autocomplete="off" checked>
-                              <label class="btn btn-outline-success btn-sm" for="success-cheque">OUI</label>
-                              <input type="radio" class="btn-check" name="options-cheque" id="danger-cheque" autocomplete="off">
-                              <label class="btn btn-outline-danger btn-sm" for="danger-cheque">NON</label>
-                          </div>
-                      </div>
-                      <div class="d-flex content-justify-between mb-2">
-                          <div style="width: 200px;">TCs Fumigués ?</div>
-                          <div class="d-flex content-justify-between ms-2" style="height: 35px;">
-                              <input type="radio"  class="btn-check right" name="options-fumigue" id="success-fumigue" autocomplete="off" checked>
-                              <label class="btn btn-outline-success btn-sm" for="success-fumigue">OUI</label>
-                              <input type="radio" class="btn-check right" name="options-fumigue" id="danger-fumigue" autocomplete="off">
-                              <label class="btn btn-outline-danger btn-sm" for="danger-fumigue">NON</label>
-                          </div>
-                      </div>
-                      <div class="d-flex content-justify-between mb-2">
-                          <div style="width: 200px;">Etiquettes ?</div>
-                          <div class="d-flex content-justify-between ms-2" style="height: 35px;">
-                              <input type="radio" class="btn-check btn-sm" name="options-etiquette" id="success-etiquette" autocomplete="off" checked>
-                              <label class="btn btn-outline-success btn-sm" for="success-etiquette">OUI</label>
-                              <input type="radio" class="btn-check btn-sm" name="options-etiquette" id="danger-etiquette" autocomplete="off">
-                              <label class="btn btn-outline-danger btn-sm" for="danger-etiquette">NON</label>
-                          </div>
-                      </div>
-                  </div>
-                  <div class="">
-                      <h5 class="p-1"   style="background: linear-gradient(120deg, #b2e1fa, #bdfcf9)">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-certificate preview-icon"><path d="M12 10H6"/><path d="m20.69 15.479 1.29 4.88a.5.5 0 01-.698.591l-1.843-.849a1 1 0 00-.879.001l-1.846.85a.5.5 0 01-.692-.593l1.29-4.88"/><path d="M22 6.675V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2h8"/><path d="M6 14h4"/><circle cx="19" cy="13" r="3"/></svg>
-                          Certificats et autres document
-                      </h5>
-                      <div class="da-grid">
-                          <div class="da-field">
-                              <label for="approbation">Draft BL</label>
-                              <select name="approbation" id="approbation" style="width: 150px;"></select>
-                          </div>
-                          <div class="da-field">
-                              <label for="sel_pl">Packing List</label>
-                              <select name="sel_pl" id="sel_pl" style="width: 150px;"></select>
-                          </div>
-                          <div class="da-field">
-                              <label for="sel_pl">Certificat Poids</label>
-                              <select name="sel_cert_poids" id="sel_cert_poids" style="width: 150px;"></select>
-                          </div>
-                          <div class="da-field">
-                              <label for="sel_cert_coa">COA</label>
-                              <select name="sel_cert_coa" id="sel_cert_coa" style="width: 150px;"></select>
-                          </div>
-                          <div class="da-field">
-                              <label for="sel_cert_phyto">Certificat Phyto</label>
-                              <select name="sel_cert_phyto" id="sel_cert_phyto" style="width: 150px;"></select>
-                          </div>
-                          <div class="da-field">
-                              <label for="sel_cert_co">Certificat Origine</label>
-                              <select name="sel_cert_co" id="sel_cert_co" style="width: 150px;"></select>
-                          </div>
-                          <div class="da-field">
-                              <label for="sel_cert_conformite">Certificat Conformité</label>
-                              <select name="sel_cert_conformite" id="sel_cert_conformite" style="width: 150px;"></select>
-                          </div>
-                          <div class="da-field">
-                              <label for="sel_cert_hygienne">Certificat Hygiene</label>
-                              <select name="sel_cert_hygienne" id="sel_cert_hygienne" style="width: 150px;"></select>
-                          </div>
-                        <div class="da-field">
-                              <label for="sel_cert_fumigation">Certificat Fumigation</label>
-                              <select name="sel_cert_fumigation" id="sel_cert_fumigation" style="width: 150px;"></select>
-                          </div>
-                          <div class="da-field">
-                              <label for="sel_cert_hygienne">Certificat Halal / Kosher / FSSC22000</label>
-                              <select name="sel_cert_halal" id="sel_cert_halal" style="width: 150px;"></select>
-                          </div>
-                      </div>
-
-                  </div>
-              </div>
-
-          </div>
-          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-              <h2>Photos Empotage & Rapport</h2>
-                <div class="da-field">
-                      <div class="col-5"><label class="fs-6">Photos / Rapports: </label></div>
-                      <div class="col-7 d-inline-flex w-100" id="div_upload">
-                          {#<input type="file" id="fileInput" name="photos" accept="image/ application/msword" multiple>#}
-                          <form id="uploadForm"  enctype="multipart/form-data" style="border-top:  2px solid grey">
-                              <input type="file" id="fileInput"  multiple accept="image/*,.pdf, .doc, .docx, .xls, .xlsx" name="fichiers[]" />
-                          </form>
-                      </div>
-                  </div>
-                    <div class="da-field">
-                        <div class="mt-2 mb-2 mx-auto" style="max-height: 300px;overflow-y: scroll;width: 75%;background: #dad9d9;" id="preview"></div>
-                    </div>
-          </div>
-
-          <div class="da-card mt-5 p-2" style="background: #f9f9f6;border-radius: 0;border: 1px solid #d6d5d5;box-shadow: 1px 1px #cdcccc;">
-              <div class="d-flex justify-content-between">
-                <h2>Suivi documentaire & Consignation</h2>
-                  <a href="#" class="btn btn-success p-1 mb-1" style="border-radius: 0;">Modèles de dossier</a>
-              </div>
-                    <div class="da-field">
-                        <div class="div_donnees mb-2 bg-light" style="border: 1px solid lightgray;overflow-y: scroll;font-size: 13px;max-height: 250px;">
-                        </div>
-                        <hr>
-                        <div class="mt-2{# border border-1 p-2#} docs_contenu"></div>
-                  </div>
-          </div>
-
-
-        <div class="da-toolbar" style="justify-content:flex-end;">
-          <a href="#" class="da-btn da-btn-light">Annuler</a>
-          <button type="submit" class="da-btn da-btn-primary">Enregistrer le dossier</button>
+                <div class="lg-champ">
+                    <label for="code_proprietaire">Propriétaire <span class="text-danger">*</span></label>
+                    <select class="form-select" name="code_proprietaire" id="code_proprietaire"></select>
+                </div>
+                <div class="lg-champ">
+                    <label for="code_produit">Produit <span class="text-danger">*</span></label>
+                    <select class="form-select" name="code_produit" id="code_produit"></select>
+                    <div class="lg-aide">Produits filtrés par propriétaire.</div>
+                </div>
+            </div>
         </div>
-      </form>
+
+        {# ============================ 2. CONTRATS DE VENTE ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">2</span> Contrats de vente
+                <span class="lg-hint">Déblocage / exécution, montant, banque</span>
+            </div>
+            <div class="lg-grille">
+                <div class="lg-champ">
+                    <label for="select_cv_deblocage">N° CV Déblocage</label>
+                    <div class="lg-avec-plus">
+                        <select class="form-select" name="select_cv_deblocage" id="select_cv_deblocage"></select>
+                        <button class="lg-plus" id="ajt_cv_deb" type="button" data-bs-toggle="modal" data-bs-target="#modalCvDeblocage" title="Ajouter un contrat de déblocage">+</button>
+                    </div>
+                </div>
+                <div class="lg-champ">
+                    <label for="select_cv_execution">N° CV Exécution</label>
+                    <div class="lg-avec-plus">
+                        <select class="form-select" name="select_cv_execution" id="select_cv_execution"></select>
+                        <button class="lg-plus" id="ajt_cv_exe" type="button" data-bs-toggle="modal" data-bs-target="#modalCvExecution" title="Ajouter un contrat d'exécution">+</button>
+                    </div>
+                </div>
+                <div class="lg-champ">
+                    <label for="type_montant">Type de montant</label>
+                    <select class="form-select" name="type_montant" id="type_montant">
+                        <option value="Reversement">Reversement</option>
+                        <option value="Soutien">Soutien</option>
+                    </select>
+                </div>
+                <div class="lg-champ">
+                    <label for="montant_contrat">Montant</label>
+                    <input type="number" step="0.01" class="form-control" id="montant_contrat" value="" placeholder="0.00">
+                </div>
+                <div class="lg-champ">
+                    <label for="numero_formule">N° Formule</label>
+                    <input type="text" class="form-control text-uppercase" id="numero_formule" value="" placeholder="N° de la formule">
+                </div>
+                <div class="lg-champ">
+                    <label for="formule_file">Formule (fichier)</label>
+                    <input type="file" class="form-control" id="formule_file">
+                </div>
+                <div class="lg-champ">
+                    <label for="numero_contrat_africao">N° Contrat (AFRICAO)</label>
+                    <input type="text" class="form-control text-uppercase" id="numero_contrat_africao" value="" placeholder="N° contrat AFRICAO">
+                </div>
+                <div class="lg-champ">
+                    <label for="select_banque">Banque</label>
+                    <div class="lg-avec-plus">
+                        <select class="form-select" name="select_banque" id="select_banque"></select>
+                        <button class="lg-plus" id="ajt_banque" type="button" data-bs-toggle="modal" data-bs-target="#modalBanque" title="Ajouter une banque">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ============================ 3. CLIENT ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">3</span> Client
+                <span class="lg-hint">Acheteur et coordonnées</span>
+            </div>
+            <div class="lg-grille">
+                <div class="lg-champ lg-largement">
+                    <label for="select_client">Client <span class="text-danger">*</span></label>
+                    <div class="lg-avec-plus">
+                        <select class="form-select" name="select_client" id="select_client"></select>
+                        <button class="lg-plus" id="ajt_clt" type="button" data-bs-toggle="modal" data-bs-target="#modalClient" title="Ajouter un client">+</button>
+                    </div>
+                </div>
+            </div>
+            <div id="infos_client" class="mt-2"></div>
+        </div>
+
+        {# ============================ 4. EXPEDITION ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">4</span> Expédition
+                <span class="lg-hint">Navire et destination</span>
+            </div>
+            <div class="lg-grille">
+                <div class="lg-champ">
+                    <label for="select_navire">Navire <span class="text-danger">*</span></label>
+                    <div class="lg-avec-plus">
+                        <select class="form-select" name="select_navire" id="select_navire"></select>
+                        <button class="lg-plus" id="ajt_navire" type="button" data-bs-toggle="modal" data-bs-target="#modalNavire" title="Ajouter un navire">+</button>
+                    </div>
+                </div>
+                <div class="lg-champ">
+                    <label for="pays_destination">Pays de destination</label>
+                    <div class="lg-avec-plus">
+                        <select class="form-select" name="pays_destination" id="pays_destination"></select>
+                        <button class="lg-plus" id="ajt_pays" type="button" data-bs-toggle="modal" data-bs-target="#modalPays" title="Ajouter un pays">+</button>
+                    </div>
+                </div>
+                <div class="lg-champ">
+                    <label for="port_destination">Port de destination</label>
+                    <input type="text" class="form-control text-uppercase" id="port_destination" value="" placeholder="Port de débarquement">
+                </div>
+            </div>
+        </div>
+
+        {# ============================ 5. CONTENEURS ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">5</span> Conteneurs
+                <span class="lg-hint">Poids d'embarquement et détail des TC</span>
+            </div>
+            <div class="lg-grille mb-3">
+                <div class="lg-champ">
+                    <label for="poids_vgm">Poids Embarquement VGM (Kg)</label>
+                    <input type="number" step="0.01" min="0" class="form-control" id="poids_vgm" placeholder="0.00">
+                </div>
+                <div class="lg-champ">
+                    <label for="poids_sigam">Poids SIGAM (Kg)</label>
+                    <input type="number" step="0.01" min="0" class="form-control" id="poids_sigam" placeholder="0.00">
+                </div>
+                <div class="lg-champ" style="justify-content:flex-end;">
+                    <button class="btn btn-outline-cacao" id="btn_ajouter_tc" type="button" data-bs-toggle="modal" data-bs-target="#modalTc">
+                        <i class="fa-solid fa-box me-2"></i>Ajouter des conteneurs
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive lg-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>N°</th>
+                            <th>N° TC</th>
+                            <th>N° Plomb</th>
+                            <th>Lots</th>
+                            <th class="text-end">Nb Cartons / Sacs / Big Bag</th>
+                            <th class="text-end">Poids Brut (Kg)</th>
+                            <th class="text-end">Poids Net (Kg)</th>
+                            <th class="lg-chev"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="corps_tc">
+                        <tr class="lg-vide"><td colspan="8">Aucun conteneur ajouté pour l'instant.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# ============================ 6. DATES ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">6</span> Dates &amp; échéances
+                <span class="lg-hint">Suivi du calendrier d'embarquement</span>
+            </div>
+            <div class="lg-grille">
+                <div class="lg-champ">
+                    <label for="date_eta">ETA</label>
+                    <input type="date" class="form-control" id="date_eta">
+                </div>
+                <div class="lg-champ">
+                    <label for="date_empotage">Empotage</label>
+                    <input type="date" class="form-control" id="date_empotage">
+                </div>
+                <div class="lg-champ">
+                    <label for="date_relevage">Relevage</label>
+                    <input type="date" class="form-control" id="date_relevage">
+                </div>
+                <div class="lg-champ">
+                    <label for="date_embarquement">Embarquement</label>
+                    <input type="date" class="form-control" id="date_embarquement">
+                </div>
+                <div class="lg-champ">
+                    <label for="date_remise">Remise Doc</label>
+                    <input type="date" class="form-control" id="date_remise">
+                </div>
+            </div>
+        </div>
+
+        {# ============================ 7. TRAITEMENT / CERTIFICATS ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">7</span> Traitement et certificats
+                <span class="lg-hint">Contrôles et documentation</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <div class="lg-detail-box" style="margin:0;">
+                        <h6>Traitement</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.86rem;color:#4a3b2e;">
+                            <span>Formule établie ?</span>
+                            <span class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check opt-suivi" data-cle="formule" name="options-formule" id="success-formule" value="oui" autocomplete="off" checked>
+                                <label class="btn btn-outline-cacao" for="success-formule">OUI</label>
+                                <input type="radio" class="btn-check opt-suivi" data-cle="formule" name="options-formule" id="danger-formule" value="non" autocomplete="off">
+                                <label class="btn btn-outline-cacao" for="danger-formule">NON</label>
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.86rem;color:#4a3b2e;">
+                            <span>Chèque établi ?</span>
+                            <span class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check opt-suivi" data-cle="cheque" name="options-cheque" id="success-cheque" value="oui" autocomplete="off" checked>
+                                <label class="btn btn-outline-cacao" for="success-cheque">OUI</label>
+                                <input type="radio" class="btn-check opt-suivi" data-cle="cheque" name="options-cheque" id="danger-cheque" value="non" autocomplete="off">
+                                <label class="btn btn-outline-cacao" for="danger-cheque">NON</label>
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.86rem;color:#4a3b2e;">
+                            <span>TCs Fumigués ?</span>
+                            <span class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check opt-suivi" data-cle="fumigue" name="options-fumigue" id="success-fumigue" value="oui" autocomplete="off" checked>
+                                <label class="btn btn-outline-cacao" for="success-fumigue">OUI</label>
+                                <input type="radio" class="btn-check opt-suivi" data-cle="fumigue" name="options-fumigue" id="danger-fumigue" value="non" autocomplete="off">
+                                <label class="btn btn-outline-cacao" for="danger-fumigue">NON</label>
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center" style="font-size:.86rem;color:#4a3b2e;">
+                            <span>Étiquettes ?</span>
+                            <span class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check opt-suivi" data-cle="etiquette" name="options-etiquette" id="success-etiquette" value="oui" autocomplete="off" checked>
+                                <label class="btn btn-outline-cacao" for="success-etiquette">OUI</label>
+                                <input type="radio" class="btn-check opt-suivi" data-cle="etiquette" name="options-etiquette" id="danger-etiquette" value="non" autocomplete="off">
+                                <label class="btn btn-outline-cacao" for="danger-etiquette">NON</label>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <div class="lg-detail-box" style="margin:0;">
+                        <h6>Certificats et autres documents</h6>
+                        <div class="lg-grille">
+                            <div class="lg-champ"><label for="approbation">Draft BL</label><select class="form-select" name="approbation" id="approbation"></select></div>
+                            <div class="lg-champ"><label for="sel_pl">Packing List</label><select class="form-select" name="sel_pl" id="sel_pl"></select></div>
+                            <div class="lg-champ"><label for="sel_cert_poids">Certificat Poids</label><select class="form-select" name="sel_cert_poids" id="sel_cert_poids"></select></div>
+                            <div class="lg-champ"><label for="sel_cert_coa">COA</label><select class="form-select" name="sel_cert_coa" id="sel_cert_coa"></select></div>
+                            <div class="lg-champ"><label for="sel_cert_phyto">Certificat Phyto</label><select class="form-select" name="sel_cert_phyto" id="sel_cert_phyto"></select></div>
+                            <div class="lg-champ"><label for="sel_cert_co">Certificat Origine</label><select class="form-select" name="sel_cert_co" id="sel_cert_co"></select></div>
+                            <div class="lg-champ"><label for="sel_cert_conformite">Certificat Conformité</label><select class="form-select" name="sel_cert_conformite" id="sel_cert_conformite"></select></div>
+                            <div class="lg-champ"><label for="sel_cert_hygienne">Certificat Hygiène</label><select class="form-select" name="sel_cert_hygienne" id="sel_cert_hygienne"></select></div>
+                            <div class="lg-champ"><label for="sel_cert_fumigation">Certificat Fumigation</label><select class="form-select" name="sel_cert_fumigation" id="sel_cert_fumigation"></select></div>
+                            <div class="lg-champ"><label for="sel_cert_halal">Halal / Kosher / FSSC22000</label><select class="form-select" name="sel_cert_halal" id="sel_cert_halal"></select></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ============================ 8. PHOTOS ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">8</span> Photos d'empotage et rapports
+                <span class="lg-hint">Images, PDF, Word, Excel</span>
+            </div>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" class="form-control" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" name="fichiers[]">
+            </form>
+            <div class="lg-preview" id="preview"></div>
+            <div class="mt-2"><span class="lg-badge neutre lbl_emp">Aucun fichier sélectionné</span></div>
+        </div>
+
+        {# ============================ 9. SUIVI DOCUMENTAIRE ============================ #}
+        <div class="lg-bloc">
+            <div class="lg-bloc-title">
+                <span class="lg-num">9</span> Suivi documentaire &amp; consignation
+                <span class="lg-hint">Pièces à constituer pour le dossier</span>
+            </div>
+            <div class="div_donnees"></div>
+            <div class="mt-2 docs_contenu"></div>
+        </div>
+
+        <div class="lg-bloc" style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline-cacao" id="btn_annuler">Annuler</button>
+            <button type="submit" class="btn btn-cacao" id="btn_enregistrer_dossier">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Enregistrer le dossier
+            </button>
+        </div>
+    </form>
 </div>
 
+{# ======================================================================
+   MODALES (ajout rapide des referentiels) — formulaires existants conserves
+   ====================================================================== #}
 
-
-
-    {#
-    ------------------------------------------------------------------------------------------------------
-    ---------------------------------------------- MODAL -------------------------------------------
-    ------------------------------------------------------------------------------------------------------
-#}
-    <!-- Modal Cv Déblocage-->
-    <div class="modal fade" id="modalCvDeblocage" tabindex="-1" aria-labelledby="AddmodalCvDeblocageLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content modal-center"  style="border-radius: 0;">
-                <div class="modal-header" style="background: var(--green-100)">
-                    <h1 class="modal-title fs-5" id="modalCvDeblocageLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-receipt-text preview-icon"><path d="M13 16H8"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"/></svg> CV Déblocage</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="formCvDeblocage">
-                        <div class="d-flex justify-content-start">
-                            <label for="cv_deblocage" class="fw-bold span">N° CV</label>
-                            <input class="input-shipping fw-bold" type="text" id="cv_deblocage" style="text-transform: uppercase;width:100%;">
-                            <input class="input-shipping ms-2 text-center fw-bold" type="text" id="tonnage_cv_deblocage" style="color: #480202;width:50%;" placeholder="tonnage (Kg)">
-                        </div>
-                        <hr>
-                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-cv-deb" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
-                    </form>
-                </div>
-                </div>
+{# Modal CV Deblocage #}
+<div class="modal fade" id="modalCvDeblocage" tabindex="-1" aria-labelledby="AddmodalCvDeblocageLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
+                <h1 class="modal-title fs-6" id="modalCvDeblocageLabel"><i class="fa-solid fa-file-invoice me-2"></i>CV Déblocage</h1>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-        </div>
-
-    <!-- Modal Cv Exécution-->
-    <div class="modal fade" id="modalCvExecution" tabindex="-1" aria-labelledby="AddmodalCvExecutionLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content modal-center"  style="border-radius: 0;">
-                <div class="modal-header" style="background: var(--green-100)">
-                    <h1 class="modal-title fs-5" id="modalCvExecutionLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-receipt-text preview-icon"><path d="M13 16H8"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"/></svg> CV Exécution</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="formCvExecution">
-                        <div class="d-flex justify-content-start">
-                            <label for="cv_execution" class="fw-bold span">N° CV</label>
-                            <input class="input-shipping fw-bold" type="text" id="cv_execution" style="text-transform: uppercase;width:100%;">
+            <div class="modal-body">
+                <form id="formCvDeblocage">
+                    <div class="lg-grille">
+                        <div class="lg-champ">
+                            <label for="cv_deblocage">N° CV</label>
+                            <input class="form-control text-uppercase" type="text" id="cv_deblocage">
                         </div>
-                        <hr>
-                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-cv-exe" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
-                    </form>
-                </div>
+                        <div class="lg-champ">
+                            <label for="tonnage_cv_deblocage">Tonnage (Kg)</label>
+                            <input class="form-control" type="text" id="tonnage_cv_deblocage" placeholder="tonnage (Kg)">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
+                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-cacao" id="btn-add-cv-deb">Ajouter</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modal Banque-->
-    <div class="modal fade" id="modalBanque" tabindex="-1" aria-labelledby="AddmodalBanqueLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content modal-center"  style="border-radius: 0;">
-                <div class="modal-header" style="background: var(--green-100)">
-                    <h1 class="modal-title fs-5" id="modalBanqueLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-landmark preview-icon"><path d="M10 18v-7"/><path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M3 22h18"/><path d="M6 18v-7"/></svg> Banque</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="formBanque">
-                        <div class="d-flex justify-content-start">
-                            <label for="banque" class="fw-bold span">Nom</label>
-                            <input class="input-shipping fw-bold" type="text" id="banque" style="text-transform: uppercase;width:100%;">
-                        </div>
-                        <hr>
-                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-banque" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
-                    </form>
-                </div>
+{# Modal CV Execution #}
+<div class="modal fade" id="modalCvExecution" tabindex="-1" aria-labelledby="AddmodalCvExecutionLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
+                <h1 class="modal-title fs-6" id="modalCvExecutionLabel"><i class="fa-solid fa-file-contract me-2"></i>CV Exécution</h1>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCvExecution">
+                    <div class="lg-champ">
+                        <label for="cv_execution">N° CV</label>
+                        <input class="form-control text-uppercase" type="text" id="cv_execution">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
+                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-cacao" id="btn-add-cv-exe">Ajouter</button>
             </div>
         </div>
     </div>
+</div>
 
-
-    <!-- Modal Client-->
-    <div class="modal fade" id="modalClient" tabindex="-1" aria-labelledby="AddmodalClientLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content modal-center"  style="border-radius: 0;">
-                <div class="modal-header" style="background: var(--green-100)">
-                    <h1 class="modal-title fs-5" id="modalClientLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-star preview-icon"><path d="M16.051 12.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.866l-1.156-1.153a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z"/><path d="M8 15H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/></svg> Client</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="formClient">
-                        <div class="d-flex justify-content-start mb-2">
-                            <label for="client" class="fw-bold span">Nom client</label>
-                            <input class="input-shipping fw-bold" type="text" id="client" style="text-transform: uppercase;width:100%;">
-                        </div>
-                        <div class="d-flex justify-content-start mb-2">
-                            <label for="select_pays" class="fw-bold span">Pays</label>
-                            <select class="input-shipping fw-bold"  id="select_pays"></select>
-                        </div>
-                        <div class="d-flex justify-content-start mb-2">
-                            <label for="client" class="fw-bold span">Ville</label>
-                            <input class="input-shipping fw-bold" type="text" id="ville" style="text-transform: uppercase;width:100%;">
-                        </div>
-                        <div class="d-flex justify-content-start mb-2">
-                            <label for="client" class="fw-bold span">Adresse</label>
-                            <input class="input-shipping fw-bold" type="text" id="adresse" style="text-transform: uppercase;width:100%;">
-                        </div>
-                        <hr>
-                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-client" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
-                    </form>
-                </div>
+{# Modal Banque #}
+<div class="modal fade" id="modalBanque" tabindex="-1" aria-labelledby="AddmodalBanqueLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
+                <h1 class="modal-title fs-6" id="modalBanqueLabel"><i class="fa-solid fa-building-columns me-2"></i>Banque</h1>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formBanque">
+                    <div class="lg-champ">
+                        <label for="banque">Nom</label>
+                        <input class="form-control text-uppercase" type="text" id="banque">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
+                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-cacao" id="btn-add-banque">Ajouter</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modal Navire-->
-    <div class="modal fade" id="modalNavire" tabindex="-1" aria-labelledby="AddmodalNavireLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content modal-center"  style="border-radius: 0;">
-                <div class="modal-header" style="background: var(--green-100)">
-                    <h1 class="modal-title fs-5" id="modalNavireLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ship preview-icon"><path d="M12 2v2"/><path d="M12 9.189V13"/><path d="M19 12V6a2 2 0 00-2-2H7a2 2 0 00-2 2v6"/><path d="M19.38 19A11.6 11.6 0 0021 13l-8.188-3.639a2 2 0 00-1.624 0L3 13.001a11.6 11.6 0 002.81 7.76"/><path d="M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg> Navire</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="formNavire">
-                        <div class="d-flex justify-content-start">
-                            <label for="navire" class="fw-bold span">Nom</label>
-                            <input class="input-shipping fw-bold" type="text" id="navire" style="text-transform: uppercase;width:100%;">
-                        </div>
-                        <hr>
-                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-navire" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
-                    </form>
-                </div>
+{# Modal Client #}
+<div class="modal fade" id="modalClient" tabindex="-1" aria-labelledby="AddmodalClientLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
+                <h1 class="modal-title fs-6" id="modalClientLabel"><i class="fa-solid fa-user-star me-2"></i>Client</h1>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formClient">
+                    <div class="lg-champ mb-2">
+                        <label for="client">Nom client</label>
+                        <input class="form-control text-uppercase" type="text" id="client">
+                    </div>
+                    <div class="lg-champ mb-2">
+                        <label for="select_pays">Pays</label>
+                        <select class="form-select" id="select_pays"></select>
+                    </div>
+                    <div class="lg-champ mb-2">
+                        <label for="ville">Ville</label>
+                        <input class="form-control text-uppercase" type="text" id="ville">
+                    </div>
+                    <div class="lg-champ">
+                        <label for="adresse">Adresse</label>
+                        <input class="form-control text-uppercase" type="text" id="adresse">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
+                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-cacao" id="btn-add-client">Ajouter</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modal Pays-->
-    <div class="modal fade" id="modalPays" tabindex="-1" aria-labelledby="AddmodalPaysLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content modal-center"  style="border-radius: 0;">
-                <div class="modal-header" style="background: var(--green-100)">
-                    <h1 class="modal-title fs-5" id="modalPaysLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe preview-icon"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Pays</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="formPays">
-                        <div class="d-flex justify-content-start">
-                            <label for="pays" class="fw-bold span">Pays</label>
-                            <input class="input-shipping fw-bold" type="text" id="pays" style="text-transform: uppercase;width:100%;">
-                        </div>
-                        <hr>
-                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-pays" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
-                    </form>
-                </div>
+{# Modal Navire #}
+<div class="modal fade" id="modalNavire" tabindex="-1" aria-labelledby="AddmodalNavireLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
+                <h1 class="modal-title fs-6" id="modalNavireLabel"><i class="fa-solid fa-ship me-2"></i>Navire</h1>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formNavire">
+                    <div class="lg-champ">
+                        <label for="navire">Nom</label>
+                        <input class="form-control text-uppercase" type="text" id="navire">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
+                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-cacao" id="btn-add-navire">Ajouter</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Modal Tc-->
-    <div class="modal fade" id="modalTc" tabindex="-1" aria-labelledby="AddmodalTcLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-lg  modal-center">
-            <div class="modal-content"  style="border-radius: 0;">
-                <div class="modal-header" style="background: var(--green-100)">
-                    <h1 class="modal-title fs-5" id="modalTcLabel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe preview-icon"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Tc</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="formTc" style="font-size: 13px;">
-                        <div class="d-flex justify-content-start">
-                            <label for="tc" class="fw-bold span">Tc</label>
-                            <input class="input-shipping fw-bold" type="text" id="tc" style="text-transform: uppercase;width:200px;" placeholder="N° TC">
-                            <input class="input-shipping fw-bold ms-2" type="text" id="plomb" style="text-transform: uppercase;width:150px;" placeholder="N° Plomb">
+{# Modal Pays #}
+<div class="modal fade" id="modalPays" tabindex="-1" aria-labelledby="AddmodalPaysLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
+                <h1 class="modal-title fs-6" id="modalPaysLabel"><i class="fa-solid fa-globe me-2"></i>Pays</h1>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formPays">
+                    <div class="lg-champ">
+                        <label for="pays">Pays</label>
+                        <input class="form-control text-uppercase" type="text" id="pays">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
+                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-cacao" id="btn-add-pays">Ajouter</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal TC #}
+<div class="modal fade" id="modalTc" tabindex="-1" aria-labelledby="AddmodalTcLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
+                <h1 class="modal-title fs-6" id="modalTcLabel"><i class="fa-solid fa-box me-2"></i>Conteneur (TC)</h1>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formTc" style="font-size:.88rem;">
+                    <div class="lg-grille mb-3">
+                        <div class="lg-champ">
+                            <label for="tc">N° TC</label>
+                            <input class="form-control text-uppercase" type="text" id="tc" placeholder="N° TC">
                         </div>
-                        <hr>
-                        <div class="d-flex justify-content-start mb-2">
-                            <label for="select_lot" class="fw-bold span">Ajouter lots</label>
-                            <select name="select_lot" id="select_lot" style="width: 150px;"></select>
-                            <input class="input-shipping fw-bold ms-2" type="text" id="nb_cartons" style="text-transform: uppercase;width: 100px;" placeholder="Nb Cartons">
-                            <input class="input-shipping fw-bold ms-2" type="text" id="pb" style="text-transform: uppercase;width:100px;" placeholder="Poids brut" disabled>
-                            <input class="input-shipping fw-bold ms-2" type="text" id="pb" style="text-transform: uppercase;width:100px;" placeholder="Poids Net" disabled>
-                            <button type="button" id="add-lot" class="btn btn-warning p-1 ms-2" style="border-radius: 2px;">Ajouter le lot</button>
+                        <div class="lg-champ">
+                            <label for="plomb">N° Plomb</label>
+                            <input class="form-control text-uppercase" type="text" id="plomb" placeholder="N° Plomb">
                         </div>
-                        <table class="table col-9">
+                    </div>
+                    <div class="lg-grille align-items-end mb-3">
+                        <div class="lg-champ">
+                            <label for="select_lot_tc">Lot</label>
+                            <select class="form-select" name="select_lot_tc" id="select_lot_tc"></select>
+                        </div>
+                        <div class="lg-champ">
+                            <label for="nb_cartons">Nb Cartons / Sacs</label>
+                            <input class="form-control" type="text" id="nb_cartons" placeholder="0">
+                        </div>
+                        <div class="lg-champ">
+                            <label for="poids_brut">Poids Brut (Kg)</label>
+                            <input class="form-control" type="number" step="0.01" id="poids_brut" placeholder="0.00">
+                        </div>
+                        <div class="lg-champ">
+                            <label for="poids_net">Poids Net (Kg)</label>
+                            <input class="form-control" type="number" step="0.01" id="poids_net" placeholder="0.00">
+                        </div>
+                        <div class="lg-champ">
+                            <button type="button" id="add-lot" class="btn btn-outline-cacao"><i class="fa-solid fa-plus me-1"></i>Ajouter le lot</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive lg-table">
+                        <table>
                             <thead>
-                                <tr style="background: #ececec">
-                                    <th style="background: #046585;color: white;padding: 2px;">Lot</th>
-                                    <th style="background: #046585;color: white;padding: 2px;">Nb Cartons</th>
-                                    <th style="background: #046585;color: white;padding: 2px;">Poids Brut</th>
-                                    <th style="background: #046585;color: white;padding: 2px;">Poids Net</th>
+                                <tr>
+                                    <th>Lot</th>
+                                    <th class="text-end">Nb Cartons</th>
+                                    <th class="text-end">Poids Brut</th>
+                                    <th class="text-end">Poids Net</th>
                                 </tr>
                             </thead>
                             <tbody id="select_lot_tbody">
-
+                                <tr class="lg-vide"><td colspan="4">Aucun lot ajouté à ce conteneur.</td></tr>
                             </tbody>
                         </table>
-                        <button type="button" class="btn ms-2 mx-auto" id="btn-add-tc" style="border-radius: 0;background: #2563EB;color: white;">Ajouter</button>
-                    </form>
-                </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
+                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-cacao" id="btn-add-tc">Ajouter le conteneur</button>
             </div>
         </div>
     </div>
+</div>
 
-    {# Modal Photo #}
-    <div class="modal fade" id="modal_photo" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body text-center" >
-                    {#<a href="#" id="telecharger_photo" class="btn btn-primary mx-auto mb-2">Télécharger</a>#}
-                    <div class="m-2 sticky-top" style="height: 500px;overflow-y: scroll;"><img src="" width="100%" style="width: 700px;"  alt="" id="img_photo"></div>
-                </div>
+{# Modal Photo #}
+<div class="modal fade" id="modal_photo" tabindex="-1" role="dialog" aria-labelledby="labelPhoto" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
+                <h5 class="modal-title fs-6" id="labelPhoto"><i class="fa-solid fa-image me-2"></i>Aperçu</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div style="max-height:520px;overflow:auto;"><img src="" style="max-width:100%;" alt="Aperçu" id="img_photo"></div>
             </div>
         </div>
     </div>
-    {#</div>#}
+</div>
 
-    <script src="{{ asset('js/external/jquery.js') }}"></script>
-    <script src="{{ asset('js/tools/functions.js') }}"></script>
-    <script src="{{ asset('js/tools/showToast.js') }}"></script>
-    <script src="{{ asset('js/api/Production/Produit.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/Proprietaire.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/Cv.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/Banque.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/Pays.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/Client.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/Navire.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/embarquements.js') }}"></script>
+<script src="{{ asset('js/external/jquery.js') }}"></script>
+<script src="{{ asset('js/tools/functions.js') }}"></script>
+<script src="{{ asset('js/tools/showToast.js') }}"></script>
+<script src="{{ asset('js/api/Production/Produit.js') }}"></script>
+<script src="{{ asset('js/api/Production/Lot.js') }}"></script>
+<script src="{{ asset('js/api/Logistique/Proprietaire.js') }}"></script>
+<script src="{{ asset('js/api/Logistique/Cv.js') }}"></script>
+<script src="{{ asset('js/api/Logistique/Banque.js') }}"></script>
+<script src="{{ asset('js/api/Logistique/Pays.js') }}"></script>
+<script src="{{ asset('js/api/Logistique/Client.js') }}"></script>
+<script src="{{ asset('js/api/Logistique/Navire.js') }}"></script>
+<script src="{{ asset('js/api/Logistique/Magasin.js') }}"></script>
+
 <script>
-    let id_dossier = "0";
-    let cv_deb = document.getElementById('select_cv_deblocage')
-    let cv_exe = document.getElementById('select_cv_execution')
-    let code_proprietaire = document.getElementById('code_proprietaire')
-    let code_produit = document.getElementById('code_produit')
-    let banque = document.getElementById('select_banque')
-    let pays = document.getElementById('select_pays')
-    let pays_destination = document.getElementById('pays_destination')
-    let navire = document.getElementById('select_navire')
+/* =========================================================================
+   Enregistrement Embarquement — logique de la page
+   - Referentiels : API existantes (getAllProprietaires, getAllProduits...,
+     getAllCvs..., getAllBanques, getAllPays, getAllNavires, getAllClients)
+   - Conteneurs : tableaux locaux + repli par ligne
+   - Les identifiants de champs et les fonctions existantes sont conserves
+   ========================================================================= */
+(function () {
+    'use strict';
 
-    getAllProprietaires(document.getElementById('code_proprietaire'), 2)
-    getAllBanques(banque, 2)
-    getAllPays(pays, 2)
-    getAllPays(pays_destination, 2)
-    getAllNavires(navire, 2)
-    code_proprietaire.addEventListener('change', ()=>{
-        let valeur = code_proprietaire.value;
-        getAllProduitsByProprietaire(code_produit, 2, valeur)
-        getAllCvsDeblocageByProprio(cv_deb, 2, valeur)
-    })
+    var el = function (id) { return document.getElementById(id); };
 
+    var selProprio = el('code_proprietaire');
+    var selProduit = el('code_produit');
+    var cvDeb = el('select_cv_deblocage');
+    var cvExe = el('select_cv_execution');
+    var selBanque = el('select_banque');
+    var selPays = el('select_pays');
+    var selPaysDest = el('pays_destination');
+    var selNavire = el('select_navire');
+    var selClient = el('select_client');
 
-/*    ********************************************************************************************************************
-    ********************************************************************************************************************
-    ********************************************************************************************************************
-    *********************************************************************************************************************/
+    /* ---------------- Utilitaires ---------------- */
+    function nf(nb) {
+        var n = parseFloat(nb);
+        if (isNaN(n)) { n = 0; }
+        try { return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        catch (e) { return n.toFixed(2); }
+    }
+    function mapCommande(ctrl, apercu) {
+        if (!apercu) { return; }
+        var premiere = apercu.querySelector('option');
+        if (premiere && premiere.value === '0') {
+            premiere.textContent = '-- ' + ctrl.replace(/^select_/, '').replace(/^code_/, '') + ' --';
+        }
+    }
+    /* Chargement generique : remplit un <select> a partir d'une fonction API existante */
+    function charger(ctrl, fonction, apercu, args) {
+        try {
+            fonction(ctrl, 2, args);
+        } catch (e) {
+            console.error('Chargement impossible pour ' + ctrl.id, e);
+            return;
+        }
+        setTimeout(function () { mapCommande(ctrl, apercu); }, 900);
+    }
+    function toast(msg, type, titre) {
+        if (window.showToast) { showToast(msg, { type: type || 'info', title: titre || 'Embarquement', duration: 3500 }); }
+    }
 
+    /* ---------------- Indicateurs (KPI) ---------------- */
+    var conteneurs = [];
 
-            /* =======> Contrats de Déblocage */
-                        document.getElementById('btn-add-cv-deb').addEventListener('click', function (){
-                        let formCvDeb = new FormData()
-                        formCvDeb.append('numero_cv', document.getElementById('cv_deblocage').value)
-                        formCvDeb.append('tonnage', document.getElementById('tonnage_cv_deblocage').value)
-                        formCvDeb.append('code_proprietaire', code_proprietaire.value)
-                        saveCvDeblocage(formCvDeb, cv_deb, 2, code_proprietaire.value)
-                    })
-                        getNumberSeparator(document.getElementById('tonnage_cv_deblocage'))
-                        document.getElementById('ajt_cv_deb').addEventListener('click', function (){
-                            clearForm('formCvDeblocage', "cv_deblocage")
-                        })
-                        ValidateOnKeypress(document.getElementById("cv_deblocage"), document.getElementById("btn-add-cv-deb"),"formCvDeblocage",)
-                        cv_deb.addEventListener('change', ()=>{
-                            let valeur = cv_deb.value;
-                            getAllCvsExecutionByDeb(cv_exe, 2, valeur)
-                        })
-            /* Fin Contrat de Déblocage  */
+    function majKpi() {
+        var poidsNet = 0;
+        conteneurs.forEach(function (c) { poidsNet += c.poids_net || 0; });
+        el('kpi_tc').textContent = conteneurs.length;
+        el('kpi_tc_sub').textContent = 'Total poids net ' + nf(poidsNet) + ' Kg';
 
+        var ot = el('demandeur').value.trim();
+        el('kpi_ot').textContent = ot ? ot.toUpperCase() : '—';
 
+        var vgm = parseFloat(el('poids_vgm').value) || 0;
+        var sigam = parseFloat(el('poids_sigam').value) || 0;
+        el('kpi_vgm').textContent = nf(vgm);
+        el('kpi_sigam').textContent = nf(sigam);
 
+        var ecart = vgm - sigam;
+        var cible = el('kpi_ecart');
+        cible.textContent = nf(ecart);
+        cible.style.color = (Math.abs(ecart) > 0 && Math.abs(ecart) / (sigam || 1) > 0.02) ? '#c0392b' : '#5A371E';
 
-            /*=======> Contrats d'exécution */
-                       document.getElementById('btn-add-cv-exe').addEventListener('click', function (){
-                                let formCvExe = new FormData()
-                                formCvExe.append('numero_cv', document.getElementById('cv_execution').value)
-                                formCvExe.append('code_cv_deblocage', cv_deb.value)
-                                saveCvExecution(formCvExe, cv_exe, 2, cv_deb.value)
-                            })
-                        ValidateOnKeypress(document.getElementById("cv_execution"), document.getElementById("btn-add-cv-exe"),"formCvExecution",)
-                        document.getElementById('ajt_cv_exe').addEventListener('click', function (){
-                                    clearForm('formCvExecution', "cv_execution")
-                                })
-            /* Fin Contrat d'exécution  */
-
-
-
-            /* =======> Banque */
-                        document.getElementById('btn-add-banque').addEventListener('click', function (){
-                            let formBanque = new FormData()
-                            formBanque.append('banque', document.getElementById('banque').value)
-                            saveBanque(formBanque, document.getElementById('select_banque'), 2)
-                        })
-                        ValidateOnKeypress(document.getElementById("banque"), document.getElementById("btn-add-banque"),"formBanque",)
-                        document.getElementById('ajt_banque').addEventListener('click', function (){
-                            clearForm('formBanque', "banque")
-                        })
-            /*   Fin Banque  */
-
-
-
-            /* =======> Client */
-                        document.getElementById('btn-add-client').addEventListener('click', function (){
-                            let formClient = new FormData()
-                            formClient.append('client', document.getElementById('client').value)
-                            formClient.append('pays', pays.value)
-                            formClient.append('ville', document.getElementById('ville').value)
-                            formClient.append('adresse', document.getElementById('adresse').value)
-                            saveClient(formClient, document.getElementById('select_client'), 2)
-                        })
-                        ValidateOnKeypress(document.getElementById("banque"), document.getElementById("btn-add-banque"),"formBanque",)
-                        document.getElementById('ajt_banque').addEventListener('click', function (){
-                        clearForm('formBanque', "banque")
-                })
-            /*   Fin Client  */
-
-
-            /* =======> Navire */
-                        document.getElementById('btn-add-navire').addEventListener('click', function (){
-                            let formNavire = new FormData()
-                            formNavire.append('navire', document.getElementById('navire').value)
-                            saveNavire(formNavire, document.getElementById('select_navire'), 2)
-                        })
-                        ValidateOnKeypress(document.getElementById("navire"), document.getElementById("btn-add-navire"),"formNavire",)
-                        document.getElementById('ajt_navire').addEventListener('click', function (){
-                            clearForm('formNavire', "navire")
-                        })
-            /*   Fin Navire  */
-
-
-        /* =======> Pays */
-                            document.getElementById('btn-add-pays').addEventListener('click', function (){
-                                let formPays = new FormData()
-                                formPays.append('pays', document.getElementById('pays').value)
-                                savePays(formPays, document.getElementById('select_pays'), 2)
-                                setTimeout(()=>{
-                                    getAllPays(pays_destination, 2)
-                                }, 2000)
-                            })
-                            ValidateOnKeypress(document.getElementById("pays"), document.getElementById("btn-add-pays"),"formPays",)
-                            document.getElementById('ajt_pays').addEventListener('click', function (){
-                                clearForm('formPays', "pays")
-                            })
-        /*   Fin Pays  */
-
-
-
-
-
-
-            /** Docs et Photos ***/
-
-    const fileInput = document.getElementById('fileInput');
-    const preview = document.getElementById('preview');
-
-    fileInput.addEventListener('change', () => {
-        preview.innerHTML = ""; // Nettoyer l'aperçu précédent
-        const files = fileInput.files;
-
-        Array.from(files).forEach(file => {
-            if (file.type.startsWith("image/")) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = document.createElement("img");
-
-                    img.src = e.target.result;
-                    img.style.height = "200px";
-                    img.style.margin = "10px;";
-                    img.classList = "m-2 a_photo";
-                    img.style.cursor = "pointer";
-
-                    preview.appendChild(img);
-                };
-                // Aller automatiquement au bloc preview
-                preview.scrollIntoView({ behavior: "smooth" });
-
-                reader.readAsDataURL(file);
-
-            }
+        var valides = 0;
+        ['formule', 'cheque', 'fumigue', 'etiquette'].forEach(function (cle) {
+            var choisi = document.querySelector('.opt-suivi[data-cle="' + cle + '"]:checked');
+            if (choisi && choisi.value === 'oui') { valides += 1; }
         });
-        const btn_upload = document.createElement("button");
+        el('kpi_controles').textContent = valides + ' / 4';
+    }
 
-        btn_upload.classList ="btn btn-outline-success p-0 ms-2"
-        btn_upload.style.width ="30px"
-        btn_upload.id ="btn_upload"
-        btn_upload.type = "submit"
-        btn_upload.innerHTML = '<i class="fa-solid fa-check-to-slot"></i>'
-        document.querySelector("#uploadForm").appendChild(btn_upload);
+    /* ---------------- Tableau des conteneurs ---------------- */
+    function afficherConteneurs() {
+        var corps = el('corps_tc');
+        if (!conteneurs.length) {
+            corps.innerHTML = '<tr class="lg-vide"><td colspan="8">Aucun conteneur ajouté pour l\'instant.</td></tr>';
+            majKpi();
+            return;
+        }
+        var html = '';
+        conteneurs.forEach(function (c, i) {
+            var idDetail = 'tc_detail_' + i;
+            var nbLots = c.lots.length;
+            html += '<tr class="lg-ligne" data-cible="' + idDetail + '" tabindex="0" role="button" aria-expanded="false">';
+            html += '  <td class="lg-chev"><span class="lg-chevron"></span></td>';
+            html += '  <td class="lg-num-cell">' + c.tc + '</td>';
+            html += '  <td>' + (c.plomb || '—') + '</td>';
+            html += '  <td><span class="lg-badge cacao">' + nbLots + ' lot' + (nbLots > 1 ? 's' : '') + '</span></td>';
+            html += '  <td class="text-end lg-montant">' + (c.nb_cartons || '—') + '</td>';
+            html += '  <td class="text-end lg-montant">' + nf(c.poids_brut) + '</td>';
+            html += '  <td class="text-end lg-montant lg-fort">' + nf(c.poids_net) + '</td>';
+            html += '  <td class="text-center"><button type="button" class="btn btn-outline-cacao btn-sm btn-retirer-tc" data-index="' + i + '" title="Retirer ce conteneur"><i class="fa-solid fa-trash"></i></button></td>';
+            html += '</tr>';
+            html += '<tr class="lg-detail" id="' + idDetail + '"><td colspan="8"><div class="lg-detail-box"><h6>Lots du conteneur ' + c.tc + '</h6>';
+            if (nbLots) {
+                html += '<table class="lg-mini"><thead><tr><th>Lot</th><th class="text-end">Nb Cartons</th><th class="text-end">Poids Brut</th><th class="text-end">Poids Net</th></tr></thead><tbody>';
+                c.lots.forEach(function (l) {
+                    html += '<tr><td>' + l.lot + '</td><td class="text-end">' + (l.cartons || '—') + '</td><td class="text-end">' + nf(l.brut) + '</td><td class="text-end">' + nf(l.net) + '</td></tr>';
+                });
+                html += '</tbody></table>';
+            } else {
+                html += '<div style="font-size:.82rem;color:#a89b8c;">Aucun lot rattaché à ce conteneur.</div>';
+            }
+            html += '</div></td></tr>';
+        });
+        corps.innerHTML = html;
+        majKpi();
+    }
+
+    document.addEventListener('click', function (e) {
+        var retirer = e.target.closest('.btn-retirer-tc');
+        if (retirer) {
+            e.stopPropagation();
+            conteneurs.splice(parseInt(retirer.getAttribute('data-index'), 10), 1);
+            afficherConteneurs();
+            return;
+        }
+        var ligne = e.target.closest('#corps_tc tr.lg-ligne');
+        if (!ligne) { return; }
+        var detail = document.getElementById(ligne.getAttribute('data-cible'));
+        var ouvert = ligne.classList.toggle('lg-ouvert');
+        if (detail) { detail.classList.toggle('lg-ouvert', ouvert); }
+        ligne.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
     });
 
-    function reinitialise_photo(){
-        let btn_upload = document.querySelector("#btn_upload")
-        document.querySelector("#uploadForm").removeChild(btn_upload)
-        document.querySelector("#fileInput").value = null;
+    /* ---------------- Lots d'un conteneur (modale TC) ---------------- */
+    var lotsTc = [];
+
+    function afficherLotsTc() {
+        var corps = el('select_lot_tbody');
+        if (!lotsTc.length) {
+            corps.innerHTML = '<tr class="lg-vide"><td colspan="4">Aucun lot ajouté à ce conteneur.</td></tr>';
+            return;
+        }
+        var html = '';
+        lotsTc.forEach(function (l, i) {
+            html += '<tr><td class="lg-num-cell" style="font-size:.8rem;">' + l.lot + '</td>';
+            html += '<td class="text-end">' + (l.cartons || '—') + '</td>';
+            html += '<td class="text-end">' + nf(l.brut) + '</td>';
+            html += '<td class="text-end">' + nf(l.net) + ' <button type="button" class="btn btn-sm p-0 ms-2 btn-retirer-lot-tc" data-index="' + i + '" style="color:#c0392b;"><i class="fa-solid fa-xmark"></i></button></td></tr>';
+        });
+        corps.innerHTML = html;
     }
 
-    function affiche_docs_empotage(){
-        let contenu = '';
-        let contenu_other = '';
-        let j = "0";
-        $.ajax({
-            url : '{{ url('app_login') }}api/getDossiersFiles/' + id_dossier,
-            type : 'POST',
-            success: function (response){
-                reponse = JSON.parse(response)
-                if (reponse.code === "SUCCESS"){
-                    for (var i = 0 ; i < reponse.data.length; i++){
-                        if (reponse.data[i].extension === "doc" || reponse.data[i].extension === "docx" || reponse.data[i].extension === "pdf" || reponse.data[i].extension === "xls" || reponse.data[i].extension === "xlsx"){
-                            j = j + 1;
-                            if (j === 1) { contenu_other +='<span class="text-dark text-decoration-underline fw-bold" >Fichiers associés :<br></span>' }
-                            contenu_other += '<div class="text-left ms-2"  style="font-size:13px;" ><i class="fa-solid fa-arrow-right me-1"></i><a href="{{ asset('files/photos_dossier/') }}' + reponse.data[i].filename + '" >' + reponse.data[i].fichier + '</a></div>'
-                        } else {
-                            contenu += '<a class="col-5 m-1 mx-auto a_photo" data-bs-target="#modal_photo" data-bs-toggle="modal" id ="{{ asset('files/photos_dossier/') }}' + reponse.data[i].filename + '" ><img class="border border-2 border-secondary" style="border-radius:4px;" src="{{ asset('files/photos_dossier/') }}' + reponse.data[i].filename + '" alt="thumbnail_file"></a>'
-                        }
-                    }
-                    // Ajout  des contenus dans le Div preview
+    document.addEventListener('click', function (e) {
+        var s = e.target.closest('.btn-retirer-lot-tc');
+        if (!s) { return; }
+        lotsTc.splice(parseInt(s.getAttribute('data-index'), 10), 1);
+        afficherLotsTc();
+    });
 
-                    const div_files = document.createElement("div");
-                    const div_images = document.createElement("div");
-
-                    div_files.classList ="p-1 mb-4"
-                    div_files.style.borderBottomStyle ="2px solid grey;"
-                    div_files.style.backgroundColor = "#f2f9fa"
-                    div_images.classList ="p-2 row"
-                    div_images.style.backgroundColor = "lightyellow"
-                    div_files.innerHTML = contenu_other;
-                    div_images.innerHTML = contenu;
-
-                    document.querySelector("#preview").innerHTML =''
-                    document.querySelector("#preview").appendChild(div_files);
-                    document.querySelector("#preview").appendChild(div_images);
-                    $(".lbl_emp").html(j +' fichier(s), ' + i + ' image(s)');
-                }
-            },
-            error : function (erreur){
-                reponse = "Erreur"
-                console.log(erreur)
+    /* ---------------- Photos ---------------- */
+    var fileInput = el('fileInput');
+    var preview = el('preview');
+    fileInput.addEventListener('change', function () {
+        preview.innerHTML = '';
+        var fichiers = fileInput.files;
+        var images = 0;
+        Array.prototype.forEach.call(fichiers, function (file) {
+            if (file.type.indexOf('image/') === 0) {
+                images += 1;
+                var lecteur = new FileReader();
+                lecteur.onload = function (ev) {
+                    var img = document.createElement('img');
+                    img.src = ev.target.result;
+                    img.alt = file.name;
+                    img.className = 'a_photo';
+                    img.setAttribute('data-bs-toggle', 'modal');
+                    img.setAttribute('data-bs-target', '#modal_photo');
+                    preview.appendChild(img);
+                };
+                lecteur.readAsDataURL(file);
             }
-        })
+        });
+        var badge = preview.parentNode.querySelector('.lbl_emp');
+        if (badge) {
+            badge.textContent = fichiers.length + ' fichier(s), ' + images + ' image(s)';
+        }
+    });
+
+    $('body').on('click', '.a_photo', function () {
+        el('img_photo').src = this.src;
+    });
+
+    /* ---------------- Evenements du formulaire ---------------- */
+    ['poids_vgm', 'poids_sigam', 'demandeur'].forEach(function (id) {
+        el(id).addEventListener('input', majKpi);
+    });
+    document.querySelectorAll('.opt-suivi').forEach(function (r) {
+        r.addEventListener('change', majKpi);
+    });
+
+    el('hero_imprimer').addEventListener('click', function () { window.print(); });
+    el('hero_annuler').addEventListener('click', function () { el('da-form').reset(); lotsTc = []; conteneurs = []; afficherConteneurs(); majKpi(); });
+    el('btn_annuler').addEventListener('click', function () { el('da-form').reset(); lotsTc = []; conteneurs = []; afficherConteneurs(); majKpi(); });
+    el('btn_enregistrer_dossier').addEventListener('click', function (e) {
+        e.preventDefault();
+        var manquants = [];
+        if (!el('demandeur').value.trim()) { manquants.push('le N° OT'); }
+        if (!selProprio.value || selProprio.value === '0') { manquants.push('le propriétaire'); }
+        if (!selProduit.value || selProduit.value === '0') { manquants.push('le produit'); }
+        if (!selClient.value || selClient.value === '0') { manquants.push('le client'); }
+        if (!selNavire.value || selNavire.value === '0') { manquants.push('le navire'); }
+        if (manquants.length) {
+            toast('Merci de renseigner : ' + manquants.join(', ') + '.', 'warning', 'Dossier');
+        } else {
+            toast('Dossier complet (' + conteneurs.length + ' conteneur(s)). L\'enregistrement en base sera assuré par le service serveur du dossier.', 'success', 'Dossier');
+        }
+    });
+
+    /* ---------------- Modales : contrats, banque, client, navire, pays ---------------- */
+    el('btn-add-cv-deb').addEventListener('click', function () {
+        var formCvDeb = new FormData();
+        formCvDeb.append('numero_cv', el('cv_deblocage').value);
+        formCvDeb.append('tonnage', el('tonnage_cv_deblocage').value);
+        formCvDeb.append('code_proprietaire', selProprio.value);
+        if (typeof saveCvDeblocage === 'function') {
+            saveCvDeblocage(formCvDeb, cvDeb, 2, selProprio.value);
+        }
+    });
+    el('ajt_cv_deb').addEventListener('click', function () {
+        el('cv_deblocage').value = '';
+        el('tonnage_cv_deblocage').value = '';
+    });
+    cvDeb.addEventListener('change', function () {
+        if (typeof getAllCvsExecutionByDeb === 'function') { getAllCvsExecutionByDeb(cvExe, 2, cvDeb.value); }
+    });
+
+    el('btn-add-cv-exe').addEventListener('click', function () {
+        var formCvExe = new FormData();
+        formCvExe.append('numero_cv', el('cv_execution').value);
+        formCvExe.append('code_cv_deblocage', cvDeb.value);
+        if (typeof saveCvExecution === 'function') { saveCvExecution(formCvExe, cvExe, 2, cvDeb.value); }
+    });
+    el('ajt_cv_exe').addEventListener('click', function () { el('cv_execution').value = ''; });
+
+    el('btn-add-banque').addEventListener('click', function () {
+        var formBanque = new FormData();
+        formBanque.append('banque', el('banque').value);
+        if (typeof saveBanque === 'function') { saveBanque(formBanque, selBanque, 2); }
+    });
+    el('ajt_banque').addEventListener('click', function () { el('banque').value = ''; });
+
+    el('btn-add-client').addEventListener('click', function () {
+        var formClient = new FormData();
+        formClient.append('client', el('client').value);
+        formClient.append('pays', selPays.value);
+        formClient.append('ville', el('ville').value);
+        formClient.append('adresse', el('adresse').value);
+        if (typeof saveClient === 'function') { saveClient(formClient, selClient, 2); }
+    });
+    el('ajt_clt').addEventListener('click', function () {
+        ['client', 'ville', 'adresse'].forEach(function (id) { el(id).value = ''; });
+    });
+
+    el('btn-add-navire').addEventListener('click', function () {
+        var formNavire = new FormData();
+        formNavire.append('navire', el('navire').value);
+        if (typeof saveNavire === 'function') { saveNavire(formNavire, selNavire, 2); }
+    });
+    el('ajt_navire').addEventListener('click', function () { el('navire').value = ''; });
+
+    el('btn-add-pays').addEventListener('click', function () {
+        var formPays = new FormData();
+        formPays.append('pays', el('pays').value);
+        if (typeof savePays === 'function') { savePays(formPays, selPays, 2); }
+        setTimeout(function () { if (typeof getAllPays === 'function') { getAllPays(selPaysDest, 2); } }, 1500);
+    });
+    el('ajt_pays').addEventListener('click', function () { el('pays').value = ''; });
+
+    /* ---------------- Modale TC ---------------- */
+    el('btn_ajouter_tc').addEventListener('click', function () {
+        el('tc').value = '';
+        el('plomb').value = '';
+        el('nb_cartons').value = '';
+        el('poids_brut').value = '';
+        el('poids_net').value = '';
+        lotsTc = [];
+        afficherLotsTc();
+    });
+
+    el('add-lot').addEventListener('click', function () {
+        var lotChoisi = el('select_lot_tc');
+        if (!lotChoisi.value || lotChoisi.value === '0') {
+            toast('Sélectionnez un lot à rattacher au conteneur.', 'warning', 'Conteneur');
+            return;
+        }
+        lotsTc.push({
+            lot: lotChoisi.options[lotChoisi.selectedIndex].text,
+            cartons: el('nb_cartons').value,
+            brut: parseFloat(el('poids_brut').value) || 0,
+            net: parseFloat(el('poids_net').value) || 0
+        });
+        el('nb_cartons').value = '';
+        el('poids_brut').value = '';
+        el('poids_net').value = '';
+        afficherLotsTc();
+    });
+
+    el('btn-add-tc').addEventListener('click', function () {
+        var numero = el('tc').value.trim().toUpperCase();
+        if (!numero) {
+            toast('Saisissez le numéro du conteneur.', 'warning', 'Conteneur');
+            return;
+        }
+        var brut = 0, net = 0;
+        lotsTc.forEach(function (l) { brut += l.brut; net += l.net; });
+        if (!lotsTc.length) {
+            brut = parseFloat(el('poids_brut').value) || 0;
+            net = parseFloat(el('poids_net').value) || 0;
+        }
+        conteneurs.push({
+            tc: numero,
+            plomb: el('plomb').value.trim().toUpperCase(),
+            nb_cartons: el('nb_cartons').value,
+            poids_brut: brut,
+            poids_net: net,
+            lots: lotsTc.slice()
+        });
+        lotsTc = [];
+        afficherLotsTc();
+        afficherConteneurs();
+        if (window.bootstrap) {
+            var m = el('modalTc');
+            var inst = bootstrap.Modal.getInstance(m);
+            if (inst) { inst.hide(); }
+        }
+        toast('Conteneur ajouté au dossier.', 'success', 'Conteneur');
+    });
+
+    /* ---------------- Chargement initial des referentiels ---------------- */
+    charger(selProprio, getAllProprietaires, false);
+    charger(selBanque, getAllBanques, false);
+    charger(selPays, getAllPays, false);
+    charger(selPaysDest, getAllPays, false);
+    charger(selNavire, getAllNavires, false);
+    charger(selClient, getAllClients, false);
+    if (typeof getAllLots === 'function') {
+        try { getAllLots(el('select_lot_tc'), 2); } catch (e) { /* liste optionnelle */ }
     }
 
-    $('body').on("click", ".a_photo", function (){
-        $("#modal_photo").modal('show')
-        document.querySelector("#img_photo").src = this.src
-    })
+    selProprio.addEventListener('change', function () {
+        var valeur = selProprio.value;
+        if (typeof getAllProduitsByProprietaire === 'function') { getAllProduitsByProprietaire(selProduit, 2, valeur); }
+        if (typeof getAllCvsDeblocageByProprio === 'function') { getAllCvsDeblocageByProprio(cvDeb, 2, valeur); }
+    });
 
-    function getDocsDossier(){
-        let reponse = "";
-        let contenu = "";
-        let contenu_body = "";
-
-        $.ajax({
-            url : '{{ url('app_login') }}api/getListDocsByOT/' + id_dossier,
-            type : 'POST',
-            success: function (response){
-
-                reponse = JSON.parse(response)
-                if (reponse.data.length > 0){
-
-                    contenu += ' <legend class="bg-warning p-1" style="font-size: 16px;"><i class="fa fa-file me-2 text-secondary"></i>Documentation:</legend>'
-                    contenu += '<div class="progress "><div class="progress-bar progress-bar-striped bg-success" role="progressbar" style="width: ' + reponse.suivi + '%;" aria-valuenow="' + reponse.suivi + '" aria-valuemin="0" aria-valuemax="100">' + reponse.suivi + '%</div></div>'
-                    contenu += '<table class="table table-hover" id="tbl_docs" style="">'
-                    contenu += '<thead>'
-                    contenu += '<tr>'
-                    contenu += '<th class="p-1 text-center" style="background-color: #703508;color:white;border-right: 1px lightgray solid;font-weight: lighter;">Fichier à charger</th>'
-                    contenu += '<th  class="p-1" style="background-color: #703508;color:white;border-right: 1px lightgray solid;font-weight: lighter;">Actions</th>'
-                    contenu += '</tr>'
-                    contenu += '</thead>'
-                    contenu += '<tbody class="bg-white">'
-
-                    for(var i = 0; i< reponse.data.length; i++){
-                        contenu += '<tr>'
-                        if ( reponse.data[i].filename === "") {
-                            contenu += '<td class="fw-bold" style="font-size: 12px;color: #033050"><i class="fa-solid fa-arrow-right"></i> ' + reponse.data[i].doc + '</td>'
-                            contenu += '<td class="p-1">' +
-                                '<div class="columns is-mobile is-centered "><div class="column is-12 mt-1"><div class="file">' +
-                                '<label class="file-label">' +
-                                '<input class="file-input btn btn-outline-secondary" accept="application/pdf" title="Télécharger un fichier PDF"  id="' + reponse.data[i].id_doc + '"  type="file" name="fichier">' +
-                                '<span class="file-cta">' +
-                                '<span class="file-icon">' +
-                                '<i class="fas fa-upload"></i>' +
-                                '</span>' +
-                                '<span class="file-label"> Charger</span>' +
-                                '</span>' +
-                                '</label>'+
-                                '</div></div></div>'+
-                                '</td>'
-                        }  else {
-                            contenu += '<td class="fw-bold" style="font-size: 12px;color: #033050;background-color: #e7fcf2;"><i class="fa-solid fa-arrow-right"></i> ' + reponse.data[i].doc + '</td>'
-                            contenu += '<td class="p-1 d-inline-flex row" style="background-color: #e7fcf2;"><div class="col-6 text-center"><a class=" btn btn-sm btn-outline-primary" href="{{ asset('files/docs_dossier/') }}' + reponse.data[i].filename+ '">Voir</a></div><div class="col-6 text-center"><a class=" btn btn-sm btn-outline-danger supprimer"  id="' + reponse.data[i].id_doc + '" href="#"><i  class="fa fa-times"></a></div></td>'
-                        }
-                        contenu += '</tr>'
-                    }
-                } else {
-                    contenu += '<h5 class="text-danger">Aucun document généré !</h5>'
-                }
-                contenu += '</tbody>'
-                contenu += '</table>'
-                document.querySelector('.docs_contenu').innerHTML = contenu;
-
-            },
-            error : function (erreur){
-                reponse = "Erreur !";
-                contenu += '</tbody>'
-                contenu += '</table>'
-                //document.querySelector('.div_donnees').innerHTML = contenu;
-            }
-        })
-
-        //alert(contenu_body)
-    }
-
-    function getApprobation(){
-        let reponse = "";
-        let contenu = "";
-        $.ajax({
-            url : '{{ url('app_api_approbations') }}',
-            type : 'POST',
-            success: function (response){
-                reponse = JSON.parse(response)
-                contenu += '<option value="0">Sélectionnez une valeur</option>'
-                for(var i = 0; i< reponse.length; i++){
-                    contenu += '<option value ="' + reponse[i].id_approbation + '">' + reponse[i].valeur + '</option>'
-                }
-                contenu_approbation = contenu;
-                affecte_contenu_approbation()
-            },
-            error : function (){
-                reponse = "Erreur"
-            }
-        })
-    }
+    afficherConteneurs();
+    majKpi();
+})();
 </script>
 {% endblock %}
-
