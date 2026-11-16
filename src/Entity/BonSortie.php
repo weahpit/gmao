@@ -102,6 +102,28 @@ class BonSortie
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $cloture_par = null;
 
+    // Signalement du vigil a la guerite : sortie refusee, avec son motif.
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $refus_at = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $refus_par = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $refus_motif = null;
+
+    public function getRefusAt(): ?\DateTimeImmutable { return $this->refus_at; }
+    public function setRefusAt(?\DateTimeImmutable $v): static { $this->refus_at = $v; return $this; }
+
+    public function getRefusPar(): ?string { return $this->refus_par; }
+    public function setRefusPar(?string $v): static { $this->refus_par = $v; return $this; }
+
+    public function getRefusMotif(): ?string { return $this->refus_motif; }
+    public function setRefusMotif(?string $v): static { $this->refus_motif = $v; return $this; }
+
+    /** Le vigil a-t-il refuse la sortie a la guerite ? */
+    public function isRefuse(): bool { return $this->refus_at !== null; }
+
     public function getId(): ?Uuid
     {
         return $this->id;

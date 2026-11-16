@@ -249,6 +249,59 @@ class SortieStock
     public function getObservationSignature(): ?string { return $this->observationSignature; }
     public function setObservationSignature(?string $v): static { $this->observationSignature = $v; return $this; }
 
+    /* ------------------------------------------------------------------
+     * CONTROLE A LA GUERITE (page de scan QR /scan)
+     *   - clotureAt / cloturePar / posteControle : le vigil a laisse sortir
+     *   - refusAt / refusPar / refusMotif       : le vigil a refuse la sortie
+     * ------------------------------------------------------------------ */
+    #[ORM\Column(name: 'cloture_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $clotureAt = null;
+
+    #[ORM\Column(name: 'cloture_par', length: 180, nullable: true)]
+    private ?string $cloturePar = null;
+
+    #[ORM\Column(name: 'poste_controle', length: 100, nullable: true)]
+    private ?string $posteControle = null;
+
+    #[ORM\Column(name: 'refus_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $refusAt = null;
+
+    #[ORM\Column(name: 'refus_par', length: 180, nullable: true)]
+    private ?string $refusPar = null;
+
+    #[ORM\Column(name: 'refus_motif', length: 255, nullable: true)]
+    private ?string $refusMotif = null;
+
+    public function getClotureAt(): ?\DateTimeImmutable { return $this->clotureAt; }
+    public function setClotureAt(?\DateTimeImmutable $v): static { $this->clotureAt = $v; return $this; }
+
+    public function getCloturePar(): ?string { return $this->cloturePar; }
+    public function setCloturePar(?string $v): static { $this->cloturePar = $v; return $this; }
+
+    public function getPosteControle(): ?string { return $this->posteControle; }
+    public function setPosteControle(?string $v): static { $this->posteControle = $v; return $this; }
+
+    public function getRefusAt(): ?\DateTimeImmutable { return $this->refusAt; }
+    public function setRefusAt(?\DateTimeImmutable $v): static { $this->refusAt = $v; return $this; }
+
+    public function getRefusPar(): ?string { return $this->refusPar; }
+    public function setRefusPar(?string $v): static { $this->refusPar = $v; return $this; }
+
+    public function getRefusMotif(): ?string { return $this->refusMotif; }
+    public function setRefusMotif(?string $v): static { $this->refusMotif = $v; return $this; }
+
+    /** La sortie a-t-elle deja ete laissee passer a la guerite ? */
+    public function isCloturee(): bool
+    {
+        return $this->clotureAt !== null;
+    }
+
+    /** La sortie a-t-elle ete refusee a la guerite ? */
+    public function isRefusee(): bool
+    {
+        return $this->refusAt !== null;
+    }
+
     /** Le bon de sortie est-il en attente de signature du DG ? */
     public function isEnAttente(): bool { return $this->statut === self::STATUT_EN_ATTENTE; }
 

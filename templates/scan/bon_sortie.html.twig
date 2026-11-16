@@ -119,6 +119,52 @@
             border-top-color: var(--cacao-700); border-radius: 50%; animation: tourne .8s linear infinite; vertical-align: -4px; }
         @keyframes tourne { to { transform: rotate(360deg); } }
 
+        /* ---------- Actions du vigil ---------- */
+        .actions-vigil { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 0; }
+        .btn-vigil {
+            flex: 1 1 190px; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+            padding: 15px 18px; border-radius: 14px; border: 1px solid transparent; cursor: pointer;
+            font-family: inherit; font-size: 1rem; font-weight: 750; letter-spacing: .2px;
+            transition: background-color .15s ease, transform .05s ease, box-shadow .15s ease;
+        }
+        .btn-vigil:active { transform: translateY(1px); }
+        .btn-vigil[disabled] { opacity: .55; cursor: default; }
+        .btn-vigil.sortir { background: #1f7a4d; color: #fff; box-shadow: 0 6px 16px rgba(31, 122, 77, .22); }
+        .btn-vigil.sortir:hover { background: #186641; }
+        .btn-vigil.signaler { background: #fff; color: #a3342b; border-color: #e0b5b0; }
+        .btn-vigil.signaler:hover { background: #fdf1ef; }
+        .btn-vigil.simple { background: #fffdfb; color: var(--cacao-700); border-color: rgba(169, 118, 90, .3); flex: 0 1 auto; font-weight: 650; font-size: .85rem; padding: 10px 14px; }
+        .encart-motif {
+            margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: #fceeec;
+            border: 1px solid #f3cfca; color: #8c2b25; font-size: .87rem; line-height: 1.5;
+        }
+        .encart-motif b { display: block; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; color: #a3554d; }
+        .note-envoi { font-size: .8rem; color: #9a7f6d; margin: 10px 0 0; }
+        .note-envoi a { color: var(--cacao-700); }
+
+        /* ---------- Boite de dialogue signalement ---------- */
+        .voile-modal { position: fixed; inset: 0; background: rgba(43, 29, 21, .55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 60; }
+        .voile-modal[hidden] { display: none; }
+        .boite-modal { background: #fffdfb; border-radius: 18px; padding: 20px; width: 100%; max-width: 480px; max-height: 90vh; overflow: auto; box-shadow: 0 20px 50px rgba(0, 0, 0, .25); }
+        .boite-modal h2 { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.35rem; color: var(--cacao-900); margin: 0 0 6px; }
+        .boite-modal .muted { font-size: .86rem; color: #8a6a56; margin: 0 0 14px; line-height: 1.5; }
+        .choix-motif { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+        .choix-motif button {
+            font-family: inherit; font-size: .78rem; padding: 8px 12px; border-radius: 999px; cursor: pointer;
+            border: 1px solid rgba(169, 118, 90, .3); background: #fffdfb; color: var(--cacao-800);
+        }
+        .choix-motif button.actif { background: var(--cacao-700); border-color: var(--cacao-700); color: #fff; }
+        .champ-motif span { display: block; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: #a58b78; margin-bottom: 5px; }
+        .champ-motif textarea {
+            width: 100%; box-sizing: border-box; padding: 11px 13px; border-radius: 12px; font-family: inherit;
+            font-size: .95rem; color: var(--ink); border: 1px solid rgba(169, 118, 90, .32); background: #fff; resize: vertical;
+        }
+        .champ-motif textarea:focus { outline: none; border-color: var(--cacao-500); box-shadow: 0 0 0 3px rgba(169, 118, 90, .16); }
+        .pied-modal { display: flex; gap: 9px; margin-top: 16px; }
+        .pied-modal .btn-scan { flex: 1 1 auto; }
+        .btn-scan.danger { background: #a3342b; border-color: #a3342b; color: #fff; }
+        .btn-scan.danger:hover { background: #8c2b25; }
+
         @media (max-width: 620px) {
             .fiche-entete .ref { font-size: 1.45rem; }
             .table-lignes th.stock, .table-lignes td.stock { display: none; }
@@ -139,14 +185,20 @@
     <p class="muted">Presentez le QR code imprime sur le bon de sortie devant la camera, ou saisissez la reference du bon.</p>
 
     <div class="cam-cadre" id="cam-cadre" hidden>
-        <video id="cam-video" playsinline muted></video>
+        <video id="cam-video" playsinline muted autoplay></video>
         <div class="cam-voile"></div>
         <div class="cam-ligne"></div>
     </div>
+    <p class="aide" id="voile-coach" hidden>
+        Remplissez la camera avec le QR code, a environ 15&ndash;20 cm. Si la lecture ne demarre pas,
+        utilisez « Photo du QR » : vous prenez la photo et la page la decode.
+    </p>
+    <input type="file" id="champ-photo" accept="image/*" capture="environment" hidden>
 
     <div class="actions-scan">
         <button type="button" class="btn-scan principal" id="btn-camera">Ouvrir la camera</button>
         <button type="button" class="btn-scan" id="btn-arreter" hidden>Arreter la camera</button>
+        <button type="button" class="btn-scan" id="btn-photo">Photo du QR</button>
     </div>
 
     <form class="saisie-ref" id="form-ref" autocomplete="off">
@@ -166,16 +218,45 @@
     <div id="zone-fiche">{% if not cible_initiale %}<div class="vide-zone" id="zone-vide">Le bon scanne s&rsquo;affichera ici.</div>{% endif %}</div>
 </section>
 
+{# ---------------- Signalement (refus motive) ---------------- #}
+<div class="voile-modal" id="voile-signal" hidden>
+    <div class="boite-modal" role="dialog" aria-modal="true" aria-labelledby="titre-signal">
+        <h2 id="titre-signal">Signaler un probleme sur ce bon</h2>
+        <p class="muted">La sortie sera refusee et la Direction Generale verra le motif.</p>
+        <div class="choix-motif" id="choix-motif">
+            <button type="button" data-motif="Quantite non conforme au bon">Quantite non conforme</button>
+            <button type="button" data-motif="Marchandise non conforme (qualite, etat)">Marchandise non conforme</button>
+            <button type="button" data-motif="Bon non signe ou signature douteuse">Signature douteuse</button>
+            <button type="button" data-motif="Porteur sans piece d'identite">Porteur sans piece</button>
+            <button type="button" data-motif="Vehicule non conforme / non declare">Vehicule non conforme</button>
+            <button type="button" data-motif="Autre motif">Autre motif</button>
+        </div>
+        <label class="champ-motif">
+            <span>Motif du signalement</span>
+            <textarea id="motif-signal" rows="3" maxlength="255" placeholder="Expliquez precisement ce qui ne va pas..."></textarea>
+        </label>
+        <div class="pied-modal">
+            <button type="button" class="btn-scan" id="btn-annuler-signal">Annuler</button>
+            <button type="button" class="btn-scan danger" id="btn-envoyer-signal">Envoyer le signalement</button>
+        </div>
+    </div>
+</div>
+
 <script type="application/json" id="cible-initiale">{{ cible_initiale ? cible_initiale|json_encode|raw : 'null' }}</script>
 
 {% endblock %}
 
 {% block javascripts %}
+{# Lecture QR locale (jsQR) + repli BarcodeDetector natif : fonctionne sur Chrome Android, iOS, tablettes. #}
+<script src="{{ asset('js/external/jsQR.js') }}" defer></script>
 <script>
 (function () {
     'use strict';
 
     var URL_API      = {{ url_api|json_encode|raw }};
+    var URL_SORTIE   = {{ url_faire_sortir|json_encode|raw }};
+    var URL_SIGNALER = {{ url_signaler|json_encode|raw }};
+    var AGENT_CONNECTE = {{ (app.user is defined and app.user) ? 'true' : 'false' }};
     var PAGE_BON     = {{ url_page_bon|json_encode|raw }};
     var cibleInitiale = JSON.parse(document.getElementById('cible-initiale').textContent || 'null');
 
@@ -187,6 +268,9 @@
     var btnArreter = document.getElementById('btn-arreter');
     var cadre      = document.getElementById('cam-cadre');
     var video      = document.getElementById('cam-video');
+    var voileCoach = document.getElementById('voile-coach');
+    var btnPhoto   = document.getElementById('btn-photo');
+    var champPhoto = document.getElementById('champ-photo');
 
     var flux = null, detecteur = null, boucle = null, dernierCode = '', dernierAt = 0, enCours = false;
 
@@ -203,20 +287,23 @@
         if (!txt) { return ''; }
 
         // 1) JSON imprime sur le bon : {"app":"CITRAC","typ":"BON_SORTIE","ref":"...","tok":"..."}
+        //    On envoie la REFERENCE en priorite : c'est la cle la plus sure
+        //    cote serveur (elle est unique dans les deux tables de bons).
         if (txt.charAt(0) === '{') {
             try {
                 var obj = JSON.parse(txt);
-                var code = obj.tok || obj.token || obj.ref || obj.reference || '';
+                var code = obj.ref || obj.reference || obj.tok || obj.token || '';
                 if (code) { return String(code).trim(); }
             } catch (e) { /* contenu non JSON : on continue */ }
         }
 
         // 2) Lien vers cette page : .../scan/<code>
-        var lien = txt.match(/\/scan\/([A-Za-z0-9_.\-]{6,80})\s*$/);
+        var lien = txt.match(/\/scan\/([A-Za-z0-9_\-]{6,80})\s*$/);
         if (lien) { return lien[1]; }
 
-        // 3) Code brut (lecteur USB, QR d'ancien format)
-        return txt.slice(0, 80);
+        // 3) Code brut : on retire les caracteres parasites de fin de lecture
+        var brut = txt.replace(/^[\s"'<>]+/, '').replace(/[\s"'<>#.,;:]+$/, '');
+        return brut.slice(0, 80);
     }
 
     function couleurStatut(statut) {
@@ -238,7 +325,7 @@
             '<div class="verdict ' + classe + '">' +
                 '<div class="v-icone">' + (classe === 'ok' ? '\u2713' : (classe === 'ko' ? '\u2715' : '!')) + '</div>' +
                 '<div><div class="v-titre">' + echapper(titre) + '</div>' +
-                '<div class="v-texte">' + h(texte) + '</div></div>' +
+                '<div class="v-texte" style="white-space:pre-line">' + h(texte) + '</div></div>' +
             '</div>';
     }
 
@@ -254,7 +341,7 @@
         }
         var texte = '';
         if (bon.statut === 'VALIDE') {
-            texte = 'Ce bon est signe par la Direction Generale : verifiez les quantites avec le porteur, puis cloturez le bon depuis l&rsquo;application mobile.';
+            texte = 'Ce bon est signe par la Direction Generale. Verifiez les quantites et la marchandise avec le porteur, puis touchez <b>Faire sortir</b> pour cloturer le bon, ou <b>Signaler</b> en cas de probleme.';
         } else if (bon.statut === 'CLOTURE') {
             texte = 'Ce bon a deja ete cloture a la guerite' + (bon.cloture_at ? ' le ' + bon.cloture_at : '') +
                 (bon.cloture_par ? ' par ' + bon.cloture_par : '') + ' : la marchandise est deja sortie.';
@@ -327,6 +414,25 @@
                     '</div>' +
                 '</div>';
 
+        var actions = bon.actions || {};
+        var peutSortir = (bon.statut === 'VALIDE') && actions.peut_sortir !== false;
+
+        if (peutSortir) {
+            html += '<div class="actions-vigil">' +
+                        '<button type="button" class="btn-vigil sortir" id="btn-sortir">\u2713 Faire sortir</button>' +
+                        '<button type="button" class="btn-vigil signaler" id="btn-signaler">Signaler</button>' +
+                    '</div>' +
+                    '<p class="note-envoi" id="note-envoi">' + (AGENT_CONNECTE
+                        ? 'La cloture est enregistree a votre nom.'
+                        : 'Vous n&rsquo;etes pas connecte : la cloture sera enregistree sous « Guerite (page scan) ». <a href="#" id="lien-agent">Indiquer mon nom</a>') +
+                    '</p>';
+        }
+        if ((bon.statut === 'ANNULE') && bon.refus_motif) {
+            html += '<div class="encart-motif"><b>Motif du signalement</b>' + echapper(bon.refus_motif) +
+                    (bon.refus_par ? '<br><span style="opacity:.8">Signale par ' + echapper(bon.refus_par) + (bon.refus_at ? ' le ' + echapper(bon.refus_at) : '') + '</span>' : '') +
+                    '</div>';
+        }
+
         html += '<div class="pied-fiche">' +
                     '<button type="button" id="btn-nouveau">Scanner un autre bon</button>' +
                     '<a href="' + PAGE_BON.replace('__CODE__', encodeURIComponent(bon.token || bon.reference || '')) + '">Lien permanent de ce bon</a>' +
@@ -336,6 +442,23 @@
 
         var btnNouveau = document.getElementById('btn-nouveau');
         if (btnNouveau) { btnNouveau.addEventListener('click', reinitialiser); }
+
+        var btnSortir = document.getElementById('btn-sortir');
+        if (btnSortir) {
+            btnSortir.addEventListener('click', function () { enregistrerSortie(bon, btnSortir); });
+        }
+        var btnSignaler = document.getElementById('btn-signaler');
+        if (btnSignaler) {
+            btnSignaler.addEventListener('click', function () { ouvrirSignalement(bon); });
+        }
+        var lienAgent = document.getElementById('lien-agent');
+        if (lienAgent) {
+            lienAgent.addEventListener('click', function (e) {
+                e.preventDefault();
+                var nom = window.prompt('Nom du vigil a la guerite (pour la trace de cloture) :', agentLocal());
+                if (nom !== null) { agentLocal(nom.trim()); }
+            });
+        }
     }
 
     function reinitialiser() {
@@ -345,6 +468,112 @@
         champRef.focus();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    /* ---------- Vigil : nom local, faire sortir, signaler ---------- */
+    function agentLocal(nom) {
+        try {
+            if (nom === undefined) { return localStorage.getItem('citrac_vigil') || ''; }
+            if (nom === '') { localStorage.removeItem('citrac_vigil'); } else { localStorage.setItem('citrac_vigil', nom); }
+        } catch (e) { /* stockage indisponible */ }
+        return '';
+    }
+
+    function postAction(url, donnees) {
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(donnees)
+        }).then(function (r) {
+            return r.json().catch(function () { return { code: 'error', msg: 'Reponse illisible du serveur.' }; });
+        });
+    }
+
+    function enregistrerSortie(bon, bouton) {
+        var code = bon.token || bon.reference || '';
+        if (!window.confirm('Confirmer la sortie de la marchandise pour le bon ' + (bon.reference || '') + ' ?\n\nLe bon sera cloture.')) { return; }
+
+        bouton.disabled = true;
+        var libelle = bouton.innerHTML;
+        bouton.innerHTML = 'Enregistrement...';
+
+        postAction(URL_SORTIE, { code: code, agent: agentLocal(), poste_controle: 'Guerite' })
+            .then(function (rep) {
+                if (rep && rep.data) {
+                    afficherBon(rep.data);
+                    alert(rep.msg || 'Sortie confirmee.');
+                } else {
+                    bouton.disabled = false;
+                    bouton.innerHTML = libelle;
+                    alert((rep && rep.msg) || 'La cloture n\'a pas pu etre enregistree.');
+                    if (rep && rep.data) { afficherBon(rep.data); }
+                }
+            })
+            .catch(function () {
+                bouton.disabled = false;
+                bouton.innerHTML = libelle;
+                alert('Connexion impossible : la sortie n\'a pas ete enregistree. Verifiez le reseau puis reessayez.');
+            });
+    }
+
+    var bonASignaler = null;
+
+    function ouvrirSignalement(bon) {
+        bonASignaler = bon;
+        document.getElementById('motif-signal').value = '';
+        var choix = document.querySelectorAll('#choix-motif button');
+        for (var i = 0; i < choix.length; i++) { choix[i].classList.remove('actif'); }
+        document.getElementById('voile-signal').hidden = false;
+        document.getElementById('motif-signal').focus();
+    }
+
+    function fermerSignalement() {
+        document.getElementById('voile-signal').hidden = true;
+        bonASignaler = null;
+    }
+
+    (function brancherSignalement() {
+        var voile = document.getElementById('voile-signal');
+        if (!voile) { return; }
+
+        var choix = document.querySelectorAll('#choix-motif button');
+        for (var i = 0; i < choix.length; i++) {
+            choix[i].addEventListener('click', function () {
+                for (var j = 0; j < choix.length; j++) { choix[j].classList.remove('actif'); }
+                this.classList.add('actif');
+                document.getElementById('motif-signal').value = this.getAttribute('data-motif');
+            });
+        }
+
+        document.getElementById('btn-annuler-signal').addEventListener('click', fermerSignalement);
+        voile.addEventListener('click', function (e) { if (e.target === voile) { fermerSignalement(); } });
+
+        document.getElementById('btn-envoyer-signal').addEventListener('click', function () {
+            var motif = (document.getElementById('motif-signal').value || '').trim();
+            if (motif.length < 5) {
+                alert('Merci de preciser le motif du signalement (au moins 5 caracteres).');
+                document.getElementById('motif-signal').focus();
+                return;
+            }
+            if (!bonASignaler) { fermerSignalement(); return; }
+
+            var bouton = this;
+            bouton.disabled = true;
+            postAction(URL_SIGNALER, {
+                code: bonASignaler.token || bonASignaler.reference || '',
+                motif: motif,
+                agent: agentLocal(),
+                poste_controle: 'Guerite'
+            }).then(function (rep) {
+                bouton.disabled = false;
+                fermerSignalement();
+                if (rep && rep.data) { afficherBon(rep.data); }
+                alert((rep && rep.msg) || 'Signalement enregistre.');
+            }).catch(function () {
+                bouton.disabled = false;
+                alert('Connexion impossible : le signalement n\'a pas ete enregistre.');
+            });
+        });
+    })();
 
     /* ---------- Recherche du bon ---------- */
     function rechercher(code) {
@@ -363,6 +592,14 @@
                     afficherBon(reponse.data);
                 } else {
                     var msg = (reponse && reponse.msg) ? reponse.msg : 'Bon introuvable.';
+                    var diag = (reponse && reponse.diagnostic) ? reponse.diagnostic : null;
+                    if (diag) {
+                        msg += '\n\nCode teste : ' + (diag.code_lu || code);
+                        if (diag.reference && diag.reference !== diag.code_lu) {
+                            msg += '\nReference lue : ' + diag.reference;
+                        }
+                        if (diag.indice) { msg += '\n' + diag.indice; }
+                    }
                     afficherMessage('ko', 'Bon introuvable', msg);
                 }
             })
@@ -385,60 +622,213 @@
         cadre.hidden = true;
         btnArreter.hidden = true;
         btnCamera.hidden = false;
+        voileCoach.hidden = true;
     }
 
-    /** Boucle de detection : BarcodeDetector (navigateur recent), sinon
-     *  message invitant a saisir la reference. */
+    /** Canvas de travail (reutilise) pour la lecture des images de la camera. */
+    var canvasDet = null, ctxDet = null;
+
+    function preparerCanvas() {
+        if (!canvasDet) {
+            canvasDet = document.createElement('canvas');
+            ctxDet = canvasDet.getContext('2d', { willReadFrequently: true });
+        }
+    }
+
+    /** Dessine l'image de la video (recadree au centre) dans le canvas de travail. */
+    function capturerImage(largeurMax) {
+        var lv = video.videoWidth || 0, hv = video.videoHeight || 0;
+        if (!lv || !hv) { return null; }
+        preparerCanvas();
+
+        // On garde une bande carree au centre : c'est la zone du cadre de visee.
+        var cote = Math.min(lv, hv);
+        var sx = (lv - cote) / 2, sy = (hv - cote) / 2;
+
+        var ech = Math.min(1, (largeurMax || 720) / cote);
+        canvasDet.width  = Math.max(160, Math.round(cote * ech));
+        canvasDet.height = canvasDet.width;
+        ctxDet.drawImage(video, sx, sy, cote, cote, 0, 0, canvasDet.width, canvasDet.height);
+        return canvasDet;
+    }
+
+    /** Lecture du QR directement dans le navigateur (sans API experimentale). */
+    function lireAvecJSQR() {
+        if (!window.jsQR) { return null; }
+        var cv = capturerImage(720);
+        if (!cv) { return null; }
+        try {
+            var img = ctxDet.getImageData(0, 0, cv.width, cv.height);
+            var res = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+            return (res && res.data) ? res.data : null;
+        } catch (e) { return null; }
+    }
+
+    /** Lecture via BarcodeDetector quand le navigateur le propose vraiment. */
+    function lireAvecDetecteur() {
+        if (!detecteur) { return Promise.resolve(null); }
+        return detecteur.detect(video).then(function (codes) {
+            return (codes && codes.length && codes[0].rawValue) ? codes[0].rawValue : null;
+        }).catch(function () { return null; });
+    }
+
+    function traiterContenu(brut) {
+        if (!brut) { return; }
+        var valeur = codeDepuisContenu(brut);
+        var maintenant = Date.now();
+        if (valeur && (valeur !== dernierCode || maintenant - dernierAt > 4000)) {
+            dernierCode = valeur;
+            dernierAt = maintenant;
+            if (navigator.vibrate) { navigator.vibrate(60); }
+            champRef.value = '';
+            rechercher(valeur);
+            arreterCamera();
+        }
+    }
+
+    /** Boucle de detection : BarcodeDetector si disponible, sinon jsQR local. */
     function lancerDetection() {
-        if (!detecteur) { return; }
-        detecteur.detect(video).then(function (codes) {
-            if (codes && codes.length) {
-                var valeur = codeDepuisContenu(codes[0].rawValue);
-                var maintenant = Date.now();
-                if (valeur && (valeur !== dernierCode || maintenant - dernierAt > 4000)) {
-                    dernierCode = valeur;
-                    dernierAt = maintenant;
-                    if (navigator.vibrate) { navigator.vibrate(60); }
-                    champRef.value = '';
-                    rechercher(valeur);
-                }
-            }
-        }).catch(function () { /* image non exploitable : on continue */ })
-          .then(function () { boucle = setTimeout(lancerDetection, 450); });
+        var promesse = lireAvecDetecteur();
+        if (!window.BarcodeDetector) { promesse = Promise.resolve(null); }
+        promesse.then(function (brut) {
+            if (!brut) { brut = lireAvecJSQR(); }
+            if (brut) { traiterContenu(brut); }
+            if (!flux) { return; }
+            boucle = setTimeout(lancerDetection, window.BarcodeDetector ? 300 : 220);
+        });
+    }
+
+    /** Verifie que le navigateur sait vraiment decoder le QR (et pas seulement
+     *  annoncer l'API). Sinon on bascule sur jsQR et on le signale. */
+    function verifierBarcodeDetector() {
+        if (!('BarcodeDetector' in window) || typeof window.BarcodeDetector.getSupportedFormats !== 'function') {
+            return Promise.resolve('jsqr');
+        }
+        return window.BarcodeDetector.getSupportedFormats().then(function (formats) {
+            formats = formats || [];
+            if (formats.indexOf('qr_code') === -1) { return 'jsqr'; }
+            try {
+                detecteur = new window.BarcodeDetector({ formats: ['qr_code'] });
+                return 'natif';
+            } catch (e) { return 'jsqr'; }
+        }).catch(function () { return 'jsqr'; });
     }
 
     btnCamera.addEventListener('click', function () {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             afficherMessage('ko', 'Camera indisponible',
-                'Ce navigateur ne permet pas d&rsquo;ouvrir la camera (page non securisee en HTTPS, ou camera sans autorisation). Saisissez la reference imprimee sur le bon.');
+                'Ce navigateur ne permet pas d&rsquo;ouvrir la camera : la page doit etre ouverte en HTTPS (ou sur localhost). Saisissez la reference imprimee sur le bon.');
             champRef.focus();
             return;
         }
-        if (!('BarcodeDetector' in window)) {
-            afficherMessage('attente', 'Lecture du QR non prise en charge',
-                'Ce navigateur ne sait pas lire les QR code. Utilisez Chrome ou Edge recent, un lecteur USB, ou saisissez la reference du bon ci-dessus.');
+        if (!window.jsQR && !('BarcodeDetector' in window)) {
+            afficherMessage('ko', 'Bibliotheque de lecture absente',
+                'Le lecteur de QR code n&rsquo;a pas pu etre charge (connexion interrompue). Rechargez la page en 4G/Wi-Fi, ou saisissez la reference imprimee sur le bon.');
         }
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
-            .then(function (f) {
-                flux = f;
-                video.srcObject = f;
-                video.play();
-                cadre.hidden = false;
-                btnCamera.hidden = true;
-                btnArreter.hidden = false;
-                if ('BarcodeDetector' in window) {
-                    detecteur = new window.BarcodeDetector({ formats: ['qr_code', 'code_128', 'code_39'] });
-                    lancerDetection();
+        btnCamera.disabled = true;
+        verifierBarcodeDetector().then(function (mode) {
+            return navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            }).then(function (f) { return { flux: f, mode: mode }; });
+        }).then(function (res) {
+            flux = res.flux;
+            video.srcObject = res.flux;
+            video.setAttribute('playsinline', '');
+            video.muted = true;
+            return video.play().then(function () { return res.mode; });
+        }).then(function (mode) {
+            cadre.hidden = false;
+            btnCamera.hidden = true;
+            btnArreter.hidden = false;
+            btnCamera.disabled = false;
+            voileCoach.hidden = false;
+            if (mode === 'natif') {
+                detecteur = detecteur || new window.BarcodeDetector({ formats: ['qr_code'] });
+            } else {
+                detecteur = null;
+                if (!window.jsQR) {
+                    afficherMessage('attente', 'Lecture du QR sur cet appareil',
+                        'Ce navigateur ne decode pas les QR nativement et le module de secours n&rsquo;a pas pu etre charge. Saisissez la reference du bon ci-dessus.');
                 }
-            })
-            .catch(function () {
+            }
+            lancerDetection();
+        }).catch(function (err) {
+            btnCamera.disabled = false;
+            var nom = (err && err.name) || '';
+            if (nom === 'NotAllowedError' || nom === 'SecurityError') {
                 afficherMessage('ko', 'Camera non autorisee',
-                    'L&rsquo;acces a la camera a ete refuse. Autorisez-le dans le navigateur, ou saisissez la reference imprimee sur le bon.');
-            });
+                    'L&rsquo;acces a la camera a ete refuse. Touchez l&rsquo;icone de cadenas dans la barre du navigateur, autorisez la camera, puis rechargez la page. Vous pouvez aussi saisir la reference du bon.');
+            } else if (nom === 'NotFoundError' || nom === 'OverconstrainedError') {
+                afficherMessage('ko', 'Aucune camera detectee',
+                    'Cet appareil ne signale aucune camera utilisable. Saisissez la reference imprimee sur le bon.');
+            } else {
+                afficherMessage('ko', 'Camera indisponible',
+                    'La camera n&rsquo;a pas pu demarrer. Verifiez qu&rsquo;aucune autre application ne l&rsquo;utilise, en HTTPS, puis reessayez. La saisie de la reference reste possible.');
+            }
+        });
     });
 
     btnArreter.addEventListener('click', arreterCamera);
+
+    /* ---------- Secours : photo du QR (toujours possible) ---------- */
+    btnPhoto.addEventListener('click', function () { champPhoto.click(); });
+
+    champPhoto.addEventListener('change', function () {
+        var fichier = champPhoto.files && champPhoto.files[0];
+        champPhoto.value = '';
+        if (!fichier) { return; }
+
+        var img = new Image();
+        var url = URL.createObjectURL(fichier);
+        img.onload = function () {
+            var trouve = null;
+
+            // 1) jsQR sur l'image (fonctionne sur tous les mobiles)
+            if (window.jsQR) {
+                try {
+                    preparerCanvas();
+                    var cote = Math.min(img.width, img.height);
+                    var ech = Math.min(1, 1000 / cote);
+                    canvasDet.width  = Math.max(160, Math.round(cote * ech));
+                    canvasDet.height = canvasDet.width;
+                    ctxDet.drawImage(img,
+                        (img.width - cote) / 2, (img.height - cote) / 2, cote, cote,
+                        0, 0, canvasDet.width, canvasDet.height);
+                    var donnees = ctxDet.getImageData(0, 0, canvasDet.width, canvasDet.height);
+                    var res = window.jsQR(donnees.data, donnees.width, donnees.height, { inversionAttempts: 'attemptBoth' });
+                    if (res && res.data) { trouve = res.data; }
+                } catch (e) { trouve = null; }
+            }
+
+            // 2) BarcodeDetector natif en dernier recours
+            var apresNatif = function (brut) {
+                URL.revokeObjectURL(url);
+                if (brut || trouve) {
+                    traiterContenu(brut || trouve);
+                } else {
+                    afficherMessage('attente', 'QR non reconnu sur la photo',
+                        'Le code n&rsquo;a pas ete lu. Rapprochez-vous, evitez le reflet et cadrez uniquement le QR, puis reprenez la photo. Vous pouvez aussi saisir la reference du bon.');
+                }
+            };
+
+            if (trouve || !('BarcodeDetector' in window)) {
+                apresNatif(null);
+            } else {
+                try {
+                    new window.BarcodeDetector({ formats: ['qr_code'] }).detect(img)
+                        .then(function (codes) { apresNatif(codes && codes.length ? codes[0].rawValue : null); })
+                        .catch(function () { apresNatif(null); });
+                } catch (e) { apresNatif(null); }
+            }
+        };
+        img.onerror = function () {
+            URL.revokeObjectURL(url);
+            afficherMessage('ko', 'Photo illisible', 'La photo n&rsquo;a pas pu etre ouverte. Reprenez la photo, ou saisissez la reference du bon.');
+        };
+        img.src = url;
+    });
     window.addEventListener('pagehide', arreterCamera);
 
     /* ---------- Au chargement ---------- */
