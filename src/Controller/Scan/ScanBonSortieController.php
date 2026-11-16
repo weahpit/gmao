@@ -58,14 +58,14 @@ final class ScanBonSortieController extends AbstractController
      * le bon est affiche tout de suite, la camera reste disponible dessous
      * pour enchainer sur les bons suivants.
      */
-    #[Route('/{code}', name: 'app_scan_bon_code', methods: ['GET'], requirements: ['code' => '[A-Za-z0-9_\-\.]{3,80}'])]
+    #[Route('/{code}', name: 'app_scan_bon_code', methods: ['GET'], requirements: ['code' => '[A-Za-z0-9_\-#\.]{3,80}'])]
     public function pageCode(string $code): Response
     {
         return $this->rendre($code);
     }
 
     /** Fiche JSON d'un bon (par jeton, ou a defaut par reference). */
-    #[Route('/api/scan/{code}', name: 'app_scan_bon_api', methods: ['GET'], priority: 30, requirements: ['code' => '[A-Za-z0-9_\-\.]{3,80}'])]
+    #[Route('/api/scan/{code}', name: 'app_scan_bon_api', methods: ['GET'], priority: 30, requirements: ['code' => '[A-Za-z0-9_\-#\.]{3,80}'])]
     public function api(string $code): JsonResponse
     {
         $bon = $this->lireBon($code);

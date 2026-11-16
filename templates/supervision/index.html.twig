@@ -647,8 +647,12 @@
                 .catch(function () {});
         }
         // Periode / mode du point cacao : rechargement des donnees sans quitter la page.
-        var cjJours = {{ cjJours }};
-        var cjMode = '{{ cjMode }}';
+        // Valeurs lues depuis les donnees deja chargees : elles restent
+        // disponibles dans le bloc javascripts (les variables definies plus
+        // haut dans le gabarit n'y existent plus).
+        var cjSource = (donnees && donnees.cacaoJour) ? donnees.cacaoJour : {};
+        var cjJours = Number(cjSource.jours) || 7;
+        var cjMode = cjSource.mode || 'MOVEMENTES';
         function chargerCacao() {
             var url = '{{ path('app_supervision_donnees') }}?j=' + encodeURIComponent(cjJours) + '&mode=' + encodeURIComponent(cjMode);
             fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
