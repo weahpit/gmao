@@ -20,18 +20,51 @@ use Symfony\Component\Uid\Uuid;
  * comparaison a la base et confirmation explicite avant enregistrement.
  *
  * Parcours :
- *   1. GET  /Stock/Dechargement/Import        page + modele vierge
- *   2. POST .../analyser                      lecture du fichier -> rapport (aucune ecriture)
- *   3. POST .../enregistrer                   ecriture UNIQUEMENT apres validation utilisateur
- *   4. GET  .../modele.xlsx                   modele officiel a telecharger
- *   5. GET  /Stock/Dechargements              consultation des dechargements enregistres
+ *   1. GET  /Stock/Dechargement/Import        formulaire
+ *   2. POST .../structure                     DIAGNOSTIC : lecture seule du fichier,
+ *                                             renvoie l'en-tete lue et la
+ *                                             correspondance des colonnes
+ *   3. POST .../analyser                      comparaison complete avec la base
+ *   4. POST .../enregistrer                   ecriture UNIQUEMENT apres validation
+ *   5. GET  .../modele.xlsx                   modele officiel a telecharger
+ *   6. GET  /Stock/Dechargements              consultation des dechargements
+ *
+ * Le fichier est LU UNE SEULE FOIS par le serveur ; le navigateur ne renvoie
+ * ensuite que le jeton + les renommages de colonnes eventuels (aucun re-envoi
+ * du fichier, donc pas de limite post_max_size).
+ *
+ * Correctif v2 : les colonnes sont identifiees par leur libelle et non plus par
+ * une lettre fixe. Un fichier dont "Cooperative" est en colonne P est lu
+ * correctement (plus de faux "Code du bon manquant").
  */
 #[Route('/Stock')]
 #[IsGranted('ROLE_USER')]
 final class DechargementCacaoController extends AbstractController
 {
-    /** Jeton d'etape : seules les analyses emises par CE serveur peuvent etre confirmees. */
+    /** Session : fichier deja lu par le serveur (structure ou rapport en attente). */
+    private const SESSION_LECTURE = 'dechargement_cacao_lecture';
     private const SESSION_JETON = 'dechargement_cacao_analyse';
+
+    private const CSRF_ID = 'dechargement_cacao_import';
+
+    /** Champs pour lesquels un renommage manuel de colonne est propose. */
+    private const CHAMPS_LIBELLES = [
+        'code' => 'Code du bon',
+        'date' => 'Date',
+        'site' => 'Site',
+        'produit' => 'Produit',
+        'cooperative' => 'Coopérative',
+        'immat' => 'Immatriculation',
+        'transporteur' => 'Transporteur',
+        'nbreSacs' => 'Nombre de sacs',
+        'poidsNet' => 'PoidsNet',
+        'statut' => 'Statut',
+        'dateDechargement' => 'Date de déchargement',
+        'observation' => 'Observation',
+        'pnp' => 'PNP',
+        'traitant' => 'Traitant',
+        'categorie' => 'Catégorie',
+    ];
 
     public function __construct(
         private readonly LecteurTabulaireService $lecteur,
@@ -53,60 +86,111 @@ final class DechargementCacaoController extends AbstractController
         ]);
     }
 
+    /* ==================================================================
+     *  1. DIAGNOSTIC : que voit le serveur dans le fichier ?
+     * ================================================================== */
+
+    #[Route('/Dechargement/Import/structure', name: 'app_dechargement_cacao_structure', methods: ['POST'])]
+    public function structure(Request $request): JsonResponse
+    {
+        try {
+            if (!$this->jetonValide($request)) {
+                return $this->erreur('Session expiree. Rechargez la page (Ctrl+F5) puis relancez l\'import.', 419);
+            }
+
+            $lecture = $this->lectureDepuisRequete($request);
+            $request->getSession()->set(self::SESSION_LECTURE, $lecture);
+            $request->getSession()->remove(self::SESSION_JETON);
+
+            return $this->json([
+                'code'       => 'success',
+                'structure'  => $this->import->structure($lecture),
+                'champs'     => self::CHAMPS_LIBELLES,
+                'fichierNom' => (string) ($lecture['fichierNom'] ?? ''),
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->erreur($e->getMessage());
+        } catch (\Throwable $e) {
+            $this->journaliser('structure', $e);
+
+            return $this->erreur('Lecture impossible du fichier : ' . $e->getMessage());
+        }
+    }
+
+    /* ==================================================================
+     *  2. ANALYSE : comparaison complete avec la base
+     * ================================================================== */
+
     #[Route('/Dechargement/Import/analyser', name: 'app_dechargement_cacao_analyser', methods: ['POST'])]
     public function analyser(Request $request): JsonResponse
     {
         try {
-            if (!$this->isCsrfTokenValid('dechargement_cacao_import', (string) $request->request->get('_token'))) {
-                return $this->erreur('Session expiree. Rechargez la page puis relancez l\'import.', 419);
+            if (!$this->jetonValide($request)) {
+                return $this->erreur('Session expiree. Rechargez la page (Ctrl+F5) puis relancez l\'import.', 419);
             }
 
-            $fichier = $request->files->get('fichier');
-            if (!$fichier instanceof UploadedFile) {
-                return $this->erreur('Aucun fichier recu. Selectionnez un fichier .xlsx, .xls ou .csv.');
+            // Deux chemins : le fichier vient d'etre envoye, ou il a deja ete lu (diagnostic).
+            $nouveau = $request->files->get('fichier');
+            if ($nouveau instanceof UploadedFile) {
+                $lecture = $this->lectureDepuisRequete($request);
+            } else {
+                $lecture = $request->getSession()->get(self::SESSION_LECTURE);
+                if (!is_array($lecture) || !isset($lecture['lignesBrutes'])) {
+                    return $this->erreur('Le fichier n\'est plus disponible sur le serveur (session expiree). Sélectionnez-le à nouveau puis relancez l\'analyse.', 409);
+                }
+                $lecture = $this->appliquerCorrections($lecture, $request);
             }
 
-            $feuille = trim((string) $request->request->get('feuille', ''));
-            $lecture = $this->lecteur->lire($fichier, $feuille !== '' ? $feuille : null);
             $rapport = $this->import->analyser($lecture);
 
-            // Le server calcule lui-meme l'empreinte du contenu : impossible de rejouer
-            // un enregistrement avec un fichier different de celui qui a ete montre.
-            $empreinte = hash('sha256', (string) $fichier->getClientOriginalName() . '|' . json_encode($rapport['lignes'], JSON_UNESCAPED_UNICODE));
+            // Le serveur calcule lui-meme l'empreinte : impossible de rejouer un
+            // enregistrement avec un fichier different de celui qui a ete montre.
+            $empreinte = hash('sha256', (string) ($lecture['fichierNom'] ?? 'fichier') . '|' . json_encode($rapport['lignes'], JSON_UNESCAPED_UNICODE));
             $jeton = (string) Uuid::v4();
 
             $request->getSession()->set(self::SESSION_JETON, [
                 'empreinte' => $empreinte,
                 'jeton'     => $jeton,
                 'at'        => time(),
-                'fichier'   => $fichier->getClientOriginalName(),
+                'fichier'   => (string) ($lecture['fichierNom'] ?? ''),
             ]);
 
             foreach ($rapport['lignes'] as $i => $ligne) {
                 $rapport['lignes'][$i]['empreinte'] = $empreinte;
             }
 
+            $manquantes = $rapport['fichier']['colonnesAbsentes'];
+            $message = $manquantes === []
+                ? 'Analyse terminee.'
+                : 'Colonne(s) obligatoire(s) non reconnue(s) : ' . implode(', ', $manquantes)
+                    . '. Corrigez la ligne d\'en-tete ou renommez les colonnes, puis relancez l\'analyse.';
+
             return $this->json([
-                'code'      => 'success',
-                'msg'       => 'Analyse terminee.',
+                'code'      => $manquantes === [] ? 'success' : 'warning',
+                'msg'       => $message,
                 'empreinte' => $empreinte,
                 'jeton'     => $jeton,
                 'rapport'   => $rapport,
+                'fichier'   => (string) ($lecture['fichierNom'] ?? ''),
             ]);
         } catch (\RuntimeException $e) {
             return $this->erreur($e->getMessage());
         } catch (\Throwable $e) {
             $this->journaliser('analyse', $e);
 
-            return $this->erreur('Lecture impossible du fichier : ' . $e->getMessage());
+            return $this->erreur('Analyse impossible : ' . $e->getMessage());
         }
     }
+
+    /* ==================================================================
+     *  3. ENREGISTREMENT
+     * ================================================================== */
 
     #[Route('/Dechargement/Import/enregistrer', name: 'app_dechargement_cacao_enregistrer', methods: ['POST'])]
     public function enregistrer(Request $request): JsonResponse
     {
         try {
-            if (!$this->isCsrfTokenValid('dechargement_cacao_import', (string) $request->request->get('_token'))) {
+            if (!$this->jetonValide($request)) {
                 return $this->erreur('Session expiree. Rechargez la page puis relancez l\'import.', 419);
             }
 
@@ -150,6 +234,7 @@ final class DechargementCacaoController extends AbstractController
 
             $resultat = $this->import->enregistrer($aEnregistrer, $empreinte, $utilisateur, 'IMPORT_XLS');
             $request->getSession()->remove(self::SESSION_JETON);
+            $request->getSession()->remove(self::SESSION_LECTURE);
 
             return $this->json([
                 'code'     => 'success',
@@ -166,6 +251,10 @@ final class DechargementCacaoController extends AbstractController
             return $this->erreur('Enregistrement impossible : ' . $e->getMessage(), 500);
         }
     }
+
+    /* ==================================================================
+     *  Modeles + consultation
+     * ================================================================== */
 
     /** Modele CSV a telecharger (ouvrable directement dans Excel). */
     #[Route('/Dechargement/Import/modele.csv', name: 'app_dechargement_cacao_modele_csv', methods: ['GET'])]
@@ -225,6 +314,120 @@ final class DechargementCacaoController extends AbstractController
             'cooperatives' => $this->repo->cooperatives(),
             'totaux'       => $this->repo->totaux(),
         ]);
+    }
+
+    /* ------------------------------------------------------------------
+     * Outils
+     * ------------------------------------------------------------------ */
+
+    /**
+     * Lit le fichier envoye et applique la ligne d'en-tete / les renommages demandes.
+     *
+     * @return array<string,mixed>
+     */
+    private function lectureDepuisRequete(Request $request): array
+    {
+        $fichier = $request->files->get('fichier');
+        if (!$fichier instanceof UploadedFile) {
+            throw new \RuntimeException('Aucun fichier recu. Selectionnez un fichier .xlsx, .xls ou .csv.');
+        }
+
+        $feuille = trim((string) $request->request->get('feuille', ''));
+        $lecture = $this->lecteur->lire($fichier, $feuille !== '' ? $feuille : null);
+        $lecture['fichierNom'] = $fichier->getClientOriginalName();
+
+        return $this->appliquerCorrections($lecture, $request);
+    }
+
+    /**
+     * Applique sur une lecture deja faite : ligne d'en-tete imposee + colonnes renommees.
+     *
+     * @param array<string,mixed> $lecture
+     *
+     * @return array<string,mixed>
+     */
+    private function appliquerCorrections(array $lecture, Request $request): array
+    {
+        $enteteForce = (int) $request->request->get('entete', 0);
+        if ($enteteForce > 0) {
+            $lecture = $this->forcerEntete($lecture, $enteteForce);
+        }
+
+        // Colonnes renommees : { "P": "Cooperative", ... } ou { "cooperative": "Coop CA" }
+        $renommages = $request->request->all('colonnes');
+        $lettres = $request->request->all('lettres');
+
+        if (is_array($renommages)) {
+            foreach ($renommages as $cle => $libelle) {
+                $cle = trim((string) $cle);
+                $libelle = trim((string) $libelle);
+                if ($cle === '' || $libelle === '') {
+                    continue;
+                }
+                // Cle = lettre de colonne ("P") ou nom de champ ("cooperative").
+                $lettre = preg_match('/^[A-Za-z]{1,3}$/', $cle) === 1
+                    ? strtoupper($cle)
+                    : strtoupper((string) ($lettres[$cle] ?? ''));
+                if ($lettre !== '' && isset($lecture['entetes'][$lettre])) {
+                    $lecture['entetes'][$lettre] = $libelle;
+                }
+            }
+        }
+
+        return $lecture;
+    }
+
+    /**
+     * Relit la feuille en prenant une autre ligne comme en-tete.
+     * Les lignes au-dessus de l'en-tete forcee sont ignorees.
+     *
+     * @param array<string,mixed> $lecture
+     *
+     * @return array<string,mixed>
+     */
+    private function forcerEntete(array $lecture, int $numeroLigne): array
+    {
+        $brutes = $lecture['lignesBrutes'] ?? [];
+        if (!isset($brutes[$numeroLigne - 1])) {
+            throw new \RuntimeException(sprintf('Le fichier ne contient pas de ligne %d (seulement %d lignes).', $numeroLigne, count($brutes)));
+        }
+
+        $entetes = [];
+        foreach ($brutes[$numeroLigne - 1] as $adresse => $libelle) {
+            $entetes[(string) $adresse] = trim((string) $libelle);
+        }
+
+        $lignes = [];
+        foreach (array_slice($brutes, $numeroLigne) as $ligne) {
+            $colonne = [];
+            foreach ($entetes as $adresse => $libelle) {
+                $colonne[$adresse] = (string) ($ligne[$adresse] ?? '');
+            }
+            if (trim(implode('', $colonne)) === '') {
+                continue;
+            }
+            $lignes[] = $colonne;
+        }
+
+        $lecture['entetes'] = $entetes;
+        $lecture['lignes'] = $lignes;
+        $lecture['ligneEntete'] = $numeroLigne;
+
+        return $lecture;
+    }
+
+    /**
+     * Jeton anti-CSRF accepte soit dans le champ classique `_token`,
+     * soit dans l'en-tete `X-CSRF-Token`.
+     */
+    private function jetonValide(Request $request): bool
+    {
+        $jeton = (string) ($request->request->get('_token') ?? '');
+        if ($jeton === '') {
+            $jeton = (string) $request->headers->get('X-CSRF-Token', '');
+        }
+
+        return $this->isCsrfTokenValid(self::CSRF_ID, $jeton);
     }
 
     private function erreur(string $message, int $statut = 422): JsonResponse

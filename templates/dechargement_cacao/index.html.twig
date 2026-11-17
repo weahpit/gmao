@@ -24,12 +24,11 @@
             <div>
                 <span class="dc-eyebrow">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Gestion du stock · Cacao
+                    Gestion des déchargements
                 </span>
-                <h1>Import du déchargement cacao</h1>
+                <h1>Import de données de chargement Cacao</h1>
                 <p>
-                    Déposez votre fichier <strong>Excel (.xlsx)</strong> ou <strong>CSV</strong> : l'application compare chaque bon
-                    avec la base, affiche un rapport détaillé, puis n'enregistre <em>qu'après votre validation</em>.
+                    Déposez votre fichier <strong>Excel (.xlsx)</strong> ou <strong>CSV</strong>
                 </p>
             </div>
             <div class="dc-header-actions">
@@ -92,13 +91,13 @@
             <span class="hint">.xlsx · .xls · .csv — {{ (tailleMax / 1048576)|round }} Mo maximum</span>
         </div>
         <div class="dc-card-body">
-            <div class="dc-drop" id="dcDrop">
+            <div class="dc-drop" id="dcDrop" {#style="height: 250px;"#}>
                 <input type="file" id="dcInput" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Choisir le fichier de déchargement">
                 <div id="dcDropIdle">
                     <div class="dc-drop-ico">
                         <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </div>
-                    <div class="dc-drop-title">Glissez votre fichier ici ou cliquez pour le choisir</div>
+                    <div class="dc-drop-title mt-5" >Glissez votre fichier ici ou cliquez pour le choisir</div>
                     <div class="dc-drop-sub">Le fichier doit reprendre les colonnes du modèle officiel</div>
                 </div>
                 <div id="dcDropFile" class="dc-fileinfo" style="display:none;">
@@ -118,42 +117,97 @@
                 </div>
             </div>
 
-            <div class="dc-help">
-                <div class="dc-help-item">
-                    <strong>Colonnes du modèle</strong>
-                    Code, Date, Site, Produit, Cooperative, Immat, Transporteur, Nbre Sacs, PoidsNet, Statut, Date de Déchargement, Obersavation, PNP, Traitant, Categorie.
-                    <div class="dc-cols">
-                        <span class="dc-col-tag oblig">Code *</span>
-                        <span class="dc-col-tag oblig">Date *</span>
-                        <span class="dc-col-tag oblig">PoidsNet *</span>
-                        <span class="dc-col-tag">Nbre Sacs</span>
-                        <span class="dc-col-tag">Cooperative</span>
-                        <span class="dc-col-tag">PNP</span>
-                    </div>
-                </div>
-                <div class="dc-help-item">
-                    <strong>Règle de comparaison</strong>
-                    La colonne <b>Code</b> est la clé du bon. Un code déjà présent est comparé champ par champ : identique il est ignoré, différent il apparaît en « à mettre à jour ».
-                </div>
-                <div class="dc-help-item">
-                    <strong>Aucune écriture avant validation</strong>
-                    L'analyse est en lecture seule. Rien n'est enregistré tant que vous n'avez pas cliqué sur <b>Enregistrer</b>.
-                </div>
-            </div>
-
             <div id="dcUploadErr" class="dc-alert dc-alert-error mt-3" style="display:none;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 <span id="dcUploadErrMsg"></span>
             </div>
 
+            <div class="dc-actions-row">
+                <p class="dc-actions-hint">
+                    <strong>Étape conseillée :</strong> vérifiez d'abord la structure (aucune ligne n'est lue vers la base),
+                    puis lancez l'analyse.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="dc-btn dc-btn-ghost" id="dcVerifier" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        Vérifier la structure
+                    </button>
+                    <button type="button" class="dc-btn dc-btn-primary" id="dcAnalyser" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Analyser et comparer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# ---------------- 1 bis. Diagnostic de lecture ---------------- #}
+    <section class="dc-card" id="dcCardDiagnostic" style="display:none;">
+        <div class="dc-card-head">
+            <h2>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11" cy="14" r="3"/><line x1="16.6" y1="19.6" x2="19" y2="22"/></svg>
+                Ce que l'application lit dans votre fichier
+            </h2>
+            <span class="hint" id="dcDiagMeta"></span>
+        </div>
+        <div class="dc-card-body">
+
+            <div id="dcDiagAlerte" class="dc-alert dc-alert-ok" style="display:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span id="dcDiagAlerteMsg"></span>
+            </div>
+
+            <div class="dc-diag-tools">
+                <label for="dcDiagEntete" class="dc-diag-label">Ligne d'en-tête utilisée</label>
+                <select class="form-select dc-diag-select" id="dcDiagEntete"></select>
+                <span class="dc-diag-help">Si les colonnes ne sont pas reconnues, choisissez la bonne ligne d'en-tête : la lecture est refaite aussitôt.</span>
+            </div>
+
+            <div class="dc-diag-grid">
+                <div>
+                    <h3 class="dc-diag-title">
+                        Colonnes obligatoires et colonnes reconnues
+                        <span class="dc-diag-legend"><span class="dc-diag-star">*</span> obligatoire</span>
+                    </h3>
+                    <div class="dc-table-wrap">
+                        <div class="dc-table-scroll dc-diag-scroll">
+                            <table class="dc-table dc-diag-table">
+                                <thead>
+                                    <tr>
+                                        <th>Champ du bon</th>
+                                        <th>Colonne du fichier</th>
+                                        <th>État</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dcDiagCorrespondance"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="dc-diag-title mt-3">
+                Aperçu des premières lignes
+                <span class="dc-diag-legend">renommez une colonne si l'en-tête est mal orthographié</span>
+            </h3>
+            <div class="dc-table-wrap">
+                <div class="dc-table-scroll dc-diag-scroll">
+                    <table class="dc-table dc-diag-apercu">
+                        <tbody id="dcDiagApercu"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="d-flex flex-wrap gap-2 justify-content-end mt-3">
-                <button type="button" class="dc-btn dc-btn-primary" id="dcAnalyser" disabled>
+                <button type="button" class="dc-btn dc-btn-primary" id="dcDiagAnalyser">
                     <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    Analyser et comparer
+                    Lancer l'analyse et comparer
                 </button>
             </div>
         </div>
     </section>
+
+    {# ---------------- 2-3. Rapport ---------------- #}
 
     {# ---------------- 2-3. Rapport ---------------- #}
     <section class="dc-card" id="dcCardRapport" style="display:none;">
@@ -260,6 +314,7 @@
 
 <script type="application/json" id="dcConfig">
 {{ {
+    'structure': path('app_dechargement_cacao_structure'),
     'analyser': path('app_dechargement_cacao_analyser'),
     'enregistrer': path('app_dechargement_cacao_enregistrer'),
     'token': csrf_token('dechargement_cacao_import'),

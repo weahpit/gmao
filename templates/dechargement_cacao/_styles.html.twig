@@ -227,6 +227,64 @@
 .dc-alert-error { background: #fdf1ef; border: 1px solid #f0cdc5; color: #9c3626; }
 .dc-alert-ok { background: #f1faf4; border: 1px solid #c8e8d5; color: #166b3b; }
 
+/* ---------- Actions du depot de fichier ---------- */
+.dc-actions-row {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed #eee2d3;
+}
+.dc-actions-hint { margin: 0; font-size: .8rem; color: var(--dc-muet); max-width: 520px; }
+.dc-actions-hint strong { color: var(--dc-cacao-clair); }
+
+/* ---------- Diagnostic de lecture ---------- */
+.dc-diag-tools {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px;
+    padding: 12px 14px; border-radius: 12px; background: linear-gradient(135deg, #fffdf9, #f9f2e8);
+    border: 1px solid #eddfcd;
+}
+.dc-diag-label { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--dc-cacao); margin: 0; }
+.dc-diag-select {
+    max-width: 300px; font-size: .86rem; border-radius: 10px; border-color: #e0d2c0; color: var(--dc-texte);
+    background-color: #fff;
+}
+.dc-diag-select:focus { border-color: var(--dc-accent); box-shadow: 0 0 0 .18rem rgba(200,145,43,.18); }
+.dc-diag-help { font-size: .78rem; color: var(--dc-muet); flex: 1 1 240px; }
+
+.dc-diag-title {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    font-size: .86rem; font-weight: 800; color: var(--dc-cacao); margin: 0 0 10px;
+}
+.dc-diag-legend { font-size: .72rem; font-weight: 600; color: var(--dc-muet); text-transform: none; letter-spacing: 0; }
+.dc-diag-scroll { max-height: 340px; }
+.dc-diag-table tbody td { font-size: .84rem; }
+.dc-diag-table tr.manquant td { background: #fdf1ef; }
+.dc-diag-table tr.facultatif td { color: #8c7d6d; }
+.dc-diag-champ { font-weight: 700; color: var(--dc-cacao); white-space: nowrap; }
+.dc-diag-star { color: var(--dc-rouge); font-weight: 800; }
+.dc-diag-pill {
+    display: inline-grid; place-items: center; min-width: 26px; height: 22px; padding: 0 6px;
+    border-radius: 7px; background: #f2e7d8; color: var(--dc-cacao); font-size: .74rem; font-weight: 800;
+}
+.dc-diag-vide { color: #c4b6a6; }
+.dc-diag-etat { white-space: nowrap; font-size: .8rem; }
+.dc-diag-etat svg { width: 15px; height: 15px; vertical-align: -3px; margin-right: 4px; }
+.dc-diag-table tr.ok .dc-diag-etat { color: var(--dc-vert); }
+.dc-diag-table tr.manquant .dc-diag-etat { color: var(--dc-rouge); }
+.dc-diag-table tr.facultatif .dc-diag-etat { color: var(--dc-orange); }
+
+.dc-diag-apercu { font-size: .78rem; }
+.dc-diag-apercu th, .dc-diag-apercu td { white-space: nowrap; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.dc-diag-apercu tr.dc-diag-entete th { background: #fbf4e9; padding: 6px; }
+.dc-diag-apercu tr.dc-diag-lettres th {
+    background: var(--dc-creme); color: var(--dc-muet); font-size: .68rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .06em; padding: 4px 8px;
+}
+.dc-diag-input {
+    width: 100%; min-width: 96px; font-size: .76rem; padding: 5px 7px; border-radius: 8px;
+    border: 1px solid #dfd0bc; background: #fff; color: var(--dc-texte);
+}
+.dc-diag-input:focus { outline: none; border-color: var(--dc-accent); box-shadow: 0 0 0 .16rem rgba(200,145,43,.18); }
+.dc-diag-num { color: var(--dc-muet); font-size: .74rem; white-space: nowrap; }
+
 /* ---------- Overlay bloquant (chargement) ---------- */
 .dc-overlay {
     position: fixed; inset: 0; z-index: 2000; display: none;
@@ -287,6 +345,13 @@ body.dc-busy .dc-wrap { pointer-events: none; user-select: none; filter: saturat
     .dc-commit { flex-direction: column; align-items: stretch; }
     .dc-commit .actions { display: grid; grid-template-columns: 1fr 1fr; }
     .dc-commit .actions .dc-btn { width: 100%; }
+    .dc-actions-row { flex-direction: column; align-items: stretch; }
+    .dc-actions-row .dc-btn { flex: 1 1 auto; }
+    .dc-diag-tools { flex-direction: column; align-items: stretch; }
+    .dc-diag-select { max-width: 100%; }
+    .dc-diag-table thead { display: table-header-group; }
+    .dc-diag-table tbody tr { display: table-row; }
+    .dc-diag-apercu th, .dc-diag-apercu td { max-width: 130px; }
     .dc-filters { width: 100%; }
     .dc-filter { flex: 1 1 calc(50% - 8px); justify-content: space-between; }
     .dc-btn { padding: 11px 14px; font-size: .86rem; }

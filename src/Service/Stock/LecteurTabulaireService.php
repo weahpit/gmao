@@ -8,13 +8,26 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  * Lecture d'un fichier tabulaire (.xlsx, .xls, .csv) envoye par l'utilisateur.
  *
  * - .xlsx : lecture native (ZIP + XML OOXML) sans dependance externe.
- * - .csv / .txt : detection du separateur (; , tab) et de l'encodage (UTF-8 / Windows-1252).
+ * - .csv / .txt : detection du separateur (; , tab |) et de l'encodage (UTF-8 / Windows-1252).
  * - .xls  : format binaire BIFF : l'extension est acceptee mais le contenu ne peut
  *           pas etre decode sans bibliotheque dediee -> message explicite demandant
  *           d'enregistrer le fichier en .xlsx ou .csv.
  *
- * Le resultat est toujours un tableau de lignes :
- *   ['lignes' => [ [ 'colonne' => valeur, ... ], ... ], 'entetes' => [...], 'format' => 'xlsx'|'csv', 'nbFeuilles' => n]
+ * Les cellules sont renvoyees indexees par leur ADRESSE ("A2", "B2"...) et non par
+ * une lettre seule : c'est indispensable, car une ligne Excel peut sauter des
+ * colonnes (cellules vides) ou etre decalee. L'en-tete retenue peut etre n'importe
+ * quelle ligne du fichier (un modele comporte souvent un titre au-dessus).
+ *
+ * Le resultat est toujours de la forme :
+ *   [
+ *     'entetes'         => ['A' => 'Code', 'B' => 'Date', ...],
+ *     'ligneEntete'     => 1,
+ *     'lignes'          => [ ['A' => 'valeur', 'B' => 'valeur', ...], ... ],
+ *     'apercu'          => [ lignes brutes de tete, pour le diagnostic ],
+ *     'format'          => 'xlsx'|'csv',
+ *     'feuille'         => 'Feuil1',
+ *     'nbFeuilles'      => 1,
+ *   ]
  */
 final class LecteurTabulaireService
 {
@@ -23,17 +36,20 @@ final class LecteurTabulaireService
 
     public const EXTENSIONS = ['xlsx', 'xls', 'csv', 'txt'];
 
+    /** Nombre de lignes envoyees au navigateur pour le diagnostic d'en-tete. */
+    private const LIGNES_APERCU = 12;
+
     /**
-     * Lit le fichier et renvoie la premiere feuille (ou la feuille demandee).
+     * Lit le fichier et renvoie la feuille demandee (la premiere par defaut).
      *
-     * @return array{entetes: string[], lignes: array<int, array<string, string>>, format: string, feuille: string, nbFeuilles: int}
+     * @return array{entetes: array<string,string>, ligneEntete: int, lignes: array<int, array<string,string>>, apercu: array<int, array<string,string>>, format: string, feuille: string, nbFeuilles: int}
      *
      * @throws \RuntimeException message lisible par l'utilisateur
      */
     public function lire(UploadedFile $fichier, ?string $feuilleDemandee = null): array
     {
         if (!$fichier->isValid()) {
-            throw new \RuntimeException('Le fichier n\'a pas pu etre recu completement (fichier trop volumineux ou envoi interrompu).');
+            throw new \RuntimeException('Le fichier n\'a pas pu etre recu completement (fichier trop volumineux ou envoi interrompu). Verifiez aussi upload_max_filesize et post_max_size sur le serveur.');
         }
 
         if ($fichier->getSize() !== null && $fichier->getSize() > self::TAILLE_MAX) {
@@ -83,7 +99,7 @@ final class LecteurTabulaireService
     private function lireCsv(string $chemin): array
     {
         $contenu = (string) @file_get_contents($chemin);
-        if ($contenu === '') {
+        if (trim($contenu) === '') {
             throw new \RuntimeException('Le fichier est vide.');
         }
 
@@ -101,18 +117,16 @@ final class LecteurTabulaireService
             if (trim($ligne) === '') {
                 continue;
             }
-            $brut[] = str_getcsv($ligne, $separateur, '"', '\\');
+            $cellules = str_getcsv($ligne, $separateur, '"', '\\');
+            $adresse = [];
+            $index = 0;
+            foreach ($cellules as $cellule) {
+                $adresse[$this->lettre(++$index)] = trim((string) $cellule);
+            }
+            $brut[] = $adresse;
         }
 
-        [$entetes, $lignes] = $this->structurer($brut);
-
-        return [
-            'entetes'    => $entetes,
-            'lignes'     => $lignes,
-            'format'     => 'csv',
-            'feuille'    => 'CSV',
-            'nbFeuilles' => 1,
-        ];
+        return $this->structurer($brut, 'csv', 'CSV', 1);
     }
 
     private function devinerSeparateur(string $ligne): string
@@ -162,16 +176,10 @@ final class LecteurTabulaireService
                 throw new \RuntimeException('La feuille "' . $cible['nom'] . '" n\'a pas pu etre lue.');
             }
 
+            // ".rels" de la feuille : permet de resoudre les textes riches (sharedStrings).
             $brut = $this->lignesXml($xml, $partagees);
-            [$entetes, $lignes] = $this->structurer($brut);
 
-            return [
-                'entetes'    => $entetes,
-                'lignes'     => $lignes,
-                'format'     => 'xlsx',
-                'feuille'    => $cible['nom'],
-                'nbFeuilles' => count($feuilles),
-            ];
+            return $this->structurer($brut, 'xlsx', $cible['nom'], count($feuilles));
         } finally {
             $zip->close();
         }
@@ -239,7 +247,7 @@ final class LecteurTabulaireService
     }
 
     /**
-     * Transforme le XML d'une feuille en lignes de valeurs (indexees par lettre de colonne).
+     * Transforme le XML d'une feuille en lignes de valeurs indexees par ADRESSE ("A1", "B1").
      *
      * @param array<int, string> $partagees
      *
@@ -252,31 +260,42 @@ final class LecteurTabulaireService
 
         foreach ($doc->sheetData->row ?? [] as $row) {
             $ligne = [];
-            $auto = 0;
+            $indexColonne = 0;
+
             foreach ($row->c as $c) {
-                $ref = (string) $c['r'];
-                $colonne = $ref !== '' ? preg_replace('/\d+/', '', $ref) : $this->lettre(++$auto);
-                if ($ref === '') {
-                    $auto++;
+                $ref = strtoupper((string) $c['r']);
+                if ($ref !== '') {
+                    $colonne = (string) (preg_replace('/[0-9]+/', '', $ref) ?: $this->lettre(++$indexColonne));
+                    $indexColonne = $this->indexColonne($colonne);
+                } else {
+                    $colonne = $this->lettre(++$indexColonne);
                 }
+
                 $type = (string) $c['t'];
                 $valeur = '';
 
                 if ($type === 'inlineStr') {
                     $valeur = (string) ($c->is->t ?? '');
+                    foreach ($c->is->r ?? [] as $r) {
+                        $valeur .= (string) $r->t;
+                    }
                 } elseif (isset($c->v)) {
                     $brut = (string) $c->v;
                     if ($type === 's') {
                         $valeur = $partagees[(int) $brut] ?? '';
                     } elseif ($type === 'b') {
                         $valeur = $brut === '1' ? '1' : '0';
+                    } elseif ($type === 'str' || $type === 'e' || $type === 'd') {
+                        $valeur = $brut;
                     } else {
                         $valeur = $this->nombreLisible($brut);
                     }
                 }
 
-                $ligne[$colonne] = trim($valeur);
+                $adresse = ($ref !== '' ? preg_replace('/[0-9]+/', '', $ref) : $colonne) . (string) $row['r'];
+                $ligne[(string) $adresse] = trim($valeur);
             }
+
             if ($ligne !== []) {
                 $lignes[] = $ligne;
             }
@@ -324,6 +343,16 @@ final class LecteurTabulaireService
         return $lettre;
     }
 
+    private function indexColonne(string $lettre): int
+    {
+        $n = 0;
+        foreach (str_split($lettre) as $ch) {
+            $n = $n * 26 + (ord($ch) - 64);
+        }
+
+        return $n;
+    }
+
     private function xml(string $contenu): \SimpleXMLElement
     {
         $precedent = libxml_use_internal_errors(true);
@@ -337,48 +366,116 @@ final class LecteurTabulaireService
     }
 
     /**
-     * Determine la ligne d'en-tete et renvoie des lignes associatives
-     * (indexees par le libelle de colonne, en minuscules sans accents).
+     * Determine la ligne d'en-tete (la plus vraisemblable) et renvoie les lignes
+     * associatives dont les cles sont les ADRESSES de cellules de la ligne d'en-tete
+     * ("A2", "B2", ...) : chaque valeur est retrouvee dans la meme colonne.
      *
      * @param array<int, array<string, string>> $brut
      *
-     * @return array{0: string[], 1: array<int, array<string, string>>}
+     * @return array{entetes: array<string,string>, ligneEntete: int, lignes: array<int, array<string,string>>, apercu: array<int, array<string,string>>, format: string, feuille: string, nbFeuilles: int}
      */
-    private function structurer(array $brut): array
+    private function structurer(array $brut, string $format, string $feuille, int $nbFeuilles): array
     {
-        // On ignore les lignes vides en tete (certains exports commencent par une ligne vide).
-        $indexEntete = null;
-        foreach ($brut as $i => $ligne) {
-            if (count(array_filter($ligne, static fn ($v) => trim((string) $v) !== '')) >= 2) {
-                $indexEntete = $i;
-                break;
+        // Lignes non vides uniquement (certains exports commencent par des lignes vides).
+        $exploitables = [];
+        foreach ($brut as $ligne) {
+            $remplie = trim(implode('', $ligne)) !== '';
+            if ($remplie) {
+                $exploitables[] = $ligne;
             }
         }
-        if ($indexEntete === null) {
+
+        if ($exploitables === []) {
             throw new \RuntimeException('Le fichier ne contient aucune ligne exploitable.');
         }
 
-        $entete = $brut[$indexEntete];
+        $indexEntete = $this->detecterEntete($exploitables);
+        $ligneEntete = $exploitables[$indexEntete];
+
         $entetes = [];
-        foreach ($entete as $colonne => $libelle) {
-            $entetes[$colonne] = trim((string) $libelle);
+        foreach ($ligneEntete as $adresse => $libelle) {
+            $entetes[(string) $adresse] = trim((string) $libelle);
         }
 
         $lignes = [];
-        foreach (array_slice($brut, $indexEntete + 1) as $ligne) {
-            $vide = true;
-            foreach ($ligne as $v) {
-                if (trim((string) $v) !== '') {
-                    $vide = false;
-                    break;
-                }
+        foreach (array_slice($exploitables, $indexEntete + 1) as $ligne) {
+            $colonne = [];
+            foreach ($entetes as $adresse => $libelle) {
+                $colonne[$adresse] = (string) ($ligne[$adresse] ?? '');
             }
-            if ($vide) {
+            // On ignore les lignes completement vides au regard des colonnes retenues.
+            if (trim(implode('', $colonne)) === '') {
                 continue;
             }
-            $lignes[] = $ligne;
+            $lignes[] = $colonne;
         }
 
-        return [array_values($entetes), $lignes];
+        return [
+            'entetes'     => $entetes,
+            'ligneEntete' => $indexEntete + 1,
+            'lignes'      => $lignes,
+            'apercu'      => array_slice($exploitables, 0, self::LIGNES_APERCU),
+            'lignesBrutes' => $exploitables,
+            'format'      => $format,
+            'feuille'     => $feuille,
+            'nbFeuilles'  => $nbFeuilles,
+        ];
+    }
+
+    /**
+     * Cherche la ligne qui ressemble le plus a une ligne d'en-tete :
+     * celle qui contient le plus de libelles courts et non numeriques,
+     * en privilegiant les premieres lignes du fichier.
+     *
+     * @param array<int, array<string, string>> $lignes
+     */
+    private function detecterEntete(array $lignes): int
+    {
+        $mots = ['code', 'date', 'site', 'produit', 'cooperative', 'immat', 'transporteur', 'sacs', 'poids', 'statut', 'observation', 'pnp', 'traitant', 'categorie'];
+
+        $meilleur = 0;
+        $meilleurScore = -1;
+
+        $limite = min(count($lignes), 20);
+        for ($i = 0; $i < $limite; $i++) {
+            $score = 0;
+            foreach ($lignes[$i] as $valeur) {
+                $texte = $this->normaliserLibelle($valeur);
+                if ($texte === '' || is_numeric($texte)) {
+                    continue;
+                }
+                foreach ($mots as $mot) {
+                    if (str_contains($texte, $mot)) {
+                        $score += 3;
+                        break;
+                    }
+                }
+                if (mb_strlen($texte) <= 24) {
+                    $score += 1;
+                }
+            }
+            // A score egal, la ligne la plus haute gagne.
+            if ($score > $meilleurScore) {
+                $meilleurScore = $score;
+                $meilleur = $i;
+            }
+        }
+
+        return $meilleur;
+    }
+
+    private function normaliserLibelle(string $libelle): string
+    {
+        $libelle = mb_strtolower(trim($libelle));
+        $libelle = strtr($libelle, [
+            'à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a',
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'î' => 'i', 'ï' => 'i', 'í' => 'i',
+            'ô' => 'o', 'ö' => 'o', 'ó' => 'o',
+            'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ú' => 'u',
+            'ç' => 'c', 'œ' => 'oe', 'æ' => 'ae',
+        ]);
+
+        return preg_replace('/[^a-z0-9]/', '', $libelle) ?? '';
     }
 }

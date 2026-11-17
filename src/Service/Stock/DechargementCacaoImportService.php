@@ -10,15 +10,16 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Coeur metier de l'import de dechargement de cacao :
- *   1) normaliser les lignes du fichier ;
- *   2) les comparer a la base (nouveau / deja present / different / doublon interne) ;
- *   3) produire un rapport (compteurs + lignes) ;
- *   4) enregistrer uniquement les lignes confirmees par l'utilisateur.
+ *   1) mapper les colonnes du fichier (par nom d'en-tete) sur les champs metier ;
+ *   2) normaliser et controler chaque ligne ;
+ *   3) comparer a la base (nouveau / deja present / different / doublon interne) ;
+ *   4) produire un rapport (compteurs + lignes + diagnostic d'en-tete) ;
+ *   5) enregistrer uniquement les lignes confirmees par l'utilisateur.
  *
- * Les libelles de colonnes acceptes correspondent exactement au modele fourni
- * (Code, Date, Site, Produit, Cooperative, Immat, Transporteur, Nbre Sacs,
- *  PoidsNet, Statut, Date de Dechargement, Obersavation, PNP, Traitant, Categorie).
- * Les variantes usuelles (OBSERVATION, Immatriculation, Nb Sacs, ...) sont tolerees.
+ * Depuis la version 2 du module, les colonnes sont reperees par leur LIBELLE
+ * (n'importe quelle lettre de colonne Excel) et non plus par une lettre fixe.
+ * Un fichier dont la coopérative se trouve en colonne P, ou dont l'en-tete occupe
+ * la ligne 3, est donc lu correctement : plus de faux "Code du bon manquant".
  */
 final class DechargementCacaoImportService
 {
@@ -28,24 +29,37 @@ final class DechargementCacaoImportService
     /**
      * Alias de colonnes : cle = nom technique, valeur = libelles acceptes (normalises).
      * L'ordre compte : le premier alias present dans le fichier gagne.
+     * Les alias multi-mots sont testes en priorite ("datededechargement" avant "date").
      */
     private const COLONNES = [
-        'code' => ['code', 'codechar', 'ncode', 'codebon', 'numerobonchar'],
-        'date' => ['date', 'datedechargement', 'datearrivee'],
-        'site' => ['site', 'sitede'],
+        'code' => ['code', 'codebarre', 'codechar', 'ncode', 'codebon', 'numerobonchar', 'numerobon', 'numbon', 'bon'],
+        'date' => ['date', 'datedechargement', 'datearrivee', 'datedubon'],
+        'site' => ['site', 'sitede', 'siteexploitation'],
         'produit' => ['produit', 'produits'],
-        'cooperative' => ['cooperative', 'coop', 'coopca', 'cooperativeca'],
-        'immat' => ['immat', 'immatriculation', 'matricule', 'vehicule'],
+        'cooperative' => ['cooperative', 'coop', 'coopca', 'cooperativeca', 'cooperativede', 'cooperativeca'],
+        'immat' => ['immat', 'immatriculation', 'matricule', 'vehicule', 'camion'],
         'transporteur' => ['transporteur', 'transporteurs', 'transitaire'],
-        'nbreSacs' => ['nbresacs', 'nbsacs', 'nombresacs', 'sacs', 'nbredecr'],
+        'nbreSacs' => ['nbresacs', 'nbsacs', 'nombresacs', 'sacs', 'nbredecr', 'nbdecr'],
         'poidsNet' => ['poidsnet', 'poids', 'poidsnet1', 'pn'],
         'statut' => ['statut', 'status', 'etat'],
-        'dateDechargement' => ['datededechargement', 'datedecharge', 'datdechargement', 'datededechargeme'],
-        'observation' => ['obersavation', 'observation', 'observations', 'remarque'],
+        'dateDechargement' => ['datededechargement', 'datedecharge', 'datdechargement', 'datededechargeme', 'datededehargement'],
+        'observation' => ['obersavation', 'observation', 'observations', 'remarque', 'observ'],
         'pnp' => ['pnp'],
         'traitant' => ['traitant', 'traitants'],
-        'categorie' => ['categorie', 'categoriede', 'categoried'],
+        'categorie' => ['categorie', 'categoriede', 'categoried', 'cathegorie'],
     ];
+
+    /** @var array<string,string> */
+    private const CHAMPS_LIBELLES = [
+        'code' => 'Code du bon', 'date' => 'Date', 'site' => 'Site', 'produit' => 'Produit',
+        'cooperative' => 'Coopérative', 'immat' => 'Immatriculation', 'transporteur' => 'Transporteur',
+        'nbreSacs' => 'Nombre de sacs', 'poidsNet' => 'PoidsNet', 'statut' => 'Statut',
+        'dateDechargement' => 'Date de déchargement', 'observation' => 'Observation',
+        'pnp' => 'PNP', 'traitant' => 'Traitant', 'categorie' => 'Catégorie',
+    ];
+
+    /** @var array<string,string> */
+    private const OBLIGATOIRES = ['code' => 'Code du bon', 'date' => 'Date', 'poidsNet' => 'PoidsNet'];
 
     public function __construct(
         private readonly DechargementCacaoRepository $repo,
@@ -58,21 +72,66 @@ final class DechargementCacaoImportService
      * ================================================================== */
 
     /**
-     * @param array{entetes: string[], lignes: array<int, array<string,string>>, format: string, feuille: string, nbFeuilles: int} $lecture
+     * @param array{entetes: array<string,string>, ligneEntete: int, lignes: array<int, array<string,string>>, apercu: array<int, array<string,string>>, format: string, feuille: string, nbFeuilles: int} $lecture
      *
      * @return array<string, mixed> rapport complet (JSON-ready)
      */
+    /**
+     * DIAGNOSTIC : montre ce que le serveur lit dans le fichier (aucune analyse metier).
+     *
+     * @param array<string, mixed> $lecture
+     *
+     * @return array<string, mixed>
+     */
+    public function structure(array $lecture): array
+    {
+        $carte = $this->carteColonnes($lecture['entetes'] ?? []);
+        $colonnesAbsentes = [];
+        foreach (self::OBLIGATOIRES as $obligatoire => $libelle) {
+            if (!isset($carte[$obligatoire])) {
+                $colonnesAbsentes[] = $libelle;
+            }
+        }
+
+        return [
+            'format'            => strtoupper((string) ($lecture['format'] ?? '')),
+            'feuille'           => (string) ($lecture['feuille'] ?? ''),
+            'nbFeuilles'        => (int) ($lecture['nbFeuilles'] ?? 1),
+            'ligneEntete'       => (int) ($lecture['ligneEntete'] ?? 1),
+            'nbLignes'          => count($lecture['lignes'] ?? []),
+            'colonnesAbsentes'  => $colonnesAbsentes,
+            'correspondance'    => $this->correspondance($carte, $lecture['entetes'] ?? []),
+            'apercu'            => $this->apercu($lecture['apercu'] ?? [], $carte),
+            'champs'            => self::CHAMPS_LIBELLES,
+            // Lettre de la colonne actuellement associee a chaque champ (pour preparer un renommage).
+            'lettres'           => $carte,
+        ];
+    }
+
     public function analyser(array $lecture): array
     {
-        $carte = $this->carteColonnes($lecture['entetes']);
+        $carte = $this->carteColonnes($lecture['entetes'] ?? []);
         $colonnesAbsentes = [];
-        foreach (['code', 'date', 'poidsNet'] as $obligatoire) {
+        foreach (self::OBLIGATOIRES as $obligatoire => $libelle) {
             if (!isset($carte[$obligatoire])) {
-                $colonnesAbsentes[] = $obligatoire;
+                $colonnesAbsentes[] = $libelle;
             }
         }
 
         $naturesAutorisees = $this->naturesAutorisees();
+
+        // Controle PREALABLE : si une colonne obligatoire n'est pas reconnue, on s'arrete
+        // ici avec un message qui dit exactement ce qui cloche (au lieu de rejeter
+        // chacune des lignes avec "manquant" sans expliquer pourquoi).
+        if ($colonnesAbsentes !== []) {
+            throw new \RuntimeException(
+                'Colonne(s) obligatoire(s) non reconnue(s) dans le fichier : ' . implode(', ', $colonnesAbsentes)
+                . '. En-tete utilisee : ligne ' . ($lecture['ligneEntete'] ?? 1)
+                . ' ; colonnes lues : ' . $this->resumeEntetes($lecture['entetes'] ?? []) . '.'
+                . ' Corrigez la ligne d\'en-tete ou renommez les colonnes, puis relancez l\'analyse.'
+            );
+        }
+
         $dejaEnBase = $this->repo->indexParCode();
 
         $lignes = [];
@@ -165,22 +224,28 @@ final class DechargementCacaoImportService
 
         $rapport = [
             'fichier'   => [
-                'format'    => strtoupper($lecture['format']),
-                'feuille'   => $lecture['feuille'],
-                'nbFeuilles' => $lecture['nbFeuilles'],
-                'colonnesIgnorees' => $this->colonnesIgnorees($lecture['entetes'], $carte),
+                'format'    => strtoupper((string) $lecture['format']),
+                'feuille'   => $lecture['feuille'] ?? '',
+                'nbFeuilles' => (int) ($lecture['nbFeuilles'] ?? 1),
+                'ligneEntete' => (int) ($lecture['ligneEntete'] ?? 1),
+                'colonnesIgnorees' => $this->colonnesIgnorees($lecture['entetes'] ?? [], $carte),
                 'colonnesAbsentes' => $colonnesAbsentes,
+                'correspondance' => $this->correspondance($carte, $lecture['entetes'] ?? []),
+                'apercu'    => $this->apercu($lecture['apercu'] ?? [], $carte),
             ],
             'compteurs' => $compteurs,
             'lignes'    => array_map(fn (LigneDechargement $l) => $this->ligneVersTableau($l), $lignes),
         ];
 
         $this->logger->info('Import dechargement cacao : analyse', [
-            'format' => $lecture['format'],
-            'total'  => $compteurs['total'],
+            'format'  => $lecture['format'],
+            'entete'  => $lecture['ligneEntete'] ?? null,
+            'carte'   => $carte,
+            'total'   => $compteurs['total'],
             'nouveau' => $compteurs['nouveau'],
             'modifie' => $compteurs['modifie'],
             'existant' => $compteurs['existant'],
+            'rejete'  => $compteurs['rejete'],
         ]);
 
         return $rapport;
@@ -190,6 +255,10 @@ final class DechargementCacaoImportService
     private function normaliser(array $brute, array $carte, int $numero, array $natures, array $colonnesAbsentes): LigneDechargement
     {
         $l = new LigneDechargement();
+        // Nettoyage : certaines cellules arrivent avec des espaces insecables (copier-coller Excel).
+        foreach ($brute as $adresse => $valeur) {
+            $brute[$adresse] = str_replace(["\u{00A0}", "\u{202F}", "\r", "\n"], ' ', (string) $valeur);
+        }
         $l->ligne = $numero;
         $l->carte = $carte;
 
@@ -220,7 +289,9 @@ final class DechargementCacaoImportService
 
         // --- Controles d'integrite ---
         if ($l->code === '') {
-            $l->anomalies[] = 'Code du bon manquant.';
+            $l->anomalies[] = $valeur('code') === '' && isset($carte['code'])
+                ? 'Code du bon manquant (cellule vide).'
+                : 'Code du bon manquant.';
         } elseif (mb_strlen($l->code) > 60) {
             $l->anomalies[] = 'Code du bon trop long (60 caracteres maximum).';
         }
@@ -235,8 +306,17 @@ final class DechargementCacaoImportService
         if ($l->nbreSacs !== null && $l->nbreSacs < 0) {
             $l->anomalies[] = 'Nbre Sacs negatif.';
         }
-        if ($l->produit !== null && $natures !== [] && !in_array($l->produit, $natures, true)) {
-            $l->anomalies[] = sprintf('Produit "%s" inconnu du referentiel (%s).', $l->produit, implode(', ', array_slice($natures, 0, 4)));
+        if ($l->produit !== null && $natures !== []) {
+            $connu = false;
+            foreach ($natures as $nature) {
+                if ($this->nettoyerTexte(mb_strtolower($nature)) === $this->nettoyerTexte(mb_strtolower($l->produit))) {
+                    $connu = true;
+                    break;
+                }
+            }
+            if (!$connu) {
+                $l->anomalies[] = sprintf('Produit "%s" inconnu du referentiel (%s).', $l->produit, implode(', ', array_slice($natures, 0, 4)));
+            }
         }
         if ($l->poidsNet !== null && $l->nbreSacs !== null && $l->nbreSacs > 0) {
             $moyenne = $l->poidsNet / $l->nbreSacs;
@@ -453,15 +533,29 @@ final class DechargementCacaoImportService
      *  Outils
      * ================================================================== */
 
-    /** @return array<string, string> cle technique => lettre de colonne */
+    /**
+     * Associe chaque champ metier a l'ADRESSE de la cellule d'en-tete correspondante
+     * ("A", "B", ...). Aucune lettre n'est supposee : tout depend du libelle.
+     *
+     * @param array<string,string> $entetes adresse -> libelle
+     *
+     * @return array<string, string> champ metier -> lettre de colonne
+     */
     private function carteColonnes(array $entetes): array
     {
+        // Le nombre de colonnes de l'en-tete peut varier : on ne garde que la lettre.
         $normalisees = [];
-        foreach ($entetes as $lettre => $libelle) {
+        foreach ($entetes as $adresse => $libelle) {
+            $lettre = (string) (preg_replace('/[0-9]+/', '', (string) $adresse) ?: '');
+            if ($lettre === '') {
+                continue;
+            }
             $normalisees[$lettre] = $this->normaliserLibelle((string) $libelle);
         }
 
         $carte = [];
+
+        // 1) correspondance exacte
         foreach (self::COLONNES as $cle => $alias) {
             foreach ($alias as $nom) {
                 foreach ($normalisees as $lettre => $libelle) {
@@ -473,16 +567,19 @@ final class DechargementCacaoImportService
             }
         }
 
-        // En-tetes approximatifs (fautes de frappe) : on retente une correspondance souple.
+        // 2) correspondance souple (fautes de frappe : "Obersavation", "Poids Net", ...)
         foreach (self::COLONNES as $cle => $alias) {
             if (isset($carte[$cle])) {
                 continue;
             }
-            foreach ($normalisees as $lettre => $libelle) {
-                if ($libelle === '') {
-                    continue;
-                }
-                foreach ($alias as $nom) {
+            foreach ($alias as $nom) {
+                foreach ($normalisees as $lettre => $libelle) {
+                    if ($libelle === '' || in_array($lettre, $carte, true)) {
+                        continue;
+                    }
+                    if (mb_strlen($nom) < 3 || mb_strlen($libelle) < 3) {
+                        continue;
+                    }
                     if (str_contains($libelle, $nom) || str_contains($nom, $libelle)) {
                         $carte[$cle] = $lettre;
                         continue 3;
@@ -494,11 +591,13 @@ final class DechargementCacaoImportService
         return $carte;
     }
 
+    /** @return string[] */
     private function colonnesIgnorees(array $entetes, array $carte): array
     {
         $utilisees = array_values($carte);
         $ignorees = [];
-        foreach ($entetes as $lettre => $libelle) {
+        foreach ($entetes as $adresse => $libelle) {
+            $lettre = (string) (preg_replace('/[0-9]+/', '', (string) $adresse) ?: '');
             if (trim((string) $libelle) === '' || in_array($lettre, $utilisees, true)) {
                 continue;
             }
@@ -506,6 +605,72 @@ final class DechargementCacaoImportService
         }
 
         return $ignorees;
+    }
+
+    /**
+     * Tableau lisible "libelle du fichier -> champ du bon", affiche dans le rapport.
+     *
+     * @return array<int, array{colonne: string, libelle: string, champ: string}>
+     */
+    private function correspondance(array $carte, array $entetes): array
+    {
+        $retour = [];
+        foreach ($carte as $champ => $lettre) {
+            $libelle = '';
+            foreach ($entetes as $adresse => $texte) {
+                if ((string) (preg_replace('/[0-9]+/', '', (string) $adresse)) === $lettre) {
+                    $libelle = (string) $texte;
+                    break;
+                }
+            }
+            $retour[] = [
+                'colonne' => $lettre,
+                'libelle' => $libelle,
+                'champ'   => self::CHAMPS_LIBELLES[$champ] ?? $champ,
+            ];
+        }
+
+        usort($retour, static fn (array $a, array $b): int => strnatcmp($a['colonne'], $b['colonne']));
+
+        return $retour;
+    }
+
+    /**
+     * Premieres lignes du fichier, telles qu'elles ont ete lues : sert a montrer
+     * a l'utilisateur ce que le serveur voit reellement.
+     *
+     * @return array<int, array{rangee: string, valeurs: array<int, array{colonne: string, valeur: string}>}>
+     */
+    private function apercu(array $apercu, array $carte): array
+    {
+        $retour = [];
+        $rang = 0;
+        foreach ($apercu as $ligne) {
+            $rang++;
+            $valeurs = [];
+            foreach ($ligne as $adresse => $valeur) {
+                $lettre = (string) (preg_replace('/[0-9]+/', '', (string) $adresse) ?: '');
+                $valeurs[] = ['colonne' => $lettre, 'valeur' => (string) $valeur];
+            }
+            $retour[] = ['rangee' => (string) $rang, 'valeurs' => array_slice($valeurs, 0, 16)];
+        }
+
+        return $retour;
+    }
+
+    /** "A=Code, P=Cooperative, ..." : sert au message d'erreur quand rien n'est reconnu. */
+    private function resumeEntetes(array $entetes): string
+    {
+        $morceaux = [];
+        foreach ($entetes as $adresse => $libelle) {
+            $lettre = (string) (preg_replace('/[0-9]+/', '', (string) $adresse) ?: '');
+            if ($lettre === '' || trim((string) $libelle) === '') {
+                continue;
+            }
+            $morceaux[] = $lettre . '=' . trim((string) $libelle);
+        }
+
+        return $morceaux === [] ? '(aucune)' : implode(', ', array_slice($morceaux, 0, 15));
     }
 
     private function normaliserLibelle(string $libelle): string
@@ -525,9 +690,7 @@ final class DechargementCacaoImportService
 
     private function nettoyerTexte(string $valeur): string
     {
-        $valeur = preg_replace('/\s+/', ' ', trim($valeur)) ?? '';
-
-        return $valeur;
+        return preg_replace('/\s+/', ' ', trim($valeur)) ?? '';
     }
 
     private function date(string $valeur): ?string
@@ -537,6 +700,18 @@ final class DechargementCacaoImportService
             return null;
         }
         $valeur = str_replace('/', '-', $valeur);
+
+        // Excel peut renvoyer un nombre de serie brut (ex. 45998.71) : on le convertit
+        // avant tout essai de format, sinon la date serait illisible.
+        $propre = str_replace(',', '.', preg_replace('/[^0-9,.\-]/', '', $valeur) ?? '');
+        if (is_numeric($propre) && (float) $propre > 20000 && (float) $propre < 80000) {
+            $nombre = (float) $propre;
+            $jours = (int) floor($nombre);
+            $minutes = (int) round(($nombre - $jours) * 1440);
+            $d = (new \DateTimeImmutable('1899-12-30'))->modify('+' . $jours . ' days')->modify('+' . $minutes . ' minutes');
+
+            return $minutes > 0 ? $d->format('Y-m-d H:i') : $d->format('Y-m-d');
+        }
 
         foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d', 'd-m-Y H:i:s', 'd-m-Y H:i', 'd-m-Y'] as $format) {
             $d = \DateTime::createFromFormat($format, $valeur);
@@ -558,7 +733,7 @@ final class DechargementCacaoImportService
         if ($valeur === '') {
             return null;
         }
-        $valeur = str_replace([' ', "\u{00A0}", 'kg', 'KG'], '', $valeur);
+        $valeur = str_replace([' ', "\u{00A0}", 'kg', 'KG', 'Kg'], '', $valeur);
         // 17 413,5 / 17413.5 / 17,413.5 -> 17413.5
         if (str_contains($valeur, ',') && str_contains($valeur, '.')) {
             $valeur = str_replace(',', '', $valeur);
