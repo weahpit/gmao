@@ -38,10 +38,10 @@
         }
 
     </style>
-    <h3 class="p-1 sticky-top" style="border-bottom: 1px solid #c0bebe;background: #d2cdcd;">Gestion des lots</h3>
+    <h3 class="p-1 sticky-top" style="border-bottom: 1px solid #e9e8e8;background: #f0f0f0;">Gestion des lots</h3>
     <div class="m-2 border border1 border-secondary" style="min-height: 500px;">
 
-        <div class="row p-2 m-2"  style="background:linear-gradient( #f9f9f6, #fdfde7);border: 1px solid #343401;">
+        <div class="row p-2 m-2"  style="background:#f0f0f0;border: 1px solid #cfcfcf;">
 
             <div class="col-md-5">
                 <div class="d-flex justify-content-between mb-2 ms-2">
@@ -62,14 +62,18 @@
                     <label for="date_prod" class="fw-bold" style="width: 200px;"> Date Production</label>
                     <input  class="w-100" type="date" id="date_prod" placeholder="date de production" style="width: 200px;" required>
                 </div>
-                <div class="d-flex justify-content-start border border-1 mb-1" style="background: #fff869;">
+                <div class="d-flex justify-content-start border border-1 mb-1" style="background: #e4e4e4;">
                     <div class="d-flex justify-content-between mb-1 ms-2 mt-1 me-2">
-                        <label for="pn_th" class="fw-bold" style="width: 100px;"> PB Th</label>
-                        <input class="w-100" type="number" placeholder="PB Théorique" id="pb_th" disabled>
+                        <label for="pb_th" class="fw-bold" style="width: 100px;font-size: 13px;"> PB Th</label>
+                        <input class="w-100 bg-light text-center fw-bold text-dark" type="number" placeholder="PB Théorique" id="pb_th" disabled>
                     </div>
                     <div class="d-flex justify-content-between mb-1 ms-2 mt-1 me-2">
-                        <label for="pn_th" class="fw-bold" style="width: 100px;"> PN Th</label>
-                        <input class="w-100" type="number" placeholder="PN Théorique" id="pn_th" disabled>
+                        <label for="pn_th" class="fw-bold" style="width: 100px;font-size: 13px;"> PN Th</label>
+                        <input class="w-100 bg-light text-center fw-bold text-dark" type="number" placeholder="PN Théorique" id="pn_th" disabled>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 ms-2 mt-1 me-2">
+                        <label for="nb_sacs" class="fw-bold" style="width: 100px;font-size: 13px;"> Nb Sacs</label>
+                        <input class="w-100 bg-light text-center fw-bold text-dark" type="number" placeholder="nb sacs" id="nb_sacs" disabled>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between mb-2 ms-2">
@@ -85,7 +89,7 @@
         </div>
         <hr>
         <div class="w-100 p1">
-            <div class="p-1 bg-white m-1"  style="height: 550px;overflow-y: scroll;border: 1px solid lightgrey;">
+            <div class="p-1 bg-white ms-2 mb-2 me-2"  style="height: 550px;overflow-y: scroll;border: 2px solid grey;">
                 <div class="form-group form-group-sm mt-2 d-inline-flex">
                     <label class="fw-bold">
                         <input type="text" placeholder="Rechercher un lot" id="recherche">
@@ -137,7 +141,7 @@
                         </label>
                     </div>
                     <div class="mt-2">
-                        <a href="#" class="btn btn-danger btn-sm mb-2 w-100" id="btn-scission">Scinder</a>
+                        <button type="button" class="btn btn-sm mb-2 w-100" style="background: #c53030;color: white" id="btn-scission">Scinder</button>
                     </div>
                 </div>
             </div>
@@ -160,11 +164,12 @@
         getAllProprietaires(document.getElementById("proprio"), 2)
         getAllMagasins(document.getElementById('magasin'), 2)
         getAllLots(document.querySelector('.lots_body'), 1)
-
+        reinitialise_form()
 
         document.getElementById("proprio").addEventListener('change', ()=>{
             getAllProduitsByProprietaire(document.getElementById("produit"), 2, document.getElementById("proprio").value)
         })
+
         document.getElementById("produit").addEventListener('change', ()=>{
             let formPdt = new FormData();
             formPdt.append('id_produit', document.getElementById("produit").value)
@@ -172,12 +177,13 @@
                 .then(pdt=>{
                     document.getElementById("pb_th").value = pdt.pb_th
                     document.getElementById("pn_th").value = pdt.pn_th
+                    document.getElementById("nb_sacs").value = pdt.nbSacs
                 })
         })
 
 
 
-        reinitialise_form()
+
 
         /* EVENTS*/
         $("#btn_enr_lot").on("click", function (e){
@@ -186,8 +192,11 @@
         })
 
         $("#btn-scission").on("click", function (e){
-            e.preventDefault();
-            scinder_lot();
+            //e.preventDefault();
+            let formLot = new FormData()
+            formLot.append('id_lot', id_lot)
+            formLot.append('poids_demande', document.getElementById("poids_nc").value)
+            scinderLot(formLot, document.querySelector('.lots_body'), 1)
         })
 
         $("#new_lot").on("click", function (e){
@@ -219,11 +228,15 @@
             formLot.append('id_lot', idLot)
             getSingleLot(formLot).
                 then(lot=>{
+                document.getElementById("produit").disabled = true;
+                document.getElementById("proprio").disabled = true;
                     id_lot = idLot;
                     document.getElementById('numero_lot').value = lot.numero_lot;
                     document.getElementById('proprio').value = lot.proprio;
                     document.getElementById('date_prod').value = lot.date_production;
                     document.getElementById('pn_th').value = lot.pn_th;
+                    document.getElementById('pb_th').value = lot.pb_th;
+                    document.getElementById('nb_sacs').value = lot.nbSacs;
                 document.getElementById('magasin').value = lot.situation;
                 getAllProduitsByProprietaire(document.getElementById("produit"), 2, document.getElementById("proprio").value)
                 document.querySelector("#btn_s_nc").style.display ='inline'
@@ -234,28 +247,7 @@
             })
         }
 
-        function   scinder_lot(){
-            let reponse = "";
-            let obj = {}
-            obj.id_lot  = id_lot
-            obj.pn_th = $('#poids_nc').val()
 
-            let data = JSON.stringify(obj);
-            $.ajax({
-                url : '{{ url('app_login') }}api/scinderLot/' + data,
-                type : 'POST',
-                success: function (response){
-                    reponse = JSON.parse(response)
-                    $("#modal_scission .btn-close").click()
-                    render_toast_value(reponse.msg, reponse.code)
-                    listeLots()
-                },
-                error : function (erreur){
-                    reponse = "Erreur"
-                    console.log(erreur)
-                }
-            })
-        }
         function selected_row(){
             document.querySelectorAll(".tr").forEach(function(row) {
                 row.addEventListener("click", function() {
@@ -291,6 +283,9 @@
             $("#poids_nc").val(0)
             id_lot = "0";
             document.querySelector("#btn_s_nc").style ='display:none'
+            document.getElementById("produit").disabled = false;
+            document.getElementById("proprio").disabled = false;
+            document.getElementById("produit").innerHTML=""
         }
         $(" input ").on("input", function (){
             check_input(this)
@@ -303,6 +298,7 @@
                 ctl.style.background = "lightyellow"
             }
         }
+
     </script>
 {% endblock %}
 

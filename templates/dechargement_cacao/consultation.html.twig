@@ -1,0 +1,132 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Déchargements cacao enregistrés{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'dechargement_cacao/_styles.html.twig' %}
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_dechargement_cacao_import') }}">Import déchargement</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Déchargements</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Gestion du stock · Cacao</span>
+                <h1>Déchargements cacao enregistrés</h1>
+                <p>Bons issus des imports Excel / CSV, avec leur poids net, leur PNP et leurs écarts.</p>
+            </div>
+            <div class="dc-header-actions">
+                <a href="{{ path('app_dechargement_cacao_import') }}" class="dc-chip solid">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nouvel import
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="dc-stats">
+        <div class="dc-stat total"><div class="lbl">Bons</div><div class="val">{{ totaux.nb|number_format(0, ',', ' ') }}</div><div class="sub">en base</div></div>
+        <div class="dc-stat"><div class="lbl">Sacs</div><div class="val">{{ totaux.sacs|number_format(0, ',', ' ') }}</div><div class="sub">cumul</div></div>
+        <div class="dc-stat nouveau"><div class="lbl">Poids net</div><div class="val">{{ totaux.poids|number_format(0, ',', ' ') }}</div><div class="sub">kg</div></div>
+        <div class="dc-stat modifie"><div class="lbl">PNP</div><div class="val">{{ totaux.pnp|number_format(0, ',', ' ') }}</div><div class="sub">kg</div></div>
+    </div>
+
+    <section class="dc-card">
+        <div class="dc-card-head">
+            <h2>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Liste des déchargements
+            </h2>
+            <span class="hint">{{ total|number_format(0, ',', ' ') }} bon(s)</span>
+        </div>
+        <div class="dc-card-body">
+            <form method="get" class="d-flex flex-wrap gap-2 mb-3">
+                <input type="search" name="q" value="{{ terme }}" class="form-control" style="max-width:260px;border-radius:10px;border-color:#e0d2c0;" placeholder="Code, camion, transporteur…">
+                <select name="cooperative" class="form-select" style="max-width:280px;border-radius:10px;border-color:#e0d2c0;">
+                    <option value="">Toutes les coopératives</option>
+                    {% for c in cooperatives %}
+                        <option value="{{ c }}" {{ cooperative == c ? 'selected' }}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+                <button class="dc-btn dc-btn-primary" type="submit">Filtrer</button>
+                <a href="{{ path('app_dechargements_cacao') }}" class="dc-btn dc-btn-ghost">Réinitialiser</a>
+            </form>
+
+            <div class="dc-table-wrap">
+                <div class="dc-table-scroll">
+                    <table class="dc-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Date</th>
+                                <th>Coopérative</th>
+                                <th>Immat</th>
+                                <th>Transporteur</th>
+                                <th class="num">Sacs</th>
+                                <th class="num">PoidsNet</th>
+                                <th class="num">PNP</th>
+                                <th class="num">Écart</th>
+                                <th>Statut</th>
+                                <th>Déchargé le</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for d in items %}
+                            {% set ecart = (d.pnp is not null and d.poidsNet is not null) ? (d.pnp - d.poidsNet) : null %}
+                            <tr>
+                                <td data-label="Code" class="code">{{ d.code }}</td>
+                                <td data-label="Date">{{ d.dateBon ? d.dateBon|date('d/m/Y H:i') : '—' }}</td>
+                                <td data-label="Coopérative"><span class="trunc" title="{{ d.cooperative }}">{{ d.cooperative ?: '—' }}</span></td>
+                                <td data-label="Immat">{{ d.immatriculation ?: '—' }}</td>
+                                <td data-label="Transporteur"><span class="trunc" title="{{ d.transporteur }}">{{ d.transporteur ?: '—' }}</span></td>
+                                <td data-label="Sacs" class="num">{{ d.nbreSacs is not null ? d.nbreSacs|number_format(0, ',', ' ') : '—' }}</td>
+                                <td data-label="PoidsNet" class="num">{{ d.poidsNet is not null ? d.poidsNet|number_format(0, ',', ' ') : '—' }}</td>
+                                <td data-label="PNP" class="num">{{ d.pnp is not null ? d.pnp|number_format(0, ',', ' ') : '—' }}</td>
+                                <td data-label="Écart" class="num">
+                                    {% if ecart is not null and ecart|abs > 0.5 %}
+                                        <span class="dc-ecart {{ ecart > 0 ? 'pos' : 'neg' }}">{{ ecart > 0 ? '+' }}{{ ecart|number_format(0, ',', ' ') }}</span>
+                                    {% else %}<span style="color:#b5aa9d;">—</span>{% endif %}
+                                </td>
+                                <td data-label="Statut"><span style="font-size:.78rem;">{{ d.statut ?: '—' }}</span></td>
+                                <td data-label="Déchargé le">{{ d.dateDechargement ? d.dateDechargement|date('d/m/Y') : '—' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="11"><div class="dc-empty">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+                                <div>Aucun déchargement enregistré pour le moment.</div>
+                                <a href="{{ path('app_dechargement_cacao_import') }}" class="dc-btn dc-btn-primary mt-3">Importer un fichier</a>
+                            </div></td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% set pages = (total / parPage)|round(0, 'ceil') %}
+            {% if pages > 1 %}
+            <nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                <span class="hint">Page {{ page }} sur {{ pages }}</span>
+                <div class="d-flex gap-2">
+                    {% if page > 1 %}
+                        <a class="dc-btn dc-btn-ghost" href="{{ path('app_dechargements_cacao', {page: page - 1, q: terme, cooperative: cooperative}) }}">Précédent</a>
+                    {% endif %}
+                    {% if page < pages %}
+                        <a class="dc-btn dc-btn-ghost" href="{{ path('app_dechargements_cacao', {page: page + 1, q: terme, cooperative: cooperative}) }}">Suivant</a>
+                    {% endif %}
+                </div>
+            </nav>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

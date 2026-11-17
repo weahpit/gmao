@@ -36,10 +36,13 @@ final class ApiLotController extends AbstractController
                             'produit'=>$lot->getCodeProduit() ? $lot->getCodeProduit()->getLibelle() : "",
                             'date_production'=>$lot->getDateProd() ? $lot->getDateProd()->format('d/m/Y') : "",
                             'pn_th'=>$lot->getPnTh() ? $lot->getPnTh() :0,
+                            'nbSacs'=>$lot->getNbSacs() ? $lot->getNbSacs() :0,
+                            'pb_th'=>$lot->getPbTht() ? $lot->getPbTht() :0,
                             'etat'=>"-",
                             'situation'=>$lot->getCodeMagasin() ? $lot->getCodeMagasin()->getLibelle() : "",
                             'ot'=>"-",
-                            'qualite'=>$lot->getQualite()
+                            'qualite'=>$lot->getQualite(),
+                            'unite'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getUnite()->getLibelle() : ""
                             );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -72,13 +75,12 @@ final class ApiLotController extends AbstractController
                             'produit'=>$lot->getCodeProduit() ? $lot->getCodeProduit()->getLibelle() : "",
                             'date_production'=>$lot->getDateProd() ? $lot->getDateProd()->format('d/m/Y') : "",
                             'pn_th'=>$lot->getPnTh() ? $lot->getPnTh() :0,
+                            'nbSacs'=>$lot->getNbSacs() ? $lot->getNbSacs() :0,
+                            'pb_th'=>$lot->getPbTht() ? $lot->getPbTht() :0,
                             'etat'=>"-",
                             'situation'=>$lot->getCodeMagasin() ? $lot->getCodeMagasin()->getLibelle() : "",
                             'ot'=>"-",
                             'qualite'=>$lot->getQualite(),
-                            'nbCartons'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getNbDefault() : 0,
-                            'poidsNet'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getPoidsNetDefault() : 0,
-                            'poidsBrut'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getPoidsBrutDefault() : 0,
                             'unite'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getUnite()->getLibelle() : ""
                         );
                     }
@@ -115,13 +117,12 @@ final class ApiLotController extends AbstractController
                     'produit'=>$lot->getCodeProduit() ? $lot->getCodeProduit()->getId() : "",
                     'date_production'=>$lot->getDateProd() ? $lot->getDateProd()->format('Y-m-d') : "",
                     'pn_th'=>$lot->getPnTh() ? $lot->getPnTh() :0,
+                    'nbSacs'=>$lot->getNbSacs() ? $lot->getNbSacs() :0,
+                    'pb_th'=>$lot->getPbTht() ? $lot->getPbTht() :0,
                     'etat'=>"-",
                     'situation'=>$lot->getCodeMagasin() ? $lot->getCodeMagasin()->getId() : "",
                     'ot'=>"-",
                     'qualite'=>$lot->getQualite(),
-                    'nbCartons'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getNbDefault() : 0,
-                    'poidsNet'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getPoidsNetDefault() : 0,
-                    'poidsBrut'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getPoidsBrutDefault() : 0,
                     'unite'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getUnite()->getLibelle() : ""
                 );
             } else {
@@ -167,7 +168,7 @@ final class ApiLotController extends AbstractController
                         $lot = $this->em->getRepository(Lot::class)->find(Uuid::fromString($id_lot));
                     } else {
                         // Recherche de doublons
-                        $rech_dbl = $this->em->getRepository(Lot::class)->findBy(['numero_lot'=>strtoupper($numero_lot)]);
+                        $rech_dbl = $this->em->getRepository(Lot::class)->findBy(['origine'=>strtoupper($numero_lot)]);
                         if ($rech_dbl){
                             $reponse = [
                                 'code' => 'error',
@@ -183,18 +184,22 @@ final class ApiLotController extends AbstractController
                     if (!$lot) {
                         $lot = new Lot();
                         $isNew = true;
+                        $lot->setPnTh(floatval($lot->getCodeProduit()?$lot->getCodeProduit()->getPoidsNetDefault() : 0 ));
+                        $lot->setPbTht(floatval($lot->getCodeProduit()?$lot->getCodeProduit()->getPoidsNetDefault() : 0 ));
+                        $lot->setNbSacs(floatval($lot->getCodeProduit()?$lot->getCodeProduit()->getPoidsNetDefault() : 0 ));
+
+                        $lot->setQualite('C');
+                        $lot->setCreatedAt(new \DateTimeImmutable());
+                        $lot->setCreatedBy($this->getUser());
+                        $lot->setCreatedBy($this->getUser());
                     }
 
                     $lot->setNumeroLot(strtoupper($numero_lot));
+                    $lot->setOrigine(strtoupper($numero_lot));
                     $lot->setCodeProprio($proprio);
                     $lot->setCodeProduit($produit);
                     $lot->setCodeMagasin($magasin);
                     $lot->setDateProd(new \DateTime($date_prod));
-                    $lot->setQualite('C');
-                    $lot->setCreatedAt(new \DateTimeImmutable());
-                    $lot->setCreatedBy($this->getUser());
-                    $lot->setScission(false);
-                    $lot->setPnTh(floatval($pn_th));
 
                     $this->em->persist($lot);
                     $this->em->flush();
@@ -238,6 +243,99 @@ final class ApiLotController extends AbstractController
             } catch (\Throwable $throwable) {
                 $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est lote !<br>' . $throwable->getMessage()];
             }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse($reponse);
+    }
+
+#[Route('api/Prod/ScissionLot', name: 'get_scission_lot')]
+    public function get_scission_lot(Request $request): Response
+    {
+        $reponse = array();
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_DG")) {
+            try {
+            $id_lot = $request->request->get('id_lot');
+            $poidsDemande = $request->request->get('poids_demande');
+            $lot = $this->em->getRepository(Lot::class)->find($id_lot);
+            if($lot){
+                $pb = $lot->getPbTht() ?  $lot->getPbTht()  : $lot->getCodeProduit()->getPoidsBrutDefault();
+                $pn = $lot->getPnTh();
+                $tare = $lot->getCodeProduit()->getTareUniteDefault() ? $lot->getCodeProduit()->getTareUniteDefault() : 0 ;
+
+                if ((float) $poidsDemande > $pn or (float) $poidsDemande <= 0) {
+                    $reponse = array(
+                        'code'=>'warning',
+                        'msg'=>'Merci de renseigner un Poids Net Correct !'
+                    );
+                } else {
+                    $nb_sacs_nc = 0;
+                    $nb_sacs_c = 0;
+
+                    //Création du lolt NC
+                    $lot_nc = new Lot();
+                    $lot_nc->setNumeroLot($lot->getNumeroLot()."-2");
+                    $lot_nc->setOrigine(strtoupper($lot->getOrigine()));
+                    $lot_nc->setScission(true);
+                    $lot_nc->setQualite("NC");
+                    $lot_nc->setPnTh((float) $pn);
+
+                    //Calcule le nb de sacs ou cartons ou big bag
+                        $nb_sacs_nc = ($lot->getNbSacs() * (float) $poidsDemande) / $lot->getPnTh();
+                    // Calcule du poids Brut
+                        $tare_nc =  $nb_sacs_nc * ($tare);
+                        $pb_nc = (float) $pn + $tare_nc;
+
+                    $lot_nc->setPbTht($pb_nc);
+                    $lot_nc->setNbSacs($nb_sacs_nc);
+                    $lot_nc->setPoidsNetDispo((float) $pn);
+                    $lot_nc->setUpdatedAt(new \DateTimeImmutable());
+                    $lot_nc->setCreatedAt(new \DateTimeImmutable());
+                    $lot_nc->setUpdatedBy($this->getUser());
+                    $lot_nc->setCreatedBy($this->getUser());
+                    $lot_nc->setCodeMagasin($this->em->getRepository(Magasin::class)->findOneBy(['libelle'=>'MAGASIN NON CONFORME']));
+                    $lot_nc->setCodeProduit($lot->getCodeProduit());
+                    $lot_nc->setCodeProprio($lot->getCodeProprio());
+                    $lot_nc->setDateProd($lot->getDateProd());
+                    $this->em->persist($lot_nc);
+
+                    // Mise à jour du lot principal
+
+
+                    $lot->setNumeroLot($lot->getNumeroLot()."-1");
+                    $lot->setScission(true);
+                    $lot->setQualite("C");
+                    $lot->setPnTh($lot->getPnTh() - (int) $pn);
+                    $lot->setPoidsNetDispo($lot->getPnTh());
+
+                    $nb_sacs_c = $lot->getNbSacs() - $nb_sacs_c;
+                    $pb_c = $pb - $pb_nc;
+                    $lot->setPbTht($pb_c);
+                    $lot->setNbSacs($nb_sacs_c);
+
+                    $lot->setUpdatedAt(new \DateTimeImmutable());
+                    $lot->setUpdatedBy($this->getUser());
+                    $this->em->persist($lot);
+                    $this->em->flush();
+
+                    $reponse = array(
+                        'code'=>"success",
+                        'msg'=>'Scission effectuée avec succès'
+                    );
+                }
+            } else {
+                $reponse = array(
+                    'code'=>"error",
+                    'msg'=>'Erreur lors de la scission !'
+                );
+            }
+        } catch (\Throwable $throwable){
+            $reponse = array(
+                'code'=>"error",
+                'msg'=>$throwable->getTraceAsString()
+            );
+        }
         } else {
             $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
         }

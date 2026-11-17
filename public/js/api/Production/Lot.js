@@ -130,3 +130,20 @@ function getSingleLot(formData) {  // api/getSingleUser
 
     });
 }
+
+function scinderLot(formData, ctrl_name, ctrl_type){
+    fetch( URL_APP + "api/Prod/ScissionLot", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+            showToast(data.msg, {
+                type : data.code,
+                duration: 2000,
+                title: 'Scission'
+            })
+            if (data.code === "success") {
+                reinitialise_form()
+                getAllLots(ctrl_name, ctrl_type)
+            }
+        })
+        .catch(err => showToast("❌ Erreur : " + err, {title: 'Lot', duration: 4000}));
+}

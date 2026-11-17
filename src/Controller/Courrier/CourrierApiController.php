@@ -14,8 +14,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\UploadedFile;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * API MOBILE de l'enregistrement du courrier (application CITRAC GMAO).
@@ -144,17 +144,43 @@ class CourrierApiController extends AbstractController
             return new JsonResponse(['code' => 'error', 'msg' => 'Non authentifie'], 401);
         }
         if (!$this->aDroitDeGerer()) {
+            // Liste des roles de l'agent pour un diagnostic immediat depuis
+            // l'application mobile (le message reste lisible en francais).
+            $roles = method_exists($this->getUser(), 'getRoles') ? implode(', ', $this->getUser()->getRoles()) : '';
+
             return new JsonResponse([
-                'code' => 'error',
-                'msg'  => "Acces refuse : l'enregistrement du courrier est reserve au role courrier (ROLE_COURRIER) ou a l'administrateur.",
+                'code'  => 'error',
+                'msg'   => "Acces refuse : l'enregistrement du courrier est reserve au role courrier "
+                    . "(ROLE_COURRIER) ou a l'administrateur. Roles de votre compte : "
+                    . ($roles !== '' ? $roles : 'aucun'),
+                'roles' => $roles,
             ], 403);
         }
+        // Requete vide (PHP a refuse le corps) : on le dit AVANT de se plaindre
+        // d'un objet manquant, sinon le message est trompeur.
         if ($request->request->count() === 0 && $request->files->count() === 0
             && (int) $request->server->get('CONTENT_LENGTH', 0) > 0) {
             return new JsonResponse([
                 'code' => 'error',
-                'msg'  => 'Requete trop volumineuse (post_max_size = ' . ini_get('post_max_size') . ').',
+                'msg'  => 'Requete trop volumineuse : les donnees envoyees n ont pas ete recues par le serveur '
+                    . '(post_max_size = ' . ini_get('post_max_size')
+                    . ', upload_max_filesize = ' . ini_get('upload_max_filesize')
+                    . '). Reduisez la photo ou modifiez public/.user.ini.',
             ], 413);
+        }
+        // Corps present mais aucun champ lisible : l'application a envoye du
+        // JSON alors que l'API attend un formulaire multipart. Message clair
+        // plutot que « L'objet du courrier est obligatoire ».
+        if ($request->request->count() === 0 && $request->files->count() === 0) {
+            $type = (string) $request->headers->get('Content-Type', '');
+            if (str_contains(strtolower($type), 'json')) {
+                return new JsonResponse([
+                    'code' => 'error',
+                    'msg'  => "Format non accepte : l'enregistrement d'un courrier attend un formulaire "
+                        . 'multipart/form-data (champs + pieces[]), pas du JSON. Mettez a jour '
+                        . "l'application mobile (version corrigee).",
+                ], 415);
+            }
         }
 
         $courrier = new Courrier();
@@ -166,7 +192,12 @@ class CourrierApiController extends AbstractController
         }
 
         if ($erreurs !== []) {
-            return new JsonResponse(['code' => 'warning', 'msg' => implode(' ', $erreurs), 'erreurs' => $erreurs], 400);
+            // Message complet en une ligne (l'app mobile affiche « msg »).
+            return new JsonResponse([
+                'code'    => 'warning',
+                'msg'     => implode(' ', $erreurs),
+                'erreurs' => $erreurs,
+            ], 400);
         }
 
         try {
@@ -174,7 +205,16 @@ class CourrierApiController extends AbstractController
             $this->em->persist($courrier);
             $this->em->flush();
         } catch (\Throwable $e) {
-            return new JsonResponse(['code' => 'error', 'msg' => 'Enregistrement impossible : ' . $e->getMessage()], 500);
+            // Trace complete dans var/log/dev.log (ou prod.log) : sans cela, un
+            // echec d'enregistrement cote mobile restait inexplicable.
+            $this->journaliser('creation courrier : ' . $e->getMessage(), $e);
+
+            return new JsonResponse([
+                'code' => 'error',
+                'msg'  => "Enregistrement impossible : le serveur a refuse l'enregistrement ("
+                    . (string) $e->getMessage() . '). Reessayez ; si le probleme persiste, '
+                    . 'transmettez ce message a l\'administrateur.',
+            ], 500);
         }
 
         return new JsonResponse([
@@ -545,6 +585,29 @@ class CourrierApiController extends AbstractController
         }
 
         return $n;
+    }
+
+    /**
+     * Ecrit l'erreur dans le journal Symfony. Ne bloque jamais : si le
+     * journal n'est pas disponible, l'enregistrement continue.
+     */
+    private function journaliser(string $message, ?\Throwable $e = null): void
+    {
+        try {
+            $logger = $this->container->get('logger');
+            if ($logger) {
+                $logger->error('[API courrier] ' . $message, $e ? ['exception' => $e] : []);
+
+                return;
+            }
+        } catch (\Throwable) {
+            // pas de conteneur/logger : on continue silencieusement
+        }
+
+        try {
+            @error_log('[API courrier] ' . $message);
+        } catch (\Throwable) {
+        }
     }
 
     private function videOuValeur(mixed $valeur): ?string

@@ -11,7 +11,7 @@ parameters:
     # A remplacer par votre propre code avant la mise en ligne.
     supervision_pin: '%env(default:supervision_pin_defaut:CITRAC_SUPERVISION_PIN)%'
     supervision_pin_defaut: 'citrac2026'
-
+    modele_dechargement_cacao: '%kernel.project_dir%/templates/dechargement_cacao/modele_dechargement_cacao.xlsx'
     photo_equipement: 'data/equipements/'
     photo_users: 'data/users/photos/'
     photos_alertes_anomalies: 'data/maintenance/alertes/anomalies/'

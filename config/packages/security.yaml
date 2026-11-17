@@ -64,17 +64,22 @@ security:
     role_hierarchy:
         # ROLE_COURRIER : agent en charge de l'enregistrement du courrier
         # (application mobile et module web). ROLE_ADMIN en herite.
-        ROLE_ADMIN:                  [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_DG, ROLE_COURRIER, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_SHIPPING, ROLE_MAGASIN]
-        ROLE_DG:                        [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_COURRIER, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_SHIPPING, ROLE_MAGASIN]
-        ROLE_DL:                          [ROLE_PDR, ROLE_COURRIER, ROLE_USER, ROLE_SHIPPING, ROLE_MAGASIN, ROLE_USER, ROLE_SAISIE_STOCK]
-        ROLE_COORD_USINE:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_USER, ROLE_SAISIE_STOCK]
-        ROLE_SHIPPING:               [ROLE_USER, ROLE_MAGASIN]
+        ROLE_ADMIN:                  [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_DG, ROLE_COURRIER, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_SHIPPING, ROLE_MAGASIN, ROLE_LOGISTIQUE, ROLE_ACHATS]
+        ROLE_DG:                        [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_COURRIER, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_SHIPPING, ROLE_MAGASIN, ROLE_LOGISTIQUE, ROLE_ACHATS]
+        ROLE_DL:                          [ROLE_PDR, ROLE_COURRIER, ROLE_USER, ROLE_SHIPPING, ROLE_MAGASIN, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_LOGISTIQUE, ROLE_ACHATS]
+        ROLE_COORD_USINE:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_LOGISTIQUE, ROLE_ACHATS]
+        ROLE_SHIPPING:               [ROLE_USER, ROLE_MAGASIN, ROLE_LOGISTIQUE]
+        ROLE_ACHATS:                 [ROLE_USER, ROLE_MAGASIN, ROLE_LOGISTIQUE]
+        ROLE_AQ:                        [ROLE_USER, ROLE_LABO, ROLE_RESP_LABO]
+        ROLE_RESP_LABO:            [ROLE_USER, ROLE_LABO]
+        ROLE_LABO:                     ROLE_USER
         ROLE_COURRIER:             ROLE_USER
         ROLE_MAGASIN:              ROLE_USER
         ROLE_SAISIE_STOCK:        ROLE_USER
         ROLE_PDR:                        ROLE_USER
         ROLE_TECHNICIAN:          ROLE_USER
         ROLE_VIGIL:                      ROLE_USER
+        ROLE_LOGISTIQUE:           ROLE_USER
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:

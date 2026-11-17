@@ -72,6 +72,9 @@ class Lot
     #[ORM\Column(nullable: true)]
     private ?float $nb_sacs = null;
 
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $origine = null;
+
     public function __construct()
     {
         $this->code_dossier = new ArrayCollection();
@@ -286,6 +289,18 @@ class Lot
     public function setNbSacs(?float $nb_sacs): static
     {
         $this->nb_sacs = $nb_sacs;
+
+        return $this;
+    }
+
+    public function getOrigine(): ?string
+    {
+        return $this->origine;
+    }
+
+    public function setOrigine(?string $origine): static
+    {
+        $this->origine = $origine;
 
         return $this;
     }
