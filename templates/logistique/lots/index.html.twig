@@ -1,673 +1,308 @@
 {% extends 'base.html.twig' %}
-{% block title %}Production de lot{% endblock %}
+{% block title %}Production de lots{% endblock %}
 
 {% block body %}
-{% include 'logistique/_styles_cacao.html.twig' %}
-{# NB : la page fournit son propre rendu des lots (mise en forme cacao,
-   depliage des lignes, cumul), donc Lot.js n'est pas charge ici pour eviter
-   un second rendu dans .lots_body. Les appels API restent identiques. #}
+    <style>
+        select {
+            border: 1px solid grey;
+            background: white;
+            height: 30px;
+            font-size: 13px;
+            font-weight: lighter;
+            width: 200px;
+        }
+        th {
+            font-weight: bolder;
+        }
+        input{
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding-left: 10px;
+            border: 1px solid lightgrey;
+            border-bottom: 2px solid darkblue;
+            width: 200px;
+        }
+        th, td {
+            border-right: 1px solid black;
+            padding: 2px;
+        }
+        .selected {
+            background: #3b82f6;
+            color: white;
+        }
+        .highlight { background-color: yellow; }
+        .hov {
+            background: #cfdaeb;
+            color: black;
+        }
 
-<div class="lg-page container-fluid px-3 px-lg-4 py-3">
+    </style>
+    <h3 class="p-1 sticky-top" style="border-bottom: 1px solid #c0bebe;background: #d2cdcd;">Gestion des lots</h3>
+    <div class="m-2 border border1 border-secondary" style="min-height: 500px;">
 
-    {# ============================ EN-TETE ============================ #}
-    <div class="lg-header">
-        <div>
-            <h1><i class="fa-solid fa-boxes-stacked"></i> Production de lot</h1>
-            <p>Enregistrement des lots par propriétaire et par produit (Fèves, Masse, Beurre, Tourteau) — suivi du poids net théorique et de l'emplacement.</p>
-        </div>
-        <div class="lg-hero-actions">
-            <a href="#form-lot" class="btn" id="hero_nouveau"><i class="fa-solid fa-plus me-1"></i> Nouveau lot</a>
-            <button type="button" class="btn" id="hero_rafraichir"><i class="fa-solid fa-rotate me-1"></i> Rafraîchir</button>
-        </div>
-    </div>
+        <div class="row p-2 m-2"  style="background:linear-gradient( #f9f9f6, #fdfde7);border: 1px solid #343401;">
 
-    {# ============================ CARTES KPI ============================ #}
-    <div class="lg-cards">
-        <div class="lg-card">
-            <div class="lbl">Lots enregistrés</div>
-            <div class="val" id="kpi_lots">—</div>
-            <div class="sub">Total de la base</div>
-        </div>
-        <div class="lg-card">
-            <div class="lbl">Fèves</div>
-            <div class="val" id="kpi_feves">—</div>
-            <div class="sub" id="kpi_feves_pn">PN théorique</div>
-        </div>
-        <div class="lg-card">
-            <div class="lbl">Masse</div>
-            <div class="val" id="kpi_masse">—</div>
-            <div class="sub" id="kpi_masse_pn">PN théorique</div>
-        </div>
-        <div class="lg-card">
-            <div class="lbl">Beurre</div>
-            <div class="val" id="kpi_beurre">—</div>
-            <div class="sub" id="kpi_beurre_pn">PN théorique</div>
-        </div>
-        <div class="lg-card is-accent">
-            <div class="lbl">Tourteau</div>
-            <div class="val" id="kpi_tourteau">—</div>
-            <div class="sub" id="kpi_tourteau_pn">PN théorique</div>
-        </div>
-        <div class="lg-card is-accent">
-            <div class="lbl">PN théorique total</div>
-            <div class="val" id="kpi_pn_total">—</div>
-            <div class="sub">Tous produits confondus (Kg)</div>
-        </div>
-    </div>
-
-    {# ============================ FORMULAIRE ============================ #}
-    <div class="lg-bloc" id="form-lot">
-        <div class="lg-bloc-title">
-            <span class="lg-num">1</span>
-            <span id="form_titre">Nouveau lot de production</span>
-            <span class="lg-hint" id="form_mode">Création</span>
-        </div>
-
-        <div class="lg-grille">
-            <div class="lg-champ">
-                <label for="numero_lot">N° Lot <span class="text-danger">*</span></label>
-                <input type="text" class="form-control text-uppercase" id="numero_lot" placeholder="Ex. LOT-2026-001" autocomplete="off">
-            </div>
-            <div class="lg-champ">
-                <label for="proprio">Propriétaire <span class="text-danger">*</span></label>
-                <div class="lg-avec-plus">
-                    <select class="form-select" id="proprio" name="proprio"></select>
-                    <button type="button" class="lg-plus" id="ajt_proprio" title="Ajouter un propriétaire" data-bs-toggle="modal" data-bs-target="#modalProprietaire">+</button>
+            <div class="col-md-5">
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="numero_lot" class="fw-bold" style="width: 200px;"> N° Lot</label>
+                    <input class="w-100" type="text" placeholder="N° Lot" id="numero_lot">
+                </div>
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="proprio" class="fw-bold" style="width: 200px;"> Propriétaire</label>
+                    <select class="w-100" name="proprio" id="proprio" required></select>
+                </div>
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="produit" class="fw-bold" style="width: 200px;"> Produit</label>
+                    <select  class="w-100" name="produit" id="produit" required></select>
                 </div>
             </div>
-            <div class="lg-champ">
-                <label for="produit">Produit <span class="text-danger">*</span></label>
-                <select class="form-select" id="produit" name="produit"></select>
-                <div class="lg-aide">Les produits affichés dépendent du propriétaire choisi.</div>
+            <div class="col-md-5">
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="date_prod" class="fw-bold" style="width: 200px;"> Date Production</label>
+                    <input  class="w-100" type="date" id="date_prod" placeholder="date de production" style="width: 200px;" required>
+                </div>
+                <div class="d-flex justify-content-start border border-1 mb-1" style="background: #fff869;">
+                    <div class="d-flex justify-content-between mb-1 ms-2 mt-1 me-2">
+                        <label for="pn_th" class="fw-bold" style="width: 100px;"> PB Th</label>
+                        <input class="w-100" type="number" placeholder="PB Théorique" id="pb_th" disabled>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 ms-2 mt-1 me-2">
+                        <label for="pn_th" class="fw-bold" style="width: 100px;"> PN Th</label>
+                        <input class="w-100" type="number" placeholder="PN Théorique" id="pn_th" disabled>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mb-2 ms-2">
+                    <label for="magasin" class="fw-bold" style="width: 200px;"> Emplacement</label>
+                    <select class="w-100" name="magasin" id="magasin" required></select>
+                </div>
             </div>
-            <div class="lg-champ">
-                <label for="date_prod">Date de production <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" id="date_prod">
-            </div>
-            <div class="lg-champ">
-                <label for="pn_th">PN Théorique (Kg) <span class="text-danger">*</span></label>
-                <input type="number" step="0.01" min="0" class="form-control" id="pn_th" placeholder="0.00">
-            </div>
-            <div class="lg-champ">
-                <label for="magasin">Emplacement / Magasin <span class="text-danger">*</span></label>
-                <select class="form-select" id="magasin" name="magasin"></select>
+
+            <div class="col-md-2 text-center">
+                <a href="#" class="btn btn-warning mx-auto mt-2 text-center" id="new_lot" style="width: 150px;" >Nouveau lot</a><br>
+                <a href="#" id="btn_enr_lot" class="btn btn-success mx-auto mt-2 text-center" style="width: 150px;">Enregistrer en base</a>
             </div>
         </div>
-
-        <div class="lg-actions mt-3">
-            <span class="lg-badge neutre me-auto" id="lot_selection">Aucun lot sélectionné — mode création</span>
-            <button type="button" class="btn btn-outline-cacao" id="new_lot"><i class="fa-solid fa-eraser me-1"></i> Réinitialiser</button>
-            <button type="button" class="btn btn-outline-cacao" id="btn_s_nc" style="display:none" data-bs-toggle="modal" data-bs-target="#modal_scission">
-                <i class="fa-solid fa-cut me-1"></i> Scission non-conformité
-            </button>
-            <button type="button" class="btn btn-cacao" id="btn_enr_lot">
-                <i class="fa-solid fa-floppy-disk me-1"></i> Enregistrer en base
-            </button>
-        </div>
-    </div>
-
-    {# ============================ TABLEAU DES LOTS ============================ #}
-    <div class="lg-bloc">
-        <div class="lg-bloc-title">
-            <span class="lg-num">2</span>
-            <span>Lots enregistrés</span>
-            <span class="lg-hint">Cliquez sur une ligne pour ouvrir le lot</span>
-        </div>
-
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div class="lg-recherche">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" class="form-control" id="recherche" placeholder="Rechercher un lot, un propriétaire, un produit…">
-            </div>
-            <select class="form-select" id="filtre_produit" style="max-width: 220px;">
-                <option value="">Tous les produits</option>
-                <option value="feves">Fèves</option>
-                <option value="masse">Masse</option>
-                <option value="beurre">Beurre</option>
-                <option value="tourteau">Tourteau</option>
-            </select>
-        </div>
-
-        <div class="table-responsive lg-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th class="lg-chev"></th>
+        <hr>
+        <div class="w-100 p1">
+            <div class="p-1 bg-white m-1"  style="height: 550px;overflow-y: scroll;border: 1px solid lightgrey;">
+                <div class="form-group form-group-sm mt-2 d-inline-flex">
+                    <label class="fw-bold">
+                        <input type="text" placeholder="Rechercher un lot" id="recherche">
+                    </label>
+                    <a href="#" data-bs-target="#modal_scission" data-bs-toggle="modal" class="btn btn-outline-danger btn-sm ms-2" style="display: none" id="btn_s_nc" title="Scinder le lot en Conforme et non Conforme"><i class="fa fa-cut ms-2"></i> Scission Non conformité</a>
+                </div>
+                <br>
+                <div class="p-0 d-inline-flex mt-2">
+                    <label for="" style="font-weight: bold;">Légende : </label><label for="" class="ms-5" style="background-color: #fabdbd;height: 18px;width: 18px;"></label><label for="" class="ms-1 mb-2">Lots non conforme (NC)</label>
+                </div>
+                <hr style="border: 2px black dashed">
+                <table  class="mt-1 w-100 table-hover">
+                    <thead class="fw-normal sticky-top">
+                    <tr class="p-1 fw-light" id="table tableLots" style="background: linear-gradient(#f5f1f1, #d2cdcd);font-weight: normal;font-size: 16px;border: 1px solid black;height: 25px;">
                         <th>N° Lot</th>
-                        <th>Propriétaire</th>
-                        <th>Nature (produit)</th>
-                        <th>Date production</th>
-                        <th class="text-end">PN Théorique (Kg)</th>
-                        <th>État</th>
+                        <th>Proprietaire</th>
+                        <th>Nature</th>
+                        <th>Date Production</th>
+                        <th>PN Théor.</th>
+                        {#<th>PN Réel</th>#}
+                        <th>Etat</th>
                         <th>Situation</th>
                         <th>N° OT</th>
                     </tr>
-                </thead>
-                <tbody class="lots_body" id="corps_lots">
-                    <tr class="lg-vide"><td colspan="9">Chargement des lots…</td></tr>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th colspan="5" class="text-end" style="background:#faf6f0;color:#5A371E;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;">Cumul affiché</th>
-                        <th class="text-end lg-montant" id="pied_pn" style="background:#faf6f0;color:#5A371E;font-size:.85rem;">0,00</th>
-                        <th colspan="3" id="pied_nb" style="background:#faf6f0;color:#8b7c6b;font-size:.76rem;font-weight:500;">0 lot</th>
-                    </tr>
-                </tfoot>
-            </table>
+                    </thead>
+                    <tbody class="lots_body"><tr><td><h6 class="fw-bold text-danger">Chargement des lots...</h6></td></tr></tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="lg-legende">
-            <span><span class="puce" style="background:#f3b0b0;"></span>Lot non conforme (NC)</span>
-            <span><span class="puce" style="background:#e3d8ca;"></span>Lot conforme</span>
-            <span><i class="fa-solid fa-circle-info me-1"></i>Le PN théorique est exprimé en kilogrammes.</span>
-        </div>
     </div>
-</div>
 
-{# ============================ MODAL SCISSION ============================ #}
-<div class="modal fade" id="modal_scission" tabindex="-1" role="dialog" aria-labelledby="labelScission" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
-                <h5 class="modal-title" id="labelScission"><i class="fa-solid fa-cut me-2"></i>Scission de lot</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-3" style="font-size:.9rem;color:#4a3b2e;">Voulez-vous scinder le lot sélectionné pour non-conformité ? Saisissez le poids non conforme (Kg).</p>
-                <label class="fw-bold mb-1" style="font-size:.8rem;color:#6b5a4a;">Poids Non Conforme (Kg)</label>
-                <input type="number" step="0.01" min="0" class="form-control" id="poids_nc" placeholder="0.00">
-            </div>
-            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
-                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-cacao" id="btn-scission"><i class="fa-solid fa-cut me-1"></i>Scinder</button>
+    {# Modal Scission #}
+    <div class="modal fade" id="modal_scission" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Scission de lot</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center" >
+                    <h5 class="fw-normal">Voulez-vous scinder le lot suivant pour non conformité ?</h5>
+                    <hr>
+                    <div class="mt-2 container">
+                        <label class="fw-bold"> Saisissez le poids Non Conforme (kg)
+                            <br><input class="fw-bold text-center" type="number" style="width: 100%;background-color: #f6d3d7" placeholder="Poids NC" id="poids_nc">
+                        </label>
+                    </div>
+                    <div class="mt-2">
+                        <a href="#" class="btn btn-danger btn-sm mb-2 w-100" id="btn-scission">Scinder</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-{# ============================ MODAL PROPRIETAIRE ============================ #}
-<div class="modal fade" id="modalProprietaire" tabindex="-1" aria-labelledby="labelProprio" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content" style="border-radius:14px;overflow:hidden;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#5A371E,#8B5A2B);color:#fff;">
-                <h5 class="modal-title" id="labelProprio"><i class="fa-solid fa-user-tie me-2"></i>Nouveau propriétaire</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formProprietaire">
-                    <label class="fw-bold mb-1" style="font-size:.8rem;color:#6b5a4a;">Dénomination</label>
-                    <input type="text" class="form-control text-uppercase" id="proprietaire_nom" placeholder="DÉNOMINATION DU PROPRIÉTAIRE">
-                </form>
-            </div>
-            <div class="modal-footer" style="border-top:1px solid #ece3d8;">
-                <button type="button" class="btn btn-outline-cacao" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-cacao" id="btn-add-proprio">Ajouter</button>
-            </div>
-        </div>
-    </div>
-</div>
+    <script src="{{ asset('js/external/jquery.js') }}"></script>
+    <script src="{{ asset('js/tools/functions.js') }}"></script>
+    <script src="{{ asset('js/tools/showToast.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/embarquements.js') }}"></script>
+    <script src="{{ asset('js/api/Production/Produit.js') }}"></script>
+    <script src="{{ asset('js/api/Production/Lot.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Proprietaire.js') }}"></script>
+    <script src="{{ asset('js/api/Logistique/Magasin.js') }}"></script>
 
-<script src="{{ asset('js/external/jquery.js') }}"></script>
-<script src="{{ asset('js/tools/functions.js') }}"></script>
-<script src="{{ asset('js/tools/showToast.js') }}"></script>
-<script src="{{ asset('js/api/Production/Produit.js') }}"></script>
-<script src="{{ asset('js/api/Logistique/Proprietaire.js') }}"></script>
-<script src="{{ asset('js/api/Logistique/Magasin.js') }}"></script>
 
-<script>
-/* =========================================================================
-   Production de lot — logique de la page
-   Les API existantes sont conservees telles quelles (mêmes URL que Lot.js,
-   Proprietaire.js, Magasin.js). Les rendus sont faits par cette page pour
-   garder la mise en forme cacao et le depliage des lignes.
-   ========================================================================= */
-(function () {
-    'use strict';
+    <script>
+        let id_lot = "0";
+        let scinde = false;
+        getAllProprietaires(document.getElementById("proprio"), 2)
+        getAllMagasins(document.getElementById('magasin'), 2)
+        getAllLots(document.querySelector('.lots_body'), 1)
 
-    /* ---------------- References DOM ---------------- */
-    var el = function (id) { return document.getElementById(id); };
-    var corps = document.getElementById('corps_lots');
-    var inputNumero = el('numero_lot');
-    var selProprio = el('proprio');
-    var selProduit = el('produit');
-    var inputDate = el('date_prod');
-    var inputPn = el('pn_th');
-    var selMagasin = el('magasin');
-    var champRecherche = el('recherche');
-    var filtreProduit = el('filtre_produit');
-    var badgeSelection = el('lot_selection');
-    var boutonScission = el('btn_s_nc');
-    var modeEl = el('form_mode');
-    var titreEl = el('form_titre');
 
-    /* ---------------- Etat ---------------- */
-    var idLot = '0';
-    var tousLesLots = [];
-
-    /* ---------------- Utilitaires ---------------- */
-    function nf(nb) {
-        var n = parseFloat(nb);
-        if (isNaN(n)) { n = 0; }
-        try {
-            return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        } catch (e) {
-            return n.toFixed(2);
-        }
-    }
-    function texte(v) {
-        return (v === null || v === undefined) ? '' : String(v);
-    }
-    function echappe(v) {
-        return texte(v).replace(/[&<>"']/g, function (c) {
-            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
-        });
-    }
-    function familleProduit(libelle) {
-        var t = texte(libelle).toLowerCase();
-        if (t.indexOf('feve') > -1 || t.indexOf('fève') > -1) { return 'feves'; }
-        if (t.indexOf('masse') > -1) { return 'masse'; }
-        if (t.indexOf('beurre') > -1) { return 'beurre'; }
-        if (t.indexOf('tourteau') > -1) { return 'tourteau'; }
-        return 'autre';
-    }
-    var LIBELLE_FAMILLE = { feves: 'Fèves', masse: 'Masse', beurre: 'Beurre', tourteau: 'Tourteau', autre: 'Autre' };
-
-    /* ---------------- Chargement des referentiels ---------------- */
-    function chargerProprietaires() {
-        $.ajax({
-            url: URL_APP + 'api/getAllProprietaires',
-            type: 'POST',
-            success: function (response) {
-                var rep = (typeof response === 'string') ? JSON.parse(response) : response;
-                var html = '<option value="0">-- Propriétaires --</option>';
-                (rep.data || []).forEach(function (p) {
-                    html += '<option value="' + echappe(p.id) + '">' + echappe(p.proprietaire) + '</option>';
-                });
-                selProprio.innerHTML = html;
-            },
-            error: function () {
-                selProprio.innerHTML = '<option value="0">-- Propriétaires --</option>';
-                if (window.showToast) { showToast('Impossible de charger les propriétaires.', { title: 'Propriétaires', type: 'error', duration: 4000 }); }
-            }
-        });
-    }
-
-    function chargerProduits(idProprio) {
-        selProduit.innerHTML = '<option value="0">-- Produits --</option>';
-        if (!idProprio || idProprio === '0') { return; }
-        $.ajax({
-            url: URL_APP + 'api/getAllProduitsByProprietaire/' + encodeURIComponent(idProprio),
-            type: 'POST',
-            success: function (response) {
-                var rep = (typeof response === 'string') ? JSON.parse(response) : response;
-                var html = '<option value="0">-- Produits --</option>';
-                (rep.data || []).forEach(function (p) {
-                    html += '<option value="' + echappe(p.id) + '" data-famille="' + familleProduit(p.produit) + '">' + echappe(p.produit) + '</option>';
-                });
-                selProduit.innerHTML = html;
-            },
-            error: function () {
-                if (window.showToast) { showToast('Impossible de charger les produits de ce propriétaire.', { title: 'Produits', type: 'error', duration: 4000 }); }
-            }
-        });
-    }
-
-    function chargerMagasins() {
-        $.ajax({
-            url: URL_APP + 'api/getAllMagasins',
-            type: 'POST',
-            success: function (response) {
-                var rep = (typeof response === 'string') ? JSON.parse(response) : response;
-                var html = '<option value="0">-- Emplacements --</option>';
-                (rep.data || []).forEach(function (m) {
-                    html += '<option value="' + echappe(m.id) + '">' + echappe(m.magasin || m.libelle) + '</option>';
-                });
-                selMagasin.innerHTML = html;
-            },
-            error: function () {
-                selMagasin.innerHTML = '<option value="0">-- Emplacements --</option>';
-            }
-        });
-    }
-
-    /* ---------------- Liste des lots ---------------- */
-    function chargerLots() {
-        $.ajax({
-            url: URL_APP + 'api/getAllLots',
-            type: 'POST',
-            success: function (response) {
-                var rep = (typeof response === 'string') ? JSON.parse(response) : response;
-                if (rep.code !== 'success') {
-                    corps.innerHTML = '<tr class="lg-vide"><td colspan="9">' + echappe(rep.msg || 'Aucun lot disponible.') + '</td></tr>';
-                    return;
-                }
-                tousLesLots = rep.data || [];
-                mettreAJourKpi(tousLesLots);
-                afficherLots();
-            },
-            error: function () {
-                corps.innerHTML = '<tr class="lg-vide"><td colspan="9">Erreur lors du chargement des lots.</td></tr>';
-            }
-        });
-    }
-
-    function mettreAJourKpi(lots) {
-        var compte = { feves: 0, masse: 0, beurre: 0, tourteau: 0 };
-        var pn = { feves: 0, masse: 0, beurre: 0, tourteau: 0 };
-        var pnTotal = 0;
-        lots.forEach(function (l) {
-            var f = familleProduit(l.produit);
-            var p = parseFloat(l.pn_th) || 0;
-            pnTotal += p;
-            if (compte[f] !== undefined) { compte[f] += 1; pn[f] += p; }
-        });
-        el('kpi_lots').textContent = lots.length;
-        ['feves', 'masse', 'beurre', 'tourteau'].forEach(function (f) {
-            el('kpi_' + f).textContent = compte[f];
-            el('kpi_' + f + '_pn').textContent = 'PN ' + nf(pn[f]) + ' Kg';
-        });
-        el('kpi_pn_total').textContent = nf(pnTotal);
-    }
-
-    function lotsFiltres() {
-        var q = (champRecherche.value || '').trim().toLowerCase();
-        var fam = filtreProduit.value;
-        return tousLesLots.filter(function (l) {
-            var okFam = !fam || familleProduit(l.produit) === fam;
-            if (!okFam) { return false; }
-            if (!q) { return true; }
-            var sac = [l.numero_lot, l.proprio, l.produit, l.situation, l.date_production].join(' ').toLowerCase();
-            return sac.indexOf(q) > -1;
-        });
-    }
-
-    function afficherLots() {
-        var liste = lotsFiltres();
-        if (!liste.length) {
-            corps.innerHTML = '<tr class="lg-vide"><td colspan="9">Aucun lot ne correspond à votre recherche.</td></tr>';
-            el('pied_pn').textContent = '0,00';
-            el('pied_nb').textContent = '0 lot';
-            return;
-        }
-
-        var html = '';
-        var cumul = 0;
-        liste.forEach(function (l, index) {
-            var f = familleProduit(l.produit);
-            var nc = (texte(l.qualite).toUpperCase() === 'NC');
-            var pn = parseFloat(l.pn_th) || 0;
-            cumul += pn;
-            var idDetail = 'detail_lot_' + index;
-            var libFamille = LIBELLE_FAMILLE[f] || l.produit || '';
-            var badgeClasse = (f === 'autre') ? 'neutre' : '';
-
-            html += '<tr class="lg-ligne" data-id="' + echappe(l.id) + '" data-cible="' + idDetail + '" tabindex="0" role="button" aria-expanded="false">';
-            html += '  <td class="lg-chev"><span class="lg-chevron"></span></td>';
-            html += '  <td class="lg-num-cell">' + echappe(l.numero_lot) + (nc ? ' <span class="lg-badge nc">NC</span>' : '') + '</td>';
-            html += '  <td>' + echappe(l.proprio) + '</td>';
-            html += '  <td><span class="lg-badge ' + badgeClasse + '">' + echappe(libFamille) + '</span></td>';
-            html += '  <td>' + echappe(l.date_production) + '</td>';
-            html += '  <td class="text-end lg-montant lg-fort">' + nf(pn) + '</td>';
-            html += '  <td>' + echappe(l.etat) + '</td>';
-            html += '  <td>' + echappe(l.situation) + '</td>';
-            html += '  <td>' + echappe(l.ot) + '</td>';
-            html += '</tr>';
-
-            html += '<tr class="lg-detail" id="' + idDetail + '"><td colspan="9">';
-            html += '  <div class="lg-detail-box">';
-            html += '    <h6>Fiche du lot</h6>';
-            html += '    <div class="lg-mini-paire">';
-            html += '      <span>Propriétaire : <b>' + echappe(l.proprio || '—') + '</b></span>';
-            html += '      <span>Produit : <b>' + echappe(l.produit || '—') + '</b></span>';
-            html += '      <span>Famille : <b>' + echappe(libFamille) + '</b></span>';
-            html += '      <span>PN théorique : <b>' + nf(pn) + ' Kg</b></span>';
-            html += '      <span>Date : <b>' + echappe(l.date_production || '—') + '</b></span>';
-            html += '      <span>Emplacement : <b>' + echappe(l.situation || '—') + '</b></span>';
-            html += '      <span>Qualité : <b>' + (nc ? 'Non conforme' : 'Conforme') + '</b></span>';
-            html += '      <span>N° OT : <b>' + echappe(l.ot || '—') + '</b></span>';
-            html += '    </div>';
-            html += '    <div class="mt-2"><button type="button" class="btn btn-outline-cacao btn-sm btn-ouvrir-lot" data-id="' + echappe(l.id) + '"><i class="fa-solid fa-pen-to-square me-1"></i> Ouvrir dans le formulaire</button></div>';
-            html += '  </div>';
-            html += '</td></tr>';
-        });
-
-        corps.innerHTML = html;
-        el('pied_pn').textContent = nf(cumul);
-        el('pied_nb').textContent = liste.length + (liste.length > 1 ? ' lots' : ' lot');
-    }
-
-    /* ---------------- Depliage ---------------- */
-    corps.addEventListener('click', function (e) {
-        var boutonOuvrir = e.target.closest('.btn-ouvrir-lot');
-        if (boutonOuvrir) {
-            e.stopPropagation();
-            ouvrirLot(boutonOuvrir.getAttribute('data-id'));
-            return;
-        }
-        var ligne = e.target.closest('tr.lg-ligne');
-        if (!ligne) { return; }
-        basculer(ligne);
-    });
-    corps.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter' && e.key !== ' ') { return; }
-        var ligne = e.target.closest('tr.lg-ligne');
-        if (!ligne) { return; }
-        e.preventDefault();
-        basculer(ligne);
-    });
-
-    function basculer(ligne) {
-        var idDetail = ligne.getAttribute('data-cible');
-        var detail = document.getElementById(idDetail);
-        var ouvert = ligne.classList.toggle('lg-ouvert');
-        if (detail) { detail.classList.toggle('lg-ouvert', ouvert); }
-        ligne.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
-    }
-
-    /* ---------------- Formulaire ---------------- */
-    function reinitialise_form() {
-        idLot = '0';
-        inputNumero.value = '';
-        inputDate.value = '';
-        inputPn.value = '';
-        selProprio.value = '0';
-        selProduit.innerHTML = '<option value="0">-- Produits --</option>';
-        selMagasin.value = '0';
-        el('poids_nc').value = '';
-        boutonScission.style.display = 'none';
-        badgeSelection.textContent = 'Aucun lot sélectionné — mode création';
-        badgeSelection.className = 'lg-badge neutre me-auto';
-        modeEl.textContent = 'Création';
-        titreEl.textContent = 'Nouveau lot de production';
-    }
-
-    function ouvrirLot(id) {
-        var form = new FormData();
-        form.append('id_lot', id);
-        fetch(URL_APP + 'api/getSingleLot', { method: 'POST', body: form })
-            .then(function (res) { return res.json(); })
-            .then(function (lot) {
-            if (!lot || lot.code === 'warning' || lot.code === 'error') {
-                if (window.showToast) { showToast((lot && lot.msg) || 'Lot introuvable.', { title: 'Lot', type: 'error', duration: 4000 }); }
-                return;
-            }
-            idLot = id;
-            inputNumero.value = lot.numero_lot || '';
-            inputDate.value = lot.date_production || '';
-            inputPn.value = lot.pn_th || '';
-            selProprio.value = lot.proprio || '0';
-            selMagasin.value = lot.situation || '0';
-            boutonScission.style.display = '';
-            badgeSelection.textContent = 'Lot sélectionné : ' + (lot.numero_lot || '—');
-            badgeSelection.className = 'lg-badge me-auto';
-            modeEl.textContent = 'Modification';
-            titreEl.textContent = 'Modifier le lot ' + (lot.numero_lot || '');
-
-            var idProprio = lot.proprio || '0';
-            $.ajax({
-                url: URL_APP + 'api/getAllProduitsByProprietaire/' + encodeURIComponent(idProprio),
-                type: 'POST',
-                success: function (response) {
-                    var rep = (typeof response === 'string') ? JSON.parse(response) : response;
-                    var html = '<option value="0">-- Produits --</option>';
-                    (rep.data || []).forEach(function (p) {
-                        html += '<option value="' + echappe(p.id) + '">' + echappe(p.produit) + '</option>';
-                    });
-                    selProduit.innerHTML = html;
-                    selProduit.value = lot.produit || '0';
-                }
-            });
-
-            document.getElementById('form-lot').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById("proprio").addEventListener('change', ()=>{
+            getAllProduitsByProprietaire(document.getElementById("produit"), 2, document.getElementById("proprio").value)
         })
-            .catch(function (err) {
-                if (window.showToast) { showToast('Erreur : ' + err, { title: 'Lot', type: 'error', duration: 4000 }); }
-            });
-    }
+        document.getElementById("produit").addEventListener('change', ()=>{
+            let formPdt = new FormData();
+            formPdt.append('id_produit', document.getElementById("produit").value)
+            getSingleProduit(formPdt)
+                .then(pdt=>{
+                    document.getElementById("pb_th").value = pdt.pb_th
+                    document.getElementById("pn_th").value = pdt.pn_th
+                })
+        })
 
-    function addLot() {
-        var erreurs = [];
-        if (!inputNumero.value.trim()) { erreurs.push('le numéro de lot'); }
-        if (!selProprio.value || selProprio.value === '0') { erreurs.push('le propriétaire'); }
-        if (!selProduit.value || selProduit.value === '0') { erreurs.push('le produit'); }
-        if (!inputDate.value) { erreurs.push('la date de production'); }
-        if (!inputPn.value || parseFloat(inputPn.value) <= 0) { erreurs.push('le PN théorique'); }
-        if (!selMagasin.value || selMagasin.value === '0') { erreurs.push('l\'emplacement'); }
-        if (erreurs.length) {
-            if (window.showToast) {
-                showToast('Merci de renseigner : ' + erreurs.join(', ') + '.', { title: 'Lot', type: 'warning', duration: 5000 });
-            }
-            return;
+
+
+        reinitialise_form()
+
+        /* EVENTS*/
+        $("#btn_enr_lot").on("click", function (e){
+            e.preventDefault();
+            addLot();
+        })
+
+        $("#btn-scission").on("click", function (e){
+            e.preventDefault();
+            scinder_lot();
+        })
+
+        $("#new_lot").on("click", function (e){
+            e.preventDefault();
+            reinitialise_form()
+            $('#numero_lot').focus()
+        })
+
+        /*--------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+
+        /*  API*/
+
+        function   addLot(){let formLot = new FormData()
+            formLot.append('id_lot', id_lot)
+            formLot.append('numero_lot', document.getElementById('numero_lot').value)
+            formLot.append('code_proprio', document.getElementById('proprio').value)
+            formLot.append('code_produit', document.getElementById('produit').value)
+            formLot.append('magasin', document.getElementById('magasin').value)
+            formLot.append('pn_th', document.getElementById('pn_th').value)
+            formLot.append('date_prod', document.getElementById('date_prod').value)
+
+            saveLot(formLot, document.querySelector('.lots_body'), 1 )
+        }
+        function   getLotInfos(idLot){
+            let reponse = "";
+            reinitialise_form()
+            let formLot = new FormData()
+            formLot.append('id_lot', idLot)
+            getSingleLot(formLot).
+                then(lot=>{
+                    id_lot = idLot;
+                    document.getElementById('numero_lot').value = lot.numero_lot;
+                    document.getElementById('proprio').value = lot.proprio;
+                    document.getElementById('date_prod').value = lot.date_production;
+                    document.getElementById('pn_th').value = lot.pn_th;
+                document.getElementById('magasin').value = lot.situation;
+                getAllProduitsByProprietaire(document.getElementById("produit"), 2, document.getElementById("proprio").value)
+                document.querySelector("#btn_s_nc").style.display ='inline'
+                setTimeout(()=>{
+                    document.getElementById('produit').value = lot.produit;
+                }, 1000)
+
+            })
         }
 
-        var formLot = new FormData();
-        formLot.append('id_lot', idLot);
-        formLot.append('numero_lot', inputNumero.value.trim());
-        formLot.append('code_proprio', selProprio.value);
-        formLot.append('code_produit', selProduit.value);
-        formLot.append('magasin', selMagasin.value);
-        formLot.append('pn_th', inputPn.value);
-        formLot.append('date_prod', inputDate.value);
+        function   scinder_lot(){
+            let reponse = "";
+            let obj = {}
+            obj.id_lot  = id_lot
+            obj.pn_th = $('#poids_nc').val()
 
-        fetch(URL_APP + 'api/saveLot', { method: 'POST', body: formLot })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (window.showToast) {
-                    showToast(data.msg, { type: data.code, title: 'Lot', duration: 3000 });
-                }
-                if (data.code === 'success') {
-                    reinitialise_form();
-                    chargerLots();
+            let data = JSON.stringify(obj);
+            $.ajax({
+                url : '{{ url('app_login') }}api/scinderLot/' + data,
+                type : 'POST',
+                success: function (response){
+                    reponse = JSON.parse(response)
+                    $("#modal_scission .btn-close").click()
+                    render_toast_value(reponse.msg, reponse.code)
+                    listeLots()
+                },
+                error : function (erreur){
+                    reponse = "Erreur"
+                    console.log(erreur)
                 }
             })
-            .catch(function (err) {
-                if (window.showToast) { showToast('Erreur : ' + err, { title: 'Lot', type: 'error', duration: 4000 }); }
-            });
-    }
-
-    function scinder_lot() {
-        var poids = document.getElementById('poids_nc').value;
-        if (!poids || parseFloat(poids) <= 0) {
-            if (window.showToast) { showToast('Saisissez le poids non conforme.', { title: 'Scission', type: 'warning', duration: 4000 }); }
-            return;
         }
-        var obj = { id_lot: idLot, pn_th: poids };
-        $.ajax({
-            url: '{{ url('app_login') }}api/scinderLot/' + JSON.stringify(obj),
-            type: 'POST',
-            success: function (response) {
-                var rep = (typeof response === 'string') ? JSON.parse(response) : response;
-                if (window.bootstrap) {
-                    var modale = document.getElementById('modal_scission');
-                    var instance = bootstrap.Modal.getInstance(modale);
-                    if (instance) { instance.hide(); }
-                }
-                if (window.showToast) { showToast(rep.msg, { type: rep.code, title: 'Scission', duration: 3000 }); }
-                chargerLots();
-            },
-            error: function (err) {
-                console.error(err);
-                if (window.showToast) { showToast('La scission a échoué.', { title: 'Scission', type: 'error', duration: 4000 }); }
-            }
-        });
-    }
-
-    /* ---------------- Referentiel des produits (familles) ----------------
-       Utilise pour l'indicateur « lots sans famille reconnue » et pour
-       verifier que les 4 produits (Feves, Masse, Beurre, Tourteau) existent. */
-    function chargerReferentielProduits() {
-        $.ajax({
-            url: URL_APP + 'api/getAllProduits',
-            type: 'POST',
-            success: function (response) {
-                var rep = (typeof response === 'string') ? JSON.parse(response) : response;
-                var familles = {};
-                (rep.data || []).forEach(function (p) {
-                    var f = familleProduit(p.produit);
-                    if (f !== 'autre') { familles[f] = (familles[f] || 0) + 1; }
+        function selected_row(){
+            document.querySelectorAll(".tr").forEach(function(row) {
+                row.addEventListener("click", function() {
+                    id_lot = this.id;
+                    getLotInfos(id_lot)
+                    // Supprime la classe 'selected' des autres lignes
+                    document.querySelectorAll("tr").forEach(r => r.classList.remove("selected"));
+                    // Ajoute la classe 'selected' à la ligne cliquée
+                    this.classList.add("selected");
                 });
-                var manquantes = ['feves', 'masse', 'beurre', 'tourteau'].filter(function (f) { return !familles[f]; });
-                if (manquantes.length && window.showToast) {
-                    showToast('Produit(s) non paramétré(s) : ' + manquantes.map(function (f) { return LIBELLE_FAMILLE[f]; }).join(', ') + '.', { title: 'Référentiel produits', type: 'warning', duration: 6000 });
-                }
-            },
-            error: function () { /* referentiel optionnel */ }
-        });
-    }
-
-    /* ---------------- Evenements ---------------- */
-    el('btn_enr_lot').addEventListener('click', function (e) { e.preventDefault(); addLot(); });
-    el('btn-scission').addEventListener('click', function (e) { e.preventDefault(); scinder_lot(); });
-    el('new_lot').addEventListener('click', function (e) {
-        e.preventDefault();
-        reinitialise_form();
-        inputNumero.focus();
-    });
-    el('hero_nouveau').addEventListener('click', function (e) {
-        e.preventDefault();
-        reinitialise_form();
-        document.getElementById('form-lot').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        inputNumero.focus();
-    });
-    el('hero_rafraichir').addEventListener('click', function (e) { e.preventDefault(); chargerLots(); });
-
-    selProprio.addEventListener('change', function () { chargerProduits(selProprio.value); });
-    champRecherche.addEventListener('input', afficherLots);
-    filtreProduit.addEventListener('change', afficherLots);
-
-    document.getElementById('btn-add-proprio').addEventListener('click', function () {
-        var nom = document.getElementById('proprietaire_nom').value.trim();
-        if (!nom) {
-            if (window.showToast) { showToast('Saisissez la dénomination du propriétaire.', { title: 'Propriétaire', type: 'warning', duration: 4000 }); }
-            return;
-        }
-        var fd = new FormData();
-        fd.append('proprietaire', nom);
-        fetch(URL_APP + 'api/saveProprietaire', { method: 'POST', body: fd })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (window.showToast) { showToast(data.msg, { type: data.code, title: 'Propriétaire', duration: 3000 }); }
-                if (data.code === 'success') {
-                    document.getElementById('proprietaire_nom').value = '';
-                    if (window.bootstrap) {
-                        var m = document.getElementById('modalProprietaire');
-                        var inst = bootstrap.Modal.getInstance(m);
-                        if (inst) { inst.hide(); }
-                    }
-                    chargerProprietaires();
-                }
-            })
-            .catch(function (err) {
-                if (window.showToast) { showToast('Erreur : ' + err, { title: 'Propriétaire', type: 'error', duration: 4000 }); }
             });
-    });
+        }
 
-    /* ---------------- Demarrage ---------------- */
-    chargerProprietaires();
-    chargerMagasins();
-    chargerReferentielProduits();
-    chargerLots();
-    reinitialise_form();
-})();
-</script>
+        $("#recherche").on("input", function() {
+            var valeur = $(this).val().toLowerCase();
+            // alert(valeur)
+            // Réinitialise les couleurs
+            $("#tableLots tr").removeClass("highlight");
+
+            if (valeur !== "") {
+                $("#tableLots tr").toggle($(this).text().toLowerCase().indexOf(valeur) > -1);
+            }
+        });
+
+        function reinitialise_form(){
+            $("#numero_lot").val("")
+            $("#date_prod").val(null)
+            $("#pn_th").val(0)
+            $("#proprio").val(0)
+            $("#produit").val(0)
+            $("#magasin").val(0)
+            $("#recherche").val("")
+            $("#poids_nc").val(0)
+            id_lot = "0";
+            document.querySelector("#btn_s_nc").style ='display:none'
+        }
+        $(" input ").on("input", function (){
+            check_input(this)
+        })
+
+        function check_input(ctl){
+            if (ctl.value === "" || ctl.value === 0){
+                ctl.style.background = "white"
+            } else {
+                ctl.style.background = "lightyellow"
+            }
+        }
+    </script>
 {% endblock %}
+

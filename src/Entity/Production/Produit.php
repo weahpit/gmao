@@ -6,6 +6,7 @@ use App\Entity\Logistique\DocType;
 use App\Entity\Logistique\Dossier;
 use App\Entity\Logistique\ModeleDoc;
 use App\Entity\Logistique\Proprietaire;
+use App\Entity\Stock\Unite;
 use App\Repository\Production\ProduitRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -51,6 +52,21 @@ class Produit
      */
     #[ORM\OneToMany(targetEntity: Lot::class, mappedBy: 'code_produit')]
     private Collection $lots;
+
+    #[ORM\ManyToOne(inversedBy: 'produits')]
+    private ?Unite $unite = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $nbDefault = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $poidsNetDefault = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $tareUniteDefault = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $poidsBrutDefault = null;
 
     public function __construct()
     {
@@ -202,6 +218,66 @@ class Produit
                 $lot->setCodeProduit(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getUnite(): ?Unite
+    {
+        return $this->unite;
+    }
+
+    public function setUnite(?Unite $unite): static
+    {
+        $this->unite = $unite;
+
+        return $this;
+    }
+
+    public function getNbDefault(): ?float
+    {
+        return $this->nbDefault;
+    }
+
+    public function setNbDefault(?float $nbDefault): static
+    {
+        $this->nbDefault = $nbDefault;
+
+        return $this;
+    }
+
+    public function getPoidsNetDefault(): ?float
+    {
+        return $this->poidsNetDefault;
+    }
+
+    public function setPoidsNetDefault(?float $poidsNetDefault): static
+    {
+        $this->poidsNetDefault = $poidsNetDefault;
+
+        return $this;
+    }
+
+    public function getTareUniteDefault(): ?float
+    {
+        return $this->tareUniteDefault;
+    }
+
+    public function setTareUniteDefault(?float $tareUniteDefault): static
+    {
+        $this->tareUniteDefault = $tareUniteDefault;
+
+        return $this;
+    }
+
+    public function getPoidsBrutDefault(): ?float
+    {
+        return $this->poidsBrutDefault;
+    }
+
+    public function setPoidsBrutDefault(?float $poidsBrutDefault): static
+    {
+        $this->poidsBrutDefault = $poidsBrutDefault;
 
         return $this;
     }

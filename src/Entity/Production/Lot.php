@@ -26,7 +26,7 @@ class Lot
     private ?string $numero_lot = null;
 
     #[ORM\Column(nullable: true)]
-    private ?float $poids_net = null;
+    private ?float $pb_th = null;
 
     #[ORM\Column(nullable: true)]
     private ?float $poids_net_dispo = null;
@@ -69,6 +69,9 @@ class Lot
     #[ORM\Column(nullable: true)]
     private ?bool $scission = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?float $nb_sacs = null;
+
     public function __construct()
     {
         $this->code_dossier = new ArrayCollection();
@@ -91,14 +94,14 @@ class Lot
         return $this;
     }
 
-    public function getPoidsNet(): ?float
+    public function getPbTht(): ?float
     {
-        return $this->poids_net;
+        return $this->pb_th;
     }
 
-    public function setPoidsNet(?float $poids_net): static
+    public function setPbTht(?float $pb_th): static
     {
-        $this->poids_net = $poids_net;
+        $this->pb_th = $pb_th;
 
         return $this;
     }
@@ -273,5 +276,17 @@ class Lot
     public function setPoidsNetDispo(?float $poids_net_dispo): void
     {
         $this->poids_net_dispo = $poids_net_dispo;
+    }
+
+    public function getNbSacs(): ?float
+    {
+        return $this->nb_sacs;
+    }
+
+    public function setNbSacs(?float $nb_sacs): static
+    {
+        $this->nb_sacs = $nb_sacs;
+
+        return $this;
     }
 }

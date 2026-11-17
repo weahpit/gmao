@@ -9,7 +9,9 @@
 {% endblock %}
 
 {% block body %}
-<style>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet"/>
+
+    <style>
     /* Ligne sélectionnée */
     table tbody tr.selected-row {
         background-color: #fff9c4 !important; /* jaune clair */
@@ -104,6 +106,14 @@
                             <label class="fw-bold span " for="groupe" style="width: 250px;">Groupe</label>
                             <select class="" id="groupe" style="width: 100%"></select>
                         </div>
+                            <div class="d-flex justify-content-start mb-3">
+                                <label class="fw-bold span " for="roles_user" style="width: 250px;">Rôles</label>
+                                <select class="" id="roles_user" style="width: 100%" multiple>
+                                    {% for role in get_all_roles() %}
+                                        <option>{{ role }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         <div class="d-flex justify-content-start mb-3">
                             <label class="fw-bold span " for="service" style="width: 250px;">Service</label>
                             <select class="" id="service" style="width: 100%"></select>
@@ -189,12 +199,32 @@
     <script src="{{ asset('js/api/admin/Groupe.js') }}"></script>
     <script src="{{ asset('js/api/references/Services.js') }}"></script>
     <script src="{{ asset('js/api/admin/Poste.js') }}"></script>
-    <script>
 
+
+        {% block javascripts %}
+        {{ parent() }}
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
+            <script>
+                $(document).ready(function() {
+                    // Initialise tous les select de la modale
+                    $('#groupe, #roles_user, #service, #poste').select2({
+                        dropdownParent: $('#modalAddUser'),
+                        width: '100%',
+                        placeholder: 'Sélectionner une option...',
+                        allowClear: true
+                    });
+                });
+            </script>
+{% endblock %}
+    <script>
         let idUser = "0";
         getAllUsers(document.querySelector(".card-body"), 1)
         getAllGroupes(document.getElementById("groupe"), 2)
         getAllServices(document.getElementById("service"), 2)
+
+        /*$(document).ready(function() {
+            $('#roles_user').select2();
+        });*/
 
         $("#service").on('change', function(){
             getAllPostesByService(document.getElementById('poste'), 2, this.value)
@@ -249,6 +279,8 @@
             } else {
                 FormDataUser.append('signataire', "NON");
             }
+            const roles = $('#roles_user').val() || [];
+            FormDataUser.append('roles_user', roles)
 
             saveUser(FormDataUser, document.querySelector(".card-body"), 1)
             setTimeout(()=>{
@@ -279,6 +311,7 @@
                     document.getElementById("mobile").value = wd.mobile
                     document.getElementById("groupe").value = wd.groupe
                     document.getElementById("service").value = wd.service
+                    $('#roles_user').val(wd.roles).trigger('change');
                     setTimeout(()=>{
                         getAllPostesByService(document.getElementById('poste'), 2, wd.service)
 

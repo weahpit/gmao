@@ -73,14 +73,15 @@ final class ApiProduitController extends AbstractController
             }
             return new JsonResponse(json_encode($reponse));
         }
-    #[Route('api/getSingleProduit/{$id_produit}', name: 'app_api_get_single_produit')]
-    public function app_api_get_single_produit($id_produit): Response
+    #[Route('api/getSingleProduit', name: 'app_api_get_single_produit')]
+    public function app_api_get_single_produit(Request $request): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
-                $produit = $this->em->getRepository(Produit::class)->find(Uuid::fromString($id_produit));
+                $id_lproduit = $request->request->get('id_produit');
+                $produit = $this->em->getRepository(Produit::class)->find(Uuid::fromString($id_lproduit));
 
             if ($produit){
                 $reponse = array(
@@ -89,6 +90,10 @@ final class ApiProduitController extends AbstractController
                     'id'=>$produit->getId(),
                     'produit'=>$produit->getLibelle(),
                     'proprietaire'=>$produit->getCodeProprio() ? $produit->getCodeProprio()->getDenomination() : "",
+                    'pb_th'=>$produit->getPoidsNetDefault() ? $produit->getPoidsNetDefault() : 0,
+                    'pn_th'=>$produit->getPoidsBrutDefault() ? $produit->getPoidsBrutDefault() : 0,
+                    'nbSacs'=>$produit->getNbDefault() ? $produit->getNbDefault() : 0,
+                    'unite'=>$produit->getUnite() ? $produit->getUnite()->getLibelle() : "",
                 );
             } else {
                 $reponse = array(

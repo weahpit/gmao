@@ -2,7 +2,10 @@
 
 namespace App\Entity\Stock;
 
+use App\Entity\Production\Produit;
 use App\Repository\Stock\UniteRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
@@ -51,6 +54,17 @@ class Unite
     #[ORM\Column(type: 'integer')]
     private int $position = 0;
 
+    /**
+     * @var Collection<int, Produit>
+     */
+    #[ORM\OneToMany(targetEntity: Produit::class, mappedBy: 'unite')]
+    private Collection $produits;
+
+    public function __construct()
+    {
+        $this->produits = new ArrayCollection();
+    }
+
     public function getId(): ?Uuid { return $this->id; }
 
     public function getLibelle(): ?string { return $this->libelle; }
@@ -69,4 +83,34 @@ class Unite
     public function setPosition(int $position): static { $this->position = $position; return $this; }
 
     public function __toString(): string { return (string) $this->libelle; }
+
+    /**
+     * @return Collection<int, Produit>
+     */
+    public function getProduits(): Collection
+    {
+        return $this->produits;
+    }
+
+    public function addProduit(Produit $produit): static
+    {
+        if (!$this->produits->contains($produit)) {
+            $this->produits->add($produit);
+            $produit->setUnite($this);
+        }
+
+        return $this;
+    }
+
+    public function removeProduit(Produit $produit): static
+    {
+        if ($this->produits->removeElement($produit)) {
+            // set the owning side to null (unless already changed)
+            if ($produit->getUnite() === $this) {
+                $produit->setUnite(null);
+            }
+        }
+
+        return $this;
+    }
 }

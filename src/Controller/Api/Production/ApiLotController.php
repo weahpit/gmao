@@ -52,6 +52,49 @@ final class ApiLotController extends AbstractController
             return new JsonResponse(json_encode($reponse));
         }
 
+    #[Route('api/getAllLotsByTypeProduits/{type_produit}', name: 'getAllLotsByTypeProduits')]
+    public function getAllLotsByTypeProduits($type_produit): Response
+    {
+        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
+        $reponse = array();
+        $data = array();
+        if ($this->isGranted("ROLE_USER")){
+            try{
+                // Liste des Natures d'équipements
+                $typeProduit = $this->em->getRepository(Produit::class)->find($type_produit);
+                if ($typeProduit){
+                    $lots = $this->em->getRepository(Lot::class)->findBy(['code_produit'=>$typeProduit], ['numero_lot'=>'ASC']);
+                    foreach ($lots as $lot){
+                        $data[] = array(
+                            'id'=>$lot->getId(),
+                            'numero_lot'=>$lot->getNumeroLot(),
+                            'proprio'=>$lot->getCodeProprio()?$lot->getCodeProprio()->getDenomination() : "" ,
+                            'produit'=>$lot->getCodeProduit() ? $lot->getCodeProduit()->getLibelle() : "",
+                            'date_production'=>$lot->getDateProd() ? $lot->getDateProd()->format('d/m/Y') : "",
+                            'pn_th'=>$lot->getPnTh() ? $lot->getPnTh() :0,
+                            'etat'=>"-",
+                            'situation'=>$lot->getCodeMagasin() ? $lot->getCodeMagasin()->getLibelle() : "",
+                            'ot'=>"-",
+                            'qualite'=>$lot->getQualite(),
+                            'nbCartons'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getNbDefault() : 0,
+                            'poidsNet'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getPoidsNetDefault() : 0,
+                            'poidsBrut'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getPoidsBrutDefault() : 0,
+                            'unite'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getUnite()->getLibelle() : ""
+                        );
+                    }
+                    $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
+                } else {
+                    $reponse = array('code'=>'warning', 'msg'=>'Merci de sélectionner un produit');
+                }
+
+            } catch (\Throwable $throwable){
+                $reponse = array('code'=>'error', 'msg'=>'Erreur ! <br>'. $throwable->getMessage());
+            }
+        } else {
+            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
+        }
+        return new JsonResponse(json_encode($reponse));
+    }
     #[Route('api/getSingleLot', name: 'app_api_get_single_lot')]
     public function app_api_get_single_lot(Request $request): Response
     {
@@ -75,7 +118,11 @@ final class ApiLotController extends AbstractController
                     'etat'=>"-",
                     'situation'=>$lot->getCodeMagasin() ? $lot->getCodeMagasin()->getId() : "",
                     'ot'=>"-",
-                    'qualite'=>$lot->getQualite()
+                    'qualite'=>$lot->getQualite(),
+                    'nbCartons'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getNbDefault() : 0,
+                    'poidsNet'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getPoidsNetDefault() : 0,
+                    'poidsBrut'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getPoidsBrutDefault() : 0,
+                    'unite'=>$lot->getCodeProduit() ? $lot->getCodeProduit() ->getUnite()->getLibelle() : ""
                 );
             } else {
                 $reponse = array(

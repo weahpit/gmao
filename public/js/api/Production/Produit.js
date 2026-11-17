@@ -101,25 +101,14 @@ function deleteProduit(id_produit){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Produit', duration: 4000}));
 }
-function getSingleProduit(id_produit) {
+function getSingleProduit(formData) {  // api/getSingleUser
     return new Promise((resolve, reject) => {
-        $.ajax({
-            url:  URL_APP + 'api/getSingleProduit' + id_produit,
-            type: 'POST',
-            success: function(response) {
-                if (response.code === "success") {
-                    resolve(response); // renvoie l'objet au .then()
-                } else {
-                    showToast(data.msg, {
-                        type : data.code,
-                        duration: 4000,
-                        title: 'Produit'
-                    })
-                }
-            },
-            error: function(err) {
-                showToast("❌ Erreur : " + err, {title: 'Produit', duration: 4000});
-            }
-        });
+        fetch( URL_APP + "api/getSingleProduit", { method: "POST", body: formData })
+            .then(res => res.json())
+            .then(data => {
+                resolve(data); // renvoie l'objet au .then()
+            })
+            .catch(err => showToast("❌ Erreur : " + err, {title: 'Widget', duration: 4000}));
+
     });
 }

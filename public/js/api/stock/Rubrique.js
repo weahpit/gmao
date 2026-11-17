@@ -16,7 +16,7 @@ function getAllRubriques(ctrl_name, ctrl_type){
                     <tbody>
                 `
                 for (var i=0;i < reponse.data.length;i++){
-                    contentCtrl +='<tr>'
+                    contentCtrl +='<tr class="a_rubrique" id="' + reponse.data[i].id + '" >'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].rubrique + '</a></td>'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].active + '</a></td>'
                     contentCtrl +='<td><a href="#">' + reponse.data[i].position + '</a></td>'
@@ -65,25 +65,15 @@ function deleteRubrique(id_rubrique){
         })
         .catch(err => showToast("❌ Erreur : " + err, {title: 'Rubrique', duration: 4000}));
 }
-function getSingleRubrique(id_rubrique) {
+
+function getSingleRubrique(formData) {  // api/getSingleUser
     return new Promise((resolve, reject) => {
-        $.ajax({
-            url:  URL_APP + 'api/getSingleRubrique' + id_rubrique,
-            type: 'POST',
-            success: function(response) {
-                if (response.code === "success") {
-                    resolve(response); // renvoie l'objet au .then()
-                } else {
-                    showToast(data.msg, {
-                        type : data.code,
-                        duration: 4000,
-                        title: 'Rubrique'
-                    })
-                }
-            },
-            error: function(err) {
-                showToast("❌ Erreur : " + err, {title: 'Rubrique', duration: 4000});
-            }
-        });
+        fetch( URL_APP + "api/getSingleRubrique", { method: "POST", body: formData })
+            .then(res => res.json())
+            .then(data => {
+                resolve(data); // renvoie l'objet au .then()
+            })
+            .catch(err => showToast("❌ Erreur : " + err, {title: 'Menu', duration: 4000}));
+
     });
 }

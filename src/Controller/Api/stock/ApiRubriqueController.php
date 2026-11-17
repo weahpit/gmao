@@ -43,13 +43,14 @@ final class ApiRubriqueController extends AbstractController
             }
             return new JsonResponse(json_encode($reponse));
         }
-    #[Route('api/getSingleRubrique/{$id_rubrique}', name: 'app_api_get_single_rubrique')]
-    public function app_api_get_single_rubrique($id_rubrique): Response
+    #[Route('api/getSingleRubrique', name: 'app_api_get_single_rubrique')]
+    public function app_api_get_single_rubrique(Request $request): Response
     {
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_USER")) {
             try {
+                $id_rubrique = $request->request->get('id_rubrique');
                 $rubrique = $this->em->getRepository(Rubrique::class)->find(Uuid::fromString($id_rubrique));
 
             if ($rubrique){
@@ -94,6 +95,7 @@ final class ApiRubriqueController extends AbstractController
                     } else {
                         $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_rubrique);
                         $rubrique = $this->em->getRepository(Rubrique::class)->find($uuid);
+                        if ($this->em->getRepository(Rubrique::class)->findBy(['libelle'=>$libelle_rubrique])){ return new JsonResponse(['code' => 'warning', 'msg' => 'Cette rubrique existe déjà !']);}
                     }
 
                     $isNew = false;

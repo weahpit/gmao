@@ -30,6 +30,7 @@ function clearForm(formId, focusId) {
     form.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
     form.querySelectorAll("textarea").forEach(textarea => textarea.value = "");
     setTimeout(()=>{ctrl.focus()}, 500)
+    document.getElementById('groupe').value = null;
 }
 
 // Event sur keypress pour valider un button

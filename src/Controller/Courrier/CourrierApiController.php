@@ -149,6 +149,13 @@ class CourrierApiController extends AbstractController
                 'msg'  => "Acces refuse : l'enregistrement du courrier est reserve au role courrier (ROLE_COURRIER) ou a l'administrateur.",
             ], 403);
         }
+        if ($request->request->count() === 0 && $request->files->count() === 0
+            && (int) $request->server->get('CONTENT_LENGTH', 0) > 0) {
+            return new JsonResponse([
+                'code' => 'error',
+                'msg'  => 'Requete trop volumineuse (post_max_size = ' . ini_get('post_max_size') . ').',
+            ], 413);
+        }
 
         $courrier = new Courrier();
         $erreurs = $this->remplir($courrier, $request);

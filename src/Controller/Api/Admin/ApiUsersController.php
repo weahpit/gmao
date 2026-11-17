@@ -46,6 +46,7 @@ final class ApiUsersController extends AbstractController
                             'admin'=>$user->isAdmin() ? "OUI" : "NON",
                             'bloque'=>$user->isBloque() ? "OUI" : "NON",
                             'signataire'=>$user->isSignataire() ? "OUI" : "NON",
+                            'roles'=>$user->getRoles() ? $user->getRoles() : [],
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -90,6 +91,7 @@ final class ApiUsersController extends AbstractController
                     'admin'=>$user->isAdmin() ? "OUI" : "NON",
                     'bloque'=>$user->isBloque() ? "OUI" : "NON",
                     'signataire'=>$user->isSignataire() ? "OUI" : "NON",
+                    'roles'=>$user->getRoles() ? $user->getRoles() : [],
                 );
             } else {
                 $reponse = array(
@@ -121,6 +123,7 @@ final class ApiUsersController extends AbstractController
                 $matricule = $request->request->get('matricule');
                 $mobile = $request->request->get('mobile');
                 $groupe = $request->request->get('groupe');
+                /*$roles = $request->request->all('roles_user');*/
                 $service = $request->request->get('service');
                 $poste = $request->request->get('poste');
                 $admin = $request->request->get('admin');
@@ -159,6 +162,24 @@ final class ApiUsersController extends AbstractController
                         $users->setEmail(strtolower($email));
                         $users->setMobile(strtoupper($mobile));
 
+                       /* Rôles*/
+                                // Récupère tout le tableau $_POST sans provoquer d'erreur de type
+                                $allPostData = $request->request->all();
+                                $rawRoles = $allPostData['roles_user'] ?? [];
+
+                                if (is_array($rawRoles)) {
+                                    // Cas 1 : Envoyé sous forme de tableau (roles_user[])
+                                    $roles = $rawRoles;
+                                } elseif (is_string($rawRoles) && $rawRoles !== '') {
+                                    // Cas 2 : Envoyé sous forme de JSON stringifié ou séparé par des virgules
+                                    $decoded = json_decode($rawRoles, true);
+                                    $roles = is_array($decoded) ? $decoded : explode(',', $rawRoles);
+                                } else {
+                                    $roles = [];
+                                }
+
+                                $roles[] = 'ROLE_USER';
+
                             if ($groupe){
                                 $Groupe = $this->em->getRepository(Groupe::class)->find(Uuid::fromString($groupe));
                                 if ($Groupe){
@@ -186,22 +207,24 @@ final class ApiUsersController extends AbstractController
                             $users->setPhoto($filename);
                         }
 
-                        $users->setRoles(['ROLE_USER']);
-                        $users->setAdmin(false);
-
-                        // dd($admin);
+                        // 3. Gestion de la case ADMIN
                         if ($admin == "OUI") {
-                            $users->setRoles(['ROLE_USER', 'ROLE_ADMIN']);
+                            $roles[] = 'ROLE_ADMIN';
                             $users->setAdmin(true);
+                        } else {
+                            $users->setAdmin(false);
                         }
 
-                        // L'utilisateur est-il signataire ?
-                        if ($signataire == "OUI"){
-                            $users->setRoles(['ROLE_USER','ROLE_DG']);
+                    // 4. Gestion de la case SIGNATAIRE
+                        if ($signataire == "OUI") {
+                            $roles[] = 'ROLE_DG';
                             $users->setSignataire(true);
+                        } else {
+                            $users->setSignataire(false);
                         }
 
-                            // L'utilisateur est-il bloque ?
+
+                        // L'utilisateur est-il bloque ?
                             if ($bloque == "OUI"){
                                 $users->setBloque(true);
                                 $users->setActive(false);
@@ -210,6 +233,11 @@ final class ApiUsersController extends AbstractController
                                 $users->setBloque(false);
                                 $users->setActive(true);
                             }
+
+
+                        // Nettoyage des espaces éventuels, doublons et réindexation
+                        $roles = array_map('trim', $roles);
+                        $users->setRoles(array_values(array_unique(array_filter($roles))));
 
                         $this->em->persist($users);
                         $this->em->flush();

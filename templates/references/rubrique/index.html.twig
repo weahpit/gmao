@@ -35,7 +35,7 @@
                 </div>
                 <div class="modal-body" style="background: rgba(205,218,195,0.52)">
                     <form id="formRubrique" >
-                        <div class="d-flex justify-content-start">
+                        <div class="d-flex justify-content-start mb-2">
                             <label class="fw-bold span " for="rubrique" style="width: 150px;">Libelle</label>
                             <input type="text" class="input" id="rubrique" style="text-transform: uppercase;">
                         </div>
@@ -74,5 +74,20 @@
            FormDataRubrique.append('position', document.querySelector("#position").value)
            saveRubrique(FormDataRubrique, document.querySelector(".card-body"), 1)
        })
+
+        $("body").on('click', '.a_rubrique', function(){
+            idRubrique = this.id;
+            $("#modalAddRubrique").modal('show')
+            let formRubrique = new FormData()
+            formRubrique.append('id_rubrique', idRubrique)
+            getSingleRubrique(formRubrique)
+                .then(menu => {
+                    document.getElementById("rubrique").value = menu.rubrique
+                    document.getElementById("position").value = menu.position
+                })
+                .catch(err => {
+                    console.error("Erreur :", err);
+                });
+        })
     </script>
 {% endblock %}
