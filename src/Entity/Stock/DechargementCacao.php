@@ -90,7 +90,7 @@ class DechargementCacao
     private ?string $source = null;
 
     /** Empreinte de l'import ayant cree la ligne (tracabilite). */
-    #[ORM\Column(name: 'import_uuid', length: 40, nullable: true)]
+    #[ORM\Column(name: 'import_uuid', length: 100, nullable: true)]
     private ?string $importUuid = null;
 
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_IMMUTABLE)]

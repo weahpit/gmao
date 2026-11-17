@@ -35,7 +35,7 @@
     </header>
 
     <div class="dc-stats">
-        <div class="dc-stat total"><div class="lbl">Bons</div><div class="val">{{ totaux.nb|number_format(0, ',', ' ') }}</div><div class="sub">en base</div></div>
+        <div class="dc-stat total"><div class="lbl">Camions Déchargés</div><div class="val">{{ totaux.nb|number_format(0, ',', ' ') }}</div><div class="sub">en base</div></div>
         <div class="dc-stat"><div class="lbl">Sacs</div><div class="val">{{ totaux.sacs|number_format(0, ',', ' ') }}</div><div class="sub">cumul</div></div>
         <div class="dc-stat nouveau"><div class="lbl">Poids net</div><div class="val">{{ totaux.poids|number_format(0, ',', ' ') }}</div><div class="sub">kg</div></div>
         <div class="dc-stat modifie"><div class="lbl">PNP</div><div class="val">{{ totaux.pnp|number_format(0, ',', ' ') }}</div><div class="sub">kg</div></div>
@@ -47,7 +47,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 Liste des déchargements
             </h2>
-            <span class="hint">{{ total|number_format(0, ',', ' ') }} bon(s)</span>
+            <span class="hint">{{ total|number_format(0, ',', ' ') }} camion(s)</span>
         </div>
         <div class="dc-card-body">
             <form method="get" class="d-flex flex-wrap gap-2 mb-3">

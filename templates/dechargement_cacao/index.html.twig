@@ -24,11 +24,12 @@
             <div>
                 <span class="dc-eyebrow">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Gestion des déchargements
+                    Gestion du stock · Cacao
                 </span>
-                <h1>Import de données de chargement Cacao</h1>
+                <h1>Import du déchargement cacao</h1>
                 <p>
-                    Déposez votre fichier <strong>Excel (.xlsx)</strong> ou <strong>CSV</strong>
+                    Déposez votre fichier <strong>Excel (.xlsx)</strong> ou <strong>CSV</strong> : l'application compare chaque camion
+                    avec la base, affiche un rapport détaillé, puis n'enregistre <em>qu'après votre validation</em>.
                 </p>
             </div>
             <div class="dc-header-actions">
@@ -74,7 +75,7 @@
             <div class="sub">kg</div>
         </div>
         <div class="dc-stat">
-            <div class="lbl">Dernier bon</div>
+            <div class="lbl">Dernier camion</div>
             <div class="val" style="font-size:1.05rem;">{{ totaux.derniere ? totaux.derniere|date('d/m/Y') : '—' }}</div>
             <div class="sub">date de chargement</div>
         </div>
@@ -91,13 +92,13 @@
             <span class="hint">.xlsx · .xls · .csv — {{ (tailleMax / 1048576)|round }} Mo maximum</span>
         </div>
         <div class="dc-card-body">
-            <div class="dc-drop" id="dcDrop" {#style="height: 250px;"#}>
+            <div class="dc-drop" id="dcDrop">
                 <input type="file" id="dcInput" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Choisir le fichier de déchargement">
                 <div id="dcDropIdle">
                     <div class="dc-drop-ico">
                         <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </div>
-                    <div class="dc-drop-title mt-5" >Glissez votre fichier ici ou cliquez pour le choisir</div>
+                    <div class="dc-drop-title">Glissez votre fichier ici ou cliquez pour le choisir</div>
                     <div class="dc-drop-sub">Le fichier doit reprendre les colonnes du modèle officiel</div>
                 </div>
                 <div id="dcDropFile" class="dc-fileinfo" style="display:none;">

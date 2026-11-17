@@ -79,6 +79,8 @@
         renommages: {}   // { lettre: nouveau libelle }
     };
 
+    var totalAffiche = 0;
+
     var LIBELLES_VERDICT = {
         nouveau: 'Nouveau',
         modifie: 'À mettre à jour',
@@ -530,6 +532,7 @@
         if (!etat.rapport) { return; }
         var q = etat.recherche.toLowerCase();
         var html = [];
+        totalAffiche = 0;
 
         etat.rapport.lignes.forEach(function (l) {
             var v = verdictNormalise(l.verdict);
@@ -556,6 +559,7 @@
                 ecart = '<span class="dc-ecart" style="color:#a89b8c;">0</span>';
             }
 
+            totalAffiche++;
             html.push('<tr data-code="' + echapper(l.code) + '" data-verdict="' + v + '"' + (coche ? '' : ' class="off"') + '>'
                 + '<td class="check"><input type="checkbox" class="dc-check dc-row-check" data-code="' + echapper(l.code) + '"'
                 + (selectionnable ? '' : ' disabled') + (coche ? ' checked' : '') + ' aria-label="Selectionner ' + echapper(l.code) + '"></td>'

@@ -28,6 +28,13 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  *     'feuille'         => 'Feuil1',
  *     'nbFeuilles'      => 1,
  *   ]
+ *
+ * Panne frequente corrigee ici : certains tableaux n'ont aucune date de reference,
+ * donc Excel (Yoogie) ecrit 46001, 40361, 40348... dans une colonne DATE. Lue comme
+ * un simple nombre, 40361 donnait "2010-06-19", et la date de dechargement (2010)
+ * se retrouvait anterieure a la date du bon : toutes les lignes etaient rejetees et
+ * le rapport s'affichait vide. On utilise donc le format DATE de chaque colonne
+ * (styles.xml de la feuille) pour convertir correctement ces cellules.
  */
 final class LecteurTabulaireService
 {
@@ -58,6 +65,16 @@ final class LecteurTabulaireService
 
         $chemin = $fichier->getPathname();
         $extension = strtolower((string) $fichier->getClientOriginalExtension());
+        // Navigateur qui n'envoie pas de nom : le multipart fournit un chemin temporaire.
+        if ($extension === '') {
+            $extension = strtolower((string) pathinfo((string) $fichier->getPathname(), PATHINFO_EXTENSION));
+        }
+        // Certains generateurs ecrivent "xxx.xlsx" dans le chemin sans extension :
+        // on retombe sur le nom envoye par le navigateur.
+        if ($extension === '') {
+            $nom = (string) ($fichier->getClientOriginalName() ?? $fichier->getPathname());
+            $extension = strtolower((string) pathinfo($nom, PATHINFO_EXTENSION));
+        }
 
         // Certains navigateurs envoient une extension vide : on regarde la signature du fichier.
         if ($extension === '') {
@@ -176,8 +193,11 @@ final class LecteurTabulaireService
                 throw new \RuntimeException('La feuille "' . $cible['nom'] . '" n\'a pas pu etre lue.');
             }
 
-            // ".rels" de la feuille : permet de resoudre les textes riches (sharedStrings).
-            $brut = $this->lignesXml($xml, $partagees);
+            // Formats de date declares dans styles.xml : sans eux, une date Excel
+            // brute (46001) est indistinguable d'un simple nombre.
+            $formats = $this->formatsDate($zip);
+
+            $brut = $this->lignesXml($xml, $partagees, $formats);
 
             return $this->structurer($brut, 'xlsx', $cible['nom'], count($feuilles));
         } finally {
@@ -253,7 +273,7 @@ final class LecteurTabulaireService
      *
      * @return array<int, array<string, string>>
      */
-    private function lignesXml(string $xml, array $partagees): array
+    private function lignesXml(string $xml, array $partagees, array $formatsDate = []): array
     {
         $doc = $this->xml($xml);
         $lignes = [];
@@ -282,13 +302,19 @@ final class LecteurTabulaireService
                 } elseif (isset($c->v)) {
                     $brut = (string) $c->v;
                     if ($type === 's') {
-                        $valeur = $partagees[(int) $brut] ?? '';
+                        // Index de chaine partagee : si le fichier n'a pas de table
+                        // partagee (ou un index hors limites), on garde le contenu
+                        // tel quel plutot que d'afficher une cellule vide.
+                        $valeur = $partagees[(int) $brut] ?? $brut;
                     } elseif ($type === 'b') {
                         $valeur = $brut === '1' ? '1' : '0';
                     } elseif ($type === 'str' || $type === 'e' || $type === 'd') {
                         $valeur = $brut;
                     } else {
-                        $valeur = $this->nombreLisible($brut);
+                        // Cellule numerique : si sa colonne porte un format DATE,
+                        // le nombre est un quantieme Excel et non une quantite.
+                        $style = (int) (string) ($c['s'] ?? '0');
+                        $valeur = $this->nombreLisible($brut, isset($formatsDate[$style]));
                     }
                 }
 
@@ -309,13 +335,16 @@ final class LecteurTabulaireService
      * on renvoie la date au format AAAA-MM-JJ HH:MM pour que l'utilisateur
      * voie une vraie date dans l'apercu.
      */
-    private function nombreLisible(string $brut): string
+    private function nombreLisible(string $brut, bool $estDate = false): string
     {
         if (!is_numeric($brut)) {
             return $brut;
         }
         $nombre = (float) $brut;
-        if ($nombre > 20000 && $nombre < 80000) {
+        // Plage large : un classeur sans date de reference peut numeroter depuis 1904
+        // ou contenir des dates anciennes. On ne convertit que si la colonne est en DATE.
+        $plage = $estDate ? ($nombre >= 1 && $nombre < 2958466) : ($nombre > 30000 && $nombre < 80000);
+        if ($plage) {
             $jours = (int) floor($nombre);
             $fraction = $nombre - $jours;
             $date = (new \DateTimeImmutable('1899-12-30'))->modify('+' . $jours . ' days');
@@ -389,7 +418,23 @@ final class LecteurTabulaireService
             throw new \RuntimeException('Le fichier ne contient aucune ligne exploitable.');
         }
 
+        // Le fichier peut etre enregistre sans aucun partage de chaines (certains
+        // generateurs ecrivent toutes les cellules en "inlineStr"). Dans ce cas les
+        // libelles d'en-tete seraient vides alors que le fichier est parfaitement
+        // lisible : on les reconstruit a partir du texte des cellules.
         $indexEntete = $this->detecterEntete($exploitables);
+        // Deuxieme garde-fou : une premiere ligne tres pauvre en colonnes (titre
+        // fusionne "LISTE DES DECHEMEMENTS") ne doit pas etre prise pour l'en-tete
+        // si la ligne suivante decrit beaucoup plus de colonnes.
+        if ($this->enteteTropEtroite($exploitables, $indexEntete)) {
+            $indexEntete = $this->ligneLaPlusLarge($exploitables);
+        }
+        if ($this->enteteVide($exploitables[$indexEntete])) {
+            $devine = $this->enteteParContenu($exploitables);
+            if ($devine !== null) {
+                $indexEntete = $devine;
+            }
+        }
         $ligneEntete = $exploitables[$indexEntete];
 
         $entetes = [];
@@ -403,8 +448,10 @@ final class LecteurTabulaireService
             foreach ($entetes as $adresse => $libelle) {
                 $colonne[$adresse] = (string) ($ligne[$adresse] ?? '');
             }
-            // On ignore les lignes completement vides au regard des colonnes retenues.
-            if (trim(implode('', $colonne)) === '') {
+            // Une ligne n'est gardee que si au moins une cellule de donnees est remplie.
+            // (Certains tableaux n'ont que l'en-tete de renseigne : on ne veut pas
+            //  qu'une ligne vide soit analysee puis rejetee sans explication.)
+            if (trim(preg_replace('/\s+/u', '', implode('', $colonne)) ?? '') === '') {
                 continue;
             }
             $lignes[] = $colonne;
@@ -420,6 +467,80 @@ final class LecteurTabulaireService
             'feuille'     => $feuille,
             'nbFeuilles'  => $nbFeuilles,
         ];
+    }
+
+    private function enteteTropEtroite(array $lignes, int $index): bool
+    {
+        $colonnes = static function (array $ligne): int {
+            $n = 0;
+            foreach ($ligne as $valeur) {
+                if (trim((string) $valeur) !== '') {
+                    $n++;
+                }
+            }
+
+            return $n;
+        };
+
+        $limite = min(count($lignes), 10);
+        $maxi = 0;
+        for ($i = 0; $i < $limite; $i++) {
+            $maxi = max($maxi, $colonnes($lignes[$i]));
+        }
+
+        return $colonnes($lignes[$index]) <= 2 && $maxi >= 4;
+    }
+
+    /** Ligne la plus large parmi les 10 premieres (en sautant les lignes de titre). */
+    private function ligneLaPlusLarge(array $lignes): int
+    {
+        $limite = min(count($lignes), 10);
+        $meilleur = 0;
+        $meilleurN = -1;
+        for ($i = 0; $i < $limite; $i++) {
+            $n = 0;
+            foreach ($lignes[$i] as $valeur) {
+                if (trim((string) $valeur) !== '') {
+                    $n++;
+                }
+            }
+            if ($n > $meilleurN) {
+                $meilleurN = $n;
+                $meilleur = $i;
+            }
+        }
+
+        return $meilleur;
+    }
+
+    /** Vrai si la ligne ne contient aucun libelle exploitable (que des nombres ou du vide). */
+    private function enteteVide(array $ligne): bool
+    {
+        $libelles = 0;
+        foreach ($ligne as $valeur) {
+            $texte = $this->normaliserLibelle((string) $valeur);
+            if ($texte !== '' && !is_numeric($texte)) {
+                $libelles++;
+            }
+        }
+
+        return $libelles < 2;
+    }
+
+    /**
+     * Repli quand aucune en-tete n'est lisible : on prend la premiere ligne dont
+     * les cellules sont du texte court non numerique (le cas classique).
+     */
+    private function enteteParContenu(array $lignes): ?int
+    {
+        $limite = min(count($lignes), 20);
+        for ($i = 0; $i < $limite; $i++) {
+            if (!$this->enteteVide($lignes[$i])) {
+                return $i;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -462,6 +583,53 @@ final class LecteurTabulaireService
         }
 
         return $meilleur;
+    }
+
+    /**
+     * Index des styles de cellule dont le format est une DATE.
+     *
+     * styles.xml : une <cellXfs> liste les styles utilises par les cellules (attribut
+     * "s" de chaque <c>), chaque style pointant vers un <numFmt> (identifiant + code).
+     * Un style est "date" si son code contient j/m/a (ou d/y) sans etre du texte.
+     *
+     * @return array<int, bool>
+     */
+    private function formatsDate(\ZipArchive $zip): array
+    {
+        $xml = $zip->getFromName('xl/styles.xml');
+        if ($xml === false) {
+            return [];
+        }
+
+        try {
+            $doc = $this->xml($xml);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $codes = [];
+        foreach ($doc->numFmts->numFmt ?? [] as $fmt) {
+            $codes[(int) $fmt['numFmtId']] = (string) $fmt['formatCode'];
+        }
+        // Formats de date natifs d'Excel (pas declares dans numFmts).
+        foreach ([14, 15, 16, 17, 22] as $natif) {
+            $codes[$natif] = 'dd/mm/yyyy';
+        }
+
+        $dates = [];
+        $index = 0;
+        foreach ($doc->cellXfs->xf ?? [] as $xf) {
+            $id = (int) $xf['numFmtId'];
+            $code = $codes[$id] ?? '';
+            // On retire les parties entre guillemets et les echappements avant de tester.
+            $test = strtolower(preg_replace('/"[^"]*"|\\.|\[[^\]]*\]/', '', $code) ?? '');
+            $dates[$index] = $code !== ''
+                && preg_match('/[dmy]/', $test) === 1
+                && preg_match('/[0#?]/', str_replace(['mm', 'dd', 'yy', 'hh', 'ss'], '', $test)) !== 1;
+            $index++;
+        }
+
+        return $dates;
     }
 
     private function normaliserLibelle(string $libelle): string
