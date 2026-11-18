@@ -6,6 +6,7 @@ use App\Entity\Logistique\Magasin;
 use App\Entity\Logistique\Proprietaire;
 use App\Entity\Production\Lot;
 use App\Entity\Production\Produit;
+use App\Service\Production\GestionLotService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,7 +17,10 @@ use Symfony\Component\Uid\Uuid;
 
 final class ApiLotController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em){}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private GestionLotService $gestion,
+    ){}
 
     #[Route('api/getAllLots', name: 'app_api_get_lot')]
     public function index(): Response
@@ -158,56 +162,43 @@ final class ApiLotController extends AbstractController
 
                 $proprio = $this->em->getRepository(Proprietaire::class)->find(Uuid::fromString($code_proprio));
                 $produit = $this->em->getRepository(Produit::class)->find(Uuid::fromString($code_produit));
-                $magasin = $this->em->getRepository(Magasin::class)->find(Uuid::fromString($code_magasin));
+                // L'emplacement n'est plus obligatoire : il est deduit du produit
+                // (feves / produits finis) par le service partage.
+                $magasin = $code_magasin
+                    ? $this->em->getRepository(Magasin::class)->find(Uuid::fromString($code_magasin))
+                    : null;
 
-                if (!$numero_lot || !$date_prod || !$pn_th || !$proprio || !$produit || !$magasin ) {
+                if (!$numero_lot || !$date_prod || !$pn_th || !$proprio || !$produit) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir toutes les informations du lot !'];
                 } else {
 
-                    if ($id_lot){
-                        $lot = $this->em->getRepository(Lot::class)->find(Uuid::fromString($id_lot));
+                    $lot = $id_lot
+                        ? $this->em->getRepository(Lot::class)->find(Uuid::fromString($id_lot))
+                        : null;
+
+                    // Toute la validation (doublon de numero, poids, qualite) et
+                    // l'ecriture passent par le service partage avec l'ecran web.
+                    $resultat = $this->gestion->enregistrer([
+                        'numero_lot' => $numero_lot,
+                        'proprietaire' => $proprio,
+                        'produit' => $produit,
+                        'magasin' => $magasin,
+                        'date_prod' => $date_prod,
+                        'pn_th' => $pn_th,
+                        'qualite' => 'C',
+                    ], $lot instanceof Lot ? $lot : null, $this->utilisateur());
+
+                    if (!$resultat['ok']) {
+                        $reponse = [
+                            'code' => 'error',
+                            'msg' => implode('<br>', $resultat['erreurs']),
+                        ];
                     } else {
-                        // Recherche de doublons
-                        $rech_dbl = $this->em->getRepository(Lot::class)->findBy(['origine'=>strtoupper($numero_lot)]);
-                        if ($rech_dbl){
-                            $reponse = [
-                                'code' => 'error',
-                                'msg' =>  'CE NUMERO DE LOT EXISTE DEJA  !'
-                            ];
-                            return new JsonResponse($reponse);
-                        }
-                        $uuid = Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), (string)$id_lot);
-                        $lot = $this->em->getRepository(Lot::class)->find($uuid);
+                        $reponse = [
+                            'code' => 'success',
+                            'msg' => $resultat['creation'] ? 'Lot créé avec succès !' : 'Lot  mis à jour avec succès !'
+                        ];
                     }
-
-                    $isNew = false;
-                    if (!$lot) {
-                        $lot = new Lot();
-                        $isNew = true;
-                        $lot->setPnTh(floatval($lot->getCodeProduit()?$lot->getCodeProduit()->getPoidsNetDefault() : 0 ));
-                        $lot->setPbTht(floatval($lot->getCodeProduit()?$lot->getCodeProduit()->getPoidsNetDefault() : 0 ));
-                        $lot->setNbSacs(floatval($lot->getCodeProduit()?$lot->getCodeProduit()->getPoidsNetDefault() : 0 ));
-
-                        $lot->setQualite('C');
-                        $lot->setCreatedAt(new \DateTimeImmutable());
-                        $lot->setCreatedBy($this->getUser());
-                        $lot->setCreatedBy($this->getUser());
-                    }
-
-                    $lot->setNumeroLot(strtoupper($numero_lot));
-                    $lot->setOrigine(strtoupper($numero_lot));
-                    $lot->setCodeProprio($proprio);
-                    $lot->setCodeProduit($produit);
-                    $lot->setCodeMagasin($magasin);
-                    $lot->setDateProd(new \DateTime($date_prod));
-
-                    $this->em->persist($lot);
-                    $this->em->flush();
-
-                    $reponse = [
-                        'code' => 'success',
-                        'msg' => $isNew ? 'Lot créé avec succès !' : 'Lot  mis à jour avec succès !'
-                    ];
                 }
             } catch (\Throwable $throwable) {
                 $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est lote !<br>' . $throwable->getMessage()];
@@ -217,7 +208,7 @@ final class ApiLotController extends AbstractController
         }
         return new JsonResponse($reponse);
     }
-    #[Route('api/deleteLot/{$id_lot}', name: 'app_api_delete_lot')]
+    #[Route('api/deleteLot/{id_lot}', name: 'app_api_delete_lot')]
     public function app_api_delete_lot(Request $request,  $id_lot): Response
     {
         $reponse = array();
@@ -258,78 +249,22 @@ final class ApiLotController extends AbstractController
             try {
             $id_lot = $request->request->get('id_lot');
             $poidsDemande = $request->request->get('poids_demande');
-            $lot = $this->em->getRepository(Lot::class)->find($id_lot);
-            if($lot){
-                $pb = $lot->getPbTht() ?  $lot->getPbTht()  : $lot->getCodeProduit()->getPoidsBrutDefault();
-                $pn = $lot->getPnTh();
-                $tare = $lot->getCodeProduit()->getTareUniteDefault() ? $lot->getCodeProduit()->getTareUniteDefault() : 0 ;
+            $lot = $id_lot ? $this->em->getRepository(Lot::class)->find(Uuid::fromString($id_lot)) : null;
 
-                if ((float) $poidsDemande > $pn or (float) $poidsDemande <= 0) {
-                    $reponse = array(
-                        'code'=>'warning',
-                        'msg'=>'Merci de renseigner un Poids Net Correct !'
-                    );
-                } else {
-                    $nb_sacs_nc = 0;
-                    $nb_sacs_c = 0;
-
-                    //Création du lolt NC
-                    $lot_nc = new Lot();
-                    $lot_nc->setNumeroLot($lot->getNumeroLot()."-2");
-                    $lot_nc->setOrigine(strtoupper($lot->getOrigine()));
-                    $lot_nc->setScission(true);
-                    $lot_nc->setQualite("NC");
-                    $lot_nc->setPnTh((float) $pn);
-
-                    //Calcule le nb de sacs ou cartons ou big bag
-                        $nb_sacs_nc = ($lot->getNbSacs() * (float) $poidsDemande) / $lot->getPnTh();
-                    // Calcule du poids Brut
-                        $tare_nc =  $nb_sacs_nc * ($tare);
-                        $pb_nc = (float) $pn + $tare_nc;
-
-                    $lot_nc->setPbTht($pb_nc);
-                    $lot_nc->setNbSacs($nb_sacs_nc);
-                    $lot_nc->setPoidsNetDispo((float) $pn);
-                    $lot_nc->setUpdatedAt(new \DateTimeImmutable());
-                    $lot_nc->setCreatedAt(new \DateTimeImmutable());
-                    $lot_nc->setUpdatedBy($this->getUser());
-                    $lot_nc->setCreatedBy($this->getUser());
-                    $lot_nc->setCodeMagasin($this->em->getRepository(Magasin::class)->findOneBy(['libelle'=>'MAGASIN NON CONFORME']));
-                    $lot_nc->setCodeProduit($lot->getCodeProduit());
-                    $lot_nc->setCodeProprio($lot->getCodeProprio());
-                    $lot_nc->setDateProd($lot->getDateProd());
-                    $this->em->persist($lot_nc);
-
-                    // Mise à jour du lot principal
-
-
-                    $lot->setNumeroLot($lot->getNumeroLot()."-1");
-                    $lot->setScission(true);
-                    $lot->setQualite("C");
-                    $lot->setPnTh($lot->getPnTh() - (int) $pn);
-                    $lot->setPoidsNetDispo($lot->getPnTh());
-
-                    $nb_sacs_c = $lot->getNbSacs() - $nb_sacs_c;
-                    $pb_c = $pb - $pb_nc;
-                    $lot->setPbTht($pb_c);
-                    $lot->setNbSacs($nb_sacs_c);
-
-                    $lot->setUpdatedAt(new \DateTimeImmutable());
-                    $lot->setUpdatedBy($this->getUser());
-                    $this->em->persist($lot);
-                    $this->em->flush();
-
-                    $reponse = array(
-                        'code'=>"success",
-                        'msg'=>'Scission effectuée avec succès'
-                    );
-                }
-            } else {
-                $reponse = array(
-                    'code'=>"error",
-                    'msg'=>'Erreur lors de la scission !'
-                );
+            if (!$lot instanceof Lot) {
+                return new JsonResponse(['code' => 'error', 'msg' => 'Erreur lors de la scission !']);
             }
+
+            // La scission (numerotation -1 / -2, sacs, poids brut, magasin NC)
+            // est centralisee dans le service partage avec l'ecran web.
+            $resultat = $this->gestion->scinder($lot, (float) $poidsDemande, $this->utilisateur());
+
+            $reponse = [
+                'code' => $resultat['ok'] ? 'success' : 'warning',
+                'msg' => $resultat['ok']
+                    ? 'Scission effectuée avec succès'
+                    : implode('<br>', $resultat['erreurs']),
+            ];
         } catch (\Throwable $throwable){
             $reponse = array(
                 'code'=>"error",
@@ -340,5 +275,24 @@ final class ApiLotController extends AbstractController
             $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
         }
         return new JsonResponse($reponse);
+    }
+
+    /**
+     * Identifiant de l'utilisateur courant, tolerant aux comptes sans e-mail.
+     */
+    private function utilisateur(): string
+    {
+        $u = $this->getUser();
+        if (!$u) {
+            return 'systeme';
+        }
+        if (method_exists($u, 'getUserIdentifier')) {
+            $id = (string) $u->getUserIdentifier();
+            if ('' !== $id) {
+                return $id;
+            }
+        }
+        $id = method_exists($u, '__toString') ? (string) $u : '';
+        return '' !== $id ? $id : 'systeme';
     }
 }

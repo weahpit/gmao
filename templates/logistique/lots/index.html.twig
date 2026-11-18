@@ -1,304 +1,627 @@
 {% extends 'base.html.twig' %}
+
 {% block title %}Production de lots{% endblock %}
 
-{% block body %}
-    <style>
-        select {
-            border: 1px solid grey;
-            background: white;
-            height: 30px;
-            font-size: 13px;
-            font-weight: lighter;
-            width: 200px;
-        }
-        th {
-            font-weight: bolder;
-        }
-        input{
-            font-size: 14px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            padding-left: 10px;
-            border: 1px solid lightgrey;
-            border-bottom: 2px solid darkblue;
-            width: 200px;
-        }
-        th, td {
-            border-right: 1px solid black;
-            padding: 2px;
-        }
-        .selected {
-            background: #3b82f6;
-            color: white;
-        }
-        .highlight { background-color: yellow; }
-        .hov {
-            background: #cfdaeb;
-            color: black;
-        }
-
-    </style>
-    <h3 class="p-1 sticky-top" style="border-bottom: 1px solid #e9e8e8;background: #f0f0f0;">Gestion des lots</h3>
-    <div class="m-2 border border1 border-secondary" style="min-height: 500px;">
-
-        <div class="row p-2 m-2"  style="background:#f0f0f0;border: 1px solid #cfcfcf;">
-
-            <div class="col-md-5">
-                <div class="d-flex justify-content-between mb-2 ms-2">
-                    <label for="numero_lot" class="fw-bold" style="width: 200px;"> N° Lot</label>
-                    <input class="w-100" type="text" placeholder="N° Lot" id="numero_lot">
-                </div>
-                <div class="d-flex justify-content-between mb-2 ms-2">
-                    <label for="proprio" class="fw-bold" style="width: 200px;"> Propriétaire</label>
-                    <select class="w-100" name="proprio" id="proprio" required></select>
-                </div>
-                <div class="d-flex justify-content-between mb-2 ms-2">
-                    <label for="produit" class="fw-bold" style="width: 200px;"> Produit</label>
-                    <select  class="w-100" name="produit" id="produit" required></select>
-                </div>
-            </div>
-            <div class="col-md-5">
-                <div class="d-flex justify-content-between mb-2 ms-2">
-                    <label for="date_prod" class="fw-bold" style="width: 200px;"> Date Production</label>
-                    <input  class="w-100" type="date" id="date_prod" placeholder="date de production" style="width: 200px;" required>
-                </div>
-                <div class="d-flex justify-content-start border border-1 mb-1" style="background: #e4e4e4;">
-                    <div class="d-flex justify-content-between mb-1 ms-2 mt-1 me-2">
-                        <label for="pb_th" class="fw-bold" style="width: 100px;font-size: 13px;"> PB Th</label>
-                        <input class="w-100 bg-light text-center fw-bold text-dark" type="number" placeholder="PB Théorique" id="pb_th" disabled>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1 ms-2 mt-1 me-2">
-                        <label for="pn_th" class="fw-bold" style="width: 100px;font-size: 13px;"> PN Th</label>
-                        <input class="w-100 bg-light text-center fw-bold text-dark" type="number" placeholder="PN Théorique" id="pn_th" disabled>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1 ms-2 mt-1 me-2">
-                        <label for="nb_sacs" class="fw-bold" style="width: 100px;font-size: 13px;"> Nb Sacs</label>
-                        <input class="w-100 bg-light text-center fw-bold text-dark" type="number" placeholder="nb sacs" id="nb_sacs" disabled>
-                    </div>
-                </div>
-                <div class="d-flex justify-content-between mb-2 ms-2">
-                    <label for="magasin" class="fw-bold" style="width: 200px;"> Emplacement</label>
-                    <select class="w-100" name="magasin" id="magasin" required></select>
-                </div>
-            </div>
-
-            <div class="col-md-2 text-center">
-                <a href="#" class="btn btn-warning mx-auto mt-2 text-center" id="new_lot" style="width: 150px;" >Nouveau lot</a><br>
-                <a href="#" id="btn_enr_lot" class="btn btn-success mx-auto mt-2 text-center" style="width: 150px;">Enregistrer en base</a>
-            </div>
-        </div>
-        <hr>
-        <div class="w-100 p1">
-            <div class="p-1 bg-white ms-2 mb-2 me-2"  style="height: 550px;overflow-y: scroll;border: 2px solid grey;">
-                <div class="form-group form-group-sm mt-2 d-inline-flex">
-                    <label class="fw-bold">
-                        <input type="text" placeholder="Rechercher un lot" id="recherche">
-                    </label>
-                    <a href="#" data-bs-target="#modal_scission" data-bs-toggle="modal" class="btn btn-outline-danger btn-sm ms-2" style="display: none" id="btn_s_nc" title="Scinder le lot en Conforme et non Conforme"><i class="fa fa-cut ms-2"></i> Scission Non conformité</a>
-                </div>
-                <br>
-                <div class="p-0 d-inline-flex mt-2">
-                    <label for="" style="font-weight: bold;">Légende : </label><label for="" class="ms-5" style="background-color: #fabdbd;height: 18px;width: 18px;"></label><label for="" class="ms-1 mb-2">Lots non conforme (NC)</label>
-                </div>
-                <hr style="border: 2px black dashed">
-                <table  class="mt-1 w-100 table-hover">
-                    <thead class="fw-normal sticky-top">
-                    <tr class="p-1 fw-light" id="table tableLots" style="background: linear-gradient(#f5f1f1, #d2cdcd);font-weight: normal;font-size: 16px;border: 1px solid black;height: 25px;">
-                        <th>N° Lot</th>
-                        <th>Proprietaire</th>
-                        <th>Nature</th>
-                        <th>Date Production</th>
-                        <th>PN Théor.</th>
-                        {#<th>PN Réel</th>#}
-                        <th>Etat</th>
-                        <th>Situation</th>
-                        <th>N° OT</th>
-                    </tr>
-                    </thead>
-                    <tbody class="lots_body"><tr><td><h6 class="fw-bold text-danger">Chargement des lots...</h6></td></tr></tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-
-    {# Modal Scission #}
-    <div class="modal fade" id="modal_scission" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-sm" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5>Scission de lot</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body text-center" >
-                    <h5 class="fw-normal">Voulez-vous scinder le lot suivant pour non conformité ?</h5>
-                    <hr>
-                    <div class="mt-2 container">
-                        <label class="fw-bold"> Saisissez le poids Non Conforme (kg)
-                            <br><input class="fw-bold text-center" type="number" style="width: 100%;background-color: #f6d3d7" placeholder="Poids NC" id="poids_nc">
-                        </label>
-                    </div>
-                    <div class="mt-2">
-                        <button type="button" class="btn btn-sm mb-2 w-100" style="background: #c53030;color: white" id="btn-scission">Scinder</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="{{ asset('js/external/jquery.js') }}"></script>
-    <script src="{{ asset('js/tools/functions.js') }}"></script>
-    <script src="{{ asset('js/tools/showToast.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/embarquements.js') }}"></script>
-    <script src="{{ asset('js/api/Production/Produit.js') }}"></script>
-    <script src="{{ asset('js/api/Production/Lot.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/Proprietaire.js') }}"></script>
-    <script src="{{ asset('js/api/Logistique/Magasin.js') }}"></script>
-
-
-    <script>
-        let id_lot = "0";
-        let scinde = false;
-        getAllProprietaires(document.getElementById("proprio"), 2)
-        getAllMagasins(document.getElementById('magasin'), 2)
-        getAllLots(document.querySelector('.lots_body'), 1)
-        reinitialise_form()
-
-        document.getElementById("proprio").addEventListener('change', ()=>{
-            getAllProduitsByProprietaire(document.getElementById("produit"), 2, document.getElementById("proprio").value)
-        })
-
-        document.getElementById("produit").addEventListener('change', ()=>{
-            let formPdt = new FormData();
-            formPdt.append('id_produit', document.getElementById("produit").value)
-            getSingleProduit(formPdt)
-                .then(pdt=>{
-                    document.getElementById("pb_th").value = pdt.pb_th
-                    document.getElementById("pn_th").value = pdt.pn_th
-                    document.getElementById("nb_sacs").value = pdt.nbSacs
-                })
-        })
-
-
-
-
-
-        /* EVENTS*/
-        $("#btn_enr_lot").on("click", function (e){
-            e.preventDefault();
-            addLot();
-        })
-
-        $("#btn-scission").on("click", function (e){
-            //e.preventDefault();
-            let formLot = new FormData()
-            formLot.append('id_lot', id_lot)
-            formLot.append('poids_demande', document.getElementById("poids_nc").value)
-            scinderLot(formLot, document.querySelector('.lots_body'), 1)
-        })
-
-        $("#new_lot").on("click", function (e){
-            e.preventDefault();
-            reinitialise_form()
-            $('#numero_lot').focus()
-        })
-
-        /*--------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-
-        /*  API*/
-
-        function   addLot(){let formLot = new FormData()
-            formLot.append('id_lot', id_lot)
-            formLot.append('numero_lot', document.getElementById('numero_lot').value)
-            formLot.append('code_proprio', document.getElementById('proprio').value)
-            formLot.append('code_produit', document.getElementById('produit').value)
-            formLot.append('magasin', document.getElementById('magasin').value)
-            formLot.append('pn_th', document.getElementById('pn_th').value)
-            formLot.append('date_prod', document.getElementById('date_prod').value)
-
-            saveLot(formLot, document.querySelector('.lots_body'), 1 )
-        }
-        function   getLotInfos(idLot){
-            let reponse = "";
-            reinitialise_form()
-            let formLot = new FormData()
-            formLot.append('id_lot', idLot)
-            getSingleLot(formLot).
-                then(lot=>{
-                document.getElementById("produit").disabled = true;
-                document.getElementById("proprio").disabled = true;
-                    id_lot = idLot;
-                    document.getElementById('numero_lot').value = lot.numero_lot;
-                    document.getElementById('proprio').value = lot.proprio;
-                    document.getElementById('date_prod').value = lot.date_production;
-                    document.getElementById('pn_th').value = lot.pn_th;
-                    document.getElementById('pb_th').value = lot.pb_th;
-                    document.getElementById('nb_sacs').value = lot.nbSacs;
-                document.getElementById('magasin').value = lot.situation;
-                getAllProduitsByProprietaire(document.getElementById("produit"), 2, document.getElementById("proprio").value)
-                document.querySelector("#btn_s_nc").style.display ='inline'
-                setTimeout(()=>{
-                    document.getElementById('produit').value = lot.produit;
-                }, 1000)
-
-            })
-        }
-
-
-        function selected_row(){
-            document.querySelectorAll(".tr").forEach(function(row) {
-                row.addEventListener("click", function() {
-                    id_lot = this.id;
-                    getLotInfos(id_lot)
-                    // Supprime la classe 'selected' des autres lignes
-                    document.querySelectorAll("tr").forEach(r => r.classList.remove("selected"));
-                    // Ajoute la classe 'selected' à la ligne cliquée
-                    this.classList.add("selected");
-                });
-            });
-        }
-
-        $("#recherche").on("input", function() {
-            var valeur = $(this).val().toLowerCase();
-            // alert(valeur)
-            // Réinitialise les couleurs
-            $("#tableLots tr").removeClass("highlight");
-
-            if (valeur !== "") {
-                $("#tableLots tr").toggle($(this).text().toLowerCase().indexOf(valeur) > -1);
-            }
-        });
-
-        function reinitialise_form(){
-            $("#numero_lot").val("")
-            $("#date_prod").val(null)
-            $("#pn_th").val(0)
-            $("#proprio").val(0)
-            $("#produit").val(0)
-            $("#magasin").val(0)
-            $("#recherche").val("")
-            $("#poids_nc").val(0)
-            id_lot = "0";
-            document.querySelector("#btn_s_nc").style ='display:none'
-            document.getElementById("produit").disabled = false;
-            document.getElementById("proprio").disabled = false;
-            document.getElementById("produit").innerHTML=""
-        }
-        $(" input ").on("input", function (){
-            check_input(this)
-        })
-
-        function check_input(ctl){
-            if (ctl.value === "" || ctl.value === 0){
-                ctl.style.background = "white"
-            } else {
-                ctl.style.background = "lightyellow"
-            }
-        }
-
-    </script>
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'dechargement_cacao/_styles.html.twig' %}
+    {% include 'logistique/lots/_styles.html.twig' %}
 {% endblock %}
 
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Production</span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Production de lots</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Production · Cacao · Lots</span>
+                <h1>Production de lots</h1>
+                <p>
+                    Créez et suivez les lots fabriqués : propriétaire, produit, emplacement, date de production et poids net théorique.
+                    Un lot peut être scindé en conforme / non conforme sans perdre le lien avec les camions déjà rattachés.
+                </p>
+            </div>
+            <div class="dc-header-actions dc-no-print">
+                <a href="{{ path('stock_tracabilite_lots') }}" class="dc-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M6 7v13h12V7M9 11h6"/></svg>
+                    Ordre d'usinage
+                </a>
+                <a href="{{ path('app_dechargements_cacao') }}" class="dc-chip solid">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v12H3z"/><path d="M7 6V4h10v2"/><path d="M7 12h4"/></svg>
+                    Déchargements
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="dc-stats">
+        <div class="dc-stat total">
+            <div class="lbl">Lots affichés</div>
+            <div class="val">{{ cumuls.nb|number_format(0, ',', ' ') }}</div>
+            <div class="sub">sur {{ globaux.nb|number_format(0, ',', ' ') }} lot(s) au total</div>
+        </div>
+        <div class="dc-stat nouveau">
+            <div class="lbl">Poids net théorique</div>
+            <div class="val">{{ cumuls.pn|number_format(0, ',', ' ') }}</div>
+            <div class="sub">kg sur la sélection</div>
+        </div>
+        <div class="dc-stat rejete">
+            <div class="lbl">Lots non conformes</div>
+            <div class="val">{{ cumuls.nc|number_format(0, ',', ' ') }}</div>
+            <div class="sub">{{ cumuls.scindes|number_format(0, ',', ' ') }} lot(s) issu(s) d'une scission</div>
+        </div>
+        <div class="dc-stat modifie">
+            <div class="lbl">Camions rattachés</div>
+            <div class="val">{{ rattachements.camions|number_format(0, ',', ' ') }}</div>
+            <div class="sub">{{ rattachements.poids|number_format(0, ',', ' ') }} kg tracés au total</div>
+        </div>
+    </div>
+
+    {% if erreurs is not empty %}
+        <div class="dc-alert dc-alert-error mb-3" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            <div>
+                <strong>Le lot n'a pas été enregistré.</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    {% for erreur in erreurs %}<li>{{ erreur }}</li>{% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+
+    {# ---------- Recherche ---------- #}
+    <section class="dc-card dc-no-print">
+        <div class="dc-card-head">
+            <h2>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                Rechercher un lot
+            </h2>
+            <span class="hint">Numéro, propriétaire, produit ou qualité</span>
+        </div>
+        <div class="dc-card-body">
+            <form method="get" action="{{ path('production_lot') }}" class="dc-form-grid">
+                <div class="dc-field span-2">
+                    <label class="dc-label" for="f-q">Recherche libre</label>
+                    <input id="f-q" name="q" type="search" value="{{ filtres.q }}" class="dc-input" placeholder="Ex. 26A-012, SOCIETE, grade 1…">
+                </div>
+                <div class="dc-field">
+                    <label class="dc-label" for="f-proprio">Propriétaire</label>
+                    <select id="f-proprio" name="proprietaire" class="dc-input">
+                        <option value="">Tous les propriétaires</option>
+                        {% for p in proprietaires %}
+                            <option value="{{ p.id }}" {{ filtres.proprietaire and (filtres.proprietaire.id ~ '') == (p.id ~ '') ? 'selected' }}>{{ p.denomination }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="dc-field">
+                    <label class="dc-label" for="f-produit">Produit</label>
+                    <select id="f-produit" name="produit" class="dc-input">
+                        <option value="">Tous les produits</option>
+                        {% for p in produits %}
+                            <option value="{{ p.id }}"
+                                    data-proprio="{{ p.codeProprio ? (p.codeProprio.id ~ '') : '' }}"
+                                    {{ filtres.produit and (filtres.produit.id ~ '') == (p.id ~ '') ? 'selected' }}>{{ p.libelle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="dc-field">
+                    <label class="dc-label" for="f-magasin">Emplacement</label>
+                    <select id="f-magasin" name="magasin" class="dc-input">
+                        <option value="">Tous les emplacements</option>
+                        {% for m in magasins %}
+                            <option value="{{ m.id }}" {{ filtres.magasin and (filtres.magasin.id ~ '') == (m.id ~ '') ? 'selected' }}>{{ m.libelle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="dc-field">
+                    <label class="dc-label" for="f-situation">Situation</label>
+                    <select id="f-situation" name="situation" class="dc-input">
+                        <option value="tous" {{ filtres.situation == 'tous' ? 'selected' }}>Tous les lots</option>
+                        <option value="conforme" {{ filtres.situation == 'conforme' ? 'selected' }}>Lots conformes</option>
+                        <option value="nc" {{ filtres.situation == 'nc' ? 'selected' }}>Lots non conformes</option>
+                        <option value="scinde" {{ filtres.situation == 'scinde' ? 'selected' }}>Lots scindés</option>
+                        <option value="avec_camion" {{ filtres.situation == 'avec_camion' ? 'selected' }}>Lots tracés (avec camion)</option>
+                        <option value="sans_camion" {{ filtres.situation == 'sans_camion' ? 'selected' }}>Lots sans camion</option>
+                    </select>
+                </div>
+                <div class="dc-form-actions">
+                    <a href="{{ path('production_lot') }}" class="dc-btn dc-btn-ghost">Tout afficher</a>
+                    <button type="submit" class="dc-btn dc-btn-primary">Rechercher</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <div class="row g-3">
+        {# ---------- Liste ---------- #}
+        <div class="col-xl-8">
+            <section class="dc-card h-100">
+                <div class="dc-card-head">
+                    <h2>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+                        Lots enregistrés
+                    </h2>
+                    <span class="hint">{{ total|number_format(0, ',', ' ') }} lot(s) · page {{ page }} / {{ pages }}</span>
+                </div>
+                <div class="dc-card-body">
+                    {% if not peutModifier %}
+                        <div class="dc-alert dc-alert-ok mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="m9 12 2 2 4-4"/></svg>
+                            <div>Consultation seule : la création, la modification et la scission sont réservées aux profils Administration et Direction Générale.</div>
+                        </div>
+                    {% endif %}
+
+                    <div class="dc-table-wrap">
+                        <div class="dc-table-scroll">
+                            <table class="dc-table dc-keep">
+                                <thead>
+                                    <tr>
+                                        <th>N° lot</th>
+                                        <th>Propriétaire</th>
+                                        <th>Emplacement</th>
+                                        <th>Production</th>
+                                        <th class="num">PN th. (kg)</th>
+                                        <th>Qualité</th>
+                                        <th class="num">Camions</th>
+                                        <th class="num">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for lot in lots %}
+                                    {% set cleLot = lot.id ~ '' %}
+                                    <tr>
+                                        <td>
+                                            <span class="lot-num">{{ lot.numeroLot }}</span>
+                                            <span class="lot-sous">{{ lot.codeProduit ? lot.codeProduit.libelle : 'Produit non renseigné' }}</span>
+                                        </td>
+                                        <td>{{ lot.codeProprio ? lot.codeProprio.denomination : '—' }}</td>
+                                        <td>{{ lot.codeMagasin ? lot.codeMagasin.libelle : '—' }}</td>
+                                        <td>{{ lot.dateProd ? lot.dateProd|date('d/m/Y') : '—' }}</td>
+                                        <td class="num">
+                                            {{ lot.pnTh is not null ? lot.pnTh|number_format(0, ',', ' ') : '—' }}
+                                            {% if lot.nbSacs is not null %}<span class="lot-sous">{{ lot.nbSacs|number_format(0, ',', ' ') }} sac(s)</span>{% endif %}
+                                        </td>
+                                        <td>
+                                            {% if lot.qualite == 'NC' %}
+                                                <span class="dc-badge rejete"><span class="dot"></span>Non conforme</span>
+                                            {% else %}
+                                                <span class="dc-badge nouveau"><span class="dot"></span>Conforme</span>
+                                            {% endif %}
+                                            {% if lot.scission %}<span class="lot-sous">issu d'une scission</span>{% endif %}
+                                        </td>
+                                        <td class="num">
+                                            {% set nbCamions = camionsParLot[cleLot] is defined ? camionsParLot[cleLot] : 0 %}
+                                            <span class="dc-tag {{ nbCamions > 0 ? 'ok' : 'zero' }}">{{ nbCamions }}</span>
+                                        </td>
+                                        <td class="num">
+                                            <div class="lot-actions">
+                                                {% if peutModifier %}
+                                                    <a class="lot-action" href="{{ path('production_lot', lienFiltres|merge({lot: cleLot})) }}" title="Modifier ce lot">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                                                        Modifier
+                                                    </a>
+                                                    {% if lot.qualite != 'NC' and lot.pnTh and lot.pnTh > 0 %}
+                                                        <button type="button" class="lot-action danger"
+                                                                data-scission
+                                                                data-lot-id="{{ cleLot }}"
+                                                                data-lot-numero="{{ lot.numeroLot }}"
+                                                                data-lot-pn="{{ lot.pnTh }}"
+                                                                data-lot-sacs="{{ lot.nbSacs is not null ? lot.nbSacs : 0 }}"
+                                                                title="Scinder en conforme / non conforme">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>
+                                                            Scinder
+                                                        </button>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="lot-vide-scission">—</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="8">
+                                            <div class="dc-empty">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+                                                <div>Aucun lot ne correspond à cette recherche.</div>
+                                                <a href="{{ path('production_lot') }}" class="dc-btn dc-btn-ghost mt-3">Voir tous les lots</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="lot-legende">
+                        <span><span class="lot-puce conforme"></span>Conforme</span>
+                        <span><span class="lot-puce non-conforme"></span>Non conforme</span>
+                        <span><span class="lot-puce sans-camion"></span>Lot sans camion rattaché</span>
+                    </div>
+
+                    {% if pages > 1 %}
+                        <nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 dc-no-print" aria-label="Pagination des lots">
+                            <span class="hint">Page {{ page }} sur {{ pages }}</span>
+                            <div class="d-flex gap-2">
+                                {% if page > 1 %}
+                                    <a class="dc-btn dc-btn-ghost" href="{{ path('production_lot', lienFiltres|merge({page: page - 1})) }}">Précédent</a>
+                                {% endif %}
+                                {% if page < pages %}
+                                    <a class="dc-btn dc-btn-ghost" href="{{ path('production_lot', lienFiltres|merge({page: page + 1})) }}">Suivant</a>
+                                {% endif %}
+                            </div>
+                        </nav>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+
+        {# ---------- Formulaire ---------- #}
+        <div class="col-xl-4">
+            <section class="dc-card lot-panneau" id="panneau-lot">
+                <div class="dc-card-head">
+                    <h2>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                        {{ lotEdition ? 'Modifier le lot' : 'Nouveau lot' }}
+                    </h2>
+                    <span class="hint">{{ lotEdition ? lotEdition.numeroLot : 'Créer un lot de production' }}</span>
+                </div>
+                <div class="dc-card-body">
+                    {% if lotEdition %}
+                        <div class="lot-meta">
+                            <span class="cle">Créé le</span>
+                            <span><b>{{ lotEdition.createdAt ? lotEdition.createdAt|date('d/m/Y') : '—' }}</b></span>
+                            <span class="cle">Camions rattachés</span>
+                            <span><b>{{ camionsEdition }}</b></span>
+                            <span class="cle">Origine</span>
+                            <span><b>{{ lotEdition.origine ?: '—' }}</b></span>
+                        </div>
+                    {% endif %}
+
+                    <form method="post" action="{{ path('production_lot_enregistrer') }}" id="form-lot">
+                        <input type="hidden" name="_token" value="{{ csrf_token('lot_enregistrer') }}">
+                        <input type="hidden" name="lot_id" value="{{ lotEdition ? lotEdition.id : '' }}">
+                        <input type="hidden" name="filtre_q" value="{{ filtres.q }}">
+                        <input type="hidden" name="filtre_situation" value="{{ filtres.situation }}">
+                        <input type="hidden" name="filtre_page" value="{{ page }}">
+                        {% if filtres.proprietaire %}<input type="hidden" name="filtre_proprietaire" value="{{ filtres.proprietaire.id }}">{% endif %}
+                        {% if filtres.produit %}<input type="hidden" name="filtre_produit" value="{{ filtres.produit.id }}">{% endif %}
+                        {% if filtres.magasin %}<input type="hidden" name="filtre_magasin" value="{{ filtres.magasin.id }}">{% endif %}
+
+                        <div class="dc-form-grid">
+                            <div class="dc-field span-2">
+                                <label class="dc-label" for="numero_lot">N° de lot <span class="lot-obligatoire">*</span></label>
+                                <input id="numero_lot" name="numero_lot" type="text" maxlength="20" required
+                                       class="dc-input lot-numero-champ" value="{{ valeurs.numero_lot }}" placeholder="Ex. 26A-012"
+                                       {{ peutModifier ? '' : 'readonly' }}>
+                                <span class="help">Le numéro doit être unique (20 caractères maximum).</span>
+                            </div>
+
+                            <div class="dc-field span-2">
+                                <label class="dc-label" for="proprietaire">Propriétaire <span class="lot-obligatoire">*</span></label>
+                                <select id="proprietaire" name="proprietaire" class="dc-input" required {{ peutModifier ? '' : 'disabled' }}>
+                                    <option value="">— Choisir un propriétaire —</option>
+                                    {% for p in proprietaires %}
+                                        <option value="{{ p.id }}" {{ (valeurs.proprietaire ~ '') == (p.id ~ '') ? 'selected' }}>{{ p.denomination }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="dc-field span-2">
+                                <label class="dc-label" for="produit">Produit <span class="lot-obligatoire">*</span></label>
+                                <select id="produit" name="produit" class="dc-input" required {{ peutModifier ? '' : 'disabled' }}>
+                                    <option value="">— Choisir un produit —</option>
+                                    {% for p in produits %}
+                                        <option value="{{ p.id }}"
+                                                data-proprio="{{ p.codeProprio ? (p.codeProprio.id ~ '') : '' }}"
+                                                data-pn="{{ p.poidsNetDefault is not null ? p.poidsNetDefault : '' }}"
+                                                data-pb="{{ p.poidsBrutDefault is not null ? p.poidsBrutDefault : '' }}"
+                                                data-sacs="{{ p.nbDefault is not null ? p.nbDefault : '' }}"
+                                                {{ (valeurs.produit ~ '') == (p.id ~ '') ? 'selected' }}>{{ p.libelle }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="dc-field span-2">
+                                <label class="dc-label" for="magasin">Emplacement</label>
+                                <select id="magasin" name="magasin" class="dc-input" {{ peutModifier ? '' : 'disabled' }}>
+                                    <option value="">— Choisir un emplacement —</option>
+                                    {% for m in magasins %}
+                                        <option value="{{ m.id }}" {{ (valeurs.magasin ~ '') == (m.id ~ '') ? 'selected' }}>{{ m.libelle }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="help" id="magasin-aide">Choisi automatiquement : fèves au magasin des fèves, beurre / masse / tourteau au magasin des produits finis.</span>
+                            </div>
+
+                            <div class="dc-field span-2">
+                                <label class="dc-label" for="date_prod">Date de production <span class="lot-obligatoire">*</span></label>
+                                <input id="date_prod" name="date_prod" type="date" required class="dc-input"
+                                       value="{{ valeurs.date_prod }}" {{ peutModifier ? '' : 'readonly' }}>
+                            </div>
+
+                            <div class="dc-field">
+                                <label class="dc-label" for="pn_th">PN théorique (kg)</label>
+                                <input id="pn_th" name="pn_th" type="number" step="0.001" min="0" class="dc-input"
+                                       value="{{ valeurs.pn_th }}" placeholder="0" {{ peutModifier ? '' : 'readonly' }}>
+                                <span class="help">Rempli depuis le produit si laissé vide.</span>
+                            </div>
+
+                            <div class="dc-field">
+                                <label class="dc-label" for="nb_sacs">Nombre de sacs</label>
+                                <input id="nb_sacs" name="nb_sacs" type="number" step="0.001" min="0" class="dc-input"
+                                       value="{{ valeurs.nb_sacs }}" placeholder="0" {{ peutModifier ? '' : 'readonly' }}>
+                            </div>
+
+                            <div class="dc-field">
+                                <label class="dc-label" for="pb_th">PB théorique (kg)</label>
+                                <input id="pb_th" name="pb_th" type="number" step="0.001" min="0" class="dc-input"
+                                       value="{{ valeurs.pb_th }}" placeholder="0" {{ peutModifier ? '' : 'readonly' }}>
+                                <span class="help">Calculé si laissé vide.</span>
+                            </div>
+
+                            <div class="dc-field">
+                                <label class="dc-label" for="qualite">Qualité</label>
+                                <select id="qualite" name="qualite" class="dc-input" {{ peutModifier ? '' : 'disabled' }}>
+                                    <option value="C" {{ valeurs.qualite == 'C' ? 'selected' }}>C — Conforme</option>
+                                    <option value="NC" {{ valeurs.qualite == 'NC' ? 'selected' }}>NC — Non conforme</option>
+                                    {% if valeurs.qualite not in ['C', 'NC'] %}
+                                        <option value="{{ valeurs.qualite }}" selected>{{ valeurs.qualite }}</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="dc-form-actions">
+                            {% if lotEdition %}
+                                <a href="{{ path('production_lot', lienFiltres) }}" class="dc-btn dc-btn-ghost">Annuler</a>
+                            {% endif %}
+                            <button type="submit" class="dc-btn dc-btn-primary" {{ peutModifier ? '' : 'disabled' }}>
+                                {{ lotEdition ? 'Enregistrer les modifications' : 'Créer le lot' }}
+                            </button>
+                        </div>
+                    </form>
+
+                    {% if lotEdition and peutSupprimer %}
+                        <hr class="lot-sep">
+                        <form method="post" action="{{ path('production_lot_supprimer') }}" class="js-confirm"
+                              data-confirm="Supprimer définitivement le lot {{ lotEdition.numeroLot }} ?">
+                            <input type="hidden" name="_token" value="{{ csrf_token('lot_supprimer') }}">
+                            <input type="hidden" name="lot_id" value="{{ lotEdition.id }}">
+                            <input type="hidden" name="filtre_q" value="{{ filtres.q }}">
+                            <input type="hidden" name="filtre_situation" value="{{ filtres.situation }}">
+                            <input type="hidden" name="filtre_page" value="{{ page }}">
+                            <button type="submit" class="dc-btn dc-btn-danger-ghost w-100">Supprimer ce lot</button>
+                            <p class="help mt-2 mb-0">Un lot rattaché à un camion ou issu d'une scission ne peut pas être supprimé.</p>
+                        </form>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+{# ---------- Scission ---------- #}
+<div class="modal fade" id="modal-scission" tabindex="-1" aria-labelledby="modal-scission-titre" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="post" action="{{ path('production_lot_scission') }}">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal-scission-titre">Scinder le lot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="_token" value="{{ csrf_token('lot_scission') }}">
+                <input type="hidden" name="lot_id" id="scission-lot-id" value="">
+                <input type="hidden" name="filtre_q" value="{{ filtres.q }}">
+                <input type="hidden" name="filtre_situation" value="{{ filtres.situation }}">
+                <input type="hidden" name="filtre_page" value="{{ page }}">
+                {% if filtres.proprietaire %}<input type="hidden" name="filtre_proprietaire" value="{{ filtres.proprietaire.id }}">{% endif %}
+
+                <p class="lot-scission-cible" id="scission-cible">Choisissez un lot dans la liste.</p>
+
+                <div class="dc-field mt-3">
+                    <label class="dc-label" for="poids_nc">Poids non conforme (kg)</label>
+                    <input class="dc-input" type="number" name="poids_nc" id="poids_nc" step="0.001" min="0.001" required placeholder="Ex. 250">
+                    <p class="lot-aide-scission" id="scission-aide">Le lot sera partagé en un lot conforme et un lot non conforme.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="dc-btn dc-btn-ghost" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="dc-btn dc-btn-danger-ghost">Scinder le lot</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ---- Proposition automatique des valeurs du produit (PN / PB / sacs) ----
+    var produit = document.getElementById('produit');
+    var cibles = {
+        pn_th: document.getElementById('pn_th'),
+        pb_th: document.getElementById('pb_th'),
+        nb_sacs: document.getElementById('nb_sacs')
+    };
+
+    Object.keys(cibles).forEach(function (cle) {
+        var champ = cibles[cle];
+        if (!champ) { return; }
+        champ.dataset.auto = champ.value === '' ? '1' : '0';
+        champ.addEventListener('input', function () { champ.dataset.auto = '0'; });
+    });
+
+    function remplirDepuisProduit() {
+        if (!produit || !produit.selectedOptions.length) { return; }
+        var option = produit.selectedOptions[0];
+        var valeurs = { pn_th: option.dataset.pn, pb_th: option.dataset.pb, nb_sacs: option.dataset.sacs };
+
+        Object.keys(cibles).forEach(function (cle) {
+            var champ = cibles[cle];
+            var valeur = valeurs[cle];
+            if (!champ || !valeur) { return; }
+            if (champ.dataset.auto === '1' || champ.value === '') {
+                champ.value = valeur;
+                champ.dataset.auto = '1';
+            }
+        });
+    }
+
+    // ---- Emplacement automatique selon le produit ----
+    var magasin = document.getElementById('magasin');
+    var magasinAide = document.getElementById('magasin-aide');
+    var aideInitiale = magasinAide ? magasinAide.textContent : '';
+
+    function sansAccents(texte) {
+        return (texte || '').toString().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function emplacementAttendu(nom) {
+        var n = sansAccents(nom);
+        if (n.indexOf('feve') !== -1) {
+            return { cle: 'feve', libelle: 'MAGASIN FEVES CITRAC' };
+        }
+        if (n.indexOf('beurre') !== -1 || n.indexOf('masse') !== -1
+            || n.indexOf('tourteau') !== -1 || n.indexOf('poudre') !== -1) {
+            return { cle: 'produit fini', libelle: 'MAGASIN PRODUITS FINIS' };
+        }
+        return null;
+    }
+
+    function appliquerEmplacement() {
+        if (!produit || !magasin || !produit.selectedOptions.length) { return; }
+        var option = produit.selectedOptions[0];
+        if (!option || !option.value) {
+            if (magasinAide) { magasinAide.textContent = aideInitiale; }
+            return;
+        }
+        var attendu = emplacementAttendu(option.textContent);
+        if (!attendu) {
+            if (magasinAide) {
+                magasinAide.textContent = 'Produit non reconnu : choisissez l\'emplacement manuellement.';
+            }
+            return;
+        }
+        var trouve = null;
+        Array.prototype.forEach.call(magasin.options, function (o) {
+            if (trouve || !o.value) { return; }
+            if (sansAccents(o.textContent).indexOf(attendu.cle) !== -1) { trouve = o; }
+        });
+        if (trouve) {
+            magasin.value = trouve.value;
+            if (magasinAide) {
+                magasinAide.textContent = 'Emplacement imposé automatiquement : ' + trouve.textContent + '.';
+            }
+        } else if (magasinAide) {
+            magasinAide.textContent = 'Magasin « ' + attendu.libelle + ' » introuvable : créez-le ou choisissez un emplacement.';
+        }
+    }
+
+    // ---- Produits filtres par proprietaire ----
+    function filtrerProduits(selProprio, selProduit, apres) {
+        if (!selProprio || !selProduit) { return; }
+        var idProprio = selProprio.value;
+        var courant = selProduit.value;
+        var courantVisible = false;
+        Array.prototype.forEach.call(selProduit.options, function (opt) {
+            if (!opt.value) { return; }
+            var proprietaire = opt.getAttribute('data-proprio') || '';
+            var visible = !idProprio || proprietaire === idProprio;
+            opt.hidden = !visible;
+            opt.disabled = !visible;
+            if (visible && opt.value === courant) { courantVisible = true; }
+        });
+        if (courant && !courantVisible) { selProduit.value = ''; }
+        if (typeof apres === 'function') { apres(); }
+    }
+
+    var filtreProprio = document.getElementById('f-proprio');
+    var filtreProduit = document.getElementById('f-produit');
+    if (filtreProprio) {
+        filtreProprio.addEventListener('change', function () {
+            filtrerProduits(filtreProprio, filtreProduit);
+        });
+        filtrerProduits(filtreProprio, filtreProduit);
+    }
+
+    var formProprio = document.getElementById('proprietaire');
+    if (formProprio) {
+        formProprio.addEventListener('change', function () {
+            filtrerProduits(formProprio, produit, appliquerEmplacement);
+        });
+        filtrerProduits(formProprio, produit);
+    }
+
+    if (produit) {
+        produit.addEventListener('change', function () {
+            remplirDepuisProduit();
+            appliquerEmplacement();
+        });
+        appliquerEmplacement();
+    }
+
+    // ---- Scission : rappel du lot et du poids disponible ----
+    var cible = document.getElementById('scission-cible');
+    var aide = document.getElementById('scission-aide');
+    var poidsNc = document.getElementById('poids_nc');
+    var champLot = document.getElementById('scission-lot-id');
+    var pnCourant = 0;
+    var sacsCourant = 0;
+
+    function formater(valeur) {
+        return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(valeur || 0);
+    }
+
+    function majAide() {
+        if (!aide) { return; }
+        var saisie = parseFloat(poidsNc && poidsNc.value ? poidsNc.value : '0');
+        if (!isFinite(saisie) || saisie <= 0) {
+            aide.textContent = 'Le lot sera partagé en un lot conforme et un lot non conforme.';
+            return;
+        }
+        var reste = Math.max(0, pnCourant - saisie);
+        var sacsNc = pnCourant > 0 ? (sacsCourant * saisie / pnCourant) : 0;
+        aide.textContent = 'Reste ' + formater(reste) + ' kg conformes et environ ' + formater(sacsNc) + ' sac(s) non conformes.';
+    }
+
+    document.querySelectorAll('[data-scission]').forEach(function (bouton) {
+        bouton.addEventListener('click', function () {
+            pnCourant = parseFloat(bouton.dataset.lotPn || '0') || 0;
+            sacsCourant = parseFloat(bouton.dataset.lotSacs || '0') || 0;
+            if (champLot) { champLot.value = bouton.dataset.lotId || ''; }
+            if (poidsNc) {
+                poidsNc.value = '';
+                if (pnCourant > 0) { poidsNc.max = (pnCourant - 0.001).toFixed(3); } else { poidsNc.removeAttribute('max'); }
+            }
+            if (cible) {
+                cible.innerHTML = 'Lot <b>' + (bouton.dataset.lotNumero || '') + '</b> — poids net théorique : <b>' +
+                    formater(pnCourant) + ' kg</b> (' + formater(sacsCourant) + ' sac(s)).';
+            }
+            majAide();
+            var modal = document.getElementById('modal-scission');
+            if (modal && window.bootstrap) { window.bootstrap.Modal.getOrCreateInstance(modal).show(); }
+        });
+    });
+
+    if (poidsNc) { poidsNc.addEventListener('input', majAide); }
+
+    // ---- Confirmations (aucun handler inline) ----
+    document.querySelectorAll('form.js-confirm').forEach(function (formulaire) {
+        formulaire.addEventListener('submit', function (evenement) {
+            var message = formulaire.dataset.confirm || 'Confirmer cette action ?';
+            if (!window.confirm(message)) { evenement.preventDefault(); }
+        });
+    });
+});
+</script>
+{% endblock %}

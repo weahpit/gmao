@@ -26,6 +26,10 @@
                 <p>Bons issus des imports Excel / CSV, avec leur poids net, leur PNP et leurs écarts.</p>
             </div>
             <div class="dc-header-actions">
+                <a href="{{ path('stock_tracabilite_lots') }}" class="dc-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
+                    Ordre d'usinage
+                </a>
                 <a href="{{ path('app_dechargement_cacao_import') }}" class="dc-chip solid">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Nouvel import
@@ -35,7 +39,7 @@
     </header>
 
     <div class="dc-stats">
-        <div class="dc-stat total"><div class="lbl">Camions Déchargés</div><div class="val">{{ totaux.nb|number_format(0, ',', ' ') }}</div><div class="sub">en base</div></div>
+        <div class="dc-stat total"><div class="lbl">Bons</div><div class="val">{{ totaux.nb|number_format(0, ',', ' ') }}</div><div class="sub">en base</div></div>
         <div class="dc-stat"><div class="lbl">Sacs</div><div class="val">{{ totaux.sacs|number_format(0, ',', ' ') }}</div><div class="sub">cumul</div></div>
         <div class="dc-stat nouveau"><div class="lbl">Poids net</div><div class="val">{{ totaux.poids|number_format(0, ',', ' ') }}</div><div class="sub">kg</div></div>
         <div class="dc-stat modifie"><div class="lbl">PNP</div><div class="val">{{ totaux.pnp|number_format(0, ',', ' ') }}</div><div class="sub">kg</div></div>
@@ -47,7 +51,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 Liste des déchargements
             </h2>
-            <span class="hint">{{ total|number_format(0, ',', ' ') }} camion(s)</span>
+            <span class="hint">{{ total|number_format(0, ',', ' ') }} bon(s)</span>
         </div>
         <div class="dc-card-body">
             <form method="get" class="d-flex flex-wrap gap-2 mb-3">
@@ -78,13 +82,18 @@
                                 <th class="num">Écart</th>
                                 <th>Statut</th>
                                 <th>Déchargé le</th>
+                                {% if is_granted('ROLE_ADMIN') %}
+                                    <th class="num">Actions</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
                         {% for d in items %}
                             {% set ecart = (d.pnp is not null and d.poidsNet is not null) ? (d.pnp - d.poidsNet) : null %}
                             <tr>
-                                <td data-label="Code" class="code">{{ d.code }}</td>
+                                <td data-label="Code" class="code">
+                                    <a href="{{ path('stock_tracabilite_dechargement', {id: d.id}) }}" class="dc-code-link" title="Voir les lots fabriqués avec ce camion">{{ d.code }}</a>
+                                </td>
                                 <td data-label="Date">{{ d.dateBon ? d.dateBon|date('d/m/Y H:i') : '—' }}</td>
                                 <td data-label="Coopérative"><span class="trunc" title="{{ d.cooperative }}">{{ d.cooperative ?: '—' }}</span></td>
                                 <td data-label="Immat">{{ d.immatriculation ?: '—' }}</td>
@@ -98,10 +107,24 @@
                                     {% else %}<span style="color:#b5aa9d;">—</span>{% endif %}
                                 </td>
                                 <td data-label="Statut"><span style="font-size:.78rem;">{{ d.statut ?: '—' }}</span></td>
-                                <td data-label="Déchargé le">{{ d.dateDechargement ? d.dateDechargement|date('d/m/Y') : '—' }}</td>
+                                <td data-label="Déchargé le">
+                                    {{ d.dateDechargement ? d.dateDechargement|date('d/m/Y') : '—' }}
+                                    {% if not d.dateDechargement %}<span class="dc-attr" title="Date de déchargement absente (bon importé avant l'obligation)">à compléter</span>{% endif %}
+                                </td>
+                                {% if is_granted('ROLE_ADMIN') %}
+                                    <td data-label="Actions" class="num">
+                                        <div class="dc-row-actions">
+                                            <a href="{{ path('app_dechargement_cacao_modifier', {id: d.id}) }}" class="dc-mini-btn">Modifier</a>
+                                            <form method="post" action="{{ path('app_dechargement_cacao_supprimer', {id: d.id}) }}" onsubmit="return confirm('Supprimer définitivement le bon {{ d.code|e('js') }} ?\n\nCette action est irréversible.');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('dechargement_cacao_suppression') }}">
+                                                <button type="submit" class="dc-mini-btn danger">Supprimer</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                {% endif %}
                             </tr>
                         {% else %}
-                            <tr><td colspan="11"><div class="dc-empty">
+                            <tr><td colspan="{{ is_granted('ROLE_ADMIN') ? 12 : 11 }}"><div class="dc-empty">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
                                 <div>Aucun déchargement enregistré pour le moment.</div>
                                 <a href="{{ path('app_dechargement_cacao_import') }}" class="dc-btn dc-btn-primary mt-3">Importer un fichier</a>

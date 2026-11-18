@@ -116,7 +116,7 @@ class DechargementCacao
     public function setCode(?string $v): static { $this->code = $v; return $this; }
 
     public function getDateBon(): ?\DateTimeInterface { return $this->dateBon; }
-    public function setDateBon(?\DateTimeInterface $v): static { $this->dateBon = $v; return $this; }
+    public function setDateBon(?\DateTimeInterface $v): static { $this->dateBon = self::enMutable($v); return $this; }
 
     public function getSite(): ?string { return $this->site; }
     public function setSite(?string $v): static { $this->site = $v; return $this; }
@@ -143,7 +143,7 @@ class DechargementCacao
     public function setStatut(?string $v): static { $this->statut = $v; return $this; }
 
     public function getDateDechargement(): ?\DateTimeInterface { return $this->dateDechargement; }
-    public function setDateDechargement(?\DateTimeInterface $v): static { $this->dateDechargement = $v; return $this; }
+    public function setDateDechargement(?\DateTimeInterface $v): static { $this->dateDechargement = self::enMutable($v); return $this; }
 
     public function getObservation(): ?string { return $this->observation; }
     public function setObservation(?string $v): static { $this->observation = $v; return $this; }
@@ -176,4 +176,22 @@ class DechargementCacao
 
     public function getUpdatedBy(): ?string { return $this->updatedBy; }
     public function setUpdatedBy(?string $v): static { $this->updatedBy = $v; return $this; }
+
+    /**
+     * Les colonnes de date du dechargement sont de type "mutable" : on convertit
+     * systématiquement la valeur reçue (DateTimeImmutable, DateTimeInterface...)
+     * pour éviter l'erreur de conversion côté Doctrine.
+     */
+    private static function enMutable(?\DateTimeInterface $v): ?\DateTime
+    {
+        if ($v === null) {
+            return null;
+        }
+
+        if ($v instanceof \DateTime) {
+            return $v;
+        }
+
+        return \DateTime::createFromInterface($v);
+    }
 }

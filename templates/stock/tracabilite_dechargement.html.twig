@@ -1,0 +1,107 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Traçabilité du bon {{ dechargement.code }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'dechargement_cacao/_styles.html.twig' %}
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_dechargements_cacao') }}">Déchargements cacao</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('stock_tracabilite_lots') }}">Ordre d'usinage</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">{{ dechargement.code }}</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Gestion du stock · Cacao · Fèves</span>
+                <h1>Bon {{ dechargement.code }}</h1>
+                <p>
+                    {% if dechargement.dateDechargement %}Déchargé le {{ dechargement.dateDechargement|date('d/m/Y') }}{% else %}Date de déchargement non renseignée{% endif %}
+                    {% if dechargement.cooperative %} · {{ dechargement.cooperative }}{% endif %}
+                    {% if dechargement.immatriculation %} · {{ dechargement.immatriculation }}{% endif %}
+                </p>
+            </div>
+            <div class="dc-header-actions dc-no-print">
+                {% if is_granted('ROLE_ADMIN') %}
+                    <a href="{{ path('app_dechargement_cacao_modifier', {id: dechargement.id}) }}" class="dc-chip">Modifier le bon</a>
+                {% endif %}
+                <a href="{{ path('app_dechargements_cacao') }}" class="dc-chip solid">Retour à la liste</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="dc-meta-grid">
+        <div class="dc-meta"><div class="lbl">Poids net</div><div class="val">{{ dechargement.poidsNet is not null ? dechargement.poidsNet|number_format(0, ',', ' ') ~ ' kg' : '—' }}</div></div>
+        <div class="dc-meta"><div class="lbl">Sacs</div><div class="val">{{ dechargement.nbreSacs is not null ? dechargement.nbreSacs|number_format(0, ',', ' ') : '—' }}</div></div>
+        <div class="dc-meta"><div class="lbl">PNP</div><div class="val">{{ dechargement.pnp is not null ? dechargement.pnp|number_format(0, ',', ' ') ~ ' kg' : '—' }}</div></div>
+        <div class="dc-meta"><div class="lbl">Lots alimentés</div><div class="val">{{ liens|length }}</div></div>
+        <div class="dc-meta"><div class="lbl">Poids rattaché</div><div class="val">{{ totalAffecte|number_format(0, ',', ' ') }} <small>kg</small></div></div>
+    </div>
+
+    <section class="dc-card">
+        <div class="dc-card-head">
+            <h2>Lots fabriqués avec ce camion</h2>
+            <span class="hint">{{ liens|length }} lot(s)</span>
+        </div>
+        <div class="dc-card-body">
+            <div class="dc-table-wrap">
+                <div class="dc-table-scroll">
+                    <table class="dc-table">
+                        <thead>
+                            <tr>
+                                <th>Ordre d'usinage</th>
+                                <th>Lot</th>
+                                <th>Date production</th>
+                                <th>Qualité</th>
+                                <th class="num">PN th. (kg)</th>
+                                <th>Observation</th>
+                                <th class="num">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for lien in liens %}
+                            {% set l = lien.lot %}
+                            <tr>
+                                <td data-label="Ordre d'usinage">
+                                    {% if lien.ordreUsinage %}
+                                        <span class="dc-ou-num">{{ lien.ordreUsinage.numero }}</span>
+                                    {% else %}
+                                        <span class="dc-subtle">hors ordre</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Lot" class="code">
+                                    {% if l %}<a href="{{ path('stock_tracabilite_lot', {id: l.id}) }}" class="dc-lot-link">{{ l.numeroLot }}</a>{% else %}—{% endif %}
+                                </td>
+                                <td data-label="Date production">{{ l and l.dateProd ? l.dateProd|date('d/m/Y') : '—' }}</td>
+                                <td data-label="Qualité">{{ l and l.qualite ? l.qualite : '—' }}</td>
+                                <td data-label="PN th." class="num">{{ l and l.pnTh is not null ? l.pnTh|number_format(0, ',', ' ') : '—' }}</td>
+                                <td data-label="Observation"><span class="dc-subtle">{{ lien.observation ?: '—' }}</span></td>
+                                <td data-label="Action" class="num dc-no-print">
+                                    {% if l %}<a href="{{ path('stock_tracabilite_lot', {id: l.id}) }}" class="dc-mini-btn">Voir le lot</a>{% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="7"><div class="dc-empty">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
+                                <div>Ce camion n'est rattaché à aucun lot pour le moment.</div>
+                                <a href="{{ path('stock_tracabilite_lots') }}" class="dc-btn dc-btn-primary mt-3">Créer un ordre d'usinage</a>
+                            </div></td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

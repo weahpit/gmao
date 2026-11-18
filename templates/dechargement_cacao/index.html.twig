@@ -28,7 +28,7 @@
                 </span>
                 <h1>Import du déchargement cacao</h1>
                 <p>
-                    Déposez votre fichier <strong>Excel (.xlsx)</strong> ou <strong>CSV</strong> : l'application compare chaque camion
+                    Déposez votre fichier <strong>Excel (.xlsx)</strong> ou <strong>CSV</strong> : l'application compare chaque bon
                     avec la base, affiche un rapport détaillé, puis n'enregistre <em>qu'après votre validation</em>.
                 </p>
             </div>
@@ -51,6 +51,16 @@
             <span class="dc-step" data-step="4"><span class="num">4</span> Enregistrement</span>
         </div>
     </header>
+
+    <div class="dc-note">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>
+            <strong>Date de déchargement obligatoire.</strong> Le fichier doit contenir la colonne
+            <strong>Date de déchargement</strong> et chaque ligne doit être datée : les lignes sans date sont
+            refusées (elles ne peuvent pas être rattachées à un lot pour la traçabilité). Vous pouvez
+            <a href="{{ path('app_dechargement_cacao_modele_xlsx') }}">télécharger le modèle officiel</a> pour repartir d'une base saine.
+        </div>
+    </div>
 
     {% if totaux.nb > 0 %}
     <div class="dc-stats" style="margin-bottom:20px;">
@@ -75,7 +85,7 @@
             <div class="sub">kg</div>
         </div>
         <div class="dc-stat">
-            <div class="lbl">Dernier camion</div>
+            <div class="lbl">Dernier bon</div>
             <div class="val" style="font-size:1.05rem;">{{ totaux.derniere ? totaux.derniere|date('d/m/Y') : '—' }}</div>
             <div class="sub">date de chargement</div>
         </div>

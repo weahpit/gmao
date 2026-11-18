@@ -1,0 +1,44 @@
+{# Styles propres a l'ecran Production de lots (complement de la charte cacao). #}
+<style>
+.lot-num { font-weight: 800; color: var(--dc-cacao); line-height: 1.15; }
+.lot-sous { font-size: .72rem; color: #a89b8c; display: block; margin-top: 1px; }
+.lot-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.lot-action {
+    display: inline-flex; align-items: center; gap: 5px; border-radius: 9px; padding: 5px 9px;
+    border: 1px solid #e6d8c6; background: #fff; color: var(--dc-cacao); font-size: .76rem;
+    font-weight: 700; text-decoration: none; white-space: nowrap; cursor: pointer; transition: .15s;
+}
+.lot-action:hover { background: var(--dc-creme); color: var(--dc-cacao); border-color: #d8c3a9; }
+.lot-action.danger { color: var(--dc-rouge); border-color: #efc9c1; }
+.lot-action.danger:hover { background: #fdf1ef; }
+.lot-action svg { width: 14px; height: 14px; }
+.lot-panneau { position: sticky; top: 84px; }
+.lot-meta {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
+    font-size: .82rem; color: #6b5a4a; margin: 0 0 14px;
+}
+.lot-meta b { color: var(--dc-cacao); }
+.lot-meta .cle { color: var(--dc-muet); }
+.lot-scission-cible {
+    background: #fdf8f2; border: 1px dashed #e6d5bf; border-radius: 11px;
+    padding: 9px 11px; font-size: .8rem; color: #6b5a4a; margin: 0;
+}
+.lot-scission-cible b { color: var(--dc-cacao); }
+.lot-sep { border: 0; border-top: 1px dashed #eadfd0; margin: 16px 0; }
+.lot-legende { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: .76rem; color: var(--dc-muet); margin-top: 12px; }
+.lot-puce { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.lot-puce.conforme { background: #cdebd8; }
+.lot-puce.non-conforme { background: #f4c9c1; }
+.lot-puce.sans-camion { background: #e6dccf; }
+.lot-numero-champ { text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+.lot-aide-scission { font-size: .76rem; color: var(--dc-muet); margin: 4px 0 0; }
+.lot-vide-scission { font-size: .8rem; color: var(--dc-muet); }
+.lot-obligatoire { color: var(--dc-rouge); font-weight: 800; }
+@media (max-width: 1199.98px) {
+    .lot-panneau { position: static; }
+}
+@media (max-width: 575.98px) {
+    .lot-actions { justify-content: flex-start; }
+    .lot-action { font-size: .74rem; }
+}
+</style>

@@ -1,0 +1,145 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Lot {{ lot.numeroLot }} · Tracabilité{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'dechargement_cacao/_styles.html.twig' %}
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_dechargements_cacao') }}">Déchargements cacao</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('stock_tracabilite_lots') }}">Ordre d'usinage</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Lot {{ lot.numeroLot }}</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+
+    {% set cls = totalAffecte <= 0 ? 'zero' : (couverture is not null and couverture < 95 ? 'low' : 'ok') %}
+
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Gestion du stock · Cacao · Fèves</span>
+                <h1>Lot {{ lot.numeroLot }}</h1>
+                <p>
+                    {{ lot.dateProd ? 'Produit le ' ~ lot.dateProd|date('d/m/Y') : 'Date de production non renseignée' }}
+                    {% if lot.codeProduit %} · {{ lot.codeProduit.libelle }}{% endif %}
+                    {% if lot.qualite %} · Qualité {{ lot.qualite }}{% endif %}
+                </p>
+            </div>
+            <div class="dc-header-actions dc-no-print">
+                <button type="button" class="dc-chip" onclick="window.print()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    Imprimer la fiche
+                </button>
+                <a href="{{ path('stock_tracabilite_lots') }}" class="dc-chip solid">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    Nouvel ordre d'usinage
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="dc-meta-grid">
+        <div class="dc-meta">
+            <div class="lbl">PN théorique</div>
+            <div class="val">{{ theorique > 0 ? theorique|number_format(0, ',', ' ') ~ ' kg' : '—' }}</div>
+        </div>
+        <div class="dc-meta">
+            <div class="lbl">Poids rattaché</div>
+            <div class="val">{{ totalAffecte|number_format(0, ',', ' ') }} <small>kg</small></div>
+        </div>
+        <div class="dc-meta">
+            <div class="lbl">Couverture</div>
+            <div class="val">
+                {% if couverture is null %}<small>PN th. non renseigné</small>{% else %}{{ couverture|number_format(1, ',', ' ') }} %{% endif %}
+            </div>
+            <div class="dc-bar" style="margin-top:6px;"><span class="{{ cls }}" style="width: {{ couverture is null ? 0 : min(100, max(0, couverture)) }}%;"></span></div>
+        </div>
+        <div class="dc-meta">
+            <div class="lbl">Camions</div>
+            <div class="val">{{ liens|length }}</div>
+        </div>
+        <div class="dc-meta">
+            <div class="lbl">Sacs du lot</div>
+            <div class="val">{{ lot.nbSacs is not null ? lot.nbSacs|number_format(0, ',', ' ') : '—' }}</div>
+        </div>
+    </div>
+
+    {% if liens is empty %}
+        <div class="dc-note">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+                Ce lot n'est rattaché à aucun camion. Ouvrez <a href="{{ path('stock_tracabilite_lots') }}" class="dc-code-link">l'ordre d'usinage</a>,
+                cochez ce lot avec d'autres puis cochez le camion utilisé.
+            </div>
+        </div>
+    {% endif %}
+
+    <section class="dc-card">
+        <div class="dc-card-head">
+            <h2>Origine du lot</h2>
+            <span class="hint">{{ liens|length }} camion(s) · {{ totalAffecte|number_format(0, ',', ' ') }} kg</span>
+        </div>
+        <div class="dc-card-body">
+            <div class="dc-table-wrap">
+                <div class="dc-table-scroll">
+                    <table class="dc-table dc-keep">
+                        <thead>
+                            <tr>
+                                <th>Ordre d'usinage</th>
+                                <th>Camion</th>
+                                <th>Déchargé le</th>
+                                <th>Coopérative</th>
+                                <th>Immat.</th>
+                                <th class="num">Poids net</th>
+                                <th>Observation</th>
+                                <th class="num dc-no-print">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for lien in liens %}
+                            {% set d = lien.dechargement %}
+                            <tr>
+                                <td data-label="Ordre d'usinage">
+                                    {% if lien.ordreUsinage %}
+                                        <span class="dc-ou-num">{{ lien.ordreUsinage.numero }}</span>
+                                    {% else %}
+                                        <span class="dc-subtle">hors ordre</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Camion">
+                                    {% if d %}<a href="{{ path('stock_tracabilite_dechargement', {id: d.id}) }}" class="dc-code-link">{{ d.code ?: '—' }}</a>{% else %}—{% endif %}
+                                </td>
+                                <td data-label="Déchargé le">{{ d and d.dateDechargement ? d.dateDechargement|date('d/m/Y') : '—' }}</td>
+                                <td data-label="Coopérative"><span class="trunc" title="{{ d ? d.cooperative : '' }}">{{ d and d.cooperative ? d.cooperative : '—' }}</span></td>
+                                <td data-label="Immat.">{{ d and d.immatriculation ? d.immatriculation : '—' }}</td>
+                                <td data-label="Poids net" class="num">{{ d and d.poidsNet is not null ? d.poidsNet|number_format(0, ',', ' ') : '—' }}</td>
+                                <td data-label="Observation"><span class="trunc" title="{{ lien.observation }}">{{ lien.observation ?: '—' }}</span></td>
+                                <td data-label="Action" class="num dc-no-print">
+                                    <form method="post" action="{{ path('stock_tracabilite_lot_retirer', {id: lot.id, lien: lien.id}) }}" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('tracabilite_lot_retrait') }}">
+                                        <button type="submit" class="dc-mini-btn danger">Retirer</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="8"><div class="dc-empty">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
+                                <div>Aucun camion rattaché à ce lot.</div>
+                            </div></td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

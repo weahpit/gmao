@@ -424,7 +424,8 @@
 
 
             {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_LOGISTIQUE')%}
-            {#*************************************************************************************************
+
+           {#*************************************************************************************************
             ************************* LOGISTIQUE *********************************************************
             **************************************************************************************************#}
 
@@ -453,13 +454,17 @@
             </div>
             {% endif %}
 
+            {#*************************************************************************************************
+            ************************* VALIDATIONS  *********************************************************
+            **************************************************************************************************#}
+
             {% if 'ROLE_DG' in app.user.roles or  'ROLE_ADMIN' in app.user.roles %}
 
             <div class="nav-section">
                 {#<span class="nav-section-title">Espace de Validations</span>#}
 
                 <div class="nav-group">
-                    <button type="button" class="nav-item has-submenu {{ stockActive ? 'has-active' }}">
+                    <button type="button" class="nav-item has-submenu">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket-check preview-icon"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="m9 12 2 2 4-4"/></svg>
                         <span class="nav-label">Validations</span>
                         <i data-lucide="chevron-down" class="nav-chevron"></i>
@@ -490,13 +495,20 @@
                 </div>
             </div>
             {% endif %}
+
+            {#*************************************************************************************************
+            ************************* TRACABILITE *********************************************************
+            **************************************************************************************************#}
+
             {%  if is_granted('ROLE_LOGISTIQUE') %}
 
             <div class="nav-section">
                 {#<span class="nav-section-title">Espace de Validations</span>#}
 
+                {% set traceRoute = app.request.attributes.get('_route') %}
+                {% set traceActive = traceRoute starts with 'stock_tracabilite' or traceRoute starts with 'stock_ordre_usinage' %}
                 <div class="nav-group">
-                    <button type="button" class="nav-item has-submenu {{ stockActive ? 'has-active' }}">
+                    <button type="button" class="nav-item has-submenu">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ticket-check preview-icon"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="m9 12 2 2 4-4"/></svg>
                         <span class="nav-label">Traçabilité</span>
                         <i data-lucide="chevron-down" class="nav-chevron"></i>
@@ -508,6 +520,9 @@
                         </a>
                         <a href="{{ path('app_dechargements_cacao') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargements_cacao' ? 'active' }}">
                             <span class="nav-label">Déchargements cacao</span>
+                        </a>
+                        <a href="{{ path('stock_tracabilite_lots') }}" class="nav-subitem {{ traceActive ? 'active' }}">
+                            <span class="nav-label">Ordre d'usinage (lots de fèves)</span>
                         </a>
                     </div>
                 </div>

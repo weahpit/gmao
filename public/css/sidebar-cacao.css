@@ -49,16 +49,16 @@
 .nav-item:hover .lucide { color: var(--cc-accent); }
 
 .nav-item.active {
-  color: var(--cc-active-ink) !important;
+  color: #f8c922  !important;font-weight: bold;;
   background: var(--cc-active) !important;
   box-shadow: inset 3px 0 0 var(--cc-accent) !important;
 }
-.nav-item.active .lucide { color: var(--cc-accent-d); }
+.nav-item.active .lucide { color: #f8c922  !important;font-weight: bold; }
 
 /* --- Chevron des sous-menus --- */
 .nav-chevron { color: var(--cc-ink-soft) !important; }
 .nav-group.open .nav-chevron { color: var(--cc-accent) !important; }
-.nav-item.has-submenu.has-active { color: var(--cc-active-ink) !important; }
+.nav-item.has-submenu.has-active { color: #f8c922  !important;font-weight: bold; }
 
 /* --- Sous-menus --- */
 .nav-submenu { border-left: 1px solid var(--cc-line) !important; }

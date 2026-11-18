@@ -355,8 +355,8 @@
             el.diagAlerte.style.display = 'flex';
         } else {
             el.diagAlerte.className = 'dc-alert dc-alert-ok';
-            el.diagAlerteMsg.innerHTML = 'Les colonnes obligatoires (<strong>Code du bon</strong>, <strong>Date</strong>, <strong>PoidsNet</strong>)'
-                + ' sont bien reconnues. Vous pouvez analyser le fichier.';
+            el.diagAlerteMsg.innerHTML = 'Les colonnes obligatoires (<strong>Code du bon</strong>, <strong>Date</strong>, <strong>PoidsNet</strong>,'
+                + ' <strong>Date de déchargement</strong>) sont bien reconnues. Vous pouvez analyser le fichier.';
             el.diagAlerte.style.display = 'flex';
         }
 
@@ -366,7 +366,7 @@
 
         // Tableau 1 : correspondance champ -> colonne
         var htmlCorr = '';
-        var obligatoires = { 'Code du bon': 1, 'Date': 1, 'PoidsNet': 1 };
+        var obligatoires = { 'Code du bon': 1, 'Date': 1, 'PoidsNet': 1, 'Date de déchargement': 1 };
         Object.keys(champs).forEach(function (cle) {
             var libelle = champs[cle];
             var trouve = null;

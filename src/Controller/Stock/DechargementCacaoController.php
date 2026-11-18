@@ -2,8 +2,11 @@
 
 namespace App\Controller\Stock;
 
+use App\Entity\Stock\DechargementCacao;
 use App\Repository\Stock\DechargementCacaoRepository;
+use App\Repository\Stock\LotDechargementRepository;
 use App\Service\Stock\DechargementCacaoImportService as ImportService;
+use Doctrine\ORM\EntityManagerInterface;
 use App\Service\Stock\LecteurTabulaireService;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -70,6 +73,8 @@ final class DechargementCacaoController extends AbstractController
         private readonly LecteurTabulaireService $lecteur,
         private readonly ImportService $import,
         private readonly DechargementCacaoRepository $repo,
+        private readonly LotDechargementRepository $liens,
+        private readonly EntityManagerInterface $em,
         private readonly LoggerInterface $logger,
         #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%modele_dechargement_cacao%')]
         private readonly string $modeleXlsx,
@@ -317,8 +322,203 @@ final class DechargementCacaoController extends AbstractController
     }
 
     /* ------------------------------------------------------------------
+     * Modification / suppression (ROLE_ADMIN)
+     * ------------------------------------------------------------------ */
+
+    /**
+     * Formulaire de modification d'un dechargement deja enregistre.
+     *
+     * Reserve au ROLE_ADMIN : l'import est la voie normale, la modification
+     * manuelle sert a corriger une saisie erronee (poids, date, cooperative...).
+     * La date de dechargement y est OBLIGATOIRE, comme a l'import.
+     */
+    #[Route('/Dechargements/{id}/modifier', name: 'app_dechargement_cacao_modifier', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function modifier(DechargementCacao $dechargement, Request $request): Response
+    {
+        $erreurs = [];
+        $saisie = null;
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('dechargement_cacao_edition', (string) $request->request->get('_token'))) {
+                $this->addFlash('danger', 'Session expiree, merci de recommencer.');
+
+                return $this->redirectToRoute('app_dechargement_cacao_modifier', ['id' => $dechargement->getId()]);
+            }
+
+            /** @var array<string,mixed> $saisie */
+            $saisie = $request->request->all();
+
+            $code = trim((string) ($saisie['code'] ?? ''));
+            $dateBon = $this->dateSaisie($saisie['date_bon'] ?? null);
+            $dateDechargement = $this->dateSaisie($saisie['date_dechargement'] ?? null);
+            $poidsNet = $this->nombreSaisi($saisie['poids_net'] ?? null);
+            $nbreSacs = $this->nombreSaisi($saisie['nbre_sacs'] ?? null);
+            $pnp = $this->nombreSaisi($saisie['pnp'] ?? null);
+
+            if ($code === '') {
+                $erreurs[] = 'Le code du bon est obligatoire.';
+            } elseif (mb_strlen($code) > 60) {
+                $erreurs[] = 'Le code du bon ne doit pas depasser 60 caracteres.';
+            } else {
+                $existant = $this->repo->findOneByCode($code);
+                if ($existant !== null && (string) $existant->getId() !== (string) $dechargement->getId()) {
+                    $erreurs[] = 'Un autre dechargement porte deja le code ' . $code . '.';
+                }
+            }
+
+            if ($dateDechargement === null) {
+                $erreurs[] = 'La date de dechargement est obligatoire.';
+            }
+            if ($poidsNet === null || $poidsNet <= 0) {
+                $erreurs[] = 'Le poids net doit etre un nombre superieur a zero.';
+            }
+            if ($nbreSacs !== null && $nbreSacs < 0) {
+                $erreurs[] = 'Le nombre de sacs ne peut pas etre negatif.';
+            }
+            if ($dateBon !== null && $dateDechargement !== null && $dateDechargement < $dateBon) {
+                $erreurs[] = 'La date de dechargement ne peut pas etre anterieure a la date du bon.';
+            }
+
+            if ($erreurs === []) {
+                $dechargement->setCode($code)
+                    ->setDateBon($dateBon)
+                    ->setSite($this->texteSaisi($saisie['site'] ?? null))
+                    ->setProduit($this->texteSaisi($saisie['produit'] ?? null))
+                    ->setCooperative($this->texteSaisi($saisie['cooperative'] ?? null))
+                    ->setImmatriculation($this->texteSaisi($saisie['immatriculation'] ?? null))
+                    ->setTransporteur($this->texteSaisi($saisie['transporteur'] ?? null))
+                    ->setNbreSacs($nbreSacs !== null ? (int) round($nbreSacs) : null)
+                    ->setPoidsNet($poidsNet)
+                    ->setStatut($this->texteSaisi($saisie['statut'] ?? null))
+                    ->setDateDechargement($dateDechargement)
+                    ->setObservation($this->texteSaisi($saisie['observation'] ?? null))
+                    ->setPnp($pnp)
+                    ->setTraitant($this->texteSaisi($saisie['traitant'] ?? null))
+                    ->setCategorie($this->texteSaisi($saisie['categorie'] ?? null))
+                    ->setUpdatedAt(new \DateTimeImmutable())
+                    ->setUpdatedBy($this->identiteUtilisateur());
+
+                try {
+                    $this->em->flush();
+                    $this->addFlash('success', 'Le dechargement ' . $code . ' a ete mis a jour.');
+
+                    return $this->redirectToRoute('app_dechargements_cacao');
+                } catch (\Throwable $e) {
+                    $this->logger->error('Modification dechargement : echec', ['code' => $code, 'erreur' => $e->getMessage()]);
+                    $erreurs[] = 'Enregistrement impossible : ' . $e->getMessage();
+                }
+            }
+        }
+
+        return $this->render('dechargement_cacao/edit.html.twig', [
+            'dechargement' => $dechargement,
+            'erreurs'      => $erreurs,
+            'saisie'       => $saisie,
+            'nbLots'       => $this->liens->compterPourDechargement($dechargement),
+        ]);
+    }
+
+    /**
+     * Suppression definitive d'un dechargement (ROLE_ADMIN).
+     *
+     * Refusee si le camion alimente deja un lot fabrique : la tracabilite serait
+     * rompue. Il faut d'abord retirer l'association depuis la page du lot.
+     */
+    #[Route('/Dechargements/{id}/supprimer', name: 'app_dechargement_cacao_supprimer', methods: ['POST'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function supprimer(DechargementCacao $dechargement, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('dechargement_cacao_suppression', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Session expiree, merci de recommencer.');
+
+            return $this->redirectToRoute('app_dechargements_cacao');
+        }
+
+        $code = (string) $dechargement->getCode();
+        $liens = $this->liens->parDechargement($dechargement);
+
+        if ($liens !== []) {
+            $numeros = [];
+            foreach (array_slice($liens, 0, 4) as $lien) {
+                $numero = $lien->getLot()?->getNumeroLot();
+                if ($numero !== null) {
+                    $numeros[] = $numero;
+                }
+            }
+            $this->addFlash('danger', sprintf(
+                'Suppression refusee : le bon %s alimente le(s) lot(s) %s. Retirez d\'abord l\'association depuis la page du lot (Tracabilite).',
+                $code,
+                implode(', ', $numeros) . (count($liens) > 4 ? '...' : '')
+            ));
+
+            return $this->redirectToRoute('app_dechargements_cacao');
+        }
+
+        try {
+            $this->em->remove($dechargement);
+            $this->em->flush();
+            $this->addFlash('success', 'Le dechargement ' . $code . ' a ete supprime.');
+        } catch (\Throwable $e) {
+            $this->logger->error('Suppression dechargement : echec', ['code' => $code, 'erreur' => $e->getMessage()]);
+            $this->addFlash('danger', 'Suppression impossible : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('app_dechargements_cacao');
+    }
+
+    /* ------------------------------------------------------------------
      * Outils
      * ------------------------------------------------------------------ */
+
+    /** Accepte 2026-11-18 comme 18/11/2026. */
+    private function dateSaisie(mixed $valeur): ?\DateTimeInterface
+    {
+        if (!is_scalar($valeur)) {
+            return null;
+        }
+        $texte = trim((string) $valeur);
+        if ($texte === '') {
+            return null;
+        }
+
+        // Les colonnes date_bon / date_dechargement sont de type "mutable" :
+        // on renvoie donc un DateTime (et non un DateTimeImmutable).
+        foreach (['!Y-m-d', '!d/m/Y', '!d-m-Y', '!Y-m-d H:i:s', '!d/m/Y H:i'] as $format) {
+            $date = \DateTime::createFromFormat($format, $texte);
+            if ($date instanceof \DateTime) {
+                return $date;
+            }
+        }
+
+        return null;
+    }
+
+    private function nombreSaisi(mixed $valeur): ?float
+    {
+        if (!is_scalar($valeur)) {
+            return null;
+        }
+        $texte = str_replace([' ', "\u{00A0}", ','], ['', '', '.'], trim((string) $valeur));
+
+        return is_numeric($texte) ? (float) $texte : null;
+    }
+
+    private function texteSaisi(mixed $valeur): ?string
+    {
+        $texte = is_scalar($valeur) ? trim((string) $valeur) : '';
+
+        return $texte === '' ? null : $texte;
+    }
+
+    private function identiteUtilisateur(): string
+    {
+        $utilisateur = $this->getUser();
+
+        return null !== $utilisateur && method_exists($utilisateur, 'getUserIdentifier')
+            ? (string) $utilisateur->getUserIdentifier()
+            : 'system';
+    }
 
     /**
      * Lit le fichier envoye et applique la ligne d'en-tete / les renommages demandes.

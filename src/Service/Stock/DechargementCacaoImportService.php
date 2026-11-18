@@ -59,7 +59,12 @@ final class DechargementCacaoImportService
     ];
 
     /** @var array<string,string> */
-    private const OBLIGATOIRES = ['code' => 'Code du bon', 'date' => 'Date', 'poidsNet' => 'PoidsNet'];
+    private const OBLIGATOIRES = [
+        'code'             => 'Code du bon',
+        'date'             => 'Date',
+        'poidsNet'         => 'PoidsNet',
+        'dateDechargement' => 'Date de déchargement',
+    ];
 
     public function __construct(
         private readonly DechargementCacaoRepository $repo,
@@ -327,7 +332,13 @@ final class DechargementCacaoImportService
         if ($l->observation !== null && stripos($l->observation, 'refoul') !== false && ($l->pnp === null || $l->pnp > 0)) {
             $l->anomalies[] = 'Observation "refoule" mais PNP non nul (coherence a verifier).';
         }
-        if ($l->dateDechargement !== null && $l->date !== null && $l->dateDechargement < substr($l->date, 0, 10)) {
+        // La date de dechargement est OBLIGATOIRE depuis cette version : c'est elle qui
+        // date l'entree reelle en magasin (et donc la tracabilite du lot).
+        if ($l->dateDechargement === null) {
+            $l->anomalies[] = $valeur('dateDechargement') === ''
+                ? 'Date de dechargement manquante (obligatoire).'
+                : sprintf('Date de dechargement illisible ("%s").', $valeur('dateDechargement'));
+        } elseif ($l->date !== null && $l->dateDechargement < substr($l->date, 0, 10)) {
             $l->anomalies[] = 'Date de dechargement anterieure a la date du bon.';
         }
         if ($colonnesAbsentes !== []) {
@@ -504,7 +515,9 @@ final class DechargementCacaoImportService
         if ((string) ($donnees['empreinte'] ?? '') !== $empreinte) {
             throw new \RuntimeException('Le rapport affiche ne correspond plus a la page : rechargez la page puis relancez l\'analyse.');
         }
-        if ($l->code === '' || $l->date === null || $l->poidsNet === null) {
+        // Garde-fou cote enregistrement : une ligne sans date de dechargement n'est
+        // jamais ecrite en base, meme si le navigateur a ete modifie a la main.
+        if ($l->code === '' || $l->date === null || $l->poidsNet === null || $l->dateDechargement === null) {
             return null;
         }
 

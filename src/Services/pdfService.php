@@ -20,7 +20,7 @@ class CitracPdf extends Fpdf
     private array $societe = [
         'nom'       => 'CITRAC',
         'activite'  => 'Compagnie Ivoirienne de Transformation du Cacao', // exemple à adapter
-        'adresse'   => 'Adresse, Ville, Pays',
+        'adresse'   => '6, Route de l’Aéroport, Zone Industrielle Sud –San Pedro - République de Côte d\'Ivoire',
         'bp'   => '01 BP 1643 San Pedro 01',
         'telephone' => '+225 27 34 71 06 74',
         'email'     => 'infos@citrac.ci',
@@ -157,6 +157,12 @@ class CitracPdf extends Fpdf
  */
 class pdfService
 {
+    /** Marge laterale (mm) utilisee par les rapports. */
+    private const MARGE_LATERALE = 10.0;
+
+    /** Marge basse (mm) : seuil de saut de page des rapports. */
+    private const MARGE_BASSE = 20.0;
+
     private CitracPdf $pdf;
 
     public function __construct(
@@ -255,6 +261,216 @@ class pdfService
             $this->pdf->SetXY($x0, $y0 + $hauteur);
             $alterne = !$alterne;
         }
+    }
+
+    /**
+     * RAPPORT MULTI-TABLEAUX (consultation des stocks) :
+     * criteres de filtre en clair, puis plusieurs tableaux (recapitulatif,
+     * detail). Les en-tetes sont en gris tres clair, les lignes restent
+     * blanches et chaque tableau occupe 100 % de la largeur utile.
+     *
+     * @param array<int, array{0: string, 1: string}> $criteres  couples [libelle, valeur]
+     * @param array<int, array{titre: string, entetes: array<int, string>, poids: array<int, float>,
+     *                        lignes: array<int, array<int, string>>, align: array<int, string>}> $tableaux
+     */
+    public function genererRapport(
+        string $titre,
+        string $sousTitre,
+        array $criteres,
+        array $tableaux,
+        string $orientation = 'P'
+    ): string {
+        $this->pdf = new CitracPdf($orientation, 'mm', 'A4');
+        $this->pdf->logoPath      = $this->projectDir . '/public/images/CITRAC.png';
+        $this->pdf->titreDocument = $titre;
+        $this->pdf->sousTitre     = $sousTitre;
+
+        $this->pdf->AliasNbPages();
+        $this->pdf->SetTitle($titre);
+        $this->pdf->SetMargins(10, 48, 10);
+        $this->pdf->SetAutoPageBreak(true, 20);
+        $this->pdf->AddPage();
+
+        $this->ecrireCriteres($criteres);
+
+        foreach ($tableaux as $tableau) {
+            $this->ecrireTableauRapport(
+                (string) ($tableau['titre'] ?? ''),
+                (array) ($tableau['entetes'] ?? []),
+                (array) ($tableau['poids'] ?? []),
+                (array) ($tableau['lignes'] ?? []),
+                (array) ($tableau['align'] ?? [])
+            );
+        }
+
+        return $this->pdf->Output('S');
+    }
+
+    /** Bloc « criteres de filtre » : un libelle a gauche, la valeur a droite. */
+    private function ecrireCriteres(array $criteres): void
+    {
+        if ($criteres === []) {
+            return;
+        }
+
+        $this->pdf->SetFont('Arial', 'B', 8);
+        $this->pdf->SetTextColor(120, 100, 80);
+        $this->pdf->Cell(0, 5, $this->pdf->txt('CRITERES DE FILTRE'), 0, 1, 'L');
+        $this->pdf->Ln(1);
+
+        foreach ($criteres as $critere) {
+            $libelle = (string) ($critere[0] ?? '');
+            $valeur  = (string) ($critere[1] ?? '');
+
+            $this->pdf->SetFont('Arial', 'B', 8.5);
+            $this->pdf->SetTextColor(80, 65, 50);
+            $this->pdf->Cell(42, 5, $this->pdf->txt($libelle), 0, 0, 'L');
+
+            $this->pdf->SetFont('Arial', '', 8.5);
+            $this->pdf->SetTextColor(40, 40, 40);
+            $this->pdf->MultiCell(0, 5, $this->pdf->txt($valeur), 0, 'L');
+        }
+
+        $this->pdf->Ln(4);
+    }
+
+    /**
+     * Dessine un tableau du rapport.
+     *
+     * @param float[]  $poids    poids relatifs des colonnes (normalises sur 100 % de la largeur)
+     * @param array<int, array<int, string>> $lignes
+     * @param string[] $align    'L', 'C' ou 'R' par colonne
+     */
+    private function ecrireTableauRapport(
+        string $titre,
+        array $entetes,
+        array $poids,
+        array $lignes,
+        array $align
+    ): void {
+        if ($entetes === []) {
+            return;
+        }
+
+        $pdf     = $this->pdf;
+        $nbCols  = count($entetes);
+        // Marges laterales fixees a 10 mm dans genererRapport() (lMargin et
+        // rMargin sont proteges dans FPDF : on ne les lit pas directement).
+        $usable  = $pdf->GetPageWidth() - self::MARGE_LATERALE * 2;
+        $poids   = array_slice(array_values($poids), 0, $nbCols);
+        if (count($poids) !== $nbCols || array_sum($poids) <= 0) {
+            $poids = array_fill(0, $nbCols, 1.0);
+        }
+        $largeurs = $this->largeursMm($poids, $usable);
+        $align    = array_slice(array_values($align), 0, $nbCols);
+        if (count($align) !== $nbCols) {
+            $align = array_fill(0, $nbCols, 'L');
+        }
+
+        if ($pdf->GetY() + 18 > $pdf->GetPageHeight() - self::MARGE_BASSE) {
+            $pdf->AddPage();
+        }
+
+        if ($titre !== '') {
+            $pdf->SetFont('Arial', 'B', 9.5);
+            $pdf->SetTextColor(60, 45, 30);
+            $pdf->Cell($usable, 6, $pdf->txt(mb_strtoupper($titre)), 0, 1, 'L');
+            $pdf->Ln(1);
+        }
+
+        $this->ecrireEnteteRapport($entetes, $largeurs);
+
+        if ($lignes === []) {
+            $lignes = [array_fill(0, $nbCols, '')];
+            $lignes[0][0] = 'Aucune donnee sur la periode';
+        }
+
+        $pdf->SetFont('Arial', '', 8.5);
+
+        foreach ($lignes as $ligne) {
+            $cellules = array_pad(array_values($ligne), $nbCols, '');
+            $fort     = mb_strtoupper(trim((string) ($cellules[0] ?? ''))) === 'TOTAL';
+
+            $nbMax = 1;
+            foreach ($cellules as $i => $valeur) {
+                $n = $pdf->NbLines($largeurs[$i], $pdf->txt((string) $valeur));
+                if ($n > $nbMax) {
+                    $nbMax = $n;
+                }
+            }
+            $hauteur = $nbMax * 4.8;
+
+            if ($pdf->GetY() + $hauteur > $pdf->GetPageHeight() - self::MARGE_BASSE) {
+                $pdf->AddPage();
+                $this->ecrireEnteteRapport($entetes, $largeurs);
+            }
+
+            $pdf->SetFont('Arial', $fort ? 'B' : '', 8.5);
+            $pdf->SetTextColor(25, 25, 25);
+            $pdf->SetDrawColor(224, 224, 224);
+            $pdf->SetFillColor(255, 255, 255); // ligne toujours blanche
+
+            $x0 = $pdf->GetX();
+            $y0 = $pdf->GetY();
+            $x  = $x0;
+
+            foreach ($cellules as $i => $valeur) {
+                $largeur = $largeurs[$i];
+                $pdf->Rect($x, $y0, $largeur, $hauteur, 'DF');
+                $pdf->SetXY($x, $y0 + 0.4);
+                $pdf->MultiCell($largeur, 4.8, $pdf->txt((string) $valeur), 0, $align[$i], false);
+                $x += $largeur;
+            }
+
+            $pdf->SetXY($x0, $y0 + $hauteur);
+        }
+
+        $pdf->Ln(6);
+    }
+
+    /** En-tete de tableau : gris tres clair, texte noir, filet fin. */
+    private function ecrireEnteteRapport(array $entetes, array $largeurs): void
+    {
+        $this->pdf->SetFont('Arial', 'B', 8.5);
+        $this->pdf->SetFillColor(241, 241, 241);
+        $this->pdf->SetTextColor(20, 20, 20);
+        $this->pdf->SetDrawColor(210, 210, 210);
+
+        foreach ($entetes as $i => $libelle) {
+            $this->pdf->Cell($largeurs[$i] ?? 20, 7, $this->pdf->txt($libelle), 1, 0, 'C', true);
+        }
+        $this->pdf->Ln();
+    }
+
+    /**
+     * Convertit des poids relatifs en millimetres : le total fait exactement
+     * la largeur utile de la page (tableau a 100 %).
+     *
+     * @param float[] $poids
+     *
+     * @return float[]
+     */
+    private function largeursMm(array $poids, float $usable): array
+    {
+        $total = array_sum($poids);
+        if ($total <= 0) {
+            $total = count($poids) ?: 1;
+        }
+
+        $largeurs = [];
+        $cumul    = 0.0;
+        foreach ($poids as $p) {
+            $largeur    = round($usable * ((float) $p / $total), 2);
+            $largeurs[] = $largeur;
+            $cumul     += $largeur;
+        }
+
+        $dernier = count($largeurs) - 1;
+        if ($dernier >= 0) {
+            $largeurs[$dernier] = round($largeurs[$dernier] + ($usable - $cumul), 2);
+        }
+
+        return $largeurs;
     }
 
     /**

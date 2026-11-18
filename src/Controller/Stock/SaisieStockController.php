@@ -352,65 +352,258 @@ final class SaisieStockController extends AbstractController
         ]);
     }
 
-    /** Export PDF (tableau) du jeu filtre. */
-    #[Route('/saisies/export.pdf', name: 'app_saisies_stock_pdf', methods: ['GET'])]
-    public function exportPdf(Request $request, pdfService $pdfService, SaisieStockRepository $repo): Response
+
+    /**
+     * Lignes du tableau "Situation par type de stock" pour une rubrique :
+     * une ligne en Kg, une en Litres, selon les mouvements et l'inventaire.
+     *
+     * @param array<string, mixed>      $ligne
+     * @param array<string, mixed>|null $detail
+     *
+     * @return list<list<string>>
+     */
+    private function lignesSituation(string $rubrique, array $ligne, ?array $detail, bool $initialise): array
     {
+        $num = static fn (float $v): string => number_format($v, 2, ',', ' ');
+
+        $unites = [
+            ['Kg', 'entreeKg', 'sortieKg', 'stockInitialKg', 'stockFinalKg'],
+            ['Litres', 'entreeLitres', 'sortieLitres', 'stockInitialLitres', 'stockFinalLitres'],
+        ];
+
+        $lignes = [];
+        foreach ($unites as [$unite, $cleEntree, $cleSortie, $cleInitial, $cleFinal]) {
+            $entree = (float) ($ligne[$cleEntree] ?? 0);
+            $sortie = (float) ($ligne[$cleSortie] ?? 0);
+            $initial = (float) ($detail[$cleInitial] ?? 0);
+            $final = (float) ($detail[$cleFinal] ?? 0);
+
+            $mouvement = abs($entree) > 0.000001 || abs($sortie) > 0.000001;
+            $stock = $initialise && (abs($initial) > 0.000001 || abs($final) > 0.000001);
+            if (!$mouvement && !$stock) {
+                continue;
+            }
+
+            $row = [
+                $rubrique,
+                $num($entree) . ' ' . $unite,
+                $num($sortie) . ' ' . $unite,
+                $unite,
+            ];
+            if ($initialise) {
+                $row[] = $num($initial);
+                $row[] = $num($final);
+            }
+            $lignes[] = $row;
+        }
+
+        return $lignes;
+    }
+
+    /**
+     * Export PDF de la consultation : criteres de filtre, recapitulatif de la
+     * periode (tableau 1) puis detail des saisies (tableau 2).
+     */
+    #[Route('/saisies/export.pdf', name: 'app_saisies_stock_pdf', methods: ['GET'])]
+    public function exportPdf(
+        Request $request,
+        pdfService $pdfService,
+        SaisieStockRepository $repo,
+        SortieStockRepository $sortieRepo
+    ): Response {
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
         }
         $this->denyAccessUnlessGranted('ROLE_USER');
 
         [$saisies, $filtres] = $this->appliquerFiltres($request, $repo);
+        $sorties = $sortieRepo->findFiltre(
+            $filtres['du'],
+            $filtres['au'],
+            $filtres['rubrique'],
+            $filtres['service'],
+            $filtres['agent'],
+            $filtres['q'],
+            $filtres['nature']
+        );
 
-        $entetes = ['Date saisie', 'Rubrique', 'Nature', 'Service', 'Agent', 'Quantite', 'Unite'];
-        $largeurs = [26, 44, 34, 38, 38, 20, 18];
-        $lignes = [];
-        $totalKg = 0.0;
-        $totalLitres = 0.0;
+        $stats = $this->statistiques($saisies, $sorties, $filtres['rubrique']);
+
+        // ---------- 1. Criteres de filtre ----------
+        $periode = 'Toutes les periodes';
+        if ($filtres['du'] !== '' || $filtres['au'] !== '') {
+            $du      = $filtres['du'] !== '' ? $this->dateFr($filtres['du']) : '...';
+            $au      = $filtres['au'] !== '' ? $this->dateFr($filtres['au']) : '...';
+            $periode = 'du ' . $du . ' au ' . $au;
+        }
+
+        $criteres = [
+            ['Periode', $periode],
+            ['Rubrique', $filtres['rubrique'] !== '' ? $filtres['rubrique'] : 'Toutes les rubriques'],
+            ['Nature du produit', $filtres['nature'] !== '' ? $filtres['nature'] : 'Toutes les natures'],
+            ['Service', $this->libelleService($filtres['service'])],
+            ['Agent', $filtres['agent'] !== '' ? $filtres['agent'] : 'Tous les agents'],
+            ['Recherche libre', $filtres['q'] !== '' ? $filtres['q'] : '-'],
+            ['Volume', count($saisies) . ' saisie(s) et ' . count($sorties) . ' sortie(s)'],
+        ];
+
+        // ---------- 2. Situation par type de stock (comme a l'ecran) ----------
+        // Memes colonnes que le tableau de consultation : Type Stock, Entrees,
+        // Sorties, Unite, puis Stock initial / Stock final quand l'inventaire
+        // physique est renseigne.
+        $stockInitial = $this->stockInitial->apercu(null, $filtres['rubrique'] !== '' ? $filtres['rubrique'] : null);
+        $initialise = !empty($stockInitial['initialise']);
+
+        $num = static fn (float $v): string => number_format($v, 2, ',', ' ');
+
+        $entetesRecap = ['Type Stock', 'Entrees', 'Sorties', 'Unite'];
+        $poidsRecap = [40, 22, 22, 16];
+        $alignRecap = ['L', 'R', 'R', 'C'];
+        if ($initialise) {
+            $entetesRecap[] = 'Stock initial';
+            $entetesRecap[] = 'Stock final';
+            $poidsRecap = [32, 17, 17, 12, 11, 11];
+            $alignRecap = ['L', 'R', 'R', 'C', 'R', 'R'];
+        }
+
+        $lignesRecap = [];
+        foreach ($stats['parRubrique'] as $rubrique => $ligne) {
+            $detail = $stockInitial['parRubrique'][$rubrique] ?? null;
+            foreach ($this->lignesSituation((string) $rubrique, $ligne, is_array($detail) ? $detail : null, $initialise) as $l) {
+                $lignesRecap[] = $l;
+            }
+        }
+
+        // Totaux : une ligne par unite, comme le pied du tableau a l'ecran.
+        $totaux = $stats['totaux'];
+        if ($initialise) {
+            $siTotaux = $stockInitial['totaux'] ?? [];
+            $lignesRecap[] = [
+                'TOTAL',
+                $num((float) $totaux['entreeKg']) . ' Kg',
+                $num((float) $totaux['sortieKg']) . ' Kg',
+                'Kg',
+                $num((float) ($siTotaux['stockInitialKg'] ?? 0)),
+                $num((float) ($siTotaux['stockFinalKg'] ?? 0)),
+            ];
+            if (abs((float) $totaux['entreeLitres']) > 0.000001 || abs((float) $totaux['sortieLitres']) > 0.000001) {
+                $lignesRecap[] = [
+                    '',
+                    $num((float) $totaux['entreeLitres']) . ' Litres',
+                    $num((float) $totaux['sortieLitres']) . ' Litres',
+                    'Litres',
+                    $num((float) ($siTotaux['stockInitialLitres'] ?? 0)),
+                    $num((float) ($siTotaux['stockFinalLitres'] ?? 0)),
+                ];
+            }
+        } else {
+            $lignesRecap[] = [
+                'TOTAL',
+                $num((float) $totaux['entreeKg']) . ' Kg',
+                $num((float) $totaux['sortieKg']) . ' Kg',
+                'Kg',
+            ];
+            if (abs((float) $totaux['entreeLitres']) > 0.000001 || abs((float) $totaux['sortieLitres']) > 0.000001) {
+                $lignesRecap[] = [
+                    '',
+                    $num((float) $totaux['entreeLitres']) . ' Litres',
+                    $num((float) $totaux['sortieLitres']) . ' Litres',
+                    'Litres',
+                ];
+            }
+        }
+
+        // ---------- 3. Detail des entrees (saisies) ----------
+        $lignesDetail = [];
         foreach ($saisies as $s) {
             /** @var SaisieStock $s */
-            $lignes[] = [
-                $s->getDateSaisie()?->format('d/m/Y H:i'),
-                $s->getRubrique(),
+            $lignesDetail[] = [
+                $s->getDateSaisie()?->format('d/m/Y H:i') ?? '-',
+                $s->getRubrique() ?? '-',
                 $s->getNature() ?? '-',
                 $s->getServiceLibelle() ?? '-',
                 $s->getAgentLibelle() ?? '-',
-                number_format((float) $s->getQuantite(), 2, ',', ' '),
-                $s->getUnite(),
+                number_format((float) $s->getQuantite(), 2, ',', ' ') . ' ' . ($s->getUnite() ?? ''),
+                $s->getPhoto() ? 'Oui' : '-',
+                $s->getCreatedAt()?->format('d/m/Y H:i') ?? '-',
             ];
-            if ($s->getUnite() === 'Litres') {
-                $totalLitres += (float) $s->getQuantite();
-            } else {
-                $totalKg += (float) $s->getQuantite();
-            }
-        }
-        $lignes[] = ['', '', '', '', 'TOTAL', number_format($totalKg, 2, ',', ' ') . ' Kg', ''];
-        $lignes[] = ['', '', '', '', 'TOTAL', number_format($totalLitres, 2, ',', ' ') . ' L', ''];
-
-        $sousTitre = 'Saisies de stock';
-        if ($filtres['du'] || $filtres['au']) {
-            $sousTitre .= ' - periode du ' . ($filtres['du'] ?: '...') . ' au ' . ($filtres['au'] ?: '...');
-        }
-        if ($filtres['rubrique']) {
-            $sousTitre .= ' - ' . $filtres['rubrique'];
-        }
-        if (!empty($filtres['nature'])) {
-            $sousTitre .= ' - nature : ' . $filtres['nature'];
         }
 
-        $contenu = $pdfService->genererTableau(
-            'Saisies de stock',
-            $entetes,
-            $largeurs,
-            $lignes,
-            'L',
-            $sousTitre
+        // ---------- 4. Detail des sorties ----------
+        $lignesSorties = [];
+        foreach ($sorties as $o) {
+            /** @var SortieStock $o */
+            $lignesSorties[] = [
+                $o->getDateSortie()?->format('d/m/Y H:i') ?? '-',
+                $o->getRubrique() ?? '-',
+                $o->getNature() ?? '-',
+                $o->getMotif() ?? '-',
+                $o->getServiceLibelle() ?? '-',
+                $o->getAgentLibelle() ?? '-',
+                number_format((float) $o->getQuantite(), 2, ',', ' ') . ' ' . ($o->getUnite() ?? ''),
+                $o->getPhoto() ? 'Oui' : '-',
+            ];
+        }
+
+        $contenu = $pdfService->genererRapport(
+            'Consultation des stocks',
+            'Periode : ' . $periode,
+            $criteres,
+            [
+                [
+                    'titre'   => 'Situation par type de stock',
+                    'entetes' => $entetesRecap,
+                    'poids'   => $poidsRecap,
+                    'lignes'  => $lignesRecap,
+                    'align'   => $alignRecap,
+                ],
+                [
+                    'titre'   => 'Entrees de stock (saisies)',
+                    'entetes' => ['Date saisie', 'Type Stock', 'Nature', 'Service', 'Agent', 'Quantite', 'Photo', 'Recu le'],
+                    'poids'   => [16, 15, 18, 15, 15, 11, 6, 14],
+                    'lignes'  => $lignesDetail,
+                    'align'   => ['L', 'L', 'L', 'L', 'L', 'R', 'C', 'L'],
+                ],
+                [
+                    'titre'   => 'Sorties de stock',
+                    'entetes' => ['Date sortie', 'Type Stock', 'Nature', 'Motif', 'Service', 'Agent', 'Quantite', 'Photo'],
+                    'poids'   => [16, 15, 16, 16, 14, 14, 12, 7],
+                    'lignes'  => $lignesSorties,
+                    'align'   => ['L', 'L', 'L', 'L', 'L', 'L', 'R', 'C'],
+                ],
+            ],
+            'P'
         );
 
         return new Response($contenu, 200, [
             'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="saisies-stock.pdf"',
+            'Content-Disposition' => 'inline; filename="consultation-stocks.pdf"',
         ]);
+    }
+
+    /** Date AAAA-MM-JJ -> JJ/MM/AAAA (pour l'affichage PDF). */
+    private function dateFr(string $date): string
+    {
+        try {
+            return (new \DateTimeImmutable($date))->format('d/m/Y');
+        } catch (\Throwable) {
+            return $date;
+        }
+    }
+
+    /** Libelle du service filtre (le filtre contient son identifiant). */
+    private function libelleService(string $serviceId): string
+    {
+        if ($serviceId === '') {
+            return 'Tous les services';
+        }
+
+        foreach ($this->services() as $service) {
+            if ((string) $service->getId() === $serviceId) {
+                return (string) $service->getLibelle();
+            }
+        }
+
+        return $serviceId;
     }
 }

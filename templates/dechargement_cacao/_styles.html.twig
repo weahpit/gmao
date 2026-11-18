@@ -4,9 +4,9 @@
    Toutes les classes sont prefixees .dc- pour ne rien casser ailleurs.
    ========================================================================== */
 :root {
-    --dc-cacao: #5A371E;
-    --dc-cacao-clair: #8B5A2B;
-    --dc-creme: #F7F2EA;
+    --dc-cacao: #1b1a19;
+    --dc-cacao-clair: #dbcec2;
+    --dc-creme: #dcdcdc;
     --dc-accent: #C8912B;
     --dc-vert: #1e7e46;
     --dc-rouge: #b3402f;
@@ -14,7 +14,7 @@
     --dc-bleu: #3f6896;
     --dc-bord: #ece3d8;
     --dc-texte: #43352a;
-    --dc-muet: #9a8877;
+    --dc-muet: #302923;
     --dc-radius: 16px;
     --dc-ombre: 0 6px 22px rgba(90, 55, 30, .10);
 }
@@ -24,11 +24,9 @@
 /* ---------- En-tete ---------- */
 .dc-header {
     position: relative; overflow: hidden;
-    background:
-        radial-gradient(900px 240px at 92% -30%, rgba(200,145,43,.42), transparent 60%),
-        linear-gradient(135deg, #3f2513 0%, var(--dc-cacao) 45%, var(--dc-cacao-clair) 100%);
-    color: #fff; border-radius: 20px; padding: 26px 28px; margin-bottom: 20px;
-    box-shadow: 0 12px 30px rgba(90,55,30,.24);
+    background: rgba(211, 211, 211, 0.71);
+    color: #2a2a28; border-radius: 20px; padding: 26px 28px; margin-bottom: 20px;
+    box-shadow: 0 12px 30px rgba(246, 244, 242, 0.9);
 }
 .dc-header::after {
     content: ''; position: absolute; right: -40px; bottom: -70px; width: 230px; height: 230px;
@@ -41,10 +39,10 @@
 .dc-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .dc-chip {
     display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 12px;
-    background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.22);
+    background: rgba(162, 179, 128, 0.95); color: #110f0f; border: 1px solid rgba(13, 41, 19, 0.5);
     font-size: .82rem; font-weight: 600; text-decoration: none; transition: .18s;
 }
-.dc-chip:hover { background: rgba(255,255,255,.22); color: #fff; }
+.dc-chip:hover { background: rgba(1, 72, 12, 0.94); color: #fff; }
 .dc-chip.solid { background: #fff; color: var(--dc-cacao); border-color: #fff; }
 .dc-chip.solid:hover { background: #fff8ee; color: var(--dc-cacao); }
 .dc-chip svg { width: 16px; height: 16px; }
@@ -67,16 +65,16 @@
 
 /* ---------- Cartes ---------- */
 .dc-card {
-    background: #fff; border: 1px solid var(--dc-bord); border-radius: var(--dc-radius);
+    background: #fff; border: 1px solid var(--dc-bord); border-radius: 0;
     box-shadow: var(--dc-ombre); margin-bottom: 20px; overflow: hidden;
 }
 .dc-card-head {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 16px 20px; border-bottom: 1px solid var(--dc-bord); background: linear-gradient(180deg,#fffdfa,#fbf6ef);
+    padding: 16px 20px; border-bottom: 1px solid var(--dc-bord); background: rgb(3, 76, 113);
 }
-.dc-card-head h2 { font-size: 1rem; font-weight: 800; color: var(--dc-cacao); margin: 0; display: flex; align-items: center; gap: 9px; }
-.dc-card-head h2 svg { width: 18px; height: 18px; color: var(--dc-cacao-clair); }
-.dc-card-head .hint { font-size: .78rem; color: var(--dc-muet); }
+.dc-card-head h2 { font-size: 1rem; font-weight: 800; color: white; margin: 0; display: flex; align-items: center; gap: 9px; }
+.dc-card-head h2 svg { width: 18px; height: 18px; color: white; }
+.dc-card-head .hint { font-size: .78rem; color: lightgrey; }
 .dc-card-body { padding: 20px; }
 
 /* ---------- Zone de depot ---------- */
@@ -174,7 +172,7 @@
 .dc-table thead th {
     position: sticky; top: 0; z-index: 2; background: var(--dc-creme); color: var(--dc-cacao);
     font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 800;
-    padding: 10px 10px; white-space: nowrap; border-bottom: 2px solid #e6dccf;
+    padding: 10px 10px; white-space: nowrap; border-bottom: 2px solid #cbcbc9;
 }
 .dc-table tbody td { padding: 9px 10px; border-bottom: 1px solid #f3ece2; vertical-align: middle; color: var(--dc-texte); }
 .dc-table tbody tr:hover td { background: #fdf9f4; }
@@ -326,7 +324,101 @@ body.dc-busy .dc-wrap { pointer-events: none; user-select: none; filter: saturat
 .dc-toast.err { background: #7d2a1e; }
 
 /* ---------- Responsive ---------- */
+
+/* ---------- Encart d'information ---------- */
+.dc-note {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: linear-gradient(135deg, #fffaf1, #fdf6ea);
+    border: 1px solid #efdfc4; border-left: 4px solid var(--dc-accent);
+    border-radius: 14px; padding: 13px 16px; margin-bottom: 18px;
+    font-size: .86rem; color: #5c452f;
+}
+.dc-note svg { flex: 0 0 auto; margin-top: 1px; color: #a9761d; }
+.dc-note strong { color: var(--dc-cacao); }
+
+/* ---------- Formulaires (modification / association) ---------- */
+.dc-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 16px; }
+.dc-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.dc-field.span-2 { grid-column: span 2; }
+.dc-field > label {
+    font-size: .73rem; text-transform: uppercase; letter-spacing: .05em;
+    font-weight: 800; color: var(--dc-muet);
+}
+.dc-field.req > label::after { content: ' *'; color: var(--dc-rouge); }
+.dc-input {
+    width: 100%; border: 1px solid #e0d2c0; background: #fff; color: var(--dc-texte);
+    border-radius: 11px; padding: 9px 12px; font-size: .88rem; transition: .16s;
+}
+.dc-input:focus { outline: none; border-color: var(--dc-cacao-clair); box-shadow: 0 0 0 3px rgba(139,90,43,.12); }
+.dc-input::placeholder { color: #c0b3a4; }
+.dc-field .help { font-size: .74rem; color: #48433d; }
+.dc-field .help.err { color: var(--dc-rouge); font-weight: 700; }
+.dc-form-actions {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;
+    margin-top: 20px; padding-top: 16px; border-top: 1px dashed #eadfd0;
+}
+.dc-errors { background: #fdf0ed; border: 1px solid #f3cdc6; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; }
+.dc-errors ul { margin: 0; padding-left: 18px; font-size: .85rem; color: #8f2f20; }
+.dc-errors li + li { margin-top: 4px; }
+
+/* ---------- Actions de ligne (admin) ---------- */
+.dc-row-actions { display: inline-flex; gap: 6px; align-items: center; justify-content: flex-end; }
+.dc-row-actions form { margin: 0; }
+.dc-mini-btn {
+    display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e0d2c0; background: #fff;
+    color: var(--dc-cacao); border-radius: 9px; padding: 4px 9px; font-size: .74rem; font-weight: 700;
+    text-decoration: none; cursor: pointer; transition: .15s; white-space: nowrap;
+}
+.dc-mini-btn:hover { background: var(--dc-creme); border-color: #cdb79c; color: var(--dc-cacao); text-decoration: none; }
+.dc-mini-btn.danger { color: var(--dc-rouge); border-color: #eeccc5; }
+.dc-mini-btn.danger:hover { background: #fdf0ed; border-color: #e2b2a8; }
+
+.dc-code-link { color: var(--dc-cacao); text-decoration: none; border-bottom: 1px dashed #cdb79c; }
+.dc-code-link:hover { color: var(--dc-cacao-clair); border-bottom-style: solid; }
+.dc-attr {
+    display: inline-block; margin-left: 5px; font-size: .67rem; font-weight: 800;
+    color: #96631a; background: #fdf3df; border: 1px solid #f0ddb6; border-radius: 999px; padding: 1px 7px;
+}
+
+/* ---------- Tracabilite : couverture et cartes de lot ---------- */
+.dc-cover { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+.dc-cover-txt { font-size: .76rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.dc-cover-txt.ok { color: var(--dc-vert); }
+.dc-cover-txt.low { color: var(--dc-orange); }
+.dc-cover-txt.zero { color: var(--dc-muet); }
+.dc-bar { height: 6px; border-radius: 99px; background: #efe6da; overflow: hidden; }
+.dc-bar > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2f9d5b, #66c48b); }
+.dc-bar > span.low { background: linear-gradient(90deg, #d9a233, #ecc46a); }
+.dc-bar > span.zero { background: #ded3c5; }
+
+.dc-tag {
+    display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 10px;
+    font-size: .72rem; font-weight: 800; background: rgba(90,55,30,.08); color: var(--dc-cacao);
+    border: 1px solid rgba(90,55,30,.12); white-space: nowrap;
+}
+.dc-tag.ok { background: rgba(30,126,70,.12); color: #166b3b; border-color: rgba(30,126,70,.18); }
+.dc-tag.low { background: rgba(201,138,27,.14); color: #92610f; border-color: rgba(201,138,27,.22); }
+.dc-tag.zero { background: #f3ece2; color: #8a7b6b; border-color: #e5d9c9; }
+
+.dc-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.dc-meta { background: #fff; border: 1px solid var(--dc-bord); border-radius: 13px; padding: 11px 14px; }
+.dc-meta .lbl { font-size: .71rem; text-transform: uppercase; letter-spacing: .05em; color: var(--dc-muet); font-weight: 800; }
+.dc-meta .val { font-size: 1.02rem; font-weight: 800; color: var(--dc-cacao); font-variant-numeric: tabular-nums; }
+.dc-meta .val small { font-size: .72rem; font-weight: 600; color: #a89b8c; }
+
+.dc-assoc-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.dc-assoc-search { display: flex; gap: 8px; flex: 1 1 260px; }
+.dc-assoc-search .dc-input { flex: 1 1 auto; }
+.dc-check-cell { width: 34px; }
+.dc-poids-cell { width: 130px; }
+.dc-input.sm { padding: 5px 8px; font-size: .8rem; border-radius: 9px; }
+.dc-input.sm.num { text-align: right; font-variant-numeric: tabular-nums; }
+.dc-lot-link { font-weight: 800; color: var(--dc-cacao); text-decoration: none; }
+.dc-lot-link:hover { color: var(--dc-cacao-clair); text-decoration: underline; }
+.dc-subtle { color: #a89b8c; font-size: .76rem; }
+
 @media (max-width: 991.98px) {
+    .dc-field.span-2 { grid-column: span 1; }
     .dc-header { padding: 20px; border-radius: 16px; }
     .dc-header h1 { font-size: 1.22rem; }
     .dc-card-body { padding: 16px; }
@@ -361,7 +453,7 @@ body.dc-busy .dc-wrap { pointer-events: none; user-select: none; filter: saturat
     .dc-table tbody td { border: none; padding: 2px 4px; }
     .dc-table tbody td[data-label]::before {
         content: attr(data-label); display: block; font-size: .68rem; text-transform: uppercase;
-        letter-spacing: .04em; color: var(--dc-muet); font-weight: 700;
+        letter-spacing: .04em; color: black; font-weight: 700;
     }
     .dc-table td.num { text-align: left; }
     .dc-table .trunc { max-width: 100%; white-space: normal; }
@@ -372,5 +464,67 @@ body.dc-busy .dc-wrap { pointer-events: none; user-select: none; filter: saturat
 }
 @media (prefers-reduced-motion: reduce) {
     .dc-spinner, .dc-progress > span { animation-duration: 2.4s; }
+}
+@media (max-width: 767.98px) {
+    .dc-field.span-2 { grid-column: span 1; }
+    .dc-form-actions { flex-direction: column-reverse; align-items: stretch; }
+    .dc-form-actions .dc-btn { width: 100%; justify-content: center; }
+    .dc-assoc-search { flex: 1 1 100%; }
+    .dc-row-actions { justify-content: flex-start; }
+    /* Tableaux a colonnes de saisie : restent de vrais tableaux sur mobile */
+    .dc-table.dc-keep thead { display: table-header-group; }
+    .dc-table.dc-keep tbody tr { display: table-row; }
+    .dc-table.dc-keep tbody td { border-bottom: 1px solid #f3ece2; padding: 8px 6px; }
+    .dc-table.dc-keep tbody td[data-label]::before { content: none; }
+    .dc-table.dc-keep td.num { text-align: right; }
+}
+/* ---------- Impression de la fiche de tracabilite ---------- */
+@media print {
+    .dc-header { box-shadow: none; border-radius: 0; background: #fff !important; color: #000 !important; padding: 0 0 10px; }
+    .dc-header p, .dc-header h1, .dc-eyebrow { color: #000 !important; }
+    .dc-header-actions, .dc-no-print, .dc-form-actions { display: none !important; }
+    .dc-card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+    .dc-table-scroll { max-height: none; overflow: visible; }
+    .dc-code-link { border-bottom: none; color: #000; }
+    .dc-wrap { max-width: 100%; }
+}
+
+/* ---------- Traçabilite simplifiee : ordre d'usinage ---------- */
+.dc-ou-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.dc-ou-toolbar .dc-field { margin: 0; flex: 1 1 200px; }
+.dc-ou-toolbar .dc-field.ou-petit { flex: 0 1 210px; }
+.dc-ou-num {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .76rem; font-weight: 800;
+    letter-spacing: .02em; color: #6f4b23; background: #fdf3e3; border: 1px solid #efdcc0; white-space: nowrap;
+}
+.dc-ou-camion {
+    display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 11px 12px;
+    border: 1.5px solid #ecdfcd; border-radius: 12px; background: #fffdfa; cursor: pointer; transition: .18s;
+}
+.dc-ou-camion:hover { border-color: #d9c2a4; background: #fffaf3; }
+.dc-ou-camion:has(input:checked) {
+    border-color: var(--dc-vert); background: linear-gradient(135deg, #f3faf5, #fffdfa);
+    box-shadow: 0 3px 12px rgba(30, 126, 70, .13);
+}
+.dc-ou-camion input { margin-top: 3px; flex: 0 0 auto; }
+.dc-ou-camion input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--dc-vert); cursor: pointer; }
+.dc-ou-camion .corps { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.dc-ou-camion .titre { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: .88rem; font-weight: 800; color: #4a3421; }
+.dc-ou-camion .sous { font-size: .76rem; color: #8b7a68; line-height: 1.35; }
+.dc-ou-liste { display: flex; flex-direction: column; gap: 8px; max-height: 54vh; overflow: auto; padding-right: 2px; }
+.dc-ou-total {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+    margin-top: 14px; padding: 12px 14px; border-radius: 12px; border: 1px dashed #e3d2bd;
+    background: linear-gradient(135deg, #fbf6ef, #fffdfa);
+}
+.dc-ou-total strong { font-size: 1.02rem; color: var(--dc-cacao); }
+.dc-ou-lots { display: flex; flex-wrap: wrap; gap: 4px; }
+.dc-ou-lot-chip { font-size: .71rem; font-weight: 700; color: #6f4b23; background: #f7efe3; border-radius: 6px; padding: 1px 6px; text-decoration: none; }
+a.dc-ou-lot-chip:hover { background: #efe1cd; color: #573517; }
+.dc-ou-verrou { display: flex; gap: 8px; align-items: flex-start; font-size: .78rem; color: #8b7a68; }
+@media (max-width: 767.98px) {
+    .dc-ou-liste { max-height: none; }
+    .dc-ou-toolbar .dc-field, .dc-ou-toolbar .dc-field.ou-petit { flex: 1 1 100%; }
 }
 </style>

@@ -1,0 +1,191 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier le déchargement {{ dechargement.code }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'dechargement_cacao/_styles.html.twig' %}
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_dechargement_cacao_import') }}">Import déchargement</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_dechargements_cacao') }}">Déchargements</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Modifier {{ dechargement.code }}</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Gestion du stock · Cacao · Administration</span>
+                <h1>Modifier le déchargement</h1>
+                <p>
+                    Bon <strong>{{ dechargement.code }}</strong> — corrigez la saisie issue de l'import.
+                    La <strong>date de déchargement</strong> est obligatoire.
+                </p>
+            </div>
+            <div class="dc-header-actions">
+                <a href="{{ path('stock_tracabilite_dechargement', {id: dechargement.id}) }}" class="dc-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
+                    Lots liés{% if nbLots > 0 %} ({{ nbLots }}){% endif %}
+                </a>
+                <a href="{{ path('app_dechargements_cacao') }}" class="dc-chip solid">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    Retour à la liste
+                </a>
+            </div>
+        </div>
+    </header>
+
+    {% if nbLots > 0 %}
+        <div class="dc-note">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <div>
+                Ce camion alimente déjà <strong>{{ nbLots }} lot(s) fabriqué(s)</strong> : il ne peut pas être supprimé tant que
+                les associations existent. Une correction de poids ici ne modifie pas les poids déjà affectés aux lots.
+            </div>
+        </div>
+    {% endif %}
+
+    {% if erreurs is not empty %}
+        <div class="dc-errors">
+            <ul>
+                {% for e in erreurs %}<li>{{ e }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% set v = saisie|default({}) %}
+    <form method="post" action="{{ path('app_dechargement_cacao_modifier', {id: dechargement.id}) }}" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token('dechargement_cacao_edition') }}">
+
+        <section class="dc-card">
+            <div class="dc-card-head">
+                <h2>Identification du bon</h2>
+                <span class="hint">Les champs marqués d'un astérisque sont obligatoires</span>
+            </div>
+            <div class="dc-card-body">
+                <div class="dc-form-grid">
+                    <div class="dc-field req">
+                        <label for="f-code">Code du bon</label>
+                        <input class="dc-input" type="text" id="f-code" name="code" maxlength="60" required
+                               value="{{ v.code is defined ? v.code : dechargement.code }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-date-bon">Date du bon</label>
+                        <input class="dc-input" type="date" id="f-date-bon" name="date_bon"
+                               value="{{ v.date_bon is defined ? v.date_bon : (dechargement.dateBon ? dechargement.dateBon|date('Y-m-d') : '') }}">
+                    </div>
+                    <div class="dc-field req">
+                        <label for="f-date-dech">Date de déchargement</label>
+                        <input class="dc-input" type="date" id="f-date-dech" name="date_dechargement" required
+                               value="{{ v.date_dechargement is defined ? v.date_dechargement : (dechargement.dateDechargement ? dechargement.dateDechargement|date('Y-m-d') : '') }}">
+                        <span class="help {{ v.date_dechargement is defined and v.date_dechargement is empty ? 'err' }}">Date d'entrée réelle du camion en magasin.</span>
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-site">Site</label>
+                        <input class="dc-input" type="text" id="f-site" name="site" maxlength="50"
+                               value="{{ v.site is defined ? v.site : (dechargement.site ?: '') }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-produit">Produit</label>
+                        <input class="dc-input" type="text" id="f-produit" name="produit" maxlength="100"
+                               value="{{ v.produit is defined ? v.produit : (dechargement.produit ?: '') }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-coop">Coopérative</label>
+                        <input class="dc-input" type="text" id="f-coop" name="cooperative" maxlength="180"
+                               value="{{ v.cooperative is defined ? v.cooperative : (dechargement.cooperative ?: '') }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-immat">Immatriculation</label>
+                        <input class="dc-input" type="text" id="f-immat" name="immatriculation" maxlength="40"
+                               value="{{ v.immatriculation is defined ? v.immatriculation : (dechargement.immatriculation ?: '') }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-transp">Transporteur</label>
+                        <input class="dc-input" type="text" id="f-transp" name="transporteur" maxlength="180"
+                               value="{{ v.transporteur is defined ? v.transporteur : (dechargement.transporteur ?: '') }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-traitant">Traitant</label>
+                        <input class="dc-input" type="text" id="f-traitant" name="traitant" maxlength="180"
+                               value="{{ v.traitant is defined ? v.traitant : (dechargement.traitant ?: '') }}">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="dc-card">
+            <div class="dc-card-head">
+                <h2>Quantités et qualité</h2>
+                <span class="hint">Poids en kilogrammes</span>
+            </div>
+            <div class="dc-card-body">
+                <div class="dc-form-grid">
+                    <div class="dc-field">
+                        <label for="f-sacs">Nombre de sacs</label>
+                        <input class="dc-input" type="number" id="f-sacs" name="nbre_sacs" min="0" step="1"
+                               value="{{ v.nbre_sacs is defined ? v.nbre_sacs : (dechargement.nbreSacs is not null ? dechargement.nbreSacs : '') }}">
+                    </div>
+                    <div class="dc-field req">
+                        <label for="f-poids">Poids net (kg)</label>
+                        <input class="dc-input" type="number" id="f-poids" name="poids_net" min="0" step="0.01" required
+                               value="{{ v.poids_net is defined ? v.poids_net : (dechargement.poidsNet is not null ? dechargement.poidsNet : '') }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-pnp">PNP (kg)</label>
+                        <input class="dc-input" type="number" id="f-pnp" name="pnp" step="0.01"
+                               value="{{ v.pnp is defined ? v.pnp : (dechargement.pnp is not null ? dechargement.pnp : '') }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-statut">Statut</label>
+                        <input class="dc-input" type="text" id="f-statut" name="statut" maxlength="60"
+                               value="{{ v.statut is defined ? v.statut : (dechargement.statut ?: '') }}">
+                    </div>
+                    <div class="dc-field">
+                        <label for="f-cat">Catégorie</label>
+                        <input class="dc-input" type="text" id="f-cat" name="categorie" maxlength="60"
+                               value="{{ v.categorie is defined ? v.categorie : (dechargement.categorie ?: '') }}">
+                    </div>
+                    <div class="dc-field span-2">
+                        <label for="f-obs">Observation</label>
+                        <textarea class="dc-input" id="f-obs" name="observation" rows="3" maxlength="500">{{ v.observation is defined ? v.observation : (dechargement.observation ?: '') }}</textarea>
+                    </div>
+                </div>
+
+                <div class="dc-form-actions">
+                    <a href="{{ path('app_dechargements_cacao') }}" class="dc-btn dc-btn-ghost">Annuler</a>
+                    <button type="submit" class="dc-btn dc-btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Enregistrer les modifications
+                    </button>
+                </div>
+            </div>
+        </section>
+    </form>
+
+    <section class="dc-card" style="border-color:#f0d9d3;">
+        <div class="dc-card-head">
+            <h2 style="color:var(--dc-rouge);">Zone sensible</h2>
+            <span class="hint">Action définitive</span>
+        </div>
+        <div class="dc-card-body">
+            <p style="font-size:.88rem;color:#7a6552;margin-bottom:14px;">
+                La suppression retire définitivement ce bon de la base. Elle est refusée si le camion alimente un lot fabriqué.
+            </p>
+            <form method="post" action="{{ path('app_dechargement_cacao_supprimer', {id: dechargement.id}) }}"
+                  onsubmit="return confirm('Supprimer définitivement le bon {{ dechargement.code|e('js') }} ?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('dechargement_cacao_suppression') }}">
+                <button type="submit" class="dc-btn dc-btn-danger-ghost">Supprimer ce déchargement</button>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}
