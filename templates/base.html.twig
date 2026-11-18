@@ -45,6 +45,10 @@
     <script src="{{ asset('js/lucide-sprite.js') }}"></script>
     <script src="{{ asset('js/app.js') }}"></script>
     {% block stylesheets %}{% endblock %}
+    {# Habillage unifie : reprend la charte de la page de dechargement cacao.
+       Charge en dernier pour passer devant les styles de chaque page.
+       Pour revenir a l'ancien rendu : supprimer la ligne ci-dessous. #}
+    <link rel="stylesheet" href="{{ asset('css/cacao-ui.css') }}">
 
     <style>
         /* Selecteur de langue FR / EN dans l'en-tete (habillage cacao) */
