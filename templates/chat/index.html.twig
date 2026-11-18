@@ -1,0 +1,402 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Messagerie interne{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/chat.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Messagerie interne</span>
+{% endblock %}
+
+{% block body %}
+{% set totalNonLus = nonLusGeneral %}
+{% for conversation in conversations %}{% set totalNonLus = totalNonLus + conversation.non_lus %}{% endfor %}
+
+<div class="dc-wrap py-3 chat-page"
+     data-canal="{{ canal }}"
+     data-moi="{{ moi.id }}"
+     data-general="{{ interlocuteur is null ? '1' : '0' }}">
+
+    {# ---------------- En-tête ---------------- #}
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Communication interne
+                </span>
+                <h1>Messagerie</h1>
+                <p>
+                    Échangez avec vos collègues en direct, ou posez une question à toute l'équipe
+                    sur le canal général. Les messages restent dans l'application.
+                </p>
+            </div>
+            <div class="dc-header-actions">
+                {% if totalNonLus > 0 %}
+                    <span class="dc-chip solid" style="background:#b3402f;border-color:#b3402f;">
+                        {{ totalNonLus }} non lu{{ totalNonLus > 1 ? 's' }}
+                    </span>
+                {% else %}
+                    <span class="dc-chip">À jour</span>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="chat-shell {{ interlocuteur ? 'ouvert' : '' }}" id="chatShell">
+
+        {# ---------------- Conversations ---------------- #}
+        <aside class="chat-side">
+            <div class="chat-side-head">
+                <div class="titre">
+                    <span>Conversations</span>
+                    <span style="font-weight:700;color:#b0a294;">{{ conversations|length + 1 }}</span>
+                </div>
+                <div class="chat-recherche">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="search" id="chatRecherche" placeholder="Rechercher un collègue..." autocomplete="off" aria-label="Rechercher un collègue">
+                </div>
+            </div>
+
+            <div class="chat-liste" id="chatListe">
+                {# Canal général #}
+                <a href="{{ path('app_chat', {canal: 'general'}) }}"
+                   class="chat-conv {{ interlocuteur is null ? 'active' }}"
+                   data-nom="canal general equipe tous">
+                    <div class="chat-avatar general">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="chat-conv-corps">
+                        <div class="chat-conv-nom">
+                            <span>Canal général</span>
+                            {% if generalDernier %}<span class="heure">{{ generalDernier.createdAt|date('H:i') }}</span>{% endif %}
+                        </div>
+                        <div class="chat-conv-apercu">
+                            {% if generalDernier %}
+                                {{ generalDernier.contenu|slice(0, 42) }}{{ generalDernier.contenu|length > 42 ? '…' }}
+                            {% else %}
+                                Toute l'équipe
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if nonLusGeneral > 0 %}<span class="chat-pastille">{{ nonLusGeneral }}</span>{% endif %}
+                </a>
+
+                {% if conversations is not empty %}
+                    <div class="chat-sep">Messages privés</div>
+                    {% for id, conversation in conversations %}
+                        {% set u = conversation.utilisateur %}
+                        {% set dernier = conversation.dernier %}
+                        <a href="{{ path('app_chat', {canal: u.id}) }}"
+                           class="chat-conv {{ interlocuteur and interlocuteur.id == u.id ? 'active' }}"
+                           data-nom="{{ (u.nom ~ ' ' ~ u.prenoms)|lower }}">
+                            <div class="chat-avatar {{ ['fonce', 'or', 'vert', 'bleu'][loop.index0 % 4] }}">
+                                {{ (u.nom|slice(0,1) ~ u.prenoms|slice(0,1))|upper }}
+                            </div>
+                            <div class="chat-conv-corps">
+                                <div class="chat-conv-nom">
+                                    <span>{{ u.nom }} {{ u.prenoms }}</span>
+                                    <span class="heure">
+                                        {% if dernier.createdAt|date('Y-m-d') == 'now'|date('Y-m-d') %}{{ dernier.createdAt|date('H:i') }}{% else %}{{ dernier.createdAt|date('d/m') }}{% endif %}
+                                    </span>
+                                </div>
+                                <div class="chat-conv-apercu">
+                                    {% if dernier.expediteur.id == moi.id %}<span class="moi">Vous :</span> {% endif %}{{ dernier.contenu|slice(0, 38) }}{{ dernier.contenu|length > 38 ? '…' }}
+                                </div>
+                            </div>
+                            {% if conversation.non_lus > 0 %}<span class="chat-pastille">{{ conversation.non_lus }}</span>{% endif %}
+                        </a>
+                    {% endfor %}
+                {% endif %}
+
+                {# Collègues sans conversation #}
+                {% if sansConversation is not empty %}
+                    <div class="chat-sep">Démarrer une conversation</div>
+                    {% for u in sansConversation %}
+                        <a href="{{ path('app_chat', {canal: u.id}) }}"
+                           class="chat-conv {{ interlocuteur and interlocuteur.id == u.id ? 'active' }}"
+                           data-nom="{{ (u.nom ~ ' ' ~ u.prenoms)|lower }}">
+                            <div class="chat-avatar {{ ['bleu', 'vert', 'or', 'fonce'][loop.index0 % 4] }}">
+                                {{ (u.nom|slice(0,1) ~ u.prenoms|slice(0,1))|upper }}
+                            </div>
+                            <div class="chat-conv-corps">
+                                <div class="chat-conv-nom"><span>{{ u.nom }} {{ u.prenoms }}</span></div>
+                                <div class="chat-conv-apercu">
+                                    Aucun message échangé
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </aside>
+
+        {# ---------------- Discussion ---------------- #}
+        <section class="chat-main">
+            <div class="chat-main-head">
+                <a href="{{ path('app_chat') }}" class="chat-retour">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    Conversations
+                </a>
+
+                {% if interlocuteur %}
+                    <div class="chat-avatar {{ 'fonce' }}" style="width:34px;height:34px;font-size:.72rem;">
+                        {{ (interlocuteur.nom|slice(0,1) ~ interlocuteur.prenoms|slice(0,1))|upper }}
+                    </div>
+                    <div>
+                        <div class="nom">{{ interlocuteur.nom }} {{ interlocuteur.prenoms }}</div>
+                        <div class="sous">Conversation privée · {{ interlocuteur.email }}</div>
+                    </div>
+                {% else %}
+                    <div class="chat-avatar general" style="width:34px;height:34px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <div class="nom">Canal général</div>
+                        <div class="sous">Visible par tous les utilisateurs de l'application</div>
+                    </div>
+                {% endif %}
+
+                <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.72rem;color:#a89b8c;">
+                    <span id="chatEtat" style="width:8px;height:8px;border-radius:50%;background:#1e7e46;display:inline-block;"></span>
+                    <span id="chatEtatTexte">En direct</span>
+                </div>
+            </div>
+
+            <div class="chat-fil" id="chatFil">
+                {% if messages is empty %}
+                    <div class="chat-vide" id="chatVide">
+                        <div class="ico">💬</div>
+                        <strong>Aucun message pour l'instant.</strong>
+                        <div style="margin-top:4px;">Écrivez le premier message ci-dessous.</div>
+                    </div>
+                {% endif %}
+
+                {% for m in messages %}
+                    <div class="chat-msg {{ m.expediteur.id == moi.id ? 'moi' : 'autre' }}"
+                         data-id="{{ m.id }}"
+                         data-iso="{{ m.createdAt|date('Y-m-d H:i:s') }}">
+                        {% if m.expediteur.id != moi.id %}
+                            <div class="chat-avatar" style="width:30px;height:30px;font-size:.68rem;">
+                                {{ (m.expediteur.nom|slice(0,1) ~ m.expediteur.prenoms|slice(0,1))|upper }}
+                            </div>
+                        {% endif %}
+                        <div class="chat-bulle">
+                            {% if interlocuteur is null and m.expediteur.id != moi.id %}
+                                <div class="chat-auteur">{{ m.expediteur.nom }} {{ m.expediteur.prenoms }}</div>
+                            {% endif %}
+                            <div class="chat-texte">{{ m.contenu }}</div>
+                            <div class="chat-meta">
+                                {{ m.createdAt|date('H:i') }}
+                                <span class="chat-jour">{{ m.createdAt|date('d/m/Y') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="chat-composeur">
+                <form id="chatForm" method="post" action="{{ path('app_chat_envoyer') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('chat_envoyer') }}">
+                    <input type="hidden" name="canal" value="{{ canal }}">
+                    <textarea id="chatInput" name="contenu" rows="1"
+                              placeholder="Écrivez votre message..."
+                              maxlength="2000" aria-label="Votre message"></textarea>
+                    <button type="submit" class="chat-envoyer" id="chatEnvoyer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        Envoyer
+                    </button>
+                </form>
+                <div class="chat-aide">
+                    <span>Entrée pour envoyer · Maj + Entrée pour aller à la ligne</span>
+                    <span class="compteur" id="chatCompteur">0 / 2000</span>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    const page = document.querySelector('.chat-page');
+    if (!page) return;
+
+    const canal      = page.dataset.canal;
+    const moi        = page.dataset.moi;
+    const estGeneral = page.dataset.general === '1';
+
+    const fil        = document.getElementById('chatFil');
+    const form       = document.getElementById('chatForm');
+    const input      = document.getElementById('chatInput');
+    const bouton     = document.getElementById('chatEnvoyer');
+    const compteur   = document.getElementById('chatCompteur');
+    const shell      = document.getElementById('chatShell');
+    const recherche  = document.getElementById('chatRecherche');
+    const etat       = document.getElementById('chatEtat');
+    const etatTexte  = document.getElementById('chatEtatTexte');
+
+    let dernierIso = fil.querySelector('.chat-msg:last-child')?.dataset.iso || '{{ 'now'|date('Y-m-d H:i:s') }}';
+    let envoiEnCours = false;
+
+    function basDePage(force) {
+        const proche = fil.scrollHeight - fil.scrollTop - fil.clientHeight < 140;
+        if (force || proche) fil.scrollTop = fil.scrollHeight;
+    }
+
+    function bulle(m) {
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-msg ' + (m.moi ? 'moi' : 'autre');
+        wrap.dataset.id = m.id;
+        wrap.dataset.iso = m.iso;
+
+        if (!m.moi) {
+            const av = document.createElement('div');
+            av.className = 'chat-avatar';
+            av.style.cssText = 'width:30px;height:30px;font-size:.68rem;';
+            av.textContent = m.initiales;
+            wrap.appendChild(av);
+        }
+
+        const bulleEl = document.createElement('div');
+        bulleEl.className = 'chat-bulle';
+
+        if (estGeneral && !m.moi) {
+            const auteur = document.createElement('div');
+            auteur.className = 'chat-auteur';
+            auteur.textContent = m.auteur;
+            bulleEl.appendChild(auteur);
+        }
+
+        const texte = document.createElement('div');
+        texte.className = 'chat-texte';
+        texte.textContent = m.contenu;
+        bulleEl.appendChild(texte);
+
+        const meta = document.createElement('div');
+        meta.className = 'chat-meta';
+        meta.textContent = m.heure;
+        const jour = document.createElement('span');
+        jour.className = 'chat-jour';
+        jour.textContent = m.jour || '';
+        meta.appendChild(jour);
+        bulleEl.appendChild(meta);
+
+        wrap.appendChild(bulleEl);
+        return wrap;
+    }
+
+    function ajouter(messages, force) {
+        if (!messages || !messages.length) return;
+        document.getElementById('chatVide')?.remove();
+        let ajout = false;
+        messages.forEach(function (m) {
+            if (fil.querySelector('[data-id="' + m.id + '"]')) return;
+            fil.appendChild(bulle(m));
+            ajout = true;
+            if (!dernierIso || m.iso > dernierIso) dernierIso = m.iso;
+        });
+        if (ajout) basDePage(force !== false);
+    }
+
+    function majEtat(ok) {
+        if (!etat) return;
+        etat.style.background = ok ? '#1e7e46' : '#c98a1b';
+        if (etatTexte) etatTexte.textContent = ok ? 'En direct' : 'Reconnexion...';
+    }
+
+    function rafraichir() {
+        fetch('{{ path('app_chat_messages') }}?canal=' + encodeURIComponent(canal) + '&apres=' + encodeURIComponent(dernierIso), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+        .then(function (data) {
+            majEtat(true);
+            if (data && data.messages) ajouter(data.messages, false);
+        })
+        .catch(function () { majEtat(false); });
+    }
+
+    // Envoi du message
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const texte = input.value.trim();
+        if (texte === '' || envoiEnCours) return;
+
+        envoiEnCours = true;
+        bouton.disabled = true;
+
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+            if (!res.ok || !res.data.ok) {
+                alert(res.data.erreur || 'Le message n\'a pas pu être envoyé.');
+                return;
+            }
+            input.value = '';
+            input.style.height = 'auto';
+            compteur.textContent = '0 / 2000';
+            compteur.classList.remove('trop');
+            ajouter([res.data.message], true);
+        })
+        .catch(function () { alert('Le message n\'a pas pu être envoyé. Vérifiez votre connexion.'); })
+        .finally(function () {
+            envoiEnCours = false;
+            bouton.disabled = false;
+            input.focus();
+        });
+    });
+
+    // Entrée = envoyer, Maj+Entrée = nouvelle ligne
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            form.requestSubmit();
+        }
+    });
+
+    // Compteur + hauteur automatique
+    input.addEventListener('input', function () {
+        const n = input.value.length;
+        compteur.textContent = n + ' / 2000';
+        compteur.classList.toggle('trop', n > 1800);
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 130) + 'px';
+    });
+
+    // Recherche dans la liste
+    if (recherche) {
+        recherche.addEventListener('input', function () {
+            const terme = recherche.value.trim().toLowerCase();
+            document.querySelectorAll('.chat-conv').forEach(function (a) {
+                const nom = (a.dataset.nom || '').toLowerCase();
+                a.hidden = terme !== '' && nom.indexOf(terme) === -1;
+            });
+        });
+    }
+
+    // Mobile : ouvrir la discussion
+    if (window.matchMedia('(max-width: 900px)').matches && shell) {
+        shell.classList.add('ouvert');
+    }
+
+    basDePage(true);
+    setInterval(rafraichir, 4000);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) rafraichir();
+    });
+})();
+</script>
+{% endblock %}

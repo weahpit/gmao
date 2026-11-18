@@ -1,0 +1,241 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dossiers d'embarquement{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Opérations Logistique</span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Dossiers d'embarquement</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+
+    {# ---------------- En-tête ---------------- #}
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/></svg>
+                    Opérations logistique · Shipping
+                </span>
+                <h1>Dossiers d'embarquement</h1>
+                <p>
+                    Tous les ordres de transit enregistrés : suivez l'avancement de chaque dossier,
+                    du contrat de vente jusqu'à l'embarquement effectif.
+                </p>
+            </div>
+            <div class="dc-header-actions">
+                <a href="{{ path('enregistrement_embarquement') }}" class="dc-chip solid">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nouveau dossier
+                </a>
+                <a href="{{ path('embarquements_index') }}" class="dc-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    Actualiser
+                </a>
+            </div>
+        </div>
+    </header>
+
+    {# ---------------- Compteurs ---------------- #}
+    <div class="dc-stats">
+        <div class="dc-stat total">
+            <div class="lbl">Dossiers</div>
+            <div class="val">{{ stats.total|number_format(0, ',', ' ') }}</div>
+            <div class="sub">au total en base</div>
+        </div>
+        <div class="dc-stat">
+            <div class="lbl">En cours</div>
+            <div class="val">{{ stats.en_cours|number_format(0, ',', ' ') }}</div>
+            <div class="sub">non clôturés</div>
+        </div>
+        <div class="dc-stat">
+            <div class="lbl">Clôturés</div>
+            <div class="val">{{ stats.clotures|number_format(0, ',', ' ') }}</div>
+            <div class="sub">embarquement terminé</div>
+        </div>
+        <div class="dc-stat">
+            <div class="lbl">À planifier</div>
+            <div class="val">{{ stats.a_planifier|number_format(0, ',', ' ') }}</div>
+            <div class="sub">sans date d'embarquement</div>
+        </div>
+        <div class="dc-stat">
+            <div class="lbl">Ce mois</div>
+            <div class="val">{{ stats.ce_mois|number_format(0, ',', ' ') }}</div>
+            <div class="sub">embarquements du mois</div>
+        </div>
+    </div>
+
+    {# ---------------- Filtres ---------------- #}
+    <section class="dc-card" style="margin-bottom:20px;">
+        <div class="dc-card-head">
+            <h2>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                Rechercher un dossier
+            </h2>
+            <span class="hint">{{ total|number_format(0, ',', ' ') }} dossier(s) correspondant(s)</span>
+        </div>
+        <div class="dc-card-body">
+            <form method="get" action="{{ path('embarquements_index') }}">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+                    <div>
+                        <label class="form-label" for="f-q">N° OT, client, navire</label>
+                        <input type="search" class="form-control" id="f-q" name="q" value="{{ filtres.q }}" placeholder="Ex. OT-2026-014">
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-statut">Statut</label>
+                        <select class="form-select" id="f-statut" name="statut">
+                            <option value="" {{ filtres.statut == '' ? 'selected' }}>Tous les dossiers</option>
+                            <option value="encours" {{ filtres.statut == 'encours' ? 'selected' }}>En cours</option>
+                            <option value="cloture" {{ filtres.statut == 'cloture' ? 'selected' }}>Clôturés</option>
+                            <option value="a_planifier" {{ filtres.statut == 'a_planifier' ? 'selected' }}>À planifier</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-navire">Navire</label>
+                        <select class="form-select" id="f-navire" name="navire">
+                            <option value="">Tous les navires</option>
+                            {% for navire in navires %}
+                                <option value="{{ navire.id }}" {{ filtres.navire == (navire.id ~ '') ? 'selected' }}>{{ navire.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-du">Créé du</label>
+                        <input type="date" class="form-control" id="f-du" name="du" value="{{ filtres.du }}">
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-au">au</label>
+                        <input type="date" class="form-control" id="f-au" name="au" value="{{ filtres.au }}">
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button type="submit" class="dc-btn dc-btn-primary" style="flex:1;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                            Filtrer
+                        </button>
+                        <a href="{{ path('embarquements_index') }}" class="dc-btn dc-btn-ghost">Effacer</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    {# ---------------- Tableau ---------------- #}
+    <section class="dc-card">
+        <div class="dc-card-head">
+            <h2>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Liste des dossiers
+            </h2>
+            {% if nbPages > 1 %}
+                <span class="hint">Page {{ page }} / {{ nbPages }}</span>
+            {% endif %}
+        </div>
+
+        {% if dossiers is empty %}
+            <div class="dc-empty">
+                <div style="font-size:2rem;line-height:1;margin-bottom:8px;">🚢</div>
+                <strong>Aucun dossier d'embarquement ne correspond à votre recherche.</strong>
+                <div style="margin-top:6px;">Modifiez les filtres, ou créez un nouveau dossier.</div>
+                <a href="{{ path('enregistrement_embarquement') }}" class="dc-btn dc-btn-primary" style="margin-top:14px;display:inline-flex;">
+                    Créer un dossier
+                </a>
+            </div>
+        {% else %}
+            <div class="dc-table-wrap">
+                <table class="dc-table">
+                    <thead>
+                        <tr>
+                            <th>N° OT</th>
+                            <th>Client</th>
+                            <th>Produit</th>
+                            <th>Propriétaire</th>
+                            <th>Navire</th>
+                            <th>Destination</th>
+                            <th>Embarquement</th>
+                            <th>Statut</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for dossier in dossiers %}
+                        <tr>
+                            <td>
+                                <strong style="color:#3b2515;">{{ dossier.numeroOt ?: '—' }}</strong>
+                                <div style="font-size:.72rem;color:#a89b8c;">{{ dossier.createdAt ? dossier.createdAt|date('d/m/Y') : '' }}</div>
+                            </td>
+                            <td>{{ dossier.client ? dossier.client.nomClient : '—' }}</td>
+                            <td>{{ dossier.produit ? dossier.produit.libelle : '—' }}</td>
+                            <td>{{ dossier.proprietaire ? dossier.proprietaire.denomination : '—' }}</td>
+                            <td>
+                                {% if dossier.codeNavire %}
+                                    <span style="display:inline-flex;align-items:center;gap:6px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#8a7a68;"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/></svg>
+                                        {{ dossier.codeNavire.nom }}
+                                    </span>
+                                {% else %}
+                                    <span style="color:#b9ab9b;">Non affecté</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ dossier.destination ? dossier.destination.denomination : '—' }}</td>
+                            <td>
+                                {% if dossier.dateEmbarquement %}
+                                    {{ dossier.dateEmbarquement|date('d/m/Y') }}
+                                {% else %}
+                                    <span class="badge bg-warning">À planifier</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if dossier.isCloture %}
+                                    <span class="badge bg-success">Clôturé</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">En cours</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align:right;">
+                                <form method="post" action="{{ path('embarquement_statut', {id: dossier.id}) }}" style="display:inline;"
+                                      onsubmit="return confirm('{{ dossier.isCloture ? 'Rouvrir ce dossier ?' : 'Clôturer définitivement ce dossier ?' }}');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('embarquement_statut_' ~ dossier.id) }}">
+                                    <input type="hidden" name="retour" value="{{ app.request.requestUri }}">
+                                    <button type="submit" class="dc-mini-btn {{ dossier.isCloture ? '' : 'danger' }}">
+                                        {{ dossier.isCloture ? 'Rouvrir' : 'Clôturer' }}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# ---------------- Pagination ---------------- #}
+            {% if nbPages > 1 %}
+                <div style="padding:14px 18px;border-top:1px solid #f3ece2;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <span style="font-size:.78rem;color:#8a7a68;">
+                        {{ ((page - 1) * parPage) + 1 }} – {{ min(page * parPage, total) }} sur {{ total|number_format(0, ',', ' ') }}
+                    </span>
+                    <nav>
+                        <ul class="pagination" style="margin:0;">
+                            <li class="page-item {{ page <= 1 ? 'disabled' }}">
+                                <a class="page-link" href="{{ path('embarquements_index', filtres|merge({page: page - 1})) }}">‹</a>
+                            </li>
+                            {% for p in max(1, page - 2)..min(nbPages, page + 2) %}
+                                <li class="page-item {{ p == page ? 'active' }}">
+                                    <a class="page-link" href="{{ path('embarquements_index', filtres|merge({page: p})) }}">{{ p }}</a>
+                                </li>
+                            {% endfor %}
+                            <li class="page-item {{ page >= nbPages ? 'disabled' }}">
+                                <a class="page-link" href="{{ path('embarquements_index', filtres|merge({page: page + 1})) }}">›</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            {% endif %}
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}

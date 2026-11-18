@@ -90,3 +90,25 @@
 .sidebar-nav::-webkit-scrollbar { width: 6px; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: #ddcdb9; border-radius: 3px; }
 .sidebar-nav::-webkit-scrollbar-thumb:hover { background: var(--cc-accent); }
+
+/* ---------------------------------------------------------------
+   Pastille de notification du menu (ex. Messagerie)
+   --------------------------------------------------------------- */
+.nav-badge {
+    margin-left: auto;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #b3402f;
+    color: #fff !important;
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 20px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(43, 27, 16, .25);
+}
+
+.nav-badge[hidden] { display: none !important; }
+
+.nav-item.active .nav-badge { background: #8a2f22; }

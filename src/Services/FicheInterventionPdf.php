@@ -292,7 +292,8 @@ class FicheInterventionPdf extends Fpdf
         $w = [$this->cw*0.22, $this->cw*0.42, $this->cw*0.12, $this->cw*0.12, $this->cw*0.12];
         $head = ['Reference', 'Designation', 'Qte', 'Cout unit.', 'Montant'];
         $this->SetX($this->lm);
-        $this->SetFont('Arial', 'B', 7.5);
+        // En-tete de colonnes : gras, taille superieure aux lignes de donnees.
+        $this->SetFont('Arial', 'B', 7.8);
         $this->SetFillColor(125, 94, 58);
         $this->SetTextColor(255, 255, 255);
         $this->SetDrawColor(125, 94, 58);
@@ -301,7 +302,8 @@ class FicheInterventionPdf extends Fpdf
             $this->Cell($w[$i], 6.2, $this->txt($h), 1, 0, 'L', true);
         }
         $this->Ln();
-        $this->SetFont('Arial', '', 8);
+        // Lignes de donnees : plus petites que l'en-tete (7.0 < 7.8).
+        $this->SetFont('Arial', '', 7.0);
         $this->SetTextColor(200, 30, 30); // valeurs en rouge
         $this->SetDrawColor(234, 223, 203);
         $count = max(count($rows), $minRows);
@@ -312,7 +314,7 @@ class FicheInterventionPdf extends Fpdf
             $cells = $rows[$r] ?? ['', '', '', '', ''];
             foreach ($w as $i => $cwi) {
                 $align = $i >= 2 ? 'R' : 'L';
-                $this->Cell($cwi, 6.2, $this->txt((string)($cells[$i] ?? '')), 1, 0, $align, true);
+                $this->Cell($cwi, 5.7, $this->txt((string)($cells[$i] ?? '')), 1, 0, $align, true);
             }
             $this->Ln();
         }

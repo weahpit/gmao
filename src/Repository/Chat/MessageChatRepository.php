@@ -1,0 +1,164 @@
+<?php
+
+namespace App\Repository\Chat;
+
+use App\Entity\Chat\MessageChat;
+use App\Entity\User;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+
+/**
+ * @extends ServiceEntityRepository<MessageChat>
+ */
+class MessageChatRepository extends ServiceEntityRepository
+{
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, MessageChat::class);
+    }
+
+    /**
+     * Derniers messages du canal général, du plus ancien au plus récent.
+     *
+     * @return MessageChat[]
+     */
+    public function filGeneral(int $limite = 80): array
+    {
+        $messages = $this->createQueryBuilder('m')
+            ->leftJoin('m.expediteur', 'e')->addSelect('e')
+            ->andWhere('m.destinataire IS NULL')
+            ->orderBy('m.created_at', 'DESC')
+            ->setMaxResults($limite)
+            ->getQuery()
+            ->getResult();
+
+        return array_reverse($messages);
+    }
+
+    /**
+     * Derniers messages d'une conversation privée (dans les deux sens).
+     *
+     * @return MessageChat[]
+     */
+    public function filPrive(User $moi, User $autre, int $limite = 80): array
+    {
+        $messages = $this->createQueryBuilder('m')
+            ->leftJoin('m.expediteur', 'e')->addSelect('e')
+            ->andWhere('(m.expediteur = :moi AND m.destinataire = :autre) OR (m.expediteur = :autre AND m.destinataire = :moi)')
+            ->setParameter('moi', $moi)
+            ->setParameter('autre', $autre)
+            ->orderBy('m.created_at', 'DESC')
+            ->setMaxResults($limite)
+            ->getQuery()
+            ->getResult();
+
+        return array_reverse($messages);
+    }
+
+    /**
+     * Messages arrivés après une date (rafraîchissement automatique).
+     *
+     * @return MessageChat[]
+     */
+    public function nouveaux(?User $autre, User $moi, \DateTimeImmutable $apres): array
+    {
+        $qb = $this->createQueryBuilder('m')
+            ->leftJoin('m.expediteur', 'e')->addSelect('e')
+            ->andWhere('m.created_at >= :apres')
+            ->setParameter('apres', $apres)
+            ->orderBy('m.created_at', 'ASC')
+            ->setMaxResults(100);
+
+        if ($autre === null) {
+            $qb->andWhere('m.destinataire IS NULL');
+        } else {
+            $qb->andWhere('(m.expediteur = :moi AND m.destinataire = :autre) OR (m.expediteur = :autre AND m.destinataire = :moi)')
+               ->setParameter('moi', $moi)
+               ->setParameter('autre', $autre);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Derniers messages où l'utilisateur est expéditeur ou destinataire
+     * (sert à construire la liste des conversations).
+     *
+     * @return MessageChat[]
+     */
+    public function derniersEchanges(User $moi, int $limite = 400): array
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.expediteur = :moi OR m.destinataire = :moi')
+            ->setParameter('moi', $moi)
+            ->orderBy('m.created_at', 'DESC')
+            ->setMaxResults($limite)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Nombre de messages privés non lus, par expéditeur.
+     *
+     * @return array<string, int>  [uuid de l'expéditeur => nombre]
+     */
+    public function nonLusParExpediteur(User $moi): array
+    {
+        $lignes = $this->createQueryBuilder('m')
+            ->select('IDENTITY(m.expediteur) AS exp', 'COUNT(m.id) AS n')
+            ->andWhere('m.destinataire = :moi')
+            ->andWhere('m.lu = false')
+            ->setParameter('moi', $moi)
+            ->groupBy('m.expediteur')
+            ->getQuery()
+            ->getArrayResult();
+
+        $resultat = [];
+        foreach ($lignes as $ligne) {
+            $resultat[(string) $ligne['exp']] = (int) $ligne['n'];
+        }
+
+        return $resultat;
+    }
+
+    /** Total des messages privés non lus. */
+    public function totalNonLusPrives(User $moi): int
+    {
+        return (int) $this->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->andWhere('m.destinataire = :moi')
+            ->andWhere('m.lu = false')
+            ->setParameter('moi', $moi)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /** Nombre de messages du canal général arrivés après une date. */
+    public function nonLusGeneral(\DateTimeImmutable $apres, User $moi): int
+    {
+        return (int) $this->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->andWhere('m.destinataire IS NULL')
+            ->andWhere('m.created_at > :apres')
+            ->andWhere('m.expediteur != :moi')
+            ->setParameter('apres', $apres)
+            ->setParameter('moi', $moi)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /** Marque comme lus tous les messages privés reçus d'un utilisateur. */
+    public function marquerLusDe(User $moi, User $autre): void
+    {
+        $this->createQueryBuilder('m')
+            ->update()
+            ->set('m.lu', 'true')
+            ->andWhere('m.destinataire = :moi')
+            ->andWhere('m.expediteur = :autre')
+            ->andWhere('m.lu = false')
+            ->setParameter('moi', $moi)
+            ->setParameter('autre', $autre)
+            ->getQuery()
+            ->execute();
+    }
+}

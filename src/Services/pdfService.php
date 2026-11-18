@@ -163,6 +163,23 @@ class pdfService
     /** Marge basse (mm) : seuil de saut de page des rapports. */
     private const MARGE_BASSE = 20.0;
 
+    /*
+     * TAILLES DE POLICE DES TABLEAUX.
+     *
+     * Regle : le texte des LIGNES est toujours PLUS PETIT que celui des
+     * EN-TETES de colonnes, pour que la colonne (le titre) ressorte et que
+     * les donnees restent compactes a l'impression.
+     *   - en-tete : gras, taille E
+     *   - lignes  : normal, taille L  (L < E, garanti par les valeurs ci-dessous)
+     */
+    private const TAILLE_ENTETE_TABLEAU = 9.5;   // tableau simple (genererTableau)
+    private const TAILLE_LIGNE_TABLEAU  = 8.2;
+    private const TAILLE_ENTETE_RAPPORT = 8.6;   // rapports multi-tableaux
+    private const TAILLE_LIGNE_RAPPORT  = 7.6;
+    private const TAILLE_LIGNE_TOTAL    = 7.8;   // ligne « TOTAL » : gras, mais < en-tete
+    private const TAILLE_ENTETE_BON     = 9.0;   // bon de sortie : en-tete
+    private const TAILLE_LIGNE_BON      = 7.9;   // bon de sortie : lignes d'articles
+
     private CitracPdf $pdf;
 
     public function __construct(
@@ -199,7 +216,7 @@ class pdfService
 
     private function ecrireEntete(array $entetes, array $largeurs): void
     {
-        $this->pdf->SetFont('Arial', 'B', 10);
+        $this->pdf->SetFont('Arial', 'B', self::TAILLE_ENTETE_TABLEAU);
         $this->pdf->SetFillColor(90, 55, 30);   // marron
         $this->pdf->SetTextColor(255, 255, 255);
         $this->pdf->SetDrawColor(200, 200, 200);
@@ -212,11 +229,11 @@ class pdfService
 
     private function ecrireLignes(array $entetes, array $largeurs, array $lignes): void
     {
-        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->SetFont('Arial', '', self::TAILLE_LIGNE_TABLEAU);
         $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->SetDrawColor(200, 200, 200);
 
-        $hauteurLigne = 5; // hauteur d'UNE ligne de texte (mm)
+        $hauteurLigne = 4.8; // hauteur d'UNE ligne de texte (mm)
         $alterne = false;
 
         foreach ($lignes as $ligne) {
@@ -237,7 +254,7 @@ class pdfService
             if ($this->pdf->GetY() + $hauteur > ($this->pdf->GetPageHeight() - 20)) {
                 $this->pdf->AddPage();
                 $this->ecrireEntete($entetes, $largeurs);
-                $this->pdf->SetFont('Arial', '', 9);
+                $this->pdf->SetFont('Arial', '', self::TAILLE_LIGNE_TABLEAU);
                 $this->pdf->SetTextColor(0, 0, 0);
                 $this->pdf->SetDrawColor(200, 200, 200);
             }
@@ -385,7 +402,7 @@ class pdfService
             $lignes[0][0] = 'Aucune donnee sur la periode';
         }
 
-        $pdf->SetFont('Arial', '', 8.5);
+        $pdf->SetFont('Arial', '', self::TAILLE_LIGNE_RAPPORT);
 
         foreach ($lignes as $ligne) {
             $cellules = array_pad(array_values($ligne), $nbCols, '');
@@ -398,14 +415,14 @@ class pdfService
                     $nbMax = $n;
                 }
             }
-            $hauteur = $nbMax * 4.8;
+            $hauteur = $nbMax * 4.4;
 
             if ($pdf->GetY() + $hauteur > $pdf->GetPageHeight() - self::MARGE_BASSE) {
                 $pdf->AddPage();
                 $this->ecrireEnteteRapport($entetes, $largeurs);
             }
 
-            $pdf->SetFont('Arial', $fort ? 'B' : '', 8.5);
+            $pdf->SetFont('Arial', $fort ? 'B' : '', $fort ? self::TAILLE_LIGNE_TOTAL : self::TAILLE_LIGNE_RAPPORT);
             $pdf->SetTextColor(25, 25, 25);
             $pdf->SetDrawColor(224, 224, 224);
             $pdf->SetFillColor(255, 255, 255); // ligne toujours blanche
@@ -418,7 +435,7 @@ class pdfService
                 $largeur = $largeurs[$i];
                 $pdf->Rect($x, $y0, $largeur, $hauteur, 'DF');
                 $pdf->SetXY($x, $y0 + 0.4);
-                $pdf->MultiCell($largeur, 4.8, $pdf->txt((string) $valeur), 0, $align[$i], false);
+                $pdf->MultiCell($largeur, 4.4, $pdf->txt((string) $valeur), 0, $align[$i], false);
                 $x += $largeur;
             }
 
@@ -431,7 +448,7 @@ class pdfService
     /** En-tete de tableau : gris tres clair, texte noir, filet fin. */
     private function ecrireEnteteRapport(array $entetes, array $largeurs): void
     {
-        $this->pdf->SetFont('Arial', 'B', 8.5);
+        $this->pdf->SetFont('Arial', 'B', self::TAILLE_ENTETE_RAPPORT);
         $this->pdf->SetFillColor(241, 241, 241);
         $this->pdf->SetTextColor(20, 20, 20);
         $this->pdf->SetDrawColor(210, 210, 210);
@@ -588,10 +605,10 @@ class pdfService
 
         $this->ecrireEnteteBon($entetes, $largeurs);
 
-        $pdf->SetFont('Arial', '', 8.5);
+        $pdf->SetFont('Arial', '', self::TAILLE_LIGNE_BON);
         $pdf->SetTextColor(0, 0, 0);
         $pdf->SetDrawColor(200, 200, 200);
-        $hauteurLigne = 5;
+        $hauteurLigne = 4.8;
         $alterne = false;
 
         foreach ($lignes as $ligne) {
@@ -607,7 +624,7 @@ class pdfService
             if ($pdf->GetY() + $hauteur > ($pdf->GetPageHeight() - 35)) {
                 $pdf->AddPage();
                 $this->ecrireEnteteBon($entetes, $largeurs);
-                $pdf->SetFont('Arial', '', 8.5);
+                $pdf->SetFont('Arial', '', self::TAILLE_LIGNE_BON);
                 $pdf->SetTextColor(0, 0, 0);
                 $pdf->SetDrawColor(200, 200, 200);
             }
@@ -696,7 +713,7 @@ class pdfService
 
     private function ecrireEnteteBon(array $entetes, array $largeurs): void
     {
-        $this->pdf->SetFont('Arial', 'B', 9);
+        $this->pdf->SetFont('Arial', 'B', self::TAILLE_ENTETE_BON);
         $this->pdf->SetFillColor(90, 55, 30);
         $this->pdf->SetTextColor(255, 255, 255);
         $this->pdf->SetDrawColor(200, 200, 200);
