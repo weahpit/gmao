@@ -5,6 +5,45 @@
 {% block stylesheets %}
     {{ parent() }}
     {% include 'dechargement_cacao/_styles.html.twig' %}
+    <style>
+        /* Filtres instantanes des listes de lots et de camions (sans rechargement) */
+        .ou-filtre {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            align-items: center;
+            margin-bottom: .75rem;
+            padding: .6rem .7rem;
+            background: #fffdfa;
+            border: 1px solid #e9dfd2;
+            border-radius: 10px;
+        }
+        .ou-filtre .dc-input {
+            flex: 1 1 220px;
+            min-width: 160px;
+            margin: 0;
+        }
+        .ou-filtre select.dc-input {
+            flex: 0 1 200px;
+        }
+        .ou-filtre .ou-compteur {
+            font-size: .82rem;
+            color: #6b6259;
+            white-space: nowrap;
+        }
+        .ou-filtre .ou-bascule {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            font-size: .85rem;
+            color: #4a423a;
+            white-space: nowrap;
+        }
+        .dc-ou-camion[hidden],
+        .dc-table tbody tr[hidden] {
+            display: none !important;
+        }
+    </style>
 {% endblock %}
 
 {% block breadcrumb %}
@@ -106,6 +145,16 @@
                         <span class="hint">Lots de fèves uniquement · {{ total|number_format(0, ',', ' ') }} lot(s) · page {{ page }} / {{ pages }}</span>
                     </div>
                     <div class="dc-card-body">
+                        <div class="ou-filtre dc-no-print">
+                            <input type="search" id="filtre-lots" class="dc-input" autocomplete="off"
+                                   placeholder="Filtrer cette page : n° de lot, qualité, production…"
+                                   aria-label="Filtrer la liste des lots sans recharger la page">
+                            <label class="ou-bascule">
+                                <input type="checkbox" id="filtre-lots-sans-camion">
+                                Lots sans camion seulement
+                            </label>
+                            <span class="ou-compteur" id="compteur-lots"></span>
+                        </div>
                         <div class="dc-table-wrap">
                             <div class="dc-table-scroll">
                                 <table class="dc-table dc-keep">
@@ -122,7 +171,8 @@
                                     <tbody>
                                     {% for ligne in lignes %}
                                         {% set l = ligne.lot %}
-                                        <tr>
+                                        <tr data-recherche="{{ (l.numeroLot ~ ' ' ~ (l.codeProduit ? l.codeProduit.libelle : '') ~ ' ' ~ (l.qualite ?: '') ~ ' ' ~ (l.dateProd ? l.dateProd|date('d/m/Y') : ''))|lower }}"
+                                            data-camions="{{ ligne.camions }}">
                                             <td class="dc-check-cell">
                                                 <input class="dc-check" type="checkbox" name="lots[]" value="{{ l.id }}" id="lot-{{ l.id }}" aria-label="Sélectionner le lot {{ l.numeroLot }}">
                                             </td>
@@ -185,10 +235,24 @@
                                 <div>Aucun camion ne correspond à la recherche.</div>
                             </div>
                         {% else %}
+                            <div class="ou-filtre dc-no-print">
+                                <input type="search" id="filtre-camions" class="dc-input" autocomplete="off"
+                                       placeholder="Filtrer : bon, coopérative, immatriculation…"
+                                       aria-label="Filtrer la liste des camions sans recharger la page">
+                                <select id="filtre-camions-lots" class="dc-input" aria-label="Filtrer selon les lots rattachés">
+                                    <option value="tous">Tous les camions</option>
+                                    <option value="sans">Sans lot rattaché</option>
+                                    <option value="avec">Avec au moins un lot</option>
+                                </select>
+                                <span class="ou-compteur" id="compteur-camions"></span>
+                                <button type="button" id="cocher-camions-visibles" class="dc-btn dc-btn-ghost">Cocher les camions affichés</button>
+                            </div>
                             <div class="dc-ou-liste">
                                 {% for item in camions %}
                                     {% set d = item.camion %}
-                                    <label class="dc-ou-camion" for="camion-{{ d.id }}">
+                                    <label class="dc-ou-camion" for="camion-{{ d.id }}"
+                                           data-recherche="{{ (d.code ~ ' ' ~ (d.cooperative ?: '') ~ ' ' ~ (d.immatriculation ?: '') ~ ' ' ~ (d.dateDechargement ? d.dateDechargement|date('d/m/Y') : ''))|lower }}"
+                                           data-lots="{{ item.lots }}">
                                         <input class="dc-check" type="checkbox" name="camions[]" value="{{ d.id }}" id="camion-{{ d.id }}">
                                         <span class="corps">
                                             <span class="titre">
@@ -310,4 +374,107 @@
         </div>
     </section>
 </div>
+
+<script>
+/* ------------------------------------------------------------------
+   Filtres instantanes (aucun rechargement de page) :
+   - liste des lots de la page courante (numero, qualite, production)
+   - liste des camions proposes (bon, cooperative, immatriculation)
+   Le formulaire de recherche serveur reste disponible pour changer
+   de page ou elargir la recherche.
+   ------------------------------------------------------------------ */
+(function () {
+    'use strict';
+
+    function normaliser(valeur) {
+        return (valeur || '')
+            .toString()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    /* ---------------- Lots ---------------- */
+    var champLots   = document.getElementById('filtre-lots');
+    var sansCamion  = document.getElementById('filtre-lots-sans-camion');
+    var compteurLot = document.getElementById('compteur-lots');
+    var lignesLots  = Array.prototype.slice.call(
+        document.querySelectorAll('#form-ordre-usinage table tbody tr[data-recherche]')
+    );
+
+    function filtrerLots() {
+        if (!lignesLots.length) { return; }
+
+        var recherche = normaliser(champLots ? champLots.value.trim() : '');
+        var seulementSansCamion = !!(sansCamion && sansCamion.checked);
+        var visibles = 0;
+
+        lignesLots.forEach(function (ligne) {
+            var texte = normaliser(ligne.getAttribute('data-recherche'));
+            var nbCamions = parseInt(ligne.getAttribute('data-camions') || '0', 10);
+            var correspond = (recherche === '' || texte.indexOf(recherche) !== -1);
+            if (seulementSansCamion && nbCamions > 0) { correspond = false; }
+
+            ligne.hidden = !correspond;
+            if (correspond) { visibles++; }
+        });
+
+        if (compteurLot) {
+            compteurLot.textContent = visibles + ' lot(s) affiche(s) sur ' + lignesLots.length;
+        }
+    }
+
+    /* ---------------- Camions ---------------- */
+    var champCamions = document.getElementById('filtre-camions');
+    var filtreLots   = document.getElementById('filtre-camions-lots');
+    var compteurCam  = document.getElementById('compteur-camions');
+    var boutonCocher = document.getElementById('cocher-camions-visibles');
+    var cartesCamion = Array.prototype.slice.call(document.querySelectorAll('.dc-ou-camion'));
+
+    function filtrerCamions() {
+        if (!cartesCamion.length) { return; }
+
+        var recherche = normaliser(champCamions ? champCamions.value.trim() : '');
+        var mode = filtreLots ? filtreLots.value : 'tous';
+        var visibles = 0;
+
+        cartesCamion.forEach(function (carte) {
+            var texte = normaliser(carte.getAttribute('data-recherche'));
+            var nbLots = parseInt(carte.getAttribute('data-lots') || '0', 10);
+            var correspond = (recherche === '' || texte.indexOf(recherche) !== -1);
+
+            if (mode === 'sans' && nbLots > 0) { correspond = false; }
+            if (mode === 'avec' && nbLots === 0) { correspond = false; }
+
+            carte.hidden = !correspond;
+            if (correspond) { visibles++; }
+        });
+
+        if (compteurCam) {
+            compteurCam.textContent = visibles + ' / ' + cartesCamion.length + ' camion(s)';
+        }
+    }
+
+    if (champLots) { champLots.addEventListener('input', filtrerLots); }
+    if (sansCamion) { sansCamion.addEventListener('change', filtrerLots); }
+
+    if (champCamions) { champCamions.addEventListener('input', filtrerCamions); }
+    if (filtreLots) { filtreLots.addEventListener('change', filtrerCamions); }
+
+    if (boutonCocher) {
+        boutonCocher.addEventListener('click', function () {
+            // Coche uniquement les camions actuellement affiches : la selection
+            // reste maitrisee meme si la liste complete est longue.
+            cartesCamion.forEach(function (carte) {
+                if (carte.hidden) { return; }
+                var case_ = carte.querySelector('input[type="checkbox"]');
+                if (case_) { case_.checked = true; }
+            });
+        });
+    }
+
+    filtrerLots();
+    filtrerCamions();
+})();
+</script>
 {% endblock %}

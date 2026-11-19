@@ -45,7 +45,7 @@
 
     <div class="da-card">
       <h2>Articles demandes</h2>
-      <datalist id="da-articles"></datalist>
+      <p class="da-muted" style="margin-top:-4px;">Tous les articles du catalogue sont proposés : tapez quelques lettres, le filtre cherche dans la désignation, la référence, la catégorie, le type et la marque.</p>
       <table class="da-table" id="da-lignes-table">
         <thead>
           <tr>
@@ -78,20 +78,88 @@
   var BY_NOM = {};
   var idx = "0";
   var body = document.getElementById('da-lignes-body');
-  var datalist = document.getElementById('da-articles');
+
+  // Index par identifiant et par libelle (recherche insensible a la casse).
+  var BY_ID = {};
+
+  function normaliser(v){ return (v||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+  function texteArticle(a){
+    return normaliser([a.nom, a.code, a.categorie, a.type, a.marque].join(' '));
+  }
+
+  /* Suggerer les articles correspondants, sans aucune limite au catalogue.
+     L'affichage est plafonne a 30 lignes pour rester lisible, mais la recherche
+     porte sur la totalite des articles charges. */
+  function suggerer(panel, valeur, tr){
+    var terme = normaliser((valeur||'').trim());
+    panel.innerHTML = '';
+    if (terme === ''){ panel.hidden = true; return; }
+
+    var trouves = [];
+    for (var i=0; i<ARTICLES.length; i++){
+      var a = ARTICLES[i];
+      var cible = a._txt || (a._txt = texteArticle(a));
+      var pos = cible.indexOf(terme);
+      if (pos !== -1){ trouves.push({a:a, pos:pos}); }
+    }
+    trouves.sort(function(x,y){ return x.pos - y.pos; });
+
+    if (!trouves.length){ panel.hidden = true; return; }
+
+    var max = Math.min(trouves.length, 30);
+    for (var j=0; j<max; j++){
+      (function(item){
+        var a = item.a;
+        var div = document.createElement('div');
+        div.className = 'da-suggest-item';
+
+        var lib = document.createElement('span');
+        lib.className = 'da-suggest-lib';
+        lib.textContent = a.nom || '(sans désignation)';
+
+        var det = document.createElement('span');
+        det.className = 'da-suggest-det';
+        var morceaux = [];
+        if (a.code){ morceaux.push('Réf. ' + a.code); }
+        if (a.categorie){ morceaux.push(a.categorie); }
+        if (a.marque){ morceaux.push(a.marque); }
+        morceaux.push('Stock : ' + (parseFloat(a.qte||0)||0));
+        det.textContent = morceaux.join(' · ');
+
+        div.appendChild(lib);
+        div.appendChild(det);
+        div.addEventListener('mousedown', function(ev){
+          ev.preventDefault();
+          var input = tr.querySelector('.da-art');
+          input.value = a.nom || '';
+          tr.querySelector('.da-eqid').value = a.id || '';
+          tr.querySelector('.da-code').value = a.code || '';
+          panel.hidden = true;
+          labelFor(tr);
+        });
+        panel.appendChild(div);
+      })(trouves[j]);
+    }
+
+    if (trouves.length > max){
+      var plus = document.createElement('div');
+      plus.className = 'da-suggest-more';
+      plus.textContent = '+' + (trouves.length - max) + ' autre(s) article(s) : précisez votre recherche.';
+      panel.appendChild(plus);
+    }
+
+    panel.hidden = false;
+  }
 
   function loadArticles(){
     fetch(URLAPP + 'api/demande-achat/articles', {headers:{'X-Requested-With':'XMLHttpRequest'}})
       .then(function(r){ return r.json(); })
       .then(function(list){
         ARTICLES = Array.isArray(list) ? list : [];
-        datalist.innerHTML = '';
         ARTICLES.forEach(function(a){
-          BY_NOM[(a.nom||'').toLowerCase()] = a;
-          var o = document.createElement('option');
-          o.value = a.nom;
-          o.label = (a.nom ? a.nom + ' - ' : '') + 'Réf. : ' + a.code;
-          datalist.appendChild(o);
+          BY_NOM[(a.nom||'').trim().toLowerCase()] = a;
+          BY_ID[a.id] = a;
         });
       })
       .catch(function(){});
@@ -118,6 +186,7 @@
       }
     } else {
       hidId.value = '';
+      if (hidCode){ hidCode.value = ''; }
       lbl.innerHTML = '<span class="da-badge st-NOUVELLE">Hors catalogue</span>';
     }
   }
@@ -127,7 +196,10 @@
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td>'+
-        '<input type="text" class="da-art" style="min-width: 400px;" list="da-articles" name="lignes['+i+'][designation]" placeholder="Tapez pour filtrer ou saisir un article" autocomplete="off">'+
+        '<div class="da-art-wrap">'+
+          '<input type="text" class="da-art" style="min-width: 340px;" name="lignes['+i+'][designation]" placeholder="Tapez pour filtrer ou saisir un article" autocomplete="off">'+
+          '<div class="da-suggest" role="listbox" hidden></div>'+
+        '</div>'+
         '<input type="hidden" class="da-eqid" name="lignes['+i+'][equipement_id]">'+
         '<input type="hidden" class="da-code" name="lignes['+i+'][code]">'+
       '</td>'+
@@ -136,8 +208,25 @@
       '<td><input type="text" name="lignes['+i+'][observation]" placeholder="Remarque"></td>'+
       '<td><button type="button" class="da-btn da-btn-danger" style="padding:6px 10px;">&times;</button></td>';
     body.appendChild(tr);
-    tr.querySelector('.da-art').addEventListener('input', function(){ labelFor(tr); });
-    tr.querySelector('.da-art').addEventListener('change', function(){ labelFor(tr); });
+    var champ = tr.querySelector('.da-art');
+    var panneau = tr.querySelector('.da-suggest');
+    champ.addEventListener('input', function(){
+      // Un article absent du catalogue reste possible : on efface la reference
+      // des que le texte ne correspond plus exactement a un article connu.
+      labelFor(tr);
+      suggerer(panneau, champ.value, tr);
+    });
+    champ.addEventListener('focus', function(){ suggerer(panneau, champ.value, tr); });
+    champ.addEventListener('blur', function(){ setTimeout(function(){ panneau.hidden = true; }, 120); });
+    champ.addEventListener('change', function(){ labelFor(tr); });
+    champ.addEventListener('keydown', function(ev){
+      if (ev.key === 'Escape'){ panneau.hidden = true; }
+      if (ev.key === 'ArrowDown' && !panneau.hidden){
+        ev.preventDefault();
+        var premier = panneau.querySelector('.da-suggest-item');
+        if (premier){ premier.dispatchEvent(new Event('mousedown')); }
+      }
+    });
     tr.querySelector('.da-qte').addEventListener('input', function(){ labelFor(tr); });
     tr.querySelector('button').addEventListener('click', function(){ tr.remove(); });
   }

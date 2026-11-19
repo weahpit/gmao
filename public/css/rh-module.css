@@ -1,0 +1,217 @@
+/* ============================================================
+   Module Ressources humaines - habillage cacao
+   Couche non destructive : ne s'applique qu'aux pages du module
+   (conteneur .rh-page). Pour revenir au rendu brut, supprimer
+   le <link> vers ce fichier dans templates/rh/_layout.html.twig.
+   ============================================================ */
+
+.rh-page {
+    --rh-cacao: #5a371e;
+    --rh-cacao-clair: #8b5a2b;
+    --rh-creme: #fffdfb;
+    --rh-creme-2: #f7f1e9;
+    --rh-bordure: #e6dccf;
+    --rh-texte: #3b2412;
+    --rh-texte-doux: #7a6a5c;
+
+    color: var(--rh-texte);
+    padding: 4px 2px 24px;
+    font-size: 0.95rem;
+}
+
+/* Titres de page */
+.rh-page h1 {
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--rh-cacao);
+    margin-bottom: 12px;
+}
+
+.rh-page h1 .btn,
+.rh-page h1 button {
+    vertical-align: middle;
+}
+
+.rh-page h2 { font-size: 1.15rem; font-weight: 600; color: var(--rh-cacao); }
+.rh-page h3, .rh-page h4, .rh-page h5, .rh-page h6 { color: var(--rh-cacao); font-weight: 600; }
+
+/* Les blocs historiques de l'application RH (fond degrade, bordure epaisse)
+   sont adoucis pour se fondre dans la charte. */
+.rh-page .container {
+    max-width: 100%;
+    background: var(--rh-creme) !important;
+    border: 1px solid var(--rh-bordure) !important;
+    border-top: 3px solid var(--rh-cacao) !important;
+    border-radius: 10px;
+    padding: 18px 20px 22px !important;
+    box-shadow: 0 1px 2px rgba(59, 36, 18, 0.06);
+}
+
+.rh-page .bg-white { background: #ffffff !important; }
+.rh-page .bg-light { background: var(--rh-creme-2) !important; }
+
+.rh-page hr {
+    border: 0;
+    border-top: 1px solid var(--rh-bordure);
+    opacity: 1;
+}
+
+/* Formulaires */
+.rh-page .form-control,
+.rh-page .form-select,
+.rh-page input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.rh-page select,
+.rh-page textarea {
+    border: 1px solid var(--rh-bordure) !important;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: var(--rh-texte);
+    font-size: 0.9rem;
+    padding: 6px 10px;
+    box-shadow: none;
+}
+
+.rh-page .form-control:focus,
+.rh-page input:focus,
+.rh-page select:focus,
+.rh-page textarea:focus {
+    border-color: var(--rh-cacao-clair) !important;
+    box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.12);
+    outline: none;
+}
+
+.rh-page label { font-weight: 500; color: var(--rh-texte); font-size: 0.88rem; }
+
+/* Boutons */
+.rh-page .btn {
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.rh-page .btn-primary,
+.rh-page .btn-dark {
+    background: var(--rh-cacao) !important;
+    border-color: var(--rh-cacao) !important;
+    color: #fff !important;
+}
+
+.rh-page .btn-primary:hover,
+.rh-page .btn-dark:hover { background: #6d4426 !important; border-color: #6d4426 !important; }
+
+.rh-page .btn-outline-dark,
+.rh-page .btn-outline-primary {
+    border-color: var(--rh-cacao-clair);
+    color: var(--rh-cacao);
+}
+
+.rh-page .btn-outline-dark:hover,
+.rh-page .btn-outline-primary:hover {
+    background: var(--rh-cacao-clair);
+    border-color: var(--rh-cacao-clair);
+    color: #fff;
+}
+
+/* Tableaux */
+.rh-page table,
+.rh-page table.dataTable {
+    width: 100% !important;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.86rem;
+    color: var(--rh-texte);
+    background: #fff;
+}
+
+.rh-page table thead th,
+.rh-page table.dataTable thead th {
+    background: var(--rh-creme-2) !important;
+    color: var(--rh-cacao) !important;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid var(--rh-bordure) !important;
+    padding: 10px 8px;
+    white-space: nowrap;
+}
+
+.rh-page table tbody td,
+.rh-page table.dataTable tbody td {
+    border-bottom: 1px solid #f1e9e0 !important;
+    padding: 8px;
+    vertical-align: middle;
+}
+
+.rh-page table tbody tr:hover > * { background: #fbf6f0 !important; }
+
+/* Cartes et blocs */
+.rh-page .card,
+.rh-page .modal-content {
+    border: 1px solid var(--rh-bordure);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(59, 36, 18, 0.06);
+}
+
+.rh-page .modal-header {
+    background: var(--rh-cacao) !important;
+    color: #fff !important;
+    border-bottom: 0;
+    border-radius: 9px 9px 0 0;
+}
+
+.rh-page .modal-header .modal-title,
+.rh-page .modal-header .btn-close { color: #fff !important; }
+
+.rh-page .modal-body { background: #fff; }
+.rh-page .modal-footer { background: var(--rh-creme-2); border-top: 1px solid var(--rh-bordure); }
+
+/* Etiquettes et petites informations */
+.rh-page .badge { font-weight: 500; letter-spacing: 0.01em; }
+.rh-page small, .rh-page .text-muted { color: var(--rh-texte-doux) !important; }
+
+/* Listes deroulantes DataTables */
+.rh-page .dt-container .dt-length select,
+.rh-page .dt-container .dt-search input {
+    font-size: 0.85rem;
+}
+
+.rh-page .dt-container .dt-paging .page-item.active .page-link {
+    background-color: var(--rh-cacao);
+    border-color: var(--rh-cacao);
+    color: #fff;
+}
+
+.rh-page .dt-container .page-link { color: var(--rh-cacao); }
+
+/* Bandeau d'information (base de pointage indisponible, etc.) */
+.rh-page .rh-alerte {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    border: 1px solid #e9cfa8;
+    border-left: 4px solid #c8953a;
+    border-radius: 8px;
+    background: #fdf6e9;
+    color: #6b4a1d;
+    font-size: 0.88rem;
+}
+
+.rh-page .rh-alerte code { color: #6b4a1d; background: #f6e9d3; padding: 1px 5px; border-radius: 4px; }
+
+/* Responsive : les tableaux larges restent lisibles sur mobile */
+@media (max-width: 992px) {
+    .rh-page .container { padding: 12px !important; }
+    .rh-page h1 { font-size: 1.25rem; }
+}
+
+@media (max-width: 768px) {
+    .rh-page { font-size: 0.9rem; }
+    .rh-page .container { border-radius: 8px; }
+    .rh-page table { font-size: 0.8rem; }
+}

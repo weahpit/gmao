@@ -23,10 +23,14 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Service\Logistique\EmbarquementManager;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class ServicesLogistique extends  AbstractController
-{public function __construct(private ManagerRegistry $em)
+{public function __construct(
+    private ManagerRegistry $em,
+    private EmbarquementManager $embarquements,
+)
 {
 }
 
@@ -478,44 +482,34 @@ final class ServicesLogistique extends  AbstractController
     #[Route('api/addDossier/{data}', name: 'app_api_add_dossier')]
     public function addDossier(string $data, ManagerRegistry $registry): Response
     {
-        $reponse = array();
+        // Toute la logique (lecture des donnees, controle des references,
+        // unicite du numero d'OT, creation) est dans EmbarquementManager.
+        // Ici on ne fait que transmettre et generer les documents du dossier.
+        $donnees = json_decode($data, true);
+        $resultat = $this->embarquements->ouvrir(is_array($donnees) ? $donnees : [], $this->auteurCourant());
 
-        if ($data){
-            $arraydata = json_decode($data);
-            // Recherche Nom Client
-            $ot = $registry->getRepository(Dossier::class)->findOneBy(['numero_ot'=>strtoupper($arraydata->numero_ot)]);
-            $client = $registry->getRepository(Client::class)->find((int) $arraydata->code_clt);;
-            $proprio = $registry->getRepository(Proprietaire::class)->find((int) $arraydata->code_proprio);;
-            $pdt = $registry->getRepository(Produit::class)->find((int) $arraydata->code_pdt);;
-
-            if ($client && $pdt && $proprio && $arraydata->numero_ot){
-                if (!$ot){
-                    $ot = new Dossier();
-                    $ot->setNumeroOt(strtoupper($arraydata->numero_ot));
-                    $ot->setClient($client);
-                    $ot->setProprietaire($proprio);
-                    $ot->setProduit($pdt);
-                    $ot->setTonnage(0);
-                    $ot->setNbTc(0);
-                    $ot->setCreatedAt(new \DateTimeImmutable());
-                    $ot->setCreatedBy("Admin");
-                    $registry->getManager()->persist($ot);
-                    $registry->getManager()->flush();
-
-                    $this->generateDossierDocs($ot);
-
-                    $reponse = array('code'=>'SUCCESS', 'id_dossier'=>$ot->getId());
-                } else {
-                    $reponse = array('code'=>'EXISTS');
-                }
-            } else {
-                $reponse = array('code'=>'MISSING_VALUES');
-            }
-
-        } else {
-            $reponse = array('code'=>'BAD_DATA');
+        if (($resultat['code'] ?? '') === 'SUCCESS' && ($resultat['dossier'] ?? null) instanceof Dossier) {
+            $this->generateDossierDocs($resultat['dossier']);
         }
-        return new JsonResponse(json_encode($reponse));
+
+        // L'entite n'a pas sa place dans la reponse JSON.
+        unset($resultat['dossier']);
+
+        return new JsonResponse(json_encode($resultat));
+    }
+
+    /** Nom de l'utilisateur connecte (ou « Admin » par defaut). */
+    private function auteurCourant(): string
+    {
+        $utilisateur = $this->getUser();
+        if ($utilisateur && method_exists($utilisateur, 'getNom')) {
+            $nom = trim((string) $utilisateur->getNom());
+            if ($nom !== '') {
+                return $nom;
+            }
+        }
+
+        return 'Admin';
     }
 
     #[Route('api/editSingleDossier/{data}', name: 'app_api_edit_dossier')]
@@ -574,7 +568,7 @@ final class ServicesLogistique extends  AbstractController
                     if (!$clt) { $reponse = array("EXECPTION",  'msg'=>'Merci de sélectionner le client !', 'value'=>2); return new JsonResponse(json_encode($reponse));}
                     if (!$dest) { $reponse = array("EXECPTION",  'msg'=>'Merci de sélectionner le pays de destination!', 'value'=>2); return new JsonResponse(json_encode($reponse));}
                     if (!$cv_deb) { $reponse = array("EXECPTION",  'msg'=>'Merci de renseigner la CV de déblocage!', 'value'=>2); return new JsonResponse(json_encode($reponse));}
-                    if (!$dest) { $reponse = array("EXECPTION",  'msg'=>'Merci de renseigner la CV d\'exécution!', 'value'=>2); return new JsonResponse(json_encode($reponse));}
+                    if (!$cv_exe) { $reponse = array("EXECPTION",  'msg'=>'Merci de renseigner la CV d\'exécution!', 'value'=>2); return new JsonResponse(json_encode($reponse));}
 
                     // Ajout des valeurs en base
                     $ot->setNbTc($nb_tc);

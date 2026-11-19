@@ -1,0 +1,24 @@
+{#
+    Gabarit commun du module Ressources humaines.
+    Il reprend l'ossature de la GMAO (menu lateral, bandeau, fil d'Ariane)
+    et n'ajoute que ce qui est necessaire au module RH.
+#}
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="{{ asset('css/rh-module.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_accueil') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">{{ block('title') }}</span>
+{% endblock %}
+
+{% block body %}
+    <div class="rh-page">
+        {% block rh_contenu %}{% endblock %}
+    </div>
+{% endblock %}

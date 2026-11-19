@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title class="title">Détails Pointage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+    <link href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+
+        /* Vertical Steps Style */
+        .steps-vertical {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 0;
+        }
+
+        .step-vertical {
+            display: flex;
+            position: relative;
+            padding: 1rem 0;
+        }
+
+        .step-vertical:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 25px;
+            top: 60px;
+            bottom: 0;
+            width: 2px;
+            background: #e9ecef;
+        }
+
+        .step-vertical-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #e6dccf;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 20px;
+            color: #6c757d;
+            position: relative;
+            z-index: 2;
+            flex-shrink: 0;
+        }
+
+        .step-vertical-content {
+            padding-top: 0;
+        }
+
+        .step-vertical.active .step-vertical-icon {
+            background: #4361ee;
+            border-color: #4361ee;
+            color: white;
+            box-shadow: 0 0 0 5px rgba(67, 97, 238, 0.2);
+        }
+
+        .step-vertical.complete .step-vertical-icon {
+            background: #1e7e46;
+            border-color: #1e7e46;
+            color: white;
+        }
+        .step-vertical.out .step-vertical-icon {
+            background: #b71c1c;
+            border-color: #b71c1c;
+            color: white;
+        }
+        /* Interactive buttons */
+        .controls {
+            text-align: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            background: #4361ee;
+            color: white;
+            cursor: pointer;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #3451c6;
+        }
+
+        .btn:disabled {
+            background: #e6dccf;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg" style="background: #5a371e;color: white;">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#"><img src="{{ asset('rh/assets/images/logo.jpg') }}" alt="" height="48" style="border-bottom: 2px solid #5a371e"></a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <h1 class="mx-auto text-center">PAYROLL - ZKTeco</h1>
+            <i class="fa fa-clock me-2" style="font-size: 32px;"></i><span class="text-white fw-bold d-inline-flex flex-right" id="clock"></span>
+        </div>
+    </div>
+</nav>
+<!-- Modal -->
+
+<div class="m-2" style="border: 3px solid #7a4c33;background-color: #f7f1e9;min-height: 700px;">
+    {#<label class="fw-bold d-flex">
+        Sélectionnez une date <input type="date" class="form-control m-1 p-0 text-center pb-1 ms-2 border border-1 border-primary" style="width: 150px;border: 1px solid lightgrey">
+    </label>#}
+    <div class="m-2 div_presences p-2 bg-white m-2" style="min-height: 500px; max-height: 100vh;overflow-y: scroll;font-size: 24px;border: 1px solid lightgrey;">
+        <div class="mx-auto row container">
+            <div class="col-4 text-center">
+                <img src="{{ asset('/images/users/') }}{{ infos.PHOTO}}" alt="user" style="max-height: 350px;">
+                <h3 class="fw-bold  text-center">{{ infos.NAME }}</h3>
+                <h5 class="fw-bold text-center p-2 mt-2" style="background: #d2f3d7;color: #095439">{{ infos.POSTE }}</h5>
+            </div>
+            <div class="col-7 offset-1 text-center" style="border-left: 1px solid lightgrey;max-height: 500px;overflow-y: scroll;">
+                <div class="steps-vertical">
+                    {% for horaire in infos.DATA %}
+                        {% if (horaire.TYPE_ACCES == "ENTREE") %}
+                            <div class="step-vertical complete">
+                                <div class="step-vertical-icon">
+                                    <i class="fas fa-check"></i>
+                        {% else %}
+                            <div class="step-vertical out">
+                                <div class="step-vertical-icon">
+                                    <i class="fas fa-sign-out"></i>
+                        {% endif %}
+                            </div>
+                            <div class="step-vertical-content">
+                                <h4 class="fw-bold">
+                                   {{ horaire.TYPE_ACCES }}
+                                </h4>
+                                {% if (horaire.TYPE_ACCES == "ENTREE") %}
+                                    <small class="fw-bold text-primary right"><span style="color: #5B21B6">{{ horaire.CHECKTIME_TIME }}</span> {{ horaire.CHECKTIME_DAY | date("d/m/Y")}}</small>
+                                {% else %}
+                                    <small class="fw-bold text-danger"><span style="color: #6a1c02">{{ horaire.CHECKTIME_TIME }}</span> {{ horaire.CHECKTIME_DAY | date("d/m/Y")}}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="https://cdn.datatables.net/buttons/3.1.1/js/dataTables.buttons.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.1/js/buttons.dataTables.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.1/js/buttons.print.min.js"></script>
+
+<script>
+
+</script>
+</body>
+</html>

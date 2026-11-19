@@ -30,7 +30,12 @@ class LectureChat
     #[ORM\JoinColumn(name: 'utilisateur_id', nullable: false, onDelete: 'CASCADE')]
     private ?User $utilisateur = null;
 
-    #[ORM\Column(length: 40)]
+    /**
+     * Identifiant du canal : "general", "liste:<uuid>" ou l'uuid du
+     * correspondant d'une conversation privee. Un canal de liste mesure
+     * 42 caracteres (6 + uuid) : la colonne doit donc être plus large que 40.
+     */
+    #[ORM\Column(length: 64)]
     private ?string $canal = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]

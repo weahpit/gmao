@@ -1,0 +1,377 @@
+{% extends 'rh/_layout.html.twig' %}
+
+{% block title %}Gestion des horaires{% endblock %}
+
+{% block rh_contenu %}
+    <div class="mx-auto text-center mt-5">
+        <h1 class="mb-2 fw-bold">Gestion des horaires</h1>
+        <select class="mt-4" name="type_horaire" style="border: 2px solid #5a371e; font-size: 16px;width: 250px;" id="type_horaire">
+        </select>
+        <button id="btn-horraires" style="border: 2px solid #5a371e; font-size: 16px;width: 25px;"{# data-bs-target="#modal_horaires" data-bs-toggle="modal"#}>+</button>
+        <div class="div_contenu">
+
+        </div>
+
+    </div>
+
+    <div class="modal fade" id="modal_horaires" aria-hidden="true" aria-labelledby="modal_horaires" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalToggleLabel">Ajouter Horaire</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Matin</h5>
+                            <input type="time" id="time1" style="border: 2px solid #5a371e; font-size: 16px;width: 100px;">
+                            <input type="time" id="time2" style="border: 2px solid #5a371e; font-size: 16px;width: 100px;">
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Après-midi</h5>
+                            <input type="time" id="time3" style="border: 2px solid #5a371e; font-size: 16px;width: 100px;">
+                            <input type="time" id="time4" style="border: 2px solid #5a371e; font-size: 16px;width: 100px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary w-100 btn_h_normales">Ajouter les intervales</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal_quarts" aria-hidden="true" aria-labelledby="modal_quarts" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalToggleLabel">Ajouter Horaire de quarts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4"><div class="col-md-6"><span class="fw-bold">Quart 1 </span><input type="time" id="quart11" style="border: 2px solid #5a371e; font-size: 16px;width: 150px;"></div><div class="col-md-5"><input type="time" id="quart12" style="border: 2px solid #5a371e; font-size: 16px;width: 150px;"></div></div>
+                    <div class="row mb-4"><div class="col-md-6"><span class="fw-bold">Quart 2 </span><input type="time" id="quart21" style="border: 2px solid #5a371e; font-size: 16px;width: 150px;"></div><div class="col-md-5"><input type="time" id="quart22" style="border: 2px solid #5a371e; font-size: 16px;width: 150px;"></div></div>
+                    <div class="row mb-4"><div class="col-md-6"><span class="fw-bold">Quart 3 </span><input type="time" id="quart31" style="border: 2px solid #5a371e; font-size: 16px;width: 150px;"></div><div class="col-md-5"><input type="time" id="quart32" style="border: 2px solid #5a371e; font-size: 16px;width: 150px;"></div></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary w-100 btn_h_quarts">Ajouter les intervales</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{#Heures personnalisées#}
+    <div class="modal fade" id="modal_personalise" aria-hidden="true" aria-labelledby="modal_horaires" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalToggleLabel">Ajouter Horaire</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12 mb-4">
+                            <h5>Dénomination</h5>
+                            <input type="text" id="libelle" style="border: 2px solid #5a371e; font-size: 16px;width:100%;text-transform: uppercase;">
+                        </div>
+                        <hr>
+                        <div class="col-md-6">
+                            <h5>Matin</h5>
+                            <input type="time" id="heure1_p" style="border: 2px solid #5a371e; font-size: 16px;width: 100px;">
+                            <input type="time" id="heure2_p" style="border: 2px solid #5a371e; font-size: 16px;width: 100px;">
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Après-midi</h5>
+                            <input type="time" id="heure3_p" style="border: 2px solid #5a371e; font-size: 16px;width: 100px;">
+                            <input type="time" id="heure4_p" style="border: 2px solid #5a371e; font-size: 16px;width: 100px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary w-100 btn_h_personalisees">Ajouter les intervales</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('rh/assets/js/utilitaires.js') }}"></script>
+    <script>
+
+        getTypeHoraires()
+        showClock()
+
+        $('.btn_h_normales').on('click', function() {
+            addorEditHeureNormales();
+        });
+
+        $('.btn_h_personalisees').on('click', function() {
+            addorEditHeuresPersonnalisees();
+        });
+        $('.btn_h_quarts').on('click', function() {
+            addorEditHeureQuarts();
+        });
+        $('#type_horaire').on('change', function(){
+            let contenu_pers = "";
+            if (this.value === "0"){
+                showClock()
+            }else if (this.value === "1"){
+                getHoraires()
+            }else  if (this.value === "2"){
+                getQuarts()
+            }else  if (this.value === "3"){
+                $.ajax({
+                    url : '{{ path('rh_get_personalise') }}',
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+                        if (reponse.length > 0) {
+
+                            contenu_pers = '<table class="table mx-auto mt-2 border" id="tbl_personnalise" style="width: 500px;">' +
+                                '<thead>' +
+                                '<tr>' +
+                                '<th class="bg-light">Denomination</th>' +
+                                '<th class="bg-light">Horaires</th>' +
+                                '<th class="bg-light">Actions</th>' +
+                                '</tr>' +
+                                '</thead>' +
+                                '<tbody class="body_contenu">';
+                            for (var i = 0; i < reponse.length; i++) {
+                                contenu_pers = contenu_pers + '<tr>'
+                                contenu_pers = contenu_pers + '<td class="fw-bold text-danger" style="background: lightyellow">' + reponse[i].libelle + '</span></td>'
+                                contenu_pers = contenu_pers + '<td class="fw-bold text-danger" style="background: lightyellow"><span class="text-secondary">[' + reponse[i].time1 + '   ' + reponse[i].time2 + '] - [' + reponse[i].time3 + '   ' + reponse[i].time4  +  ']</span></td>'
+                                contenu_pers = contenu_pers + '<td class="fw-bold text-danger" style="background: lightyellow"><i class="fa fa-edit text-primary" style="cursor: pointer;"></i><i class="fa fa-trash ms-2 text-danger" style="cursor: pointer;"></i> </td>'
+                                contenu_pers = contenu_pers + '</tr>'
+                            }
+                            document.querySelector('.div_contenu').innerHTML = contenu_pers;
+                        } else {
+                            document.querySelector('.div_contenu').innerHTML = '<h3 class="text-danger">Aucune plage horraire définie</h3>';
+                        }
+                    }
+                })
+            }
+        });
+
+            $('#btn-horraires').on('click', function(){
+                let type_horraire = $("#type_horaire").val()
+                if (type_horraire === "1"){
+                    $('#modal_horaires').modal('show');
+                    getHoraires()
+                } else if (type_horraire === "2"){
+                    $('#modal_quarts').modal('show');
+                    getQuarts()
+                } else {
+                    $('#modal_personalise').modal('show');
+                    reinitialise_personnalise()
+                }
+            });
+
+        function addorEditHeureNormales(){
+
+            let time1 = $("#time1").val();
+            let time2 = $("#time2").val();
+            let time3 = $("#time3").val();
+            let time4 = $("#time4").val();
+
+            if (time1 && time2 && time3 && time4){
+                $.ajax({
+                    url : '{{ path('rh_accueil') }}/AddHours/' + time1 + '/' + time2 + '/' + time3 + '/' + time4,
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+                        if (reponse.code === "SUCCESS"){
+                            render_toast_value('Horaires Normales ajouté avec Succès !', 1)
+                            getHoraires();
+                            $('#time1').val('');
+                            $('#time2').val('');
+                            $('#time3').val('');
+                            $('#time4').val('');
+                        }
+                    }
+                })
+            }
+        }
+
+        function addorEditHeureQuarts(){
+            let contenu = "";
+            let quart11 = $("#quart11").val();
+            let quart12 = $("#quart12").val();
+            let quart21 = $("#quart21").val();
+            let quart22 = $("#quart22").val();
+            let quart31 = $("#quart31").val();
+            let quart32 = $("#quart32").val();
+
+            if (quart11 && quart12 && quart21 && quart22 && quart31 && quart32){
+                $.ajax({
+                    url : '{{ path('rh_accueil') }}/AddQuarts/' + quart11 + '/' + quart12 + '/' + quart21 + '/' + quart22 + '/' + quart31 + '/' + quart32,
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+                        if (reponse.code === "SUCCESS"){
+                            render_toast_value('Horaires Quarts ajouté avec Succès !', 1)
+                            getQuarts()
+                        }
+                    }
+                })
+            }
+        }
+
+        function addorEditHeuresPersonnalisees(){
+            let contenu = "";
+            let libelle = $("#libelle").val();
+            let heure1= $("#heure1_p").val();
+            let heure2 = $("#heure2_p").val();
+            let heure3 = $("#heure3_p").val();
+            let heure4 = $("#heure4_p").val();
+
+            if (libelle && heure1 && heure2 && heure3 && heure4){
+                $.ajax({
+                    url : '{{ path('rh_accueil') }}/AddPersonalises/' + libelle + '/'  + heure1 + '/' + heure2 + '/' + heure3 + '/' + heure4,
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+                        if (reponse.code === "SUCCESS"){
+                            render_toast_value('Horaires Personnalisées ajoutées avec Succès !', 1)
+                            getPersonnalise()
+                        }
+                    }
+                })
+            }
+        }
+
+
+        function getTypeHoraires(){
+            let contenu = "";
+            $.ajax({
+                url : '{{ path('rh_get_types_horaires') }}',
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse.length > 0) {
+                        let contenu = '<option value="0">Sélectionnez le type Horaire</option>';
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu = contenu +  '<option value="' + reponse[i].id + '">' + reponse[i].libelle + '</option>';
+                        }
+                        document.querySelector('#type_horaire').innerHTML = contenu;
+                    }
+                }
+            })
+        }
+
+        function getHoraires(){
+                $.ajax({
+                    url : '{{ path('rh_get_horaires') }}',
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+
+                        if (reponse[0].code === "SUCCESS"){
+                        let contenu = '<table class="table mx-auto mt-2 border" style="width: 500px;">' +
+                            '<thead>' +
+                            '<tr>' +
+                            '<th class="bg-light">Horraire</th>' +
+                            '<th class="bg-light">Actions</th>' +
+                            '</tr>' +
+                            '</thead>' +
+                            '<tbody class="body_contenu">';
+                            contenu = contenu + '<tr>'
+                            contenu = contenu + '<td class="fw-bold" style="background: lightyellow">[<span class="text-secondary"> '+ reponse[0].time1 + '   ' + reponse[0].time2 + '</span>]   -   [<span class="text-success">'+ reponse[0].time3 + '   ' + reponse[0].time4 + '</span>]</td>'
+                            contenu = contenu + '<td class="fw-bold" style="background: lightyellow"><i class="fa fa-edit text-primary" style="cursor: pointer;"></i><i class="fa fa-trash ms-2 text-danger" style="cursor: pointer;"></i> </td>'
+                            contenu = contenu + '</tr>'
+                            contenu = contenu + '</tbody></table>'
+                            document.querySelector('.div_contenu').innerHTML = contenu;
+                            //alert('Ajouté');
+                        } else {
+                            document.querySelector('.div_contenu').innerHTML = '<h3 class="text-danger">Aucune plage horraire définie</h3>';
+                        }
+                    }
+                })
+
+        }
+
+        function getQuarts(){
+            let contenu = "";
+
+                $.ajax({
+                    url : '{{ path('rh_get_quarts') }}',
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+                        if (reponse.length > 0) {
+                            let contenu = '<table class="table mx-auto mt-2 border" style="width: 500px;">' +
+                                '<thead>' +
+                                '<tr>' +
+                                '<th class="bg-light">Quarts</th>' +
+                                '<th class="bg-light">Horaires</th>' +
+                                '<th class="bg-light">Actions</th>' +
+                                '</tr>' +
+                                '</thead>' +
+                                '<tbody class="body_contenu">';
+                            for (var i = 0; i < reponse.length; i++) {
+                                contenu = contenu + '<tr>'
+                                contenu = contenu + '<td class="fw-bold text-danger" style="background: lightyellow">' + reponse[i].libelle + '</span></td>'
+                                contenu = contenu + '<td class="fw-bold text-danger" style="background: lightyellow">[<span class="text-secondary"> ' + reponse[i].time1 + '   ' + reponse[i].time2 + '</span>]</td>'
+                                contenu = contenu + '<td class="fw-bold text-danger" style="background: lightyellow"><i class="fa fa-edit text-primary" style="cursor: pointer;"></i><i class="fa fa-trash ms-2 text-danger" style="cursor: pointer;"></i> </td>'
+                                contenu = contenu + '</tr>'
+                            }
+
+                            document.querySelector('.div_contenu').innerHTML = contenu;
+                            //alert('Ajouté');
+                        } else {
+                            document.querySelector('.div_contenu').innerHTML = '<h3 class="text-danger">Aucune plage horraire définie</h3>';
+                        }
+                    }
+                })
+
+        }
+
+        function getPersonnalise() {
+            let contenu_pers = "";
+            $.ajax({
+                url : '{{ path('rh_get_personalise') }}',
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse.length > 0) {
+
+                        contenu_pers = '<table class="table mx-auto mt-2 border" id="tbl_personnalise" style="width: 500px;">' +
+                            '<thead>' +
+                            '<tr>' +
+                            '<th class="bg-light">Denomination</th>' +
+                            '<th class="bg-light">Horaires</th>' +
+                            '<th class="bg-light">Actions</th>' +
+                            '</tr>' +
+                            '</thead>' +
+                            '<tbody class="body_contenu">';
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu_pers = contenu_pers + '<tr>'
+                            contenu_pers = contenu_pers + '<td class="fw-bold text-danger" style="background: lightyellow">' + reponse[i].libelle + '</span></td>'
+                            contenu_pers = contenu_pers + '<td class="fw-bold text-danger" style="background: lightyellow"><span class="text-secondary">[' + reponse[i].time1 + '   ' + reponse[i].time2 + '] - [' + reponse[i].time3 + '   ' + reponse[i].time4  +  ']</span></td>'
+                            contenu_pers = contenu_pers + '<td class="fw-bold text-danger" style="background: lightyellow"><i class="fa fa-edit text-primary" style="cursor: pointer;"></i><i class="fa fa-trash ms-2 text-danger" style="cursor: pointer;"></i> </td>'
+                            contenu_pers = contenu_pers + '</tr>'
+                        }
+                        document.querySelector('.div_contenu').innerHTML = contenu_pers;
+                    } else {
+                        document.querySelector('.div_contenu').innerHTML = '<h3 class="text-danger">Aucune plage horraire définie</h3>';
+                    }
+                }
+            })
+        }
+
+        function reinitialise_personnalise() {
+            $("#libelle").val("");
+            $("#heure1_p").val("");
+            $("#heure2_p").val("");
+            $("#heure3_p").val("");
+            $("#heure4_p").val("");
+            document.getElementById("libelle").focus();
+        }
+
+        function showClock() {
+            document.querySelector('.div_contenu').innerHTML = '<i class="fa fa-clock text-secondary mt-5 p-2" style="font-size: 192px;background: linear-gradient(#e3e1e1, #868a87)"></i>';
+        }
+
+    </script>
+{% endblock %}

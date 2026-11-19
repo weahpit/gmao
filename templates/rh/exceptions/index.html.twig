@@ -1,0 +1,721 @@
+{% extends 'rh/_layout.html.twig' %}
+
+{% block title %}Exceptions{% endblock %}
+
+{% block rh_contenu %}
+    <link rel="stylesheet" href="{{ asset('rh/assets/css/style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <style>
+        .file-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #e9e9e9;
+            color: #282a2d;
+            border: 1px solid #d1d1d1;
+            border-radius: 12px;
+        }
+        .file-label {
+            background: #868a87;
+            color: #0b1309;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: 0 6px 4px rgba(199, 234, 212, 0.25);
+            cursor: pointer;
+        }
+        .file-input {
+            position: absolute;
+            inset: auto;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-name {
+            font-size: 13px;
+            opacity: 0.85;
+        }
+    </style>
+    <div class="p-2" style="background-color: #e6e5e5">
+        <div class="mx-auto text-center mt-2">
+            <h1 class="mb-2 fw-bold">Gestion des Exceptions</h1>
+
+            <ul class="nav nav-tabs container" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="home-tab" data-bs-toggle="tab" data-bs-target="#feries"
+                            type="button" role="tab" aria-controls="home" aria-selected="true">Jours Feriés</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="conges-tab" data-bs-toggle="tab" data-bs-target="#conges"
+                            type="button" role="tab" aria-controls="conges" aria-selected="false">Congés et Permissions</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="demission-tab" data-bs-toggle="tab" data-bs-target="#demissions"
+                            type="button" role="tab" aria-controls="demissions" aria-selected="false">Démissions / Renvoie</button>
+                </li>
+            </ul>
+
+            <!-- Contenu des onglets -->
+            <div class="tab-content p-2" id="myTabContent" >
+                <div class="tab-pane fade show active container" style="background-color: #fffefe;border: 2px solid #7a4c33;" id="feries" role="tabpanel" aria-labelledby="home-tab">
+                    <button class="mt-3" id="btn-ajout" style="border: 2px solid #5a371e; font-size: 16px;width: 250px;background: #5a371e;color: white;" data-bs-target="#modal_jour_f" data-bs-toggle="modal">Ajouter un jour Férié</button>
+                    <div class="mt-2 div_contenu mt-2" style="min-height: 400px;">
+
+                    </div>
+                </div>
+                <div class="tab-pane fade container" style="background-color: #fffefe;border: 2px solid #7a4c33;" id="conges" role="tabpanel" aria-labelledby="conges-tab">
+                    <h3>Sélectionnez un employé puis définissez une période de congé ou permission</h3>
+                    <div class="d-inline-flex">
+                        <select  class="mt-4 users" name="users" id="users" style="border: #7a4c33 solid 2px;background: #f3ece4;min-width: 250px;height: 30px;">
+                            <option value="0">-- Sélectionnez un utilisateur --</option>
+                        </select>
+                        <a href="#" id="btn_new_permission" data-bs-toggle="modal" data-bs-target="#modal_absences" class="btn btn-outline-primary mb-2 mt-4 ms-2 btn-sm" style="margin-top: 10px;">Accorder une permission</a>
+                    </div>
+                    <div class="mt-2 div_contenu mt-2" style="height: 400px;border-bottom: #7a4c33 2px solid;overflow-y: scroll;">
+                        <table class="table">
+                            <thead>
+                            <tr class="sticky-top" style="background-color: #c3bfbf">
+                                <th>Nom et Prenoms</th>
+                                <th>Matricule</th>
+                                <th>Période</th>
+                                <th>Nombre de jours</th>
+                                <th>Reprise ?</th>
+                                <th>Type Absence</th>
+                                <th>Payé</th>
+                                <th>Actions</th>
+                                <th>Fichier</th>
+                            </tr>
+                            </thead>
+                            <tbody class="body_permissions">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade container" style="background-color: #fff3f3;border: 2px solid #7a4c33;" id="demissions" role="tabpanel" aria-labelledby="demissions-tab">
+                    <h3>Sélectionnez un employé puis cliquez sur le bouton Démission</h3>
+                    <div class="d-inline-flex">
+                        <select  class="mt-4" name="users_demission" id="users_demission" style="border: #7a4c33 solid 2px;background: #f3ece4;min-width: 250px;height: 40px;">
+                            <option value="0">-- Sélectionnez un utilisateur --</option>
+                        </select>
+                        <a href="#" id="btn-modal-demission" data-bs-toggle="modal" data-bs-target="#modal_demission" class="btn btn-outline-primary  mb-2 mt-4 ms-2 btn-sm" style="margin-top: 10px;">Enregistrer la démission</a>
+                    </div>
+                    <div class="mt-2 div_demission mt-2" style="height: 400px;border-bottom: #7a4c33 2px solid;overflow-y: scroll;">
+                        <table class="table">
+                            <thead>
+                            <tr style="background-color: #c3bfbf">
+                                <th>Nom et Prenoms</th>
+                                <th>Mle</th>
+                                <th>Poste</th>
+                                <th>Département</th>
+                                <th>Motif</th>
+                            </tr>
+                            </thead>
+                            <tbody class="body_demissions">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modal_jour_f" aria-hidden="true" aria-labelledby="modal_equipes" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalToggleLabel">Ajouter Jour Ferié</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-inline-flex">
+                        <input type="text" id="txt_jf" style="border: 2px solid #5a371e; font-size: 16px;width: 100%;text-transform: uppercase;" placeholder="Entrez le nom...">
+                        <input type="date" id="date_jf" style="margin-left: 10px;border: 2px solid #5a371e; font-size: 16px;width: 100%;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn w-100 btn_jf mt-1" style="border: 2px solid #5a371e;background: #5a371e;color: white">Ajouter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal_absences" aria-hidden="true" aria-labelledby="modal_absences" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="lbl_absence">Ajouter une absence</h5>
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="height: 650px;">
+                    <h3 class="alert-danger p-1 text-center text-danger" style="background-color: #f7e9ea;">Congés - Permission</h3>
+                    <hr>
+
+                    <label class="fw-bold" for="date1">Période</label><br>
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="d-inline-flex mt-3">
+                                <input class="" type="date" id="date1" style="border: 2px solid #5a371e; font-size: 16px;width: 30%;height:25px;text-transform: uppercase;">
+                                <input type="date" id="date2" style="margin-left: 10px;border: 2px solid #5a371e; font-size: 16px;width: 30%;height:25px;text-transform: uppercase;">
+                                <label class="text-danger  ms-2" style="">
+                                    Nb jours<input class="text-center ms-2" type="number" id="nb_jours" readonly value="0" style="width: 75px;">
+                                </label>
+                            </div>
+                            <br>
+                            <label class="text-dark fw-bold" for="type_absence" style="width: 200px;">Type Permission
+                                <select class="mt-2" name="type_absence" id="type_absence" style="border: #7a4c33 solid 2px;background: #f3ece4;width: 250px;">
+                                    <option value="0">-- Sélectionnez un Type Permission --</option>
+                                    <option value="Congés annuels">Congés annuels</option>
+                                    <option value="Congés Maladie">Congés Maladie</option>
+                                    <option value="Congés Maternité">Congés Maternité</option>
+                                    <option value="Permission ordinaire">Permission ordinaire</option>
+                                    <option value="Permission exceptionnelle">Permission exceptionnelle</option>
+                                    <option value="Repos">Repos</option>
+                                </select>
+                            </label><br>
+                            <label class="text-dark fw-bold" for="paye" style="width: 200px;">Payé ?
+                                <select class="mt-2" name="paye" id="paye" style="border: #7a4c33 solid 2px;background: #f3ece4;width: 250px;">
+                                    <option value="0">-- Payé ? --</option>
+                                    <option value="OUI">OUI</option>
+                                    <option value="NON">NON</option>
+                                </select>
+                            </label>
+                            <br>
+                            <label class="file-wrap mt-2 w-100 p-0">
+                                <input type="file" id="file" class="file-input"  accept="image/*,.pdf" />
+                                <span class="file-label">Téléverser</span>
+                                <span id="file-name" class="file-name">Aucun fichier sélectionné</span>
+                            </label>
+                            <button class="btn w-100 btn_absence mt-4" style="border: 2px solid #5a371e;background: #5a371e;color: white">Accorder la permission</button>
+                        </div>
+                        <div class="col-md-7 text-center" style="height: 300px;">
+                            <div class="text-center"  id="preview">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal_demission" aria-hidden="true" aria-labelledby="modal_demission" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalToggleLabel">DEPARTS</h5>
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                    ></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h3 class="alert-danger p-1 text-center text-danger" style="background-color: #f7e9ea;">Enregistrer un départ</h3>
+                    <br>
+                    <div class="d-inline-flex mt-3">
+                        <label class="fw-bold" for="date1" style="width: 100px;">Date </label><input class="" type="date" id="date_demission" style="border: 2px solid #5a371e; font-size: 16px;width: 125px;text-transform: uppercase;">
+                    </div><br>
+                    <div class="d-inline-flex mt-3">
+                        <label  style="width: 100px;" class="fw-bold" for="motif_depart">Motif</label>
+                        <select name="motif_depart" id="motif_depart" style="border: 2px solid #5a371e; font-size: 16px;width: 125px;text-transform: uppercase;">
+                            <option value="VOLONTAIRE">VOLONTAIRE</option>
+                            <option value="INVOLONTAIRE">INVOLONTAIRE</option>
+                        </select>
+                    </div>
+                    <hr>
+                    <label class="fw-bold" for="motif">Observations</label>
+                    <br>
+                    <textarea name="motif" id="motif" cols="0" rows="0" style="min-height: 200px;width:100%;border: 2px solid #7a4c33">
+
+                    </textarea>
+                    <br>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn w-100 btn_demission mt-1" style="border: 2px solid #5a371e;background: #5a371e;color: white">Enregistrer la démission</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="affiche_fichier" aria-hidden="true" aria-labelledby="affiche_fichier" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="lbl_affiche_fichier"></h5>
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                    ></button>
+                </div>
+                <div class="modal-body">
+                    <div class=" text-center"  id="afficheFichier">
+                        <h5 class="text-dark fw-light">Chargement fichier...</h5>
+                    </div>
+                </div>
+                <div class="modal-footer text-center">
+                    <a href="#" class="btn telecharge_fichier mt-1" style="border: 2px solid #5a371e;background: #5a371e;color: white">Télécharger</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('rh/assets/js/utilitaires.js') }}"></script>
+    <script>
+        let id_employe = 0;
+        let id_permission = 0;
+        let fichier_permission = "";
+        let slug = "";
+        getJF()
+        getExceptionsEmployes()
+        getDemissions()
+        getPermissions(0)
+        $('#users').on('change', function(){
+            id_employe = this.value
+            getPermissions(id_employe)
+        });
+        $('#users_demission').on('change', function(){
+            id_employe = this.value
+        });
+
+        $('#btn-modal-demission').on('click', function(){
+            $("#motif").val("");
+        });
+
+        $('#btn_new_permission').on('click', function(){
+            id_permission = 0;
+            $('#lbl_absence').text("Ajouter une absence");
+        });
+
+        $('body').on('click','.btn_fichier',  function(){
+            let preview = document.querySelector("#afficheFichier");
+            let lbl = document.querySelector("#lbl_affiche_fichier");
+            lbl.innerHTML = '';
+            preview.innerHTML = '<h5 class="text-dark fw-light">Chargement fichier...</h5>';
+            affichePermission(this.id)
+        });
+        $('body').on('click','.modifier_permission',  function(){
+            $("#modal_absences").modal("show")
+            loadPermission(this.id)
+        });
+
+        $('#date1').on('change', function(){
+            let date1 = new Date($('#date1').val());
+            let date2 = new Date($('#date2').val());
+            $('#nb_jours').val(getNbJours(date1, date2) + 1)
+        });
+        $('#date2').on('change', function(){
+            let date1 = new Date($('#date1').val());
+            let date2 = new Date($('#date2').val());
+            $('#nb_jours').val(getNbJours(date1, date2) + 1)
+        });
+
+        $('.btn_jf').on('click', function(){
+            let denomination = $('#txt_jf').val();
+            let date_jf = $('#date_jf').val();
+            if (denomination && date_jf){
+                add_Jf(denomination, date_jf)
+            } else {
+                render_toast_value('Merci de renseigner tous les champs!', 2)
+            }
+        })
+
+        $('.btn_absence').on('click', function(e){
+            e.preventDefault();
+            let date1 = $('#date1').val();
+            let date2 = $('#date2').val();
+            let type_absence = $('#type_absence').val();
+            let paye = $('#paye').val();
+            //alert(id_employe)
+            //alert(id_permission)
+            if (id_employe === 0 && id_permission === 0){
+                render_toast_value('Merci de sélectionner un employé!', 2)
+            }
+            else if (getNbJours(new Date(date1), new Date(date2)) < 0 ){
+                render_toast_value('Merci de sélectionner une période correcte !', 2)
+            } else {
+                if (type_absence === "0" || type_absence === null || paye === "0" || paye === null){
+                    render_toast_value('Merci de renseigner tous les champs!', 2)
+                } else {
+                    ajoute_permission()
+                }
+
+            }
+        })
+
+        $('.btn_demission').on('click', function(){
+            let date_demission = $('#date_demission').val();
+            let motif = $('#motif').val();
+            //alert(isDate(new Date(date_demission)))
+            if (id_employe === 0){
+                render_toast_value('Merci de sélectionner un employé!', 2)
+            }
+            else if (!isDate(new Date(date_demission))){
+                render_toast_value('Merci de sélectionner une date correcte !', 2)
+            } else {
+                if (motif === ""){
+                    render_toast_value('Merci de renseigner le motif de démission SVP!', 2)
+                } else {
+                    ajoute_demission()
+                }
+            }
+        })
+
+        function isDate(value) {
+            return value instanceof Date && !isNaN(value.valueOf());
+        }
+
+        $('body').on('click','.supprime_jf', function(){
+            remove_Jf(this.id)
+        })
+        document.querySelector('.body_permissions').innerHTML = '<h4 class="fw-light">Sélectionnez un employé pour afficher ses permissions</h4>';
+        function add_Jf(denomination, date_jf){
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/addJF/' + denomination + '/' + date_jf,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse[0].code === "SUCCESS"){
+                        getJF()
+
+                        render_toast_value('Jour ferrié ajouté!', 1)
+                        $('#txt_jf').val("");
+                        $('#date_jf').val(null);
+                        $('#txt_jf').focus();
+                    } else {
+                        render_toast_value('Une erreur s\'est produite!', 0)
+                    }
+                }
+            })
+        }
+        function resetModal(){
+            $('#date1').val(null);
+            $('#date2').val(null);
+            $('#type_absence').val("0");
+            $('#paye').val("0");
+            $('#nb_jours').val("0");
+            $('#date1').focus();
+            getPermissions($('#users').val())
+            $('#modal_absences .btn-close').click();
+            render_toast_value('Permission ajoutée  avec Succès !', 1)
+        }
+        function ajoute_permission(){
+            var obj = {};
+            obj.id_employe =  id_employe;
+            obj.id_permission =  id_permission;
+            obj.date1 =  $('#date1').val();
+            obj.date2 =  $('#date2').val();
+            obj.type_absence = $('#type_absence').val();
+            obj.paye = $('#paye').val();
+            obj.nb_jours =  $("#nb_jours").val();
+            var data = JSON.stringify(obj);
+
+            const formData = new FormData();
+            const fileInput = document.querySelector("#file");
+            formData.append("fichier", fileInput.files[0]);
+
+            fetch('{{ path('rh_accueil') }}/addPermission/'  + data , {
+                method: "POST",
+                body: formData
+            }).then(res => reinitialise_permission())
+                .then(data => render_toast_value(data.msg, data.ordre));
+        }
+
+        function ajoute_demission(){
+            var obj = {};
+            obj.id_employe =  id_employe;
+            obj.date_demission =  $('#date_demission').val();
+            obj.motif = $('#motif').val();
+            var data = JSON.stringify(obj);
+            //alert(data)
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/addDemission/' + data,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse[0].code === "SUCCESS"){
+                        render_toast_value('Démission de l\'employé enregistrée avec succès!', 1)
+                        $('#date_demission').val(null);
+                        $('#motif').val("");
+                        $('#demissions btn-close').click();
+
+                        getDemissions()
+
+                    } else {
+                        render_toast_value('Une erreur s\'est produite!', 0)
+                    }
+                }
+            })
+        }
+
+        function remove_Jf(id_jf){
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/remJF/' + id_jf,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse[0].code === "SUCCESS"){
+                        render_toast_value('Jour ferié retiré avec succès!', 1)
+                        getJF()
+                    } else {
+                        render_toast_value('Une erreur est survenue!', 0)
+                    }
+                }
+            })
+        }
+        function getJF(){
+
+            $.ajax({
+                url : '{{url('rh_get_jf')}}',
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    let contenu = '';
+                    if (reponse.length > 0){
+                        contenu = contenu +  '<div style="height: 400px;overflow-y: scroll;"><table class="table" >' +
+                            contenu +  '<thead>' +
+                            contenu +  '<tr>' +
+                            contenu +  '<th class="bg-secondary text-white">Dénomination</th>' +
+                            contenu +  '<th class="bg-secondary text-white">Date</th>' +
+                            contenu +  '<th class="bg-secondary text-white">Action</th>' +
+                            contenu +  '</tr>' +
+                            contenu +  '</thead>' +
+                            contenu +  '</tbody>';
+
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu = contenu + '<tr>'
+                            contenu = contenu + '<td class="fw-bold text-dark" style="background: lightyellow">' + reponse[i].denomination + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark" style="background: lightyellow">' + reponse[i].date_jf + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-danger" style="background: lightyellow"><i class="fa fa-trash ms-2 text-danger supprime_jf" id="'+ reponse[i].id + '" style="cursor: pointer;"></i> </td>'
+                            contenu = contenu + '</tr>'
+                        }
+
+                        contenu = contenu +  '</tbody>';
+                        contenu = contenu +  '</table></div>';
+
+                    } else {
+                        contenu = '<h2 class="text-danger mt-3">Aucun jour ferié enregistré !</h2>'
+                    }
+                    document.querySelector('.div_contenu').innerHTML = contenu;
+                    //render_toast_value('Chargement réussi!', 3)
+                }
+            })
+        }
+
+        function getExceptionsEmployes(){
+
+            $.ajax({
+                url : '{{url('rh_get_employes')}}',
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    let contenu = '';
+
+                    contenu = '<option value="0">-- Sélectionnez un utilisateur --</option>';
+
+                    for (var i = 0; i < reponse.length; i++) {
+                        contenu = contenu + '<option class="bg-white" value="'+ reponse[i].id +'">'+ reponse[i].nom +'</option>'
+                    }
+
+                    contenu = contenu +  '</tbody>';
+                    contenu = contenu +  '</table></div>';
+
+
+                    //render_toast_value('Chargement réussi!', 3)
+                    document.querySelector('#users').innerHTML = contenu;
+                    document.querySelector('#users_demission').innerHTML = contenu;
+                }
+            })
+        }
+
+        function getPermissions(id_employe){
+            document.querySelector('.body_permissions').innerHTML = '<h3 class="text-danger fw-light">Chargement...</h3>';
+            $.ajax({
+                url : '{{url('rh_get_permissions')}}/details/' + id_employe,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    let contenu = '';
+                    if (reponse.length > 0){
+
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu = contenu + '<tr style="background: #f5f9f9;padding: 0;font-size: 11px; font-weight: lighter;">'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].nom + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].mle + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].periode + '</span></td>'
+
+
+                        if (new  Date(reponse[i].date_debut) > new  Date()) {
+
+                                contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].nb_jours + '<span class="ms-2 badge bg-danger text-white" style="border-radius: 10px;">Programmé</span></td>'
+                                contenu = contenu + '<td class="fw-bold text-dark"><img src="{{ asset('images/icons/ok.png') }}" alt="present"></td>'
+                            } else if (new  Date(reponse[i].date_fin) > new  Date()){
+                                contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].nb_jours + ' <span class="text-danger fw-bold ms-2">' + Math.round(getNbJours(new  Date(), new  Date(reponse[i].date_fin))) + ' jour(s) restants</span></span></td>'
+                                contenu = contenu + '<td class="fw-bold text-dark"><img src="{{ asset('images/icons/deny.png') }}" alt="absent"></td>'
+                            }else {
+                                contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].nb_jours + '</span></td>'
+                                contenu = contenu + '<td class="fw-bold text-dark"><img src="{{ asset('images/icons/ok.png') }}" alt="present"></td>'
+                            }
+
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].type_absence + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].paye + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark fs-6"><i class="fa  fa-edit text-primary modifier_permission" title="Modifier la permission" style="cursor: pointer" id ="'  + reponse[i].id + '"></i><i class="fa  fa-trash text-danger ms-2 supprimer_permission" title="Supprimer la permission" style="cursor: pointer" id ="'  + reponse[i].id + '"></i></span></td>'
+
+                            contenu = contenu + '<td class="fw-bold text-dark text-left text-center" style="font-size: 16px;text-align: left">'
+                            //alert (reponse[i].fichier)
+                            if (reponse[i].fichier === null|| reponse[i].fichier === "") {
+                            } else {
+                                contenu = contenu + '</a><a href="#" data-bs-toggle = "modal" data-bs-target="#affiche_fichier" title="Afficher le fichier" class="ms-2 fa fa-file text-primary fw-light btn_fichier" id="'+  reponse[i].id+ '"></a>'
+                            }
+                            contenu = contenu + '</td>'
+                            contenu = contenu + '</tr>'
+                        }
+
+                        contenu = contenu +  '</tbody>';
+                        contenu = contenu +  '</table></div>';
+
+                        //render_toast_value('Chargement réussi!', 3)
+                    } else {
+                        contenu = '<h2 class="text-danger mt-3">Aucune permission enregistré !</h2>'
+                    }
+                    document.querySelector('.body_permissions').innerHTML = contenu;
+
+                }
+            })
+        }
+
+        function getDemissions(){
+            $.ajax({
+                url : '{{url('rh_get_demissions')}}',
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    let contenu = '';
+                    if (reponse.length > 0){
+
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu = contenu + '<tr style="background: #d1eeee;padding: 0;font-size: 11px; font-weight: lighter;">'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].nom + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].mle + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].service + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].departement + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark">' + reponse[i].motif + '</span></td>'
+                            contenu = contenu + '</tr>'
+                        }
+
+                        contenu = contenu +  '</tbody>';
+                        contenu = contenu +  '</table></div>';
+
+                        //render_toast_value('Chargement réussi!', 3)
+                    } else {
+                        contenu = '<h2 class="text-danger mt-3">Aucune démission enregistrée !</h2>'
+                    }
+                    document.querySelector('.body_demissions').innerHTML = contenu;
+
+                }
+            })
+        }
+
+        function affichePermission(id_permission){
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/affichePermission/' + id_permission,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    slug = reponse.slug;
+                    // Vérifie le type MIME
+                    let preview = document.querySelector("#afficheFichier");
+                    document.querySelector("#lbl_affiche_fichier").innerHTML = '<h2>Permission N° <span class="text-danger">' + reponse.id + '</span> accordée à ' + reponse.nom + '</h2>';
+
+                    if (reponse.extension  === "jpg" || reponse.extension  === "png" || reponse.extension  === "jpeg" || reponse.extension  === "bmp"  ) {
+                        preview.innerHTML = '<img class="img_fichier" src="{{ asset('rh/assets/permissions/') }}'   + reponse.fichier + '"  alt="aperçu" style="max-width:600px;height:500px; border-radius:12px; box-shadow:0 4px 4px rgba(0,0,0,0.25);">';
+                    } else if (reponse.extension  === "pdf") {
+                        preview.innerHTML = `<embed  class="img_fichier" src="{{ asset('rh/assets/permissions/') }}${reponse.fichier}" type="application/pdf" width="100%" height="500px" style="border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.25);"> `;
+                    } else {
+                        preview.innerHTML = `<p>Type de fichier non supporté : ${reponse.fichier}</p>`;
+                    }
+                }
+            })
+        }
+
+        function loadPermission(id_permission){
+            reinitialise_permission()
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/affichePermission/' + id_permission,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    id_permission = reponse.id;
+                    $('#lbl_absence').html('Modifier la permission de  <span class="fw-bold">' + reponse.nom + '</span>');
+                   $("#date1").val(reponse.date_debut);
+                   $("#date2").val(reponse.date_fin);
+                   $("#type_absence").val(reponse.type_absence);
+                   $("#paye").val(reponse.paye);
+                   $('#nb_jours').val(getNbJours(new Date($("#date1").val()), new Date($("#date2").val())) + 1)
+                }
+            })
+        }
+
+        function reinitialise_permission(){
+            $("#date1").val(null);
+            $("#date2").val(null);
+            $("#type_absence").val(0);
+            $("#paye").val(0);
+            $('#nb_jours').val(0)
+            $('#modal_absences .btn-close').click();
+            $('#file').val(null);
+            getPermissions(id_employe)
+        }
+
+        $(".telecharge_fichier").on("click", function (){
+            let img = document.querySelector(".img_fichier");
+            document.querySelector(".telecharge_fichier").href = img.src
+            document.querySelector(".telecharge_fichier").download = "permission "+ slug
+        })
+
+        function getNbJours(date1, date2){
+            const differenceInMilliseconds = date2.getTime() - date1.getTime(); // Conversion en millisecondes
+            const differenceInDays = differenceInMilliseconds /  (1000 * 60 * 60 * 24); // Conversion en jours
+            return differenceInDays;
+        }
+
+
+
+
+        const input = document.getElementById('file');
+        const nameEl = document.getElementById('file-name');
+        input.addEventListener('change', () => { nameEl.textContent = input.files?.[0]?.name || 'Aucun fichier sélectionné'; });
+
+
+
+        //const input = document.getElementById('file');
+        const preview = document.getElementById('preview');
+        input.addEventListener('change', () => {
+            const file = input.files[0];
+            if (!file) {
+                preview.innerHTML = "Aucun fichier sélectionné"; return; }
+            // Vérifie le type MIME
+            if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="aperçu" style="border-radius:12px;width:50%;height=400px; box-shadow:0 4px 4px rgba(0,0,0,0.25);">`;
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type === "application/pdf") {
+                preview.innerHTML = ` <p><strong>PDF sélectionné :</strong> ${file.name}</p> <embed src="${URL.createObjectURL(file)}" type="application/pdf" width="100%" height="400px" style="border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.25);"> `;
+            } else {
+                preview.innerHTML = `<p>Type de fichier non supporté : ${file.name}</p>`;
+            }
+        });
+    </script>
+{% endblock %}

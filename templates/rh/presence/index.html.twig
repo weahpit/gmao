@@ -1,0 +1,154 @@
+{% extends 'rh/_layout.html.twig' %}
+
+{% block title %}Absences et retards - Ressources humaines{% endblock %}
+
+{% block rh_contenu %}
+    <style>
+        .fond_tr {
+            background-color: #5a371e;
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+
+    {% if pointage_erreur is defined and pointage_erreur %}
+        <div class="alert alert-warning" role="alert">
+            <strong>Pointage indisponible.</strong> {{ pointage_erreur }}
+            <div class="small mt-1">Les absences et retards ne peuvent pas être calculés tant que la base de pointage n'est pas joignable.</div>
+        </div>
+    {% endif %}
+
+    <div class="container p-2" style="min-height: 400px;background-color: #faf7f4;border: 1px solid #d8c7b8;border-top: 3px solid #5a371e;border-radius: 6px;">
+        <h1 class="fw-bold text-center p-1 mt-2" style="color: #5a371e;">Absences</h1>
+        <hr>
+        <div class="mx-auto container text-center row bg-light">
+            <div class="col-md-3">
+                <span class="fw-bold">Période</span> <input style="border: 2px solid #7a4c33;" id="date1" type="date">
+            </div>
+            <div class="col-md-3">
+                <label>
+                    <input style="border: 2px solid #7a4c33;" id="date2" type="date">
+                </label>
+                <button style="border: 2px solid #5a371e;background: #7a4c33;color: white" id="btn_calculer">Rechercher</button>
+            </div>
+        </div>
+        <hr>
+        <div class="p-2 div_contenu bg-white" style="border: #7a4c33 solid 1px;">
+            <h1 class="text-secondary fw-light text-center">Sélectionnez une période pour afficher les absences</h1>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="//cdn.datatables.net/2.3.5/js/dataTables.min.js"></script>
+    <link rel="stylesheet" href="//cdn.datatables.net/2.3.5/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.2.5/css/buttons.dataTables.css">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="https://cdn.datatables.net/2.3.5/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.2.5/js/dataTables.buttons.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.dataTables.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.html5.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('rh/assets/js/utilitaires.js') }}"></script>
+    <script>
+
+        $('#btn_calculer').on('click', function(){
+            let date1 = $('#date1').val();
+            let date2 = $('#date2').val();
+            getRetards(date1, date2)
+        })
+
+        function getRetards(date1, date2){
+            let contenu = '';
+            document.querySelector('.div_contenu').innerHTML = '<div class="text-center w-100" style="width:100%;"><img class="mx-auto" src="{{ asset('rh/assets/images/roue.gif') }}" height="400"></div>'
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/RechercheAbsencesParPeriode/' + date1 + '/' + date2,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse.length > 0){
+                        contenu = contenu + '<table class="table bg-light" id="tbl_absences">';
+                        contenu = contenu + '<thead>';
+                        contenu = contenu + '<tr class="fond_tr">';
+                        contenu = contenu + '<td style="background-color: #e6dccf;">Matricule</td>';
+                        contenu = contenu + '<td style="background-color: #e6dccf;">Nom et Prenoms</td>';
+                        contenu = contenu + '<td class="text-center"  style="background-color: #e6dccf;">Type Horraire</td>';
+                        contenu = contenu + '<td class="text-center"  style="background-color: #e6dccf;">Retards (h)</td>';
+                        contenu = contenu + '<td class="text-center"  style="background-color: #e6dccf;">Absences</td>';
+                        contenu = contenu + '</tr>';
+                        contenu = contenu + '</thead>';
+                        contenu = contenu + '<tbody class="body_retard">';
+
+
+                        for (var i = 0; i < reponse.length; i++) {
+                        contenu = contenu + '<tr>'
+                            contenu = contenu + '<td>' + reponse[i].mle + '</td>'
+                            contenu = contenu + '<td>' + reponse[i].nom + '</td>'
+                            contenu = contenu + '<td class="text-center" >' + reponse[i].type_horaires + '</td>'
+                            contenu = contenu + '<td class="text-center" >' + reponse[i].minutes + '</td>'
+                            contenu = contenu + '<td class="text-center" >' + reponse[i].absences + '</td>'
+                        contenu = contenu + '</tr>'
+                    }
+                        contenu = contenu + '</tbody>';
+                        contenu = contenu + '</table>';
+
+                    document.querySelector('.div_contenu').innerHTML = contenu
+                    render_toast_value('Absences recupérées avec succès !', 1)
+                    let table = new DataTable('#tbl_absences', {
+                        layout: {
+                            topStart: {
+                                buttons: [
+                                    {
+                                        extend: 'excelHtml5',
+                                        title: 'Absences CITRAC',
+                                        text: 'Exporter en excel',
+                                        customize: function (xlsx) {
+                                            var sheet = xlsx.xl.worksheets['sheet1.xml'];
+
+                                            sheet.querySelectorAll('row c[r^="C"]').forEach((el) => {
+                                                el.setAttribute('s', '2');
+                                            });
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        pageLength: 10,
+                        colReorder: true,
+                        language: {
+                            processing:     "Traitement en cours...",
+                            search:         "Rechercher&nbsp;:",
+                            lengthMenu:    "Afficher _MENU_ &eacute;l&eacute;ments",
+                            info:           "Affichage de l'&eacute;lement _START_ &agrave; _END_ sur _TOTAL_ &eacute;l&eacute;ments",
+                            infoEmpty:      "Affichage de l'&eacute;lement 0 &agrave; 0 sur 0 &eacute;l&eacute;ments",
+                            infoFiltered:   "(filtr&eacute; de _MAX_ &eacute;l&eacute;ments au total)",
+                            infoPostFix:    "",
+                            loadingRecords: "Chargement en cours...",
+                            zeroRecords:    "Aucun &eacute;l&eacute;ment &agrave; afficher",
+                            emptyTable:     "Aucune donnée disponible dans le tableau",
+                            paginate: {
+                                first:      "Premier",
+                                previous:   "Pr&eacute;c&eacute;dent",
+                                next:       "Suivant",
+                                last:       "Dernier"
+                            },
+                            aria: {
+                                sortAscending:  ": activer pour trier la colonne par ordre croissant",
+                                sortDescending: ": activer pour trier la colonne par ordre décroissant"
+                            }
+                        }
+                    });
+                    } else {
+                        render_toast_value("Aucun résultat trouvé!", 2)
+                        document.querySelector('.div_contenu').innerHTML = '<h1 class="text-secondary fw-light text-center">Sélectionnez une période pour afficher les absences</h1>'
+                    }
+                },
+                error : function (){
+                    render_toast_value("Erreur constatée lors de la récupértion des données d\absences", 0)
+                    document.querySelector('.div_contenu').innerHTML = '<h1 class="text-secondary fw-light text-center">Sélectionnez une période pour afficher les absences</h1>'
+                }
+            })
+        }
+    </script>
+{% endblock %}

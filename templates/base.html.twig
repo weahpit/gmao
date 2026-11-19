@@ -50,6 +50,10 @@
        Pour revenir a l'ancien rendu : supprimer la ligne ci-dessous. #}
     <link rel="stylesheet" href="{{ asset('css/cacao-ui.css') }}">
 
+    {# Module Ressources humaines : feuille dediee, chargee apres l'habillage cacao.
+       Pour revenir a l'affichage d'origine : retirer la ligne ci-dessous. #}
+    <link rel="stylesheet" href="{{ asset('css/rh-module.css') }}">
+
     <style>
         /* Selecteur de langue FR / EN dans l'en-tete (habillage cacao) */
         .langue-switch {
@@ -272,6 +276,33 @@
             }
         }
 
+    </style>
+    <style>
+        /* ------------------------------------------------------------------
+           Correctifs d'interface (non destructifs)
+           ------------------------------------------------------------------
+           Les menus deroulants places dans l'entete d'une page (bouton
+           "Actions rapides" de la page Operations d'entree, par exemple)
+           etaient rognes par le cadre de l'entete : ils s'ouvraient mais
+           restaient invisibles sous les blocs suivants. On laisse donc
+           l'entete deborder, et on remonte le menu au-dessus du contenu.
+        */
+        .page-header {
+            overflow: visible;
+            position: relative;
+            z-index: 20;
+        }
+
+        .page-header .dropdown-menu {
+            z-index: 1080;
+        }
+
+        /* Meme correction pour les entetes qui contiennent des filtres ou
+           des listes deroulantes. */
+        .page-header .btn-group,
+        .page-header .dropdown {
+            position: relative;
+        }
     </style>
     <div class="banner-marquee" style="display: none; cursor: pointer;">
         <div class="banner-content">
@@ -586,6 +617,55 @@
                     <span class="nav-badge" id="chatBadge" data-url="{{ path('app_chat_compteur') }}" hidden>0</span>
                 </a>
             </div>
+
+            {# ----------------------------- RESSOURCES HUMAINES ----------------------------- #}
+{#            <div class="nav-section">#}
+{#                <div class="nav-group">#}
+{#                    <button type="button" class="nav-item has-submenu {{ app.request.attributes.get('_route') starts with 'rh_' ? 'active' }}">#}
+{#                        <i data-lucide="users"></i>#}
+{#                        <span class="nav-label">Ressources humaines</span>#}
+{#                        <i data-lucide="chevron-down" class="nav-chevron"></i>#}
+{#                    </button>#}
+{#                    <div class="nav-submenu">#}
+{#                        <a href="{{ path('rh_accueil') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'rh_accueil' ? 'active' }}">#}
+{#                            <span class="nav-label">Tableau de bord RH</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_employes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_employes' or app.request.attributes.get('_route') starts with 'rh_add_employe' or app.request.attributes.get('_route') starts with 'rh_rm_employe' ? 'active' }}">#}
+{#                            <span class="nav-label">Fichier employés</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_departements') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_departements' ? 'active' }}">#}
+{#                            <span class="nav-label">Départements</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_datarh') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_datarh' ? 'active' }}">#}
+{#                            <span class="nav-label">Postes</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_equipes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_equipes' ? 'active' }}">#}
+{#                            <span class="nav-label">Équipes et quarts</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_horaires') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_horaires' ? 'active' }}">#}
+{#                            <span class="nav-label">Horaires</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_programmation') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_programmation' ? 'active' }}">#}
+{#                            <span class="nav-label">Programmation des quarts</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_presences_journalieres') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_presences_journalieres' ? 'active' }}">#}
+{#                            <span class="nav-label">Présences du jour</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_presences') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_presences' ? 'active' }}">#}
+{#                            <span class="nav-label">Absences et permissions</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_exceptions') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_exceptions' ? 'active' }}">#}
+{#                            <span class="nav-label">Jours fériés et démissions</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_historique') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_historique' ? 'active' }}">#}
+{#                            <span class="nav-label">Historique des mouvements</span>#}
+{#                        </a>#}
+{#                        <a href="{{ path('rh_app_options') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_options' ? 'active' }}">#}
+{#                            <span class="nav-label">Paramètres de pointage</span>#}
+{#                        </a>#}
+{#                    </div>#}
+{#                </div>#}
+{#            </div>#}
 
             {% if is_granted('ROLE_ADMIN') %}
                 <div class="nav-section">

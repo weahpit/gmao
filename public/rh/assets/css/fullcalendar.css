@@ -1,0 +1,37 @@
+.fc-event.support {
+    background-color: #b77104;
+    border-color: #7f3d03;
+    color: white;
+}
+
+.fc-event.equipeA {
+    background-color: #05843b;
+    border-color: #055226;
+    color: white;
+}
+.fc-event.equipeB {
+    background-color: #055384;
+    border-color: #053a52;
+    color: white;
+}
+.fc-event.equipeC {
+    background-color: #d06606;
+    border-color: #6f2f03;
+    color: white;
+}
+.fc-event.equipeD {
+    background-color: #ffe201;
+    border-color: #6f6701;
+    color: #000000;
+}.fc-event.sansEquipe {
+     background-color: #e3e3df;
+     border-color: #757573;
+     color: #000000;
+ }
+.fc-event-pointer {
+    cursor: pointer;
+}
+input[type="radio"] {
+    accent-color: #007bff; /* couleur bleue personnalisée */
+    cursor: pointer;
+}

@@ -1,0 +1,381 @@
+{% extends 'rh/_layout.html.twig' %}
+
+{% block title %}Programmation de Quarts{% endblock %}
+
+{% block rh_contenu %}
+    <style>
+        .fc-event.support {
+            background-color: #b77104;
+            border-color: #7f3d03;
+            color: white;
+        }
+
+        .fc-event.equipeA {
+            background-color: #05843b;
+            border-color: #055226;
+            color: white;
+        }
+        .fc-event.equipeB {
+            background-color: #055384;
+            border-color: #053a52;
+            color: white;
+        }
+        .fc-event.equipeC {
+            background-color: #d06606;
+            border-color: #8b5a2b;
+            color: white;
+        }
+        .fc-event.equipeD {
+            background-color: #ffe201;
+            border-color: #6f6701;
+            color: #000000;
+        }.fc-event.sansEquipe {
+             background-color: #e3e3df;
+             border-color: #757573;
+             color: #000000;
+         }
+        .fc-event-pointer {
+            cursor: pointer;
+        }
+        input[type="radio"] {
+            accent-color: #007bff; /* couleur bleue personnalisée */
+            cursor: pointer;
+        }
+
+    </style>
+    <div class="mx-auto text-center mt-5">
+        <h1 class="mb-2 fw-bold">Programmation des Equipes par Quart</h1>
+        <button id="btn-ajout-calendrier" style="border: 2px solid #5a371e; font-size: 16px;width: 250px;background: #5a371e;color: white;" data-bs-target="#modal_calendar" data-bs-toggle="modal">Ajouter un calendrier mensuel</button>
+        <hr>
+        <div class="row m-4">
+            <div class="col-md-2 " style="border: lightgrey;border-top: 3px solid chocolate;min-height: 400px;background: #EDE9FE;">
+                <label class="text-center mt-1 text-white" style="background: #7d60f2;width: 100%;">Mois</label>
+                <div class="div_mois mt-2 text-center">
+
+                </div>
+            </div>
+            <div class="col-md-10 div_contenu p-5" id="calendar" style="border: lightgrey;border-top: 3px solid #a89b8c;min-height: 400px; background: #f4f9f7;">
+                <label class="text-center mt-1 text-white" style="background: #4f806c;width: 100%;">Calendrier</label>
+            </div>
+        </div>
+        <div class=" div_contenu">
+            <h1 class="mt-5">Chargement du programme ....</h1>
+        </div>
+
+    </div>
+
+    <div class="modal fade" id="modal_calendar" aria-hidden="true" aria-labelledby="modal_calendar" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalToggleLabel">Ajouter le mois</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <span class="fw-bold text dark">Mois  : </span><select class="ms-2 me-2 " name="id_mois" id="id_mois" style="border: 2px solid #5a371e;width: 75%;background: #d2cbcb;text-transform: uppercase;">
+                        <option value="1">Janvier</option>
+                        <option value="2">Fevrier</option>
+                        <option value="3">Mars</option>
+                        <option value="4">Avril</option>
+                        <option value="5">Mai</option>
+                        <option value="6">Juin</option>
+                        <option value="7">Juillet</option>
+                        <option value="8">Aout</option>
+                        <option value="9">Septembre</option>
+                        <option value="10">Octobre</option>
+                        <option value="11">Novembre</option>
+                        <option value="12">Decembre</option>
+                    </select>
+                    <a href="#" id="add_mois" class="btn btn-sm text-white" style="background:#5a371e; width: 30px;font-size: 14px;height: 30px;">+</a>
+                </div>
+
+                <div class="modal-footer">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <div id='calendar'></div>
+
+    <div class="modal fade" id="modal_equipe" aria-hidden="true" aria-labelledby="modal_users" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sélectionnez une équipe</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        {% for equipe in equipes %}
+                        <label>
+                            <input type="radio" class="opt_equipe" name="equipe" value="{{ equipe.id }}">
+                            {{ equipe.nomEquipe }}
+                        </label><br>
+                        {% endfor %}
+                    </form>
+
+                </div>
+                <div class="modal-footer">
+                       <button class="btn w-100 btn_add_equipe" style="border: 2px solid #5a371e;background: #5a371e;color: white">Choisir l'équipe</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal_users" aria-hidden="true" aria-labelledby="modal_users" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="users-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <a href="#" class="btn btn-danger p-1 m-1" id="retrait_employe">Retirer l'équipe du Quart</a>
+                    <div class="m-2 contenudiv" style="border: 2px solid #5a371e;height:500px;overflow-y: scroll;">
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <h5 class="fw-bold text-danger lbl_nb_agents"></h5>
+                    {#                    <button class="btn w-100 btn_add_poste" style="border: 2px solid #5a371e;background: #5a371e;color: white">Ajouter l'équipe</button>#}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('rh/assets/js/utilitaires.js') }}"></script>
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar/index.global.min.js"></script>
+
+    <script>
+        let mois_id = 0;
+        let id_programme = 0;
+        let id_equipe = 0;
+            getMois();
+        $('#add_mois').on('click', function() {
+            let id_mois = document.getElementById("id_mois");
+            let valeur_mois = id_mois.options[id_mois.selectedIndex].text;
+            addMois(id_mois.value, valeur_mois);
+        });
+
+        $('#retrait_employe').on('click', function(){
+            //alert(id_programme)
+            retrait_empl(id_programme)
+        })
+
+        function retrait_empl(id_prg){
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/deleteEquipeFromQuart/' + id_prg,
+                type : 'POST',
+                success : function(response){
+                    render_toast_value('Quart mis à jour !', 1)
+                    getCalendar();
+                    $('#modal_users .btn-close').click()
+                    //document.location.reload();
+                },
+                error: function (err){
+                    render_toast_value('Une erreur s\'est produite !', 0)
+                    console.error(err)
+                }
+            })
+        }
+
+        function addMois(index_mois, mois){
+                $.ajax({
+                    url : '{{ path('rh_accueil') }}/genererMois/' + index_mois + '/' + mois,
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+                        if (reponse[0].code === "SUCCESS"){
+                            getMois();
+                            render_toast_value('Mois ajouté avec succès !', 1)
+                            //getDepartements();
+                        } else {
+                            render_toast_value('ATTENTION !!! Ce mois a déjà été programmé', 2)
+                        }
+                    }
+                })
+
+        }
+        function getMois(){
+            let contenu = "";
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/getMois',
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu = contenu + '<a class="btn btn-sm btn-danger fw-bold text-center m-2 btn_mois" style="font-size: 11px;width: 100px;" id ="' + reponse[i].id + '">' + reponse[i].libelle + '</a><br>'
+                        }
+                        document.querySelector(".div_mois").innerHTML = contenu;
+                }
+            })
+
+        }
+        $('body').on('click', '.btn_mois', function (){
+            mois_id = this.id;
+            //alert(mois_id)
+            getQuartsJours();
+        })
+
+        function getQuartsJours(){
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/getQuartsJours',
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response);
+
+                    // ✅ Construire un tableau d'objets
+                    let eventsData = [];
+                    for (var i = 0; i < reponse.length; i++) {
+                        eventsData.push({
+                            id: reponse[i].id,
+                            title: reponse[i].title,
+                            start: reponse[i].start,
+                            end: reponse[i].end
+                        });
+                    }
+
+                    // 🗓️ Initialisation du calendrier
+                    const calendarEl = document.getElementById('calendar');
+                    const calendar = new FullCalendar.Calendar(calendarEl, {
+                        initialView: 'dayGridMonth',
+                        locale: 'fr',
+                        events: eventsData, // 🔗 Tableau d'événements
+
+                        dateClick: function(info) {
+                            const title = prompt("Ajouter l'équipe :");
+                            if (title) {
+                                calendar.addEvent({
+                                    title: title,
+                                    start: info.dateStr
+                                });
+                            }
+                        }
+                    });
+
+                    calendar.render();
+                },
+                error: function(err){
+                    console.error("Erreur AJAX :", err);
+                }
+            });
+        }
+
+
+        ///////
+
+        document.addEventListener('DOMContentLoaded', function () {
+            getCalendar();
+        });
+
+        function getCalendar(){
+            const calendarEl = document.getElementById('calendar');
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'fr',
+                events: {
+                    url: '{{ path('rh_accueil') }}/getQuartsJours', // ou /api/events si Node.js
+                    method: 'GET',
+                    failure: function () {
+                        render_toast_value('Impossible de charger les événements!', 2)
+                    }
+                },
+                eventClassNames: function(arg) {
+                    return ['fc-event-pointer']; // classe personnalisée
+                },
+                eventClick: function(info) {
+                    // Empêche le comportement par défaut (comme suivre un lien)
+                    info.jsEvent.preventDefault();
+
+                    // Accès aux données de l'événement
+                    const event = info.event;
+
+                    // Affichage dans la console
+
+                    id_programme = event.id
+                    // Exemple d'affichage dans une div
+
+                    if (event.title === "-"){
+                        $('#modal_equipe').modal('show')
+                        $('.modal-title').html('<h5>Sélectionnez une équipe pour le quart [' + ` ${event.start.toLocaleTimeString()} `+ ' - ' + `${event.end.toLocaleTimeString()}` + '] </h5>')
+                    } else {
+                        $('#modal_users').modal('show')
+                        getUsersFromPrg()
+                        $('.users-title').html('<h5>Agents de l\'équipe ' + ` ${event.title} `+'</h5>')
+                    }
+                }
+            });
+
+
+            calendar.render();
+        }
+        $('.opt_equipe').on('click', function (){
+            id_equipe = this.value
+        })
+        $('.btn_add_equipe').on('click', function (){
+            if (id_equipe > 0 && id_programme){
+                $.ajax({
+                    url : '{{ path('rh_accueil') }}/addEquipeQuart/' + id_programme + '/' + id_equipe,
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+                        if (reponse[0].code === "SUCCESS"){
+                            getCalendar();
+                            $('#modal_equipe .btn-close').click()
+                        } else if (reponse[0].code === "DOUBLON"){
+                            render_toast_value('Cette équipe a déjà été enregistré pour la date sélectionnée!', 2)
+                        } else {
+                            render_toast_value('Une erreur s\'est produite!', 0)
+                        }
+                    }
+                })
+            }
+        })
+
+        function getUsersFromPrg(){
+            document.querySelector('.contenudiv').innerHTML = '<h5 class="text-danger fw-bold">Chargement...</h5>'
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/getUsersFromPrg/' + id_programme,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse.length > 0){
+                        let contenu = '';
+                        contenu = contenu +  '<table class="table">' +
+                            contenu +  '<thead>' +
+                            contenu +  '<tr>' +
+                            contenu +  '<th class="bg-light">Nom et Prénoms</th>' +
+                            contenu +  '<th class="bg-light">Département</th>' +
+                            contenu +  '<th class="bg-light">Poste</th>' +
+                            contenu +  '</tr>' +
+                            contenu +  '</thead>' +
+                            contenu +  '</tbody>';
+
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu = contenu + '<tr>'
+                            contenu = contenu + '<td class="fw-bold text-dark" style="">' + reponse[i].nom + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark" style="">' + reponse[i].departement + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-dark" style="">' + reponse[i].poste + '</span></td>'
+                            contenu = contenu + '</tr>'
+                        }
+
+                        contenu = contenu +  '</tbody>';
+                        contenu = contenu +  '</table>';
+                        document.querySelector('.contenudiv').innerHTML = contenu;
+                        $('.lbl_nb_agents').html(reponse.length + ' agent(s)') + '</span>';
+                    } else {
+                        document.querySelector('.contenudiv').innerHTML = '<h5 class="text-danger fw-bold">Aucun agent</h5>'
+                    }
+                },
+                error: function (err){
+                    document.querySelector('.contenudiv').innerHTML = '<h5 class="text-danger fw-bold">Erreur de chargement...</h5>'
+                }
+            })
+        }
+    </script>
+
+{% endblock %}

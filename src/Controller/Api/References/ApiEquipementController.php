@@ -52,7 +52,17 @@ final class ApiEquipementController extends AbstractController
                             'categorie'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getLibelle() : "",
                             'qte'=>$equipement->getQte() ? $equipement->getQte() : 0,
                             'lastMvt'=>$derniere_date,
-                            'seuil'=>$equipement->getSeuil()? $equipement->getSeuil() : 0
+                            'seuil'=>$equipement->getSeuil()? $equipement->getSeuil() : 0,
+                            // Photo de l'article : elle est portee par son type
+                            // d'equipement (dossier public/data/equipements).
+                            // Sans cette cle, l'application mobile n'avait aucune
+                            // image a afficher dans la liste des stocks.
+                            'photo'=>$equipement->getCodeEquipementType() && $equipement->getCodeEquipementType()->getPhoto()
+                                ? $equipement->getCodeEquipementType()->getPhoto()
+                                : '',
+                            'photo_equipement'=>$equipement->getCodeEquipementType() && $equipement->getCodeEquipementType()->getPhoto()
+                                ? $equipement->getCodeEquipementType()->getPhoto()
+                                : ''
                         );
                     }
                     $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
@@ -89,8 +99,14 @@ final class ApiEquipementController extends AbstractController
                         'nature'=>$equipement->getNature()?$equipement->getNature()->getLibelle() : "",
                         'adresse'=>$equipement->getCodeFournisseur() ? $equipement->getCodeFournisseur()->getSigle() : "",
                         'categorie'=>$equipement->getTypeUnicite() ? $equipement->getTypeUnicite()->getLibelle() : "",
-                        'stockFinal'=>$equipement->getStockFinal()
-                    );
+                        'stockFinal'=>$equipement->getStockFinal(),
+                        // Meme photo que dans la liste generale (public/data/equipements)
+                        'photo'=>$equipement->getCodeEquipementType() && $equipement->getCodeEquipementType()->getPhoto()
+                            ? $equipement->getCodeEquipementType()->getPhoto()
+                            : '',
+                        'photo_equipement'=>$equipement->getCodeEquipementType() && $equipement->getCodeEquipementType()->getPhoto()
+                            ? $equipement->getCodeEquipementType()->getPhoto()
+                            : ''                    );
                 }
                 $reponse = array('code'=>'success', 'msg'=>'Succès', 'data'=>$data);
             } catch (\Throwable $throwable){

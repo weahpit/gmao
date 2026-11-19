@@ -176,23 +176,45 @@ class DemandeAchatController extends AbstractController
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
         $q = trim((string) $request->query->get('q', ''));
 
-        $qb = $this->em->getRepository(Equipement::class)->createQueryBuilder('e');
+        $qb = $this->em->getRepository(Equipement::class)->createQueryBuilder('e')
+            ->leftJoin('e.code_equipement_type', 't')
+            ->leftJoin('e.type_unicite', 'u')
+            ->leftJoin('e.marque', 'm')
+            ->addSelect('t', 'u', 'm');
+
         if ($q !== '') {
-            $qb->andWhere('LOWER(e.nom) LIKE :q OR LOWER(e.code) LIKE :q')
+            // Le filtre porte sur TOUT le catalogue : designation, code,
+            // type d'article, categorie et marque. Un article sans stock ou
+            // sans quantite reste propose (il sera signale « indisponible »).
+            $qb->andWhere('LOWER(e.nom) LIKE :q OR LOWER(e.code) LIKE :q'
+                    . ' OR LOWER(COALESCE(t.nom_equipement, \'\')) LIKE :q'
+                    . ' OR LOWER(COALESCE(u.libelle, \'\')) LIKE :q'
+                    . ' OR LOWER(COALESCE(m.nom, \'\')) LIKE :q')
                ->setParameter('q', '%' . mb_strtolower($q) . '%');
         }
-        $qb->orderBy('e.nom', 'ASC')->setMaxResults(200);
+
+        // Pas de plafond a 200 : l'integralite du catalogue est renvoyee une
+        // seule fois, le filtrage se fait ensuite dans le navigateur.
+        $qb->orderBy('e.nom', 'ASC');
 
         $out = [];
         foreach ($qb->getQuery()->getResult() as $e) {
             /** @var Equipement $e */
+            $type = $e->getCodeEquipementType();
+            $categorie = $e->getTypeUnicite();
+            $marque = $e->getMarque();
+
             $out[] = [
-                'id'   => (string) $e->getId(),
-                'code' => (string) $e->getCode(),
-                'nom'  => (string) $e->getNom(),
-                'qte'  => (float) ($e->getQte() ?? 0),
+                'id'        => (string) $e->getId(),
+                'code'      => (string) $e->getCode(),
+                'nom'       => (string) $e->getNom(),
+                'qte'       => (float) ($e->getQte() ?? 0),
+                'categorie' => $categorie ? (string) $categorie->getLibelle() : '',
+                'type'      => $type ? (string) $type->getNomEquipement() : '',
+                'marque'    => $marque ? (string) $marque->getNom() : '',
             ];
         }
+
         return new JsonResponse($out);
     }
 

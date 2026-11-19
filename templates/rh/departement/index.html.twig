@@ -1,0 +1,210 @@
+{% extends 'rh/_layout.html.twig' %}
+
+{% block title %}Départements CITRAC{% endblock %}
+
+{% block rh_contenu %}
+    <div class="mx-auto text-center mt-5">
+        <h1 class="mb-2 fw-bold">Départements CITRAC</h1>
+        <button id="btn-ajout" style="border: 2px solid #5a371e; font-size: 16px;width: 250px;background: #5a371e;color: white;" data-bs-target="#modal_dpts" data-bs-toggle="modal">Ajouter département</button>
+        <div class="mt-2 div_contenu">
+
+        </div>
+
+    </div>
+
+    <div class="modal fade" id="modal_dpts" aria-hidden="true" aria-labelledby="modal_horaires" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalToggleLabel">Ajouter département</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="lbl_dpt" style="border: 2px solid #5a371e; font-size: 16px;width: 100%;text-transform: uppercase;" placeholder="Nom du département...">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn w-100 btn_departement" style="border: 2px solid #5a371e;background: #5a371e;color: white">Ajouter le département</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="modal_postes" aria-hidden="true" aria-labelledby="modal_quarts" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Postes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input class="ms-2" type="text" id="txt_poste" style="border: 2px solid #5a371e; font-size: 16px;margin-right: 10px;width: 97%;text-transform: uppercase;" placeholder="saisissez le poste...">
+                    <div class="m-2 contenudiv" style="border: 2px solid #5a371e;height:250px;overflow-y: scroll;">
+
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn w-100 btn_add_poste" style="border: 2px solid #5a371e;background: #5a371e;color: white">Ajouter le poste</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('rh/assets/js/utilitaires.js') }}"></script>
+    <script>
+        let id_dept = 0;
+        getDepartements();
+
+        $('.btn_departement').on('click', function() {
+            addDepartement();
+        });
+        $('.btn_add_poste').on('click', function() {
+            let libelle = $('#txt_poste').val()
+            addPoste(id_dept, libelle);
+        });
+        document.getElementById("txt_poste").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                addPoste(id_dept, this.value);
+            }
+        });
+        function addDepartement(){
+
+            let libelle = $("#lbl_dpt").val();
+
+            if (libelle){
+                $.ajax({
+                    url : '{{ path('rh_accueil') }}/AddDepartement/' + libelle,
+                    type: 'POST',
+                    success : function(response){
+                        let reponse = JSON.parse(response)
+                        if (reponse[0].code === "SUCCESS"){
+                            render_toast_value('Département ajouté avec Succès !', 1)
+                            getDepartements();
+                            $('#lbl_dpt').val('');
+                            $('#lbl_dpt').focus();
+                        }
+                    },
+                    error: function (erreur){
+                        render_toast_value('Erreur dans l\'ajout du département !', 0)
+                    }
+                })
+            }
+        }
+
+
+        function getDepartements(){
+            let contenu = "";
+            $.ajax({
+                url : '{{ path('rh_get_departements') }}',
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse.length > 0) {
+                        let contenu = '<table class="table mx-auto mt-2 border" style="width: 500px;">' +
+                            '<thead>' +
+                            '<tr>' +
+                            '<th class="bg-light">Nom</th>' +
+                            '<th class="bg-light">Postes</th>' +
+                            '<th class="bg-light">Actions</th>' +
+                            '</tr>' +
+                            '</thead>' +
+                            '<tbody class="body_contenu">';
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu = contenu + '<tr>'
+                            contenu = contenu + '<td class="fw-bold text-dark" style="background: lightyellow">' + reponse[i].libelle + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-danger" style="background: lightyellow"><i class="fa fa-eye text-dark poste" style="cursor: pointer;" id="'+ reponse[i].id + '" data-bs-target="#modal_postes" data-bs-toggle="modal"></i></td>'
+                            contenu = contenu + '<td class="fw-bold text-danger" style="background: lightyellow"><i class="fa fa-edit text-primary" style="cursor: pointer;"></i><i class="fa fa-trash ms-2 text-danger" style="cursor: pointer;"></i> </td>'
+                            contenu = contenu + '</tr>'
+                        }
+
+                        document.querySelector('.div_contenu').innerHTML = contenu;
+                        //alert('Ajouté');
+                    } else {
+                        document.querySelector('.div_contenu').innerHTML = '<h3 class="text-danger">Aucun département enregistré</h3>';
+                    }
+                }
+            })
+
+        }
+        $('body').on('click', '.poste', function (){
+            let id_departement = this.id;
+            id_dept = id_departement;
+            document.querySelector('.contenudiv').innerHTML = '';
+            getPostes(id_departement);
+        })
+        $('body').on('click', '.supprime_poste', function (){
+            let id_poste = this.id;
+            supprime_poste(id_poste);
+        })
+
+        function getPostes(id_departement){
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/getPostes/' + id_departement,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse.length > 0){
+                        let contenu = '';
+                        contenu = contenu +  '<table class="table">' +
+                            contenu +  '<thead>' +
+                            contenu +  '<tr>' +
+                            contenu +  '<th class="bg-light">Poste</th>' +
+                            contenu +  '<th class="bg-light">Actions</th>' +
+                            contenu +  '</tr>' +
+                            contenu +  '</thead>' +
+                            contenu +  '</tbody>';
+                        for (var i = 0; i < reponse.length; i++) {
+                            contenu = contenu + '<tr>'
+                            contenu = contenu + '<td class="fw-bold text-dark" style="background: lightyellow">' + reponse[i].libelle + '</span></td>'
+                            contenu = contenu + '<td class="fw-bold text-danger" style="background: lightyellow"><i class="fa fa-edit text-primary edit_poste" id="'+ reponse[i].id + '" style="cursor: pointer;"></i><i class="fa fa-trash ms-2 text-danger supprime_poste" id="'+ reponse[i].id + '" style="cursor: pointer;"></i> </td>'
+                            contenu = contenu + '</tr>'
+                        }
+                        contenu = contenu +  '</tbody>';
+                        contenu = contenu +  '</table>';
+                        document.querySelector('.contenudiv').innerHTML = contenu;
+                        $('.modal-title').text('Ajouter des Postes - [' + reponse[0].departement + ']') ;
+                    }
+                }
+            })
+        }
+        function addPoste(id_departement, libelle){
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/addPoste/' + id_departement + '/' + libelle,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse[0].code === "SUCCESS"){
+                        render_toast_value('Poste ajouté avec Succès !', 1)
+                        getPostes(id_departement)
+                        $('#txt_poste').val('')
+                        $('#txt_poste').focus();
+
+                    }
+                },
+                error: function (erreur){
+                    render_toast_value('Erreur dans l\'ajout du poste !', 0)
+                }
+            })
+        }
+        function supprime_poste(id_poste){
+            $.ajax({
+                url : '{{ path('rh_accueil') }}/deletePoste/' + id_poste,
+                type: 'POST',
+                success : function(response){
+                    let reponse = JSON.parse(response)
+                    if (reponse[0].code === "SUCCESS"){
+                        render_toast_value('Poste supprimé avec Succès !', 1)
+                        getPostes(id_dept)
+                        $('#txt_poste').focus()
+                    }
+                },
+                error: function (erreur){
+                    render_toast_value('Erreur dans la suppression du poste !', 0)
+                }
+            })
+        }
+
+    </script>
+{% endblock %}
