@@ -1,0 +1,220 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Listes de diffusion{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/chat.css') }}">
+    <style>
+        .liste-grid { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 18px; align-items: start; }
+        @media (max-width: 1000px) { .liste-grid { grid-template-columns: 1fr; } }
+
+        .liste-carte {
+            background: #fff; border: 1px solid #eee3d7; border-radius: 16px;
+            padding: 18px 20px; box-shadow: 0 2px 10px rgba(90, 55, 30, .05);
+        }
+        .liste-carte h2 { font-size: 1rem; font-weight: 800; color: #3d2a1c; margin: 0 0 4px; }
+        .liste-carte .sous { font-size: .8rem; color: #8b7b6b; margin-bottom: 14px; }
+
+        .liste-item {
+            display: flex; gap: 12px; align-items: flex-start;
+            border: 1px solid #eee3d7; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
+            background: #fdfbf8;
+        }
+        .liste-item.inactive { opacity: .62; }
+        .liste-item .ico {
+            width: 38px; height: 38px; border-radius: 10px; flex: 0 0 auto;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #2b1b10, #5a371e); color: #f3e2c8;
+        }
+        .liste-item .nom { font-weight: 800; color: #3d2a1c; font-size: .92rem; }
+        .liste-item .desc { font-size: .78rem; color: #8b7b6b; margin-top: 2px; }
+        .liste-item .tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 5px; }
+        .liste-item .tag {
+            font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+            background: #f3ece3; color: #6b4a2f; border: 1px solid #e6d9c9;
+        }
+        .liste-item .actions { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+        .liste-item .actions form { display: inline; }
+        .mini-btn {
+            border: 1px solid #e0d3c3; background: #fff; border-radius: 8px; padding: 5px 10px;
+            font-size: .74rem; font-weight: 700; color: #6b4a2f; cursor: pointer; text-decoration: none;
+        }
+        .mini-btn:hover { background: #f6efe6; }
+        .mini-btn.danger { color: #a2352a; border-color: #ecc9c2; }
+        .mini-btn.danger:hover { background: #fdf0ed; }
+
+        .choix-bloc { max-height: 230px; overflow: auto; border: 1px solid #eee3d7; border-radius: 10px; padding: 8px 10px; background: #fdfbf8; }
+        .choix-ligne { display: flex; align-items: center; gap: 8px; padding: 4px 2px; font-size: .82rem; color: #3d2a1c; }
+        .choix-ligne input { accent-color: #5a371e; }
+        .choix-titre { font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #a89b8c; margin: 14px 0 6px; }
+        .champ { margin-bottom: 12px; }
+        .champ label { display: block; font-size: .78rem; font-weight: 700; color: #6b4a2f; margin-bottom: 4px; }
+        .champ input[type=text], .champ textarea {
+            width: 100%; border: 1px solid #e0d3c3; border-radius: 10px; padding: 9px 11px; font-size: .86rem;
+            background: #fdfbf8; color: #3d2a1c; outline: none;
+        }
+        .champ input[type=text]:focus, .champ textarea:focus { border-color: #b07b3d; box-shadow: 0 0 0 3px rgba(176,123,61,.14); background: #fff; }
+        .btn-cacao {
+            display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 11px;
+            padding: 10px 18px; font-size: .86rem; font-weight: 800; color: #fff;
+            background: linear-gradient(135deg, #2b1b10, #5a371e); cursor: pointer;
+        }
+        .btn-cacao:hover { filter: brightness(1.12); }
+        .vide-liste { text-align: center; color: #a89b8c; font-size: .85rem; padding: 26px 10px; }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('app_chat') }}">Messagerie</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Listes de diffusion</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Administration de la messagerie</span>
+                <h1>Listes de diffusion</h1>
+                <p>
+                    Regroupez des services ou des personnes pour leur écrire en un seul envoi.
+                    Chaque liste devient un canal de discussion accessible à ses membres.
+                </p>
+            </div>
+            <div class="dc-header-actions">
+                <a href="{{ path('app_chat') }}" class="dc-chip" style="text-decoration:none;">Retour à la messagerie</a>
+            </div>
+        </div>
+    </header>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+    {% for message in app.flashes('danger') %}
+        <div class="alert alert-danger">{{ message }}</div>
+    {% endfor %}
+
+    <div class="liste-grid">
+        {# ---------------- Listes existantes ---------------- #}
+        <section class="liste-carte">
+            <h2>Listes existantes</h2>
+            <div class="sous">{{ listes|length }} liste{{ listes|length > 1 ? 's' : '' }} · {{ statistiques|length }} total</div>
+
+            {% if listes is empty %}
+                <div class="vide-liste">
+                    Aucune liste pour l'instant.<br>
+                    Créez la première à droite (par exemple « Tous les chefs de service »).
+                </div>
+            {% else %}
+                {% for liste in listes %}
+                    {% set nb = statistiques[liste.id ~ ''] ?? 0 %}
+                    <div class="liste-item {{ liste.active ? '' : 'inactive' }}">
+                        <div class="ico">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                        </div>
+                        <div style="min-width:0;flex:1;">
+                            <div class="nom">
+                                {{ liste.nom }}
+                                {% if not liste.active %}<span class="tag">Désactivée</span>{% endif %}
+                            </div>
+                            {% if liste.description %}<div class="desc">{{ liste.description }}</div>{% endif %}
+                            <div class="tags">
+                                <span class="tag">{{ liste.membresEffectifs|length }} membre{{ liste.membresEffectifs|length > 1 ? 's' : '' }}</span>
+                                <span class="tag">{{ nb }} message{{ nb > 1 ? 's' : '' }}</span>
+                                {% for groupe in liste.groupes %}<span class="tag">{{ groupe.nomGroupe }}</span>{% endfor %}
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <a href="{{ path('app_chat', {canal: 'liste:' ~ liste.id}) }}" class="mini-btn">Ouvrir</a>
+                            <a href="{{ path('app_chat_listes', {modifier: liste.id}) }}" class="mini-btn">Modifier</a>
+                            <form method="post" action="{{ path('app_chat_listes_basculer', {id: liste.id}) }}"
+                                  onsubmit="return confirm('{{ liste.active ? 'Désactiver' : 'Réactiver' }} la liste « {{ liste.nom|e('js') }} » ?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('chat_liste_' ~ liste.id) }}">
+                                <button type="submit" class="mini-btn">{{ liste.active ? 'Désactiver' : 'Réactiver' }}</button>
+                            </form>
+                            <form method="post" action="{{ path('app_chat_listes_supprimer', {id: liste.id}) }}"
+                                  onsubmit="return confirm('Supprimer définitivement la liste « {{ liste.nom|e('js') }} » et ses messages ?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('chat_liste_' ~ liste.id) }}">
+                                <button type="submit" class="mini-btn danger">Supprimer</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </section>
+
+        {# ---------------- Formulaire ---------------- #}
+        <section class="liste-carte">
+            <h2>{{ aModifier ? 'Modifier la liste' : 'Nouvelle liste' }}</h2>
+            <div class="sous">Cochez des groupes entiers et/ou des personnes.</div>
+
+            <form method="post" action="{{ path('app_chat_listes_enregistrer') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('chat_liste') }}">
+                {% if aModifier %}<input type="hidden" name="id" value="{{ aModifier.id }}">{% endif %}
+
+                <div class="champ">
+                    <label for="nom">Nom de la liste *</label>
+                    <input type="text" id="nom" name="nom" maxlength="120" required
+                           placeholder="Ex. Chefs de service usine"
+                           value="{{ aModifier ? aModifier.nom : '' }}">
+                </div>
+
+                <div class="champ">
+                    <label for="description">Description (facultatif)</label>
+                    <textarea id="description" name="description" rows="2" maxlength="255"
+                              placeholder="À quoi sert cette liste ?">{{ aModifier ? aModifier.description : '' }}</textarea>
+                </div>
+
+                <div class="champ">
+                    <label class="choix-ligne" style="font-weight:700;">
+                        <input type="checkbox" name="active" value="1" {{ (not aModifier or aModifier.active) ? 'checked' : '' }}>
+                        Liste active (visible dans la messagerie)
+                    </label>
+                </div>
+
+                <div class="choix-titre">Groupes d'utilisateurs</div>
+                {% if groupes is empty %}
+                    <div class="desc" style="font-size:.8rem;color:#a89b8c;">Aucun groupe disponible.</div>
+                {% else %}
+                    <div class="choix-bloc">
+                        {% for groupe in groupes %}
+                            <label class="choix-ligne">
+                                <input type="checkbox" name="groupes[]" value="{{ groupe.id }}"
+                                       {{ aModifier and aModifier.groupes.contains(groupe) ? 'checked' : '' }}>
+                                {{ groupe.nomGroupe }}
+                                <span style="color:#a89b8c;font-size:.74rem;">({{ groupe.users|length }} personne{{ groupe.users|length > 1 ? 's' : '' }})</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="choix-titre">Personnes</div>
+                <div class="choix-bloc">
+                    {% for u in utilisateurs %}
+                        <label class="choix-ligne">
+                            <input type="checkbox" name="membres[]" value="{{ u.id }}"
+                                   {{ aModifier and aModifier.membres.contains(u) ? 'checked' : '' }}>
+                            {{ u.nom }} {{ u.prenoms }}
+                            {% if u.email %}<span style="color:#a89b8c;font-size:.72rem;">· {{ u.email }}</span>{% endif %}
+                        </label>
+                    {% endfor %}
+                </div>
+
+                <div style="display:flex;gap:8px;margin-top:16px;">
+                    <button type="submit" class="btn-cacao">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        {{ aModifier ? 'Enregistrer les modifications' : 'Créer la liste' }}
+                    </button>
+                    {% if aModifier %}
+                        <a href="{{ path('app_chat_listes') }}" class="mini-btn" style="align-self:center;">Annuler</a>
+                    {% endif %}
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+{% endblock %}

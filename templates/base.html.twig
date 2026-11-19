@@ -342,7 +342,7 @@
                 <!-- DA avec sous-menu -->
                 <div class="nav-group">
                     <button type="button" class="nav-item has-submenu">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dashed-check preview-icon"><path d="M10.1 2.182a10 10 0 013.8 0"/><path d="M13.9 21.818a10 10 0 01-3.8 0"/><path d="m16 9-5.5 5.5L8 12"/><path d="M17.609 3.721a10 10 0 012.69 2.7"/><path d="M2.182 13.9a10 10 0 010-3.8"/><path d="M20.279 17.609a10 10 0 01-2.7 2.69"/><path d="M21.818 10.1a10 10 0 010 3.8"/><path d="M3.721 6.391a10 10 0 012.7-2.69"/><path d="M6.391 20.279a10 10 0 01-2.69-2.7"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paperclip preview-icon"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>
                         <span class="nav-label">Gestion de Courriers</span>
                         <i data-lucide="chevron-down" class="nav-chevron"></i>
                     </button>
@@ -396,13 +396,13 @@
                             <a href="{{ path('app_mouvements_doublons_articles') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_mouvements_doublons_articles' ? 'active' }}">
                                 <span class="nav-label">Doublons d'articles</span>
                             </a>
-                            <hr>
                             <a href="{{ path('app_magasin_bons_valides') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_magasin_bons_valides' ? 'active' }}">
-                            <span class="nav-label badge text-success" style="background: #e4f6e5;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="height: 16px;"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer-check preview-icon"><path d="M13.5 22H7a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v.5"/><path d="m16 19 2 2 4-4"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/></svg>
-                                <span class="ms-1">Imprimer Bon de Sortie</span>
-                            </span>
+                                <span class="nav-label">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" style="height: 16px;"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer-check preview-icon"><path d="M13.5 22H7a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v.5"/><path d="m16 19 2 2 4-4"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/></svg>
+                                    <span class="ms-1">Imprimer Bon de Sortie</span>
+                                </span>
                             </a>
+                            <hr>
                         {% endif %}
 
                         {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_SAISIE_STOCK')%}
@@ -580,8 +580,9 @@
                 <a href="{{ path('app_chat') }}"
                    class="nav-item {{ app.request.attributes.get('_route') starts with 'app_chat' ? 'active' }}"
                    style="text-decoration:none;">
-                    <i data-lucide="message-circle"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-messages-circle preview-icon"><path d="M19.95 10.05a7 7 0 011.412 7.872 1 1 0 00-.058.787l.675 2.089a1 1 0 01-1.236 1.168l-2.155-.631a1 1 0 00-.745.06 7 7 0 01-7.793-1.445"/><path d="M2.696 12.708a1 1 0 00-.058-.785 7 7 0 113.518 3.473 1 1 0 00-.744-.061l-2.155.63a1 1 0 01-1.236-1.167z"/></svg>
                     <span class="nav-label">Messagerie</span>
+                    <i data-lucide="chevron-down" class="nav-chevron"></i>
                     <span class="nav-badge" id="chatBadge" data-url="{{ path('app_chat_compteur') }}" hidden>0</span>
                 </a>
             </div>

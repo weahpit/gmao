@@ -2,12 +2,16 @@
 
 namespace App\Controller\Chat;
 
+use App\Entity\Chat\ListeDiffusion;
 use App\Entity\Chat\MessageChat;
 use App\Entity\User;
 use App\Repository\Chat\LectureChatRepository;
+use App\Repository\Chat\ListeDiffusionRepository;
 use App\Repository\Chat\MessageChatRepository;
+use App\Service\Chat\StockageMediasChat;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,19 +22,26 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Messagerie interne (chat) entre les utilisateurs de l'application.
  *
- *  - /messagerie                    : page du chat (canal général + conversations privées)
- *  - /messagerie/envoyer            : envoi d'un message (formulaire ou AJAX)
- *  - /messagerie/messages           : nouveaux messages en JSON (rafraîchissement auto)
- *  - /messagerie/compteur           : nombre de messages non lus (pastille du menu)
+ * Trois sortes de canaux :
+ *   - general          : le canal général, en écriture réservée aux responsables ;
+ *   - <uuid>           : conversation privée avec un collègue ;
+ *   - liste:<uuid>     : canal d'une liste de diffusion (groupe d'utilisateurs).
+ *
+ * Un message peut contenir du texte, une photo ou un vocal (60 s maximum).
  */
 #[Route('/messagerie')]
 #[IsGranted('ROLE_USER')]
 final class ChatController extends AbstractController
 {
+    /** Rôles autorisés à publier sur le canal général. */
+    private const ROLES_CANAL_GENERAL = ['ROLE_DG', 'ROLE_DL', 'ROLE_COORD_USINE'];
+
     public function __construct(
         private EntityManagerInterface $em,
         private MessageChatRepository $messages,
         private LectureChatRepository $lectures,
+        private ListeDiffusionRepository $listes,
+        private StockageMediasChat $stockage,
     ) {}
 
     // ------------------------------------------------------------------
@@ -40,28 +51,32 @@ final class ChatController extends AbstractController
     public function index(Request $request): Response
     {
         $moi = $this->utilisateurCourant();
-        $canal = (string) $request->query->get('canal', LectureChatRepository::CANAL_GENERAL);
-        $interlocuteur = $this->resoudreInterlocuteur($canal);
+        $canalDemande = (string) $request->query->get('canal', LectureChatRepository::CANAL_GENERAL);
+        $resolu = $this->resoudreCanal($canalDemande, $moi);
 
-        if ($interlocuteur === null) {
-            $canal = LectureChatRepository::CANAL_GENERAL;
+        if ($resolu === null) {
+            $this->addFlash('warning', 'Cette conversation n\'est pas accessible avec votre compte.');
+            $resolu = ['type' => 'general', 'user' => null, 'liste' => null];
         }
 
-        // Messages affichés
-        $messages = $interlocuteur === null
-            ? $this->messages->filGeneral(80)
-            : $this->messages->filPrive($moi, $interlocuteur, 80);
+        $interlocuteur = $resolu['user'];
+        $liste = $resolu['liste'];
 
-        // Ouverture de la conversation = lecture
-        $this->marquerLu($moi, $interlocuteur);
+        $messages = match ($resolu['type']) {
+            'liste'  => $this->messages->filListe($liste, 80),
+            'prive'  => $this->messages->filPrive($moi, $interlocuteur, 80),
+            default  => $this->messages->filGeneral(80),
+        };
 
-        // Liste des conversations (dernier échange par personne)
+        $this->marquerLu($moi, $canalDemande, $resolu);
+
+        // --- Liste des conversations privées ---------------------------------
         $nonLus = $this->messages->nonLusParExpediteur($moi);
         $conversations = [];
         foreach ($this->messages->derniersEchanges($moi) as $message) {
             $autre = $message->getExpediteur() === $moi ? $message->getDestinataire() : $message->getExpediteur();
             if ($autre === null) {
-                continue; // canal général : traité à part
+                continue;
             }
             $id = (string) $autre->getId();
             if (isset($conversations[$id])) {
@@ -74,42 +89,86 @@ final class ChatController extends AbstractController
             ];
         }
 
+        // --- Listes de diffusion visibles ------------------------------------
+        $estAdmin = $this->isGranted('ROLE_ADMIN');
+        $blocsListes = [];
+        foreach ($this->listes->pourUtilisateur($moi, $estAdmin) as $uneListe) {
+            $identifiant = 'liste:' . $uneListe->getId();
+            $blocsListes[] = [
+                'liste'     => $uneListe,
+                'canal'     => $identifiant,
+                'dernier'   => $this->messages->dernierDeListe($uneListe),
+                'non_lus'   => $this->messages->nonLusListe(
+                    $uneListe,
+                    $moi,
+                    $this->lectures->dernierLu($moi, $identifiant) ?? new \DateTimeImmutable('2000-01-01 00:00:00')
+                ),
+                'membres'   => count($uneListe->membresEffectifs()),
+            ];
+        }
+
         $general = $this->messages->filGeneral(1);
 
         return $this->render('chat/index.html.twig', [
-            'canal'          => $interlocuteur ? (string) $interlocuteur->getId() : LectureChatRepository::CANAL_GENERAL,
-            'interlocuteur'  => $interlocuteur,
-            'messages'       => $messages,
-            'conversations'  => $conversations,
-            'generalDernier' => $general[0] ?? null,
-            'nonLusGeneral'  => $this->nonLusGeneral($moi),
-            'utilisateurs'   => $this->autresUtilisateurs($moi),
+            'canal'            => $this->canalCourant($resolu),
+            'typeCanal'        => $resolu['type'],
+            'interlocuteur'    => $interlocuteur,
+            'listeCourante'    => $liste,
+            'messages'         => $messages,
+            'conversations'    => $conversations,
+            'listesDiffusion'  => $blocsListes,
+            'generalDernier'   => $general[0] ?? null,
+            'nonLusGeneral'    => $this->nonLusGeneral($moi),
+            'utilisateurs'     => $this->autresUtilisateurs($moi),
             'sansConversation' => array_values(array_filter(
                 $this->autresUtilisateurs($moi),
                 fn (User $u) => !isset($conversations[(string) $u->getId()])
             )),
-            'moi'            => $moi,
+            'moi'              => $moi,
+            'peutPublierGeneral' => $this->peutPublierGeneral(),
+            'estAdmin'         => $estAdmin,
+            'dureeAudioMax'    => MessageChat::DUREE_AUDIO_MAX,
         ]);
     }
 
     // ------------------------------------------------------------------
-    //  Envoi d'un message
+    //  Envoi d'un message (texte, photo ou vocal)
     // ------------------------------------------------------------------
     #[Route('/envoyer', name: 'app_chat_envoyer', methods: ['POST'])]
     public function envoyer(Request $request): Response
     {
         $moi = $this->utilisateurCourant();
         $canal = (string) $request->request->get('canal', LectureChatRepository::CANAL_GENERAL);
-        $interlocuteur = $this->resoudreInterlocuteur($canal);
-
-        $contenu = trim((string) $request->request->get('contenu', ''));
         $estAjax = $request->isXmlHttpRequest();
 
         if (!$this->isCsrfTokenValid('chat_envoyer', (string) $request->request->get('_token'))) {
-            return $this->reponseErreur($estAjax, 'Jeton de sécurité invalide. Rechargez la page et réessayez.', 419);
+            return $this->reponseErreur($estAjax, 'Jeton de sécurité invalide. Rechargez la page (Ctrl+F5) et réessayez.', 419);
         }
 
-        if ($contenu === '') {
+        $resolu = $this->resoudreCanal($canal, $moi);
+        if ($resolu === null) {
+            return $this->reponseErreur($estAjax, 'Vous n\'avez pas accès à cette conversation.', 403);
+        }
+
+        // --- Droit d'écriture sur le canal -----------------------------------
+        if ($resolu['type'] === 'general' && !$this->peutPublierGeneral()) {
+            return $this->reponseErreur(
+                $estAjax,
+                'Le canal général est réservé aux publications de la Direction (DG, DL, Coordonnateur usine). Vous pouvez écrire en privé à vos collègues.',
+                403
+            );
+        }
+        if ($resolu['type'] === 'liste' && !$this->isGranted('ROLE_ADMIN') && !$resolu['liste']->contient($moi)) {
+            return $this->reponseErreur($estAjax, 'Vous ne faites pas partie de cette liste de diffusion.', 403);
+        }
+
+        $contenu = trim((string) $request->request->get('contenu', ''));
+        $fichier = $request->files->get('fichier');
+        if (!$fichier instanceof UploadedFile) {
+            $fichier = null;
+        }
+
+        if ($contenu === '' && $fichier === null) {
             return $this->reponseErreur($estAjax, 'Le message est vide.', 422);
         }
 
@@ -117,17 +176,54 @@ final class ChatController extends AbstractController
             return $this->reponseErreur($estAjax, 'Message trop long : ' . MessageChat::LONGUEUR_MAX . ' caractères maximum.', 422);
         }
 
+        $type = MessageChat::TYPE_TEXTE;
+        $duree = null;
+        if ($fichier !== null) {
+            $type = (string) $request->request->get('type_piece', MessageChat::TYPE_IMAGE);
+            if (!in_array($type, [MessageChat::TYPE_IMAGE, MessageChat::TYPE_AUDIO], true)) {
+                return $this->reponseErreur($estAjax, 'Type de pièce jointe non reconnu : ' . $type . '.', 422);
+            }
+
+            if ($type === MessageChat::TYPE_AUDIO) {
+                $duree = (int) $request->request->get('duree', 0);
+                if ($duree > MessageChat::DUREE_AUDIO_MAX) {
+                    return $this->reponseErreur(
+                        $estAjax,
+                        'Message vocal trop long : ' . $duree . ' s. La limite est de ' . MessageChat::DUREE_AUDIO_MAX . ' secondes.',
+                        422
+                    );
+                }
+                $duree = max(0, $duree);
+            }
+        }
+
         $message = (new MessageChat())
             ->setExpediteur($moi)
-            ->setDestinataire($interlocuteur)
             ->setContenu($contenu)
             ->setLu(false);
+
+        if ($resolu['type'] === 'prive') {
+            $message->setDestinataire($resolu['user']);
+        } elseif ($resolu['type'] === 'liste') {
+            $message->setListeDiffusion($resolu['liste']);
+        }
+
+        if ($fichier !== null) {
+            try {
+                $this->stockage->enregistrer($fichier, $message, $type);
+            } catch (\InvalidArgumentException|\RuntimeException $e) {
+                return $this->reponseErreur($estAjax, $e->getMessage(), 422);
+            }
+            $message->setDuree($duree);
+            if ($message->getContenu() === '') {
+                $message->setContenu($type === MessageChat::TYPE_AUDIO ? 'Message vocal' : 'Photo');
+            }
+        }
 
         $this->em->persist($message);
         $this->em->flush();
 
-        // L'expéditeur a évidemment lu son propre message.
-        $this->marquerLu($moi, $interlocuteur);
+        $this->marquerLu($moi, $canal, $resolu);
 
         if ($estAjax) {
             return new JsonResponse(['ok' => true, 'message' => $this->serialiser($message, $moi)]);
@@ -143,7 +239,12 @@ final class ChatController extends AbstractController
     public function messagesRecents(Request $request): JsonResponse
     {
         $moi = $this->utilisateurCourant();
-        $interlocuteur = $this->resoudreInterlocuteur((string) $request->query->get('canal', 'general'));
+        $canal = (string) $request->query->get('canal', 'general');
+        $resolu = $this->resoudreCanal($canal, $moi);
+
+        if ($resolu === null) {
+            return new JsonResponse(['ok' => false, 'erreur' => 'Conversation inaccessible.', 'messages' => []], 403);
+        }
 
         $apres = (string) $request->query->get('apres', '');
         $date = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $apres);
@@ -151,12 +252,10 @@ final class ChatController extends AbstractController
             $date = new \DateTimeImmutable('-1 day');
         }
 
-        $nouveaux = $this->messages->nouveaux($interlocuteur, $moi, $date);
+        $nouveaux = $this->messages->nouveaux($resolu['user'], $moi, $date, $resolu['liste']);
 
         $donnees = [];
         foreach ($nouveaux as $message) {
-            // On ignore les messages écrits par soi-même : ils sont déjà affichés
-            // par l'envoi AJAX (évite les doublons).
             if ($message->getExpediteur() === $moi) {
                 continue;
             }
@@ -164,7 +263,7 @@ final class ChatController extends AbstractController
         }
 
         if ($donnees !== []) {
-            $this->marquerLu($moi, $interlocuteur);
+            $this->marquerLu($moi, $canal, $resolu);
         }
 
         return new JsonResponse(['ok' => true, 'messages' => $donnees]);
@@ -181,11 +280,27 @@ final class ChatController extends AbstractController
         $prives = $this->messages->totalNonLusPrives($moi);
         $general = $this->nonLusGeneral($moi);
 
+        $listes = 0;
+        $detailListes = [];
+        foreach ($this->listes->pourUtilisateur($moi, $this->isGranted('ROLE_ADMIN')) as $uneListe) {
+            $canal = 'liste:' . $uneListe->getId();
+            $n = $this->messages->nonLusListe(
+                $uneListe,
+                $moi,
+                $this->lectures->dernierLu($moi, $canal) ?? new \DateTimeImmutable('2000-01-01 00:00:00')
+            );
+            if ($n > 0) {
+                $detailListes[$canal] = $n;
+                $listes += $n;
+            }
+        }
+
         return new JsonResponse([
-            'total'  => $prives + $general,
+            'total'  => $prives + $general + $listes,
             'canaux' => array_merge(
                 ['general' => $general],
-                $this->messages->nonLusParExpediteur($moi)
+                $this->messages->nonLusParExpediteur($moi),
+                $detailListes
             ),
         ]);
     }
@@ -203,11 +318,49 @@ final class ChatController extends AbstractController
         return $utilisateur;
     }
 
-    /** Retrouve l'interlocuteur d'un canal privé (null = canal général). */
-    private function resoudreInterlocuteur(string $canal): ?User
+    /** Le profil peut-il publier sur le canal général ? */
+    private function peutPublierGeneral(): bool
     {
+        foreach (self::ROLES_CANAL_GENERAL as $role) {
+            if ($this->isGranted($role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Traduit un identifiant de canal en cible exploitable.
+     *
+     * @return array{type: string, user: ?User, liste: ?ListeDiffusion}|null
+     */
+    private function resoudreCanal(string $canal, User $moi): ?array
+    {
+        $canal = trim($canal);
+
         if ($canal === '' || $canal === LectureChatRepository::CANAL_GENERAL) {
-            return null;
+            return ['type' => 'general', 'user' => null, 'liste' => null];
+        }
+
+        if (str_starts_with($canal, 'liste:')) {
+            $id = substr($canal, 6);
+            try {
+                $liste = $this->listes->find(Uuid::fromString($id));
+            } catch (\Throwable) {
+                return null;
+            }
+            if (!$liste instanceof ListeDiffusion) {
+                return null;
+            }
+            if (!$liste->isActive() && !$this->isGranted('ROLE_ADMIN')) {
+                return null;
+            }
+            if (!$liste->contient($moi) && !$this->isGranted('ROLE_ADMIN')) {
+                return null;
+            }
+
+            return ['type' => 'liste', 'user' => null, 'liste' => $liste];
         }
 
         try {
@@ -217,24 +370,31 @@ final class ChatController extends AbstractController
         }
 
         $utilisateur = $this->em->getRepository(User::class)->find($id);
-        if (!$utilisateur instanceof User || $utilisateur === $this->getUser()) {
+        if (!$utilisateur instanceof User || $utilisateur->getId() === $moi->getId()) {
             return null;
         }
 
-        return $utilisateur;
+        return ['type' => 'prive', 'user' => $utilisateur, 'liste' => null];
+    }
+
+    /** Identifiant de canal renvoye au gabarit. */
+    private function canalCourant(array $resolu): string
+    {
+        return match ($resolu['type']) {
+            'liste' => 'liste:' . $resolu['liste']->getId(),
+            'prive' => (string) $resolu['user']->getId(),
+            default => LectureChatRepository::CANAL_GENERAL,
+        };
     }
 
     /** Marque le canal comme lu pour l'utilisateur courant. */
-    private function marquerLu(User $moi, ?User $interlocuteur): void
+    private function marquerLu(User $moi, string $canal, array $resolu): void
     {
-        if ($interlocuteur === null) {
-            $this->lectures->marquerLu($moi, LectureChatRepository::CANAL_GENERAL);
-
-            return;
+        if ($resolu['type'] === 'prive') {
+            $this->messages->marquerLusDe($moi, $resolu['user']);
         }
 
-        $this->messages->marquerLusDe($moi, $interlocuteur);
-        $this->lectures->marquerLu($moi, (string) $interlocuteur->getId());
+        $this->lectures->marquerLu($moi, $this->canalCourant($resolu));
     }
 
     private function nonLusGeneral(User $moi): int
@@ -251,7 +411,7 @@ final class ChatController extends AbstractController
 
         return array_values(array_filter($tous, static function ($u) use ($moi) {
             return $u instanceof User
-                && $u !== $moi
+                && $u->getId() !== $moi->getId()
                 && $u->getId() !== null
                 && $u->isActive() !== false;
         }));
@@ -274,6 +434,10 @@ final class ChatController extends AbstractController
             'jour'      => $message->getCreatedAt()?->format('d/m/Y'),
             'heure'     => $message->getCreatedAt()?->format('H:i'),
             'iso'       => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'type'      => $message->getType(),
+            'fichier'   => $message->getFichier() ? '/uploads/chat/' . $message->getFichier() : null,
+            'fichier_nom' => $message->getFichierNom(),
+            'duree'     => $message->getDuree(),
         ];
     }
 

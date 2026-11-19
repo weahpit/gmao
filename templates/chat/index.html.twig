@@ -16,11 +16,14 @@
 {% block body %}
 {% set totalNonLus = nonLusGeneral %}
 {% for conversation in conversations %}{% set totalNonLus = totalNonLus + conversation.non_lus %}{% endfor %}
+{% for bloc in listesDiffusion %}{% set totalNonLus = totalNonLus + bloc.non_lus %}{% endfor %}
 
 <div class="dc-wrap py-3 chat-page"
      data-canal="{{ canal }}"
      data-moi="{{ moi.id }}"
-     data-general="{{ interlocuteur is null ? '1' : '0' }}">
+     data-type-canal="{{ typeCanal }}"
+     data-general="{{ typeCanal == 'general' ? '1' : '0' }}"
+     data-duree-max="{{ dureeAudioMax }}">
 
     {# ---------------- En-tête ---------------- #}
     <header class="dc-header">
@@ -32,8 +35,8 @@
                 </span>
                 <h1>Messagerie</h1>
                 <p>
-                    Échangez avec vos collègues en direct, ou posez une question à toute l'équipe
-                    sur le canal général. Les messages restent dans l'application.
+                    Échangez avec vos collègues en direct, envoyez une photo ou un message vocal,
+                    ou suivez les publications de la Direction sur le canal général.
                 </p>
             </div>
             <div class="dc-header-actions">
@@ -44,18 +47,23 @@
                 {% else %}
                     <span class="dc-chip">À jour</span>
                 {% endif %}
+                {% if estAdmin %}
+                    <a href="{{ path('app_chat_listes') }}" class="dc-chip" style="text-decoration:none;">
+                        Gérer les listes de diffusion
+                    </a>
+                {% endif %}
             </div>
         </div>
     </header>
 
-    <div class="chat-shell {{ interlocuteur ? 'ouvert' : '' }}" id="chatShell">
+    <div class="chat-shell {{ typeCanal != 'general' ? 'ouvert' : '' }}" id="chatShell">
 
         {# ---------------- Conversations ---------------- #}
         <aside class="chat-side">
             <div class="chat-side-head">
                 <div class="titre">
                     <span>Conversations</span>
-                    <span style="font-weight:700;color:#b0a294;">{{ conversations|length + 1 }}</span>
+                    <span style="font-weight:700;color:#b0a294;">{{ conversations|length + listesDiffusion|length + 1 }}</span>
                 </div>
                 <div class="chat-recherche">
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -66,7 +74,7 @@
             <div class="chat-liste" id="chatListe">
                 {# Canal général #}
                 <a href="{{ path('app_chat', {canal: 'general'}) }}"
-                   class="chat-conv {{ interlocuteur is null ? 'active' }}"
+                   class="chat-conv {{ typeCanal == 'general' ? 'active' }}"
                    data-nom="canal general equipe tous">
                     <div class="chat-avatar general">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -78,7 +86,7 @@
                         </div>
                         <div class="chat-conv-apercu">
                             {% if generalDernier %}
-                                {{ generalDernier.contenu|slice(0, 42) }}{{ generalDernier.contenu|length > 42 ? '…' }}
+                                {% if generalDernier.type == 'audio' %}Message vocal{% elseif generalDernier.type == 'image' %}Photo{% else %}{{ generalDernier.contenu|slice(0, 42) }}{{ generalDernier.contenu|length > 42 ? '…' }}{% endif %}
                             {% else %}
                                 Toute l'équipe
                             {% endif %}
@@ -86,6 +94,35 @@
                     </div>
                     {% if nonLusGeneral > 0 %}<span class="chat-pastille">{{ nonLusGeneral }}</span>{% endif %}
                 </a>
+
+                {# Listes de diffusion #}
+                {% if listesDiffusion is not empty %}
+                    <div class="chat-sep">Listes de diffusion</div>
+                    {% for bloc in listesDiffusion %}
+                        <a href="{{ path('app_chat', {canal: bloc.canal}) }}"
+                           class="chat-conv {{ typeCanal == 'liste' and listeCourante and listeCourante.id == bloc.liste.id ? 'active' }}"
+                           data-nom="{{ bloc.liste.nom|lower }}">
+                            <div class="chat-avatar or">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                            </div>
+                            <div class="chat-conv-corps">
+                                <div class="chat-conv-nom">
+                                    <span>{{ bloc.liste.nom }}</span>
+                                    {% if bloc.dernier %}<span class="heure">{{ bloc.dernier.createdAt|date('d/m') }}</span>{% endif %}
+                                </div>
+                                <div class="chat-conv-apercu">
+                                    {% if not bloc.liste.active %}<span class="moi">Désactivée</span> · {% endif %}
+                                    {% if bloc.dernier %}
+                                        {% if bloc.dernier.type == 'audio' %}Message vocal{% elseif bloc.dernier.type == 'image' %}Photo{% else %}{{ bloc.dernier.contenu|slice(0, 32) }}{{ bloc.dernier.contenu|length > 32 ? '…' }}{% endif %}
+                                    {% else %}
+                                        {{ bloc.membres }} membre{{ bloc.membres > 1 ? 's' }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if bloc.non_lus > 0 %}<span class="chat-pastille">{{ bloc.non_lus }}</span>{% endif %}
+                        </a>
+                    {% endfor %}
+                {% endif %}
 
                 {% if conversations is not empty %}
                     <div class="chat-sep">Messages privés</div>
@@ -106,7 +143,7 @@
                                     </span>
                                 </div>
                                 <div class="chat-conv-apercu">
-                                    {% if dernier.expediteur.id == moi.id %}<span class="moi">Vous :</span> {% endif %}{{ dernier.contenu|slice(0, 38) }}{{ dernier.contenu|length > 38 ? '…' }}
+                                    {% if dernier.expediteur.id == moi.id %}<span class="moi">Vous :</span> {% endif %}{% if dernier.type == 'audio' %}Message vocal{% elseif dernier.type == 'image' %}Photo{% else %}{{ dernier.contenu|slice(0, 38) }}{{ dernier.contenu|length > 38 ? '…' }}{% endif %}
                                 </div>
                             </div>
                             {% if conversation.non_lus > 0 %}<span class="chat-pastille">{{ conversation.non_lus }}</span>{% endif %}
@@ -144,13 +181,24 @@
                     Conversations
                 </a>
 
-                {% if interlocuteur %}
-                    <div class="chat-avatar {{ 'fonce' }}" style="width:34px;height:34px;font-size:.72rem;">
+                {% if typeCanal == 'prive' and interlocuteur %}
+                    <div class="chat-avatar fonce" style="width:34px;height:34px;font-size:.72rem;">
                         {{ (interlocuteur.nom|slice(0,1) ~ interlocuteur.prenoms|slice(0,1))|upper }}
                     </div>
                     <div>
                         <div class="nom">{{ interlocuteur.nom }} {{ interlocuteur.prenoms }}</div>
                         <div class="sous">Conversation privée · {{ interlocuteur.email }}</div>
+                    </div>
+                {% elseif typeCanal == 'liste' and listeCourante %}
+                    <div class="chat-avatar or" style="width:34px;height:34px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                    </div>
+                    <div>
+                        <div class="nom">{{ listeCourante.nom }}</div>
+                        <div class="sous">
+                            Liste de diffusion · {{ listeCourante.membresEffectifs|length }} membre{{ listeCourante.membresEffectifs|length > 1 ? 's' }}
+                            {% if not listeCourante.active %} · désactivée{% endif %}
+                        </div>
                     </div>
                 {% else %}
                     <div class="chat-avatar general" style="width:34px;height:34px;">
@@ -158,7 +206,13 @@
                     </div>
                     <div>
                         <div class="nom">Canal général</div>
-                        <div class="sous">Visible par tous les utilisateurs de l'application</div>
+                        <div class="sous">
+                            {% if peutPublierGeneral %}
+                                Publication réservée à la Direction (DG, DL, Coordonnateur usine)
+                            {% else %}
+                                Lecture seule · les publications viennent de la Direction
+                            {% endif %}
+                        </div>
                     </div>
                 {% endif %}
 
@@ -173,7 +227,13 @@
                     <div class="chat-vide" id="chatVide">
                         <div class="ico">💬</div>
                         <strong>Aucun message pour l'instant.</strong>
-                        <div style="margin-top:4px;">Écrivez le premier message ci-dessous.</div>
+                        <div style="margin-top:4px;">
+                            {% if typeCanal == 'general' and not peutPublierGeneral %}
+                                Les publications de la Direction apparaîtront ici.
+                            {% else %}
+                                Écrivez le premier message ci-dessous.
+                            {% endif %}
+                        </div>
                     </div>
                 {% endif %}
 
@@ -187,10 +247,20 @@
                             </div>
                         {% endif %}
                         <div class="chat-bulle">
-                            {% if interlocuteur is null and m.expediteur.id != moi.id %}
+                            {% if typeCanal != 'prive' and m.expediteur.id != moi.id %}
                                 <div class="chat-auteur">{{ m.expediteur.nom }} {{ m.expediteur.prenoms }}</div>
                             {% endif %}
-                            <div class="chat-texte">{{ m.contenu }}</div>
+                            {% if m.type == 'image' and m.fichier %}
+                                <a href="{{ asset('uploads/chat/' ~ m.fichier) }}" target="_blank" rel="noopener">
+                                    <img class="chat-image" src="{{ asset('uploads/chat/' ~ m.fichier) }}" alt="Photo envoyée par {{ m.expediteur.nom }}" loading="lazy">
+                                </a>
+                            {% elseif m.type == 'audio' and m.fichier %}
+                                <audio class="chat-audio" controls preload="none" src="{{ asset('uploads/chat/' ~ m.fichier) }}"></audio>
+                                {% if m.duree %}<div class="chat-duree">Vocal · {{ m.duree }} s</div>{% endif %}
+                            {% endif %}
+                            {% if m.type == 'texte' or (m.contenu and m.contenu not in ['Photo', 'Message vocal']) %}
+                                <div class="chat-texte">{{ m.contenu }}</div>
+                            {% endif %}
                             <div class="chat-meta">
                                 {{ m.createdAt|date('H:i') }}
                                 <span class="chat-jour">{{ m.createdAt|date('d/m/Y') }}</span>
@@ -200,23 +270,49 @@
                 {% endfor %}
             </div>
 
+            {% set blocage = typeCanal == 'general' and not peutPublierGeneral %}
+            {% if blocage %}
+                <div class="chat-blocage">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <div>
+                        <strong>Canal général en lecture seule</strong>
+                        <div>Seuls le DG, le DL et le Coordonnateur usine peuvent publier ici. Vous pouvez écrire en privé à un collègue ou dans une liste de diffusion.</div>
+                    </div>
+                </div>
+            {% else %}
             <div class="chat-composeur">
-                <form id="chatForm" method="post" action="{{ path('app_chat_envoyer') }}">
+                <div class="chat-pj-apercu" id="chatPjApercu" hidden></div>
+                <form id="chatForm" method="post" action="{{ path('app_chat_envoyer') }}" enctype="multipart/form-data">
                     <input type="hidden" name="_token" value="{{ csrf_token('chat_envoyer') }}">
                     <input type="hidden" name="canal" value="{{ canal }}">
-                    <textarea id="chatInput" name="contenu" rows="1"
-                              placeholder="Écrivez votre message..."
-                              maxlength="2000" aria-label="Votre message"></textarea>
-                    <button type="submit" class="chat-envoyer" id="chatEnvoyer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                        Envoyer
-                    </button>
+                    <input type="file" id="chatPhotoInput" accept="image/*" hidden>
+                    <div class="chat-composeur-ligne">
+                        <button type="button" class="chat-pj" id="chatPhotoBtn" title="Envoyer une photo" aria-label="Envoyer une photo">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </button>
+                        <button type="button" class="chat-pj" id="chatVocalBtn" title="Enregistrer un message vocal ({{ dureeAudioMax }} s max)" aria-label="Enregistrer un message vocal">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                        </button>
+                        <textarea id="chatInput" name="contenu" rows="1"
+                                  placeholder="Écrivez votre message..."
+                                  maxlength="2000" aria-label="Votre message"></textarea>
+                        <button type="submit" class="chat-envoyer" id="chatEnvoyer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            Envoyer
+                        </button>
+                    </div>
+                    <div class="chat-enregistrement" id="chatEnregistrement" hidden>
+                        <span class="point"></span>
+                        <span>Enregistrement… <strong id="chatVocalTemps">0:00</strong> / {{ dureeAudioMax }} s</span>
+                        <button type="button" id="chatVocalStop">Arrêter et envoyer</button>
+                    </div>
                 </form>
                 <div class="chat-aide">
-                    <span>Entrée pour envoyer · Maj + Entrée pour aller à la ligne</span>
+                    <span>Entrée pour envoyer · Maj + Entrée pour aller à la ligne · photo et vocal {{ dureeAudioMax }} s max.</span>
                     <span class="compteur" id="chatCompteur">0 / 2000</span>
                 </div>
             </div>
+            {% endif %}
         </section>
     </div>
 </div>
@@ -228,9 +324,11 @@
     const page = document.querySelector('.chat-page');
     if (!page) return;
 
-    const canal      = page.dataset.canal;
-    const moi        = page.dataset.moi;
-    const estGeneral = page.dataset.general === '1';
+    const canal       = page.dataset.canal;
+    const typeCanal   = page.dataset.typeCanal || 'general';
+    const dureeMax    = parseInt(page.dataset.dureeMax || '60', 10);
+    const estGeneral  = typeCanal === 'general';
+    const multiAuteur = typeCanal !== 'prive';
 
     const fil        = document.getElementById('chatFil');
     const form       = document.getElementById('chatForm');
@@ -246,8 +344,51 @@
     let envoiEnCours = false;
 
     function basDePage(force) {
-        const proche = fil.scrollHeight - fil.scrollTop - fil.clientHeight < 140;
+        const proche = fil.scrollHeight - fil.scrollTop - fil.clientHeight < 160;
         if (force || proche) fil.scrollTop = fil.scrollHeight;
+    }
+
+    function formatDuree(s) {
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return m + ':' + String(r).padStart(2, '0');
+    }
+
+    function corpsPiece(m) {
+        const frag = document.createElement('div');
+        if (m.type === 'image' && m.fichier) {
+            const lien = document.createElement('a');
+            lien.href = m.fichier;
+            lien.target = '_blank';
+            lien.rel = 'noopener';
+            const img = document.createElement('img');
+            img.className = 'chat-image';
+            img.src = m.fichier;
+            img.alt = 'Photo envoyée par ' + m.auteur;
+            img.loading = 'lazy';
+            lien.appendChild(img);
+            frag.appendChild(lien);
+        } else if (m.type === 'audio' && m.fichier) {
+            const audio = document.createElement('audio');
+            audio.className = 'chat-audio';
+            audio.controls = true;
+            audio.preload = 'none';
+            audio.src = m.fichier;
+            frag.appendChild(audio);
+            if (m.duree) {
+                const d = document.createElement('div');
+                d.className = 'chat-duree';
+                d.textContent = 'Vocal · ' + m.duree + ' s';
+                frag.appendChild(d);
+            }
+        }
+        if (m.contenu && (m.type === 'texte' || (m.contenu !== 'Photo' && m.contenu !== 'Message vocal'))) {
+            const t = document.createElement('div');
+            t.className = 'chat-texte';
+            t.textContent = m.contenu;
+            frag.appendChild(t);
+        }
+        return frag;
     }
 
     function bulle(m) {
@@ -267,17 +408,14 @@
         const bulleEl = document.createElement('div');
         bulleEl.className = 'chat-bulle';
 
-        if (estGeneral && !m.moi) {
+        if (multiAuteur && !m.moi) {
             const auteur = document.createElement('div');
             auteur.className = 'chat-auteur';
             auteur.textContent = m.auteur;
             bulleEl.appendChild(auteur);
         }
 
-        const texte = document.createElement('div');
-        texte.className = 'chat-texte';
-        texte.textContent = m.contenu;
-        bulleEl.appendChild(texte);
+        bulleEl.appendChild(corpsPiece(m));
 
         const meta = document.createElement('div');
         meta.className = 'chat-meta';
@@ -324,57 +462,183 @@
         .catch(function () { majEtat(false); });
     }
 
-    // Envoi du message
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const texte = input.value.trim();
-        if (texte === '' || envoiEnCours) return;
-
-        envoiEnCours = true;
-        bouton.disabled = true;
-
-        fetch(form.action, {
+    async function poster(donnees) {
+        const reponse = await fetch(form.action, {
             method: 'POST',
-            body: new FormData(form),
+            body: donnees,
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin'
-        })
-        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-        .then(function (res) {
-            if (!res.ok || !res.data.ok) {
-                alert(res.data.erreur || 'Le message n\'a pas pu être envoyé.');
+        });
+        let data = {};
+        try { data = await reponse.json(); } catch (e) { data = {}; }
+        if (!reponse.ok || !data.ok) {
+            throw new Error(data.erreur || 'Le message n\'a pas pu être envoyé (code ' + reponse.status + ').');
+        }
+        return data.message;
+    }
+
+    function occupe(v) {
+        envoiEnCours = v;
+        if (bouton) bouton.disabled = v;
+    }
+
+    // ---------- Envoi d'un texte ----------
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const texte = input.value.trim();
+            if (texte === '' || envoiEnCours) return;
+
+            occupe(true);
+            const donnees = new FormData(form);
+            donnees.set('contenu', texte);
+
+            poster(donnees).then(function (message) {
+                input.value = '';
+                input.style.height = 'auto';
+                compteur.textContent = '0 / 2000';
+                compteur.classList.remove('trop');
+                ajouter([message], true);
+            }).catch(function (err) {
+                alert(err.message);
+            }).finally(function () {
+                occupe(false);
+                input.focus();
+            });
+        });
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
+        input.addEventListener('input', function () {
+            const n = input.value.length;
+            compteur.textContent = n + ' / 2000';
+            compteur.classList.toggle('trop', n > 1800);
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 130) + 'px';
+        });
+    }
+
+    // ---------- Envoi d'une piece jointe ----------
+    const apercu = document.getElementById('chatPjApercu');
+
+    async function envoyerFichier(fichier, type, duree) {
+        if (!form) return;
+        if (fichier.size > 15 * 1024 * 1024) {
+            alert('Fichier trop volumineux : ' + (fichier.size / 1048576).toFixed(1) + ' Mo. Maximum 15 Mo.');
+            return;
+        }
+        occupe(true);
+        if (apercu) {
+            apercu.hidden = false;
+            apercu.textContent = (type === 'audio' ? 'Envoi du message vocal…' : 'Envoi de la photo…');
+        }
+
+        const donnees = new FormData(form);
+        donnees.set('contenu', input ? input.value.trim() : '');
+        donnees.set('type_piece', type);
+        if (type === 'audio') donnees.set('duree', String(Math.round(duree || 0)));
+        donnees.set('fichier', fichier, fichier.name);
+
+        try {
+            const message = await poster(donnees);
+            if (input) { input.value = ''; input.style.height = 'auto'; }
+            if (compteur) compteur.textContent = '0 / 2000';
+            ajouter([message], true);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            occupe(false);
+            if (apercu) { apercu.hidden = true; apercu.textContent = ''; }
+        }
+    }
+
+    const photoBtn = document.getElementById('chatPhotoBtn');
+    const photoInput = document.getElementById('chatPhotoInput');
+    if (photoBtn && photoInput) {
+        photoBtn.addEventListener('click', function () { photoInput.click(); });
+        photoInput.addEventListener('change', function () {
+            const f = photoInput.files && photoInput.files[0];
+            photoInput.value = '';
+            if (f) envoyerFichier(f, 'image', 0);
+        });
+    }
+
+    // ---------- Enregistrement vocal (60 s maximum) ----------
+    const vocalBtn = document.getElementById('chatVocalBtn');
+    const zoneEnreg = document.getElementById('chatEnregistrement');
+    const tempsEl = document.getElementById('chatVocalTemps');
+    const stopBtn = document.getElementById('chatVocalStop');
+
+    let enregistreur = null;
+    let morceaux = [];
+    let debut = 0;
+    let chrono = null;
+
+    function arreterEnregistrement(envoyer) {
+        if (!enregistreur) return;
+        enregistreur._envoyer = envoyer;
+        try { enregistreur.stop(); } catch (e) {}
+        if (chrono) { clearInterval(chrono); chrono = null; }
+    }
+
+    if (vocalBtn) {
+        vocalBtn.addEventListener('click', async function () {
+            if (enregistreur) { arreterEnregistrement(true); return; }
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Votre navigateur ne permet pas l\'enregistrement vocal. Utilisez Chrome, Edge ou Firefox à jour, ou l\'application mobile.');
                 return;
             }
-            input.value = '';
-            input.style.height = 'auto';
-            compteur.textContent = '0 / 2000';
-            compteur.classList.remove('trop');
-            ajouter([res.data.message], true);
-        })
-        .catch(function () { alert('Le message n\'a pas pu être envoyé. Vérifiez votre connexion.'); })
-        .finally(function () {
-            envoiEnCours = false;
-            bouton.disabled = false;
-            input.focus();
+
+            try {
+                const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const options = window.MediaRecorder && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? { mimeType: 'audio/webm;codecs=opus' }
+                    : {};
+                enregistreur = new MediaRecorder(flux, options);
+                morceaux = [];
+
+                enregistreur.ondataavailable = function (e) { if (e.data && e.data.size) morceaux.push(e.data); };
+                enregistreur.onstop = function () {
+                    const duree = Math.min(dureeMax, Math.round((Date.now() - debut) / 1000));
+                    const type = enregistreur.mimeType || 'audio/webm';
+                    const ext = type.indexOf('ogg') !== -1 ? 'ogg' : (type.indexOf('mp4') !== -1 ? 'm4a' : 'webm');
+                    const blob = new Blob(morceaux, { type: type });
+                    flux.getTracks().forEach(function (t) { t.stop(); });
+                    const envoyer = enregistreur._envoyer !== false;
+                    enregistreur = null;
+                    if (zoneEnreg) zoneEnreg.hidden = true;
+                    if (vocalBtn) vocalBtn.classList.remove('actif');
+                    if (envoyer && blob.size > 0) {
+                        const fichier = new File([blob], 'vocal-' + Date.now() + '.' + ext, { type: type });
+                        envoyerFichier(fichier, 'audio', duree);
+                    }
+                };
+
+                debut = Date.now();
+                enregistreur.start();
+                if (zoneEnreg) zoneEnreg.hidden = false;
+                vocalBtn.classList.add('actif');
+
+                chrono = setInterval(function () {
+                    const s = Math.round((Date.now() - debut) / 1000);
+                    if (tempsEl) tempsEl.textContent = formatDuree(s);
+                    if (s >= dureeMax) arreterEnregistrement(true);
+                }, 250);
+            } catch (e) {
+                alert('Micro inaccessible : ' + (e && e.message ? e.message : 'autorisation refusée') + '. Autorisez le microphone dans les réglages du navigateur.');
+            }
         });
-    });
+    }
 
-    // Entrée = envoyer, Maj+Entrée = nouvelle ligne
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            form.requestSubmit();
-        }
-    });
-
-    // Compteur + hauteur automatique
-    input.addEventListener('input', function () {
-        const n = input.value.length;
-        compteur.textContent = n + ' / 2000';
-        compteur.classList.toggle('trop', n > 1800);
-        input.style.height = 'auto';
-        input.style.height = Math.min(input.scrollHeight, 130) + 'px';
-    });
+    if (stopBtn) {
+        stopBtn.addEventListener('click', function () { arreterEnregistrement(true); });
+    }
 
     // Recherche dans la liste
     if (recherche) {
@@ -388,7 +652,7 @@
     }
 
     // Mobile : ouvrir la discussion
-    if (window.matchMedia('(max-width: 900px)').matches && shell) {
+    if (window.matchMedia('(max-width: 900px)').matches && shell && typeCanal !== 'general') {
         shell.classList.add('ouvert');
     }
 

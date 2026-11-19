@@ -41,6 +41,13 @@ class TracabiliteLotController extends AbstractController
     private const LOTS_PAR_PAGE = 25;
     private const CAMIONS_MAX = 20;
 
+    /**
+     * L'ordre d'usinage ne concerne QUE les lots de feves : on ne propose donc
+     * que les lots dont le produit contient "FEVE" (feve, feves, fève, féves...).
+     * Les lots sans produit renseigne sont ecartes.
+     */
+    private const MOTIFS_FEVE = ['%FEVE%', '%FÈVE%', '%FÊVE%', '%FËVE%'];
+
     public function __construct(
         private readonly LotRepository $lots,
         private readonly DechargementCacaoRepository $dechargements,
@@ -61,6 +68,14 @@ class TracabiliteLotController extends AbstractController
         $rechercheCamion = trim((string) $request->query->get('cq', ''));
 
         $qb = $this->lots->createQueryBuilder('l')->leftJoin('l.code_produit', 'p')->addSelect('p');
+
+        // ------ Uniquement les lots de feves (ordre d'usinage) ------
+        $conditionsFeve = [];
+        foreach (self::MOTIFS_FEVE as $i => $motif) {
+            $conditionsFeve[] = 'p.libelle LIKE :feve' . $i;
+            $qb->setParameter('feve' . $i, $motif);
+        }
+        $qb->andWhere('(' . implode(' OR ', $conditionsFeve) . ')');
 
         if ($terme !== '') {
             $qb->andWhere('UPPER(l.numero_lot) LIKE :terme OR UPPER(l.qualite) LIKE :terme')
@@ -146,6 +161,26 @@ class TracabiliteLotController extends AbstractController
         ]);
     }
 
+    /** Vrai si le produit du lot est une feve (feve, feves, fève, féves...). */
+    private function estLotFeve(Lot $lot): bool
+    {
+        $libelle = $lot->getCodeProduit()?->getLibelle();
+        if ($libelle === null || trim($libelle) === '') {
+            return false;
+        }
+
+        $normalise = strtr(mb_strtoupper($libelle, 'UTF-8'), [
+            'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A',
+            'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+            'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',
+            'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
+            'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U',
+            'Ç' => 'C', 'Œ' => 'OE', 'Æ' => 'AE',
+        ]);
+
+        return str_contains($normalise, 'FEVE');
+    }
+
     /** Cree un ordre d'usinage : N camions x N lots selectionnes. */
     #[Route('/Ordre', name: 'stock_ordre_usinage_creer', methods: ['POST'])]
     public function creerOrdre(Request $request): Response
@@ -205,6 +240,7 @@ class TracabiliteLotController extends AbstractController
         $crees = 0;
         $ignores = 0;
         $lotsTraites = 0;
+        $rejetes = 0;
 
         foreach (array_unique($idsLots) as $idLot) {
             if (!Uuid::isValid((string) $idLot)) {
@@ -214,6 +250,16 @@ class TracabiliteLotController extends AbstractController
             /** @var Lot|null $lot */
             $lot = $this->lots->find(Uuid::fromString((string) $idLot));
             if ($lot === null) {
+                continue;
+            }
+
+            // Controle serveur : un ordre d'usinage ne concerne que les feves.
+            if (!$this->estLotFeve($lot)) {
+                $rejetes++;
+                $this->addFlash('danger', sprintf(
+                    'Le lot %s n\'est pas un lot de feves : il ne peut pas entrer dans un ordre d\'usinage.',
+                    (string) $lot->getNumeroLot()
+                ));
                 continue;
             }
 
@@ -253,7 +299,9 @@ class TracabiliteLotController extends AbstractController
         if ($crees === 0) {
             $this->em->remove($ordre);
             $this->em->clear();
-            $this->addFlash('info', 'Aucun nouveau rattachement : ces lots sont deja lies a ces camions.');
+            $this->addFlash('info', $rejetes > 0
+                ? sprintf('Aucun rattachement cree : %d lot(s) refuse(s) car ce ne sont pas des lots de feves.', $rejetes)
+                : 'Aucun nouveau rattachement : ces lots sont deja lies a ces camions.');
 
             return $retour;
         }
@@ -267,6 +315,9 @@ class TracabiliteLotController extends AbstractController
                 $lotsTraites,
                 $crees
             ));
+            if ($rejetes > 0) {
+                $this->addFlash('warning', sprintf('%d lot(s) ont ete ignores : ce ne sont pas des lots de feves.', $rejetes));
+            }
             if ($ignores > 0) {
                 $this->addFlash('info', $ignores . ' rattachement(s) existaient deja et ont ete ignores.');
             }

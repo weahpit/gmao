@@ -18,6 +18,13 @@
     </a>
 </div>
 
+<div class="alert" style="background:#fdf8f1;border:1px solid #eee3d7;color:#6b4a2f;font-size:.86rem;">
+    <strong>Suppression d'un type de stock :</strong>
+    si aucun mouvement n'y est rattaché, la suppression est immédiate après confirmation.
+    Sinon, l'application vous demande vers quelle rubrique transférer les saisies, sorties et
+    stocks initiaux (ou choisit « DIVERS »).
+</div>
+
 <!-- Table -->
 <div class="card">
     <div class="card-body">
@@ -52,6 +59,61 @@
             </div>
         </div>
     </div>
+
+    {# ---------------- Confirmation : rubrique sans mouvement ---------------- #}
+    <div class="modal fade" id="modalSupprRubrique" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#7d2b20,#b3402f);color:#fff;">
+                    <h5 class="modal-title">Supprimer cette rubrique ?</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin:0;">
+                        La rubrique <strong id="supprRubriqueNom"></strong> n'est utilisée par aucun mouvement.
+                        Elle peut être supprimée sans risque.
+                    </p>
+                    <input type="hidden" id="supprRubriqueId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="supprRubriqueConfirmer">Supprimer définitivement</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ---------------- Réaffectation des mouvements ---------------- #}
+    <div class="modal fade" id="modalReaffecterRubrique" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:14px;overflow:hidden;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#2b1b10,#5a371e);color:#fff;">
+                    <h5 class="modal-title">Réaffecter les mouvements</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom:6px;">
+                        La rubrique <strong id="reaffNomRubrique"></strong> est encore utilisée par
+                        <strong id="reaffTotal">0</strong> mouvement(s) :
+                    </p>
+                    <p style="font-size:.84rem;color:#8b7b6b;" id="reaffDetails"></p>
+
+                    <label for="reaffCible" class="fw-bold" style="font-size:.85rem;">Transférer ces mouvements vers :</label>
+                    <select id="reaffCible" class="form-select mt-1"></select>
+
+                    <p style="font-size:.8rem;color:#a2352a;margin:10px 0 0;">
+                        La rubrique sera supprimée après le transfert. Cette opération ne peut pas être annulée.
+                    </p>
+                    <input type="hidden" id="reaffIdRubrique">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="reaffConfirmer">Transférer et supprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ asset('js/external/jquery.js') }}"></script>
     <script src="{{ asset('js/tools/functions.js') }}"></script>
     <script src="{{ asset('js/tools/showToast.js') }}"></script>
@@ -64,6 +126,7 @@
         ValidateOnKeypress(document.getElementById("rubrique"), document.getElementById("saveRubrique"), "formRubrique")
 
         document.querySelector("#btn_add_rubrique").addEventListener("click", function () {
+           idRubrique = "0";
            clearForm("formRubrique", "rubrique")
        })
 
@@ -75,7 +138,9 @@
            saveRubrique(FormDataRubrique, document.querySelector(".card-body"), 1)
        })
 
-        $("body").on('click', '.a_rubrique', function(){
+        $("body").on('click', '.a_rubrique', function(e){
+            if ($(e.target).closest('.btn-suppr-rubrique').length) { return }
+
             idRubrique = this.id;
             $("#modalAddRubrique").modal('show')
             let formRubrique = new FormData()
@@ -88,6 +153,31 @@
                 .catch(err => {
                     console.error("Erreur :", err);
                 });
+        })
+
+        // Suppression : etape 1 (verification de l'impact)
+        $("body").on('click', '.btn-suppr-rubrique', function(e){
+            e.preventDefault()
+            e.stopPropagation()
+            ouvrirSuppressionRubrique(this.dataset.id, this.dataset.libelle)
+        })
+
+        // Suppression : rubrique sans mouvement
+        document.getElementById('supprRubriqueConfirmer').addEventListener('click', function () {
+            confirmerSuppressionRubrique(
+                document.getElementById('supprRubriqueId').value,
+                null,
+                this
+            )
+        })
+
+        // Suppression : apres reaffectation
+        document.getElementById('reaffConfirmer').addEventListener('click', function () {
+            confirmerSuppressionRubrique(
+                document.getElementById('reaffIdRubrique').value,
+                document.getElementById('reaffCible').value,
+                this
+            )
         })
     </script>
 {% endblock %}

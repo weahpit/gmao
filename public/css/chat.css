@@ -321,9 +321,13 @@
 }
 
 .chat-composeur form {
+    display: block;
+}
+
+.chat-composeur-ligne {
     display: flex;
     align-items: flex-end;
-    gap: 10px;
+    gap: 8px;
 }
 
 .chat-composeur textarea {
@@ -396,4 +400,132 @@
     .chat-msg { max-width: 88%; }
 
     .chat-fil { padding: 14px 12px 8px; }
+}
+
+
+/* ------------------------------------------------------------------ */
+/*  Pieces jointes : photos, vocaux, etats du composeur               */
+/* ------------------------------------------------------------------ */
+.chat-image {
+    display: block;
+    max-width: 260px;
+    max-height: 260px;
+    width: auto;
+    border-radius: 10px;
+    margin: 2px 0 4px;
+    cursor: zoom-in;
+    object-fit: cover;
+    background: #f3ece3;
+}
+
+.chat-audio {
+    display: block;
+    width: 260px;
+    max-width: 100%;
+    margin: 2px 0 4px;
+    height: 36px;
+}
+
+.chat-duree {
+    font-size: .68rem;
+    color: #a89b8c;
+    margin-bottom: 3px;
+}
+
+.chat-msg.moi .chat-duree { color: #d8c6b3; }
+
+.chat-pj {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--chat-bord);
+    border-radius: 12px;
+    background: var(--chat-creme);
+    color: #6b4a2f;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.chat-pj:hover {
+    background: #f0e4d5;
+    border-color: #b07b3d;
+    color: #2b1b10;
+}
+
+.chat-pj.actif {
+    background: #b3402f;
+    border-color: #b3402f;
+    color: #fff;
+    animation: chatPulse 1.2s infinite;
+}
+
+@keyframes chatPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(179, 64, 47, .45); }
+    50%      { box-shadow: 0 0 0 7px rgba(179, 64, 47, 0); }
+}
+
+.chat-enregistrement {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #fdf3ee;
+    border: 1px solid #f0cdbe;
+    font-size: .8rem;
+    color: #8d3b2a;
+}
+
+.chat-enregistrement .point {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #b3402f;
+    animation: chatPulse 1.2s infinite;
+}
+
+.chat-enregistrement button {
+    margin-left: auto;
+    border: 0;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: .78rem;
+    font-weight: 800;
+    color: #fff;
+    background: #b3402f;
+    cursor: pointer;
+}
+
+.chat-pj-apercu {
+    margin-bottom: 8px;
+    padding: 7px 12px;
+    border-radius: 9px;
+    background: #f6efe6;
+    border: 1px dashed #d8c6b3;
+    font-size: .78rem;
+    color: #6b4a2f;
+}
+
+.chat-blocage {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    border-top: 1px solid var(--chat-bord);
+    background: #fbf7f1;
+    padding: 14px 18px;
+    color: #6b4a2f;
+    font-size: .82rem;
+    line-height: 1.5;
+}
+
+.chat-blocage svg { flex: 0 0 auto; margin-top: 2px; color: #a9761d; }
+.chat-blocage strong { display: block; color: #3d2a1c; margin-bottom: 2px; }
+
+@media (max-width: 640px) {
+    .chat-image { max-width: 190px; max-height: 190px; }
+    .chat-audio { width: 190px; }
 }

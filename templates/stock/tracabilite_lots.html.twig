@@ -68,7 +68,7 @@
         <div class="dc-card-body">
             <form method="get" action="{{ path('stock_tracabilite_lots') }}" class="dc-ou-toolbar">
                 <div class="dc-field">
-                    <label class="dc-label" for="ou-q">Lot ou qualité</label>
+                    <label class="dc-label" for="ou-q">Lot ou qualité (fèves)</label>
                     <input id="ou-q" type="search" name="q" value="{{ terme }}" class="dc-input" placeholder="Ex. 26A-012, grade 1…">
                 </div>
                 <div class="dc-field ou-petit">
@@ -103,7 +103,7 @@
                             <span class="dc-ou-num" style="background:#fffdfa;">1</span>
                             Lots à rattacher
                         </h2>
-                        <span class="hint">{{ total|number_format(0, ',', ' ') }} lot(s) · page {{ page }} / {{ pages }}</span>
+                        <span class="hint">Lots de fèves uniquement · {{ total|number_format(0, ',', ' ') }} lot(s) · page {{ page }} / {{ pages }}</span>
                     </div>
                     <div class="dc-card-body">
                         <div class="dc-table-wrap">
@@ -140,7 +140,7 @@
                                     {% else %}
                                         <tr><td colspan="6"><div class="dc-empty">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
-                                            <div>Aucun lot ne correspond à cette recherche.</div>
+                                            <div>Aucun lot de fèves ne correspond à cette recherche.</div>
                                         </div></td></tr>
                                     {% endfor %}
                                     </tbody>
