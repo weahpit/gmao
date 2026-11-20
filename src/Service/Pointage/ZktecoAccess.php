@@ -31,6 +31,7 @@ namespace App\Service\Pointage;
 final class ZktecoAccess
 {
     private const DEFAUTS = [
+        'ZKTECO_REQUETE' => 'Req_UserCheck',
         'ZKTECO_TABLE_USERS' => 'USERINFO',
         'ZKTECO_TABLE_POINTAGES' => 'CHECKINOUT',
         'ZKTECO_COL_USERID' => 'USERID',
@@ -42,8 +43,17 @@ final class ZktecoAccess
         'ZKTECO_HEURE_DEPART' => '17:00',
     ];
 
+    /** Source reellement utilisee lors du dernier import. */
+    private string $source = '';
+
     public function __construct()
     {
+    }
+
+    /** Exemple : « requete Req_UserCheck » ou « tables USERINFO + CHECKINOUT ». */
+    public function sourceUtilisee(): string
+    {
+        return $this->source;
     }
 
     /** @return array<string, string> */
@@ -54,6 +64,7 @@ final class ZktecoAccess
             $config[$cle] = $this->valeur($cle, $defaut);
         }
 
+        $config['ZKTECO_REQUETE'] = $this->valeur('ZKTECO_REQUETE', 'Req_UserCheck');
         $config['ZKTECO_ACCESS_DSN'] = $this->valeur('ZKTECO_ACCESS_DSN', '');
         $config['ZKTECO_ACCESS_FICHIER'] = $this->valeur('ZKTECO_ACCESS_FICHIER', '');
 
@@ -215,13 +226,102 @@ final class ZktecoAccess
     /**
      * Pointages bruts sur une periode.
      *
+     * Deux sources possibles, dans cet ordre :
+     *   1. la requete enregistree dans la base Access (par defaut
+     *      « Req_UserCheck »), c'est celle que l'equipe RH utilise deja ;
+     *   2. a defaut, les tables USERINFO et CHECKINOUT jointes sur USERID.
+     *
      * @return list<array{badge: string, nom: string, quand: \DateTimeImmutable, sens: string}>
      */
-    public function pointages(\DateTimeInterface $du, \DateTimeInterface $au): array
+    public function pointages(\DateTimeInterface $du, \DateTimeInterface $au, bool $ignorerRequete = false): array
     {
-        $config = $this->configuration();
         $pdo = $this->connecter();
+        $config = $this->configuration();
 
+        $requete = trim($config['ZKTECO_REQUETE']);
+        if ($requete !== '' && !$ignorerRequete) {
+            $passages = $this->pointagesViaRequete($pdo, $requete, $du, $au);
+            if ($passages !== null) {
+                $this->source = 'requete ' . $requete;
+
+                return $passages;
+            }
+        }
+
+        $this->source = 'tables ' . $config['ZKTECO_TABLE_USERS'] . ' + ' . $config['ZKTECO_TABLE_POINTAGES'];
+
+        return $this->pointagesViaTables($pdo, $config, $du, $au);
+    }
+
+    /**
+     * Lecture de la requete enregistree (Req_UserCheck).
+     *
+     * Renvoie null si la requete n'existe pas ou n'est pas lisible par le
+     * pilote ODBC : l'appelant bascule alors sur les tables.
+     *
+     * @return list<array{badge: string, nom: string, quand: \DateTimeImmutable, sens: string}>|null
+     */
+    private function pointagesViaRequete(\PDO $pdo, string $requete, \DateTimeInterface $du, \DateTimeInterface $au): ?array
+    {
+        $colonnes = $this->colonnesDe($pdo, $requete);
+        if ($colonnes === []) {
+            return null;
+        }
+
+        $colBadge = $this->choisir($colonnes, ['badgenumber', 'badge', 'badgenumber2', 'code', 'matricule', 'userid', 'user_id', 'id']);
+        $colNom = $this->choisir($colonnes, ['name', 'nom', 'employe', 'employee', 'fullname', 'nom_complet']);
+        $colQuand = $this->choisir($colonnes, ['checktime', 'datetime', 'dateheure', 'horodatage', 'date', 'jour']);
+        $colSens = $this->choisir($colonnes, ['checktype', 'sens', 'inout', 'type']);
+
+        if ($colBadge === null || $colQuand === null) {
+            return null;
+        }
+
+        $lignes = $this->lignesPeriode($pdo, $requete, $colonnes, $colQuand, $du, $au);
+        if ($lignes === null) {
+            return null;
+        }
+
+        // Certaines requetes renvoient la date et l'heure dans deux colonnes.
+        $colHeure = $colonnes[$colQuand]['normalise'] === 'date'
+            ? $this->choisir($colonnes, ['checktimeonly', 'time', 'heure'])
+            : null;
+
+        $passages = [];
+        foreach ($lignes as $ligne) {
+            $quand = $this->versDate($ligne[$colonnes[$colQuand]['nom']] ?? null);
+
+            if ($quand === null && $colHeure !== null) {
+                $quand = $this->versDate(
+                    (string) ($ligne[$colonnes[$colQuand]['nom']] ?? '') . ' '
+                    . (string) ($ligne[$colonnes[$colHeure]['nom']] ?? '')
+                );
+            }
+
+            if ($quand === null) {
+                continue;
+            }
+
+            $passages[] = [
+                'badge' => trim((string) ($ligne[$colonnes[$colBadge]['nom']] ?? '')),
+                'nom' => $colNom !== null ? trim((string) ($ligne[$colonnes[$colNom]['nom']] ?? '')) : '',
+                'quand' => $quand,
+                'sens' => $colSens !== null ? trim((string) ($ligne[$colonnes[$colSens]['nom']] ?? '')) : '',
+            ];
+        }
+
+        return $passages;
+    }
+
+    /**
+     * Lecture directe des tables USERINFO / CHECKINOUT.
+     *
+     * @param array<string, string> $config
+     *
+     * @return list<array{badge: string, nom: string, quand: \DateTimeImmutable, sens: string}>
+     */
+    private function pointagesViaTables(\PDO $pdo, array $config, \DateTimeInterface $du, \DateTimeInterface $au): array
+    {
         $tablePointages = $this->nomSur($config['ZKTECO_TABLE_POINTAGES']);
         $tableUsers = $this->nomSur($config['ZKTECO_TABLE_USERS']);
 
@@ -248,19 +348,14 @@ final class ZktecoAccess
             );
         }
 
-        $debut = $du->format('Y-m-d') . ' 00:00:00';
-        $fin = $au->format('Y-m-d') . ' 23:59:59';
+        $colonnes = [
+            ['nom' => $colQuand, 'normalise' => $this->normaliser($colQuand)],
+        ];
 
-        $sql = 'SELECT [' . $colUser . '] AS uid, [' . $colQuand . '] AS quand, [' . $colSens . '] AS sens'
-            . ' FROM [' . $tablePointages . ']'
-            . " WHERE [" . $colQuand . "] >= #" . $debut . "# AND [" . $colQuand . "] <= #" . $fin . '#'
-            . ' ORDER BY [' . $colQuand . '] ASC';
-
-        try {
-            $lignes = $pdo->query($sql)->fetchAll();
-        } catch (\Throwable $e) {
+        $lignes = $this->lignesPeriode($pdo, $tablePointages, $colonnes, 0, $du, $au, $colUser, $colSens);
+        if ($lignes === null) {
             throw new \RuntimeException(
-                'Lecture de la table des pointages « ' . $tablePointages . ' » impossible : ' . $e->getMessage()
+                'Lecture de la table des pointages « ' . $tablePointages . ' » impossible.'
                 . ' Verifiez les colonnes ' . $colUser . ', ' . $colQuand . ', ' . $colSens
                 . ' (commande --diagnostic pour la liste reelle).'
             );
@@ -268,8 +363,8 @@ final class ZktecoAccess
 
         $resultat = [];
         foreach ($lignes as $ligne) {
-            $uid = (string) $ligne['uid'];
-            $quand = $this->versDate($ligne['quand']);
+            $uid = (string) ($ligne['uid'] ?? '');
+            $quand = $this->versDate($ligne['quand'] ?? null);
             if ($quand === null) {
                 continue;
             }
@@ -278,11 +373,153 @@ final class ZktecoAccess
                 'badge' => $utilisateurs[$uid]['badge'] ?? $uid,
                 'nom' => $utilisateurs[$uid]['nom'] ?? '',
                 'quand' => $quand,
-                'sens' => (string) ($ligne['sens'] ?? ''),
+                'sens' => $colSens !== null ? (string) ($ligne['sens'] ?? '') : '',
             ];
         }
 
         return $resultat;
+    }
+
+    /**
+     * Execute la requete de periode sur une source (requete ou table).
+     *
+     * Access accepte les dates entre #...# ; certaines bases stockent la date
+     * en texte ISO, d'ou le second essai entre apostrophes.
+     *
+     * @param list<array{nom: string, normalise: string}> $colonnes
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function lignesPeriode(
+        \PDO $pdo,
+        string $source,
+        array $colonnes,
+        int $indexDate,
+        \DateTimeInterface $du,
+        \DateTimeInterface $au,
+        ?string $colUser = null,
+        ?string $colSens = null,
+    ): ?array {
+        $nomDate = $colonnes[$indexDate]['nom'];
+        $debut = $du->format('Y-m-d') . ' 00:00:00';
+        $fin = $au->format('Y-m-d') . ' 23:59:59';
+
+        $select = $colUser !== null
+            ? '[' . $colUser . '] AS uid, [' . $nomDate . '] AS quand' . ($colSens !== null ? ', [' . $colSens . '] AS sens' : '')
+            : '*';
+
+        $conditions = [
+            '[' . $nomDate . '] >= #' . $debut . '# AND [' . $nomDate . '] <= #' . $fin . '#',
+            "[" . $nomDate . "] >= '" . $debut . "' AND [" . $nomDate . "] <= '" . $fin . "'",
+        ];
+
+        $derniereErreur = null;
+        foreach ($conditions as $condition) {
+            $sql = 'SELECT ' . $select . ' FROM [' . $source . '] WHERE ' . $condition . ' ORDER BY [' . $nomDate . '] ASC';
+            try {
+                return $pdo->query($sql)->fetchAll();
+            } catch (\Throwable $e) {
+                $derniereErreur = $e;
+            }
+        }
+
+        if ($derniereErreur !== null) {
+            return null;
+        }
+
+        return [];
+    }
+
+    /**
+     * Colonnes reellement renvoyees par une source (requete ou table).
+     *
+     * @return list<array{nom: string, normalise: string}>
+     */
+    public function colonnesDe(\PDO $pdo, string $source): array
+    {
+        $colonnes = [];
+
+        try {
+            $requete = $pdo->query('SELECT * FROM [' . $this->nomSur($source) . '] WHERE 1=0');
+            for ($i = 0; $i < $requete->columnCount(); ++$i) {
+                $meta = $requete->getColumnMeta($i);
+                if (is_array($meta) && isset($meta['name'])) {
+                    $nom = (string) $meta['name'];
+                    $colonnes[] = ['nom' => $nom, 'normalise' => $this->normaliser($nom)];
+                }
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $colonnes;
+    }
+
+    /**
+     * Indice de la premiere colonne dont le nom figure dans la liste donnee.
+     *
+     * @param list<array{nom: string, normalise: string}> $colonnes
+     * @param list<string> $candidats
+     */
+    private function choisir(array $colonnes, array $candidats): ?int
+    {
+        foreach ($candidats as $candidat) {
+            foreach ($colonnes as $indice => $colonne) {
+                if ($colonne['normalise'] === $candidat) {
+                    return $indice;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** @param list<array{nom: string, normalise: string}> $colonnes */
+    private function indexDe(array $colonnes, string $nom): ?int
+    {
+        foreach ($colonnes as $indice => $colonne) {
+            if ($colonne['normalise'] === $nom) {
+                return $indice;
+            }
+        }
+
+        return null;
+    }
+
+
+    /**
+     * Controle de la requete enregistree : nom, colonnes renvoyees, message.
+     *
+     * @return array{nom: string, colonnes: list<string>, message: string}
+     */
+    public function diagnosticRequete(): array
+    {
+        $nom = trim($this->configuration()['ZKTECO_REQUETE']);
+        if ($nom === '') {
+            return ['nom' => '', 'colonnes' => [], 'message' => 'Aucune requete configuree (variable ZKTECO_REQUETE vide).'];
+        }
+
+        try {
+            $pdo = $this->connecter();
+        } catch (\RuntimeException $e) {
+            return ['nom' => $nom, 'colonnes' => [], 'message' => $e->getMessage()];
+        }
+
+        $colonnes = $this->colonnesDe($pdo, $nom);
+        if ($colonnes === []) {
+            return [
+                'nom' => $nom,
+                'colonnes' => [],
+                'message' => 'La requete « ' . $nom . ' » n\'est pas lisible par le pilote ODBC'
+                    . ' (certains pilotes ne voient que les tables). L\'import utilisera alors les tables USERINFO et CHECKINOUT.',
+            ];
+        }
+
+        return [
+            'nom' => $nom,
+            'colonnes' => array_map(static fn (array $c) => $c['nom'], $colonnes),
+            'message' => 'Requete « ' . $nom . ' » lisible : ' . count($colonnes) . ' colonne(s).',
+        ];
     }
 
     /**

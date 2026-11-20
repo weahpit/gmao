@@ -5,6 +5,31 @@
 {% block stylesheets %}
     {{ parent() }}
     <link rel="stylesheet" href="{{ asset('css/chat.css') }}">
+    <style>
+        /* Accusé de réception / lecture des messages envoyés */
+        .chat-accuse {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            margin-left: 6px;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            vertical-align: middle;
+            cursor: help;
+        }
+        .chat-msg.moi .chat-accuse { color: rgba(255, 255, 255, .75); }
+        .chat-msg.moi .chat-accuse[data-etat="lu"] { color: #ffffff; }
+        .chat-accuse .chat-lu-par {
+            margin-left: 4px;
+            letter-spacing: 0;
+            font-weight: 600;
+            font-size: .68rem;
+            opacity: .9;
+        }
+        .chat-accuse.attente { opacity: .55; }
+        .chat-accuse.echec { color: #ffd9cf !important; letter-spacing: 0; }
+    </style>
 {% endblock %}
 
 {% block breadcrumb %}
@@ -264,6 +289,12 @@
                             <div class="chat-meta">
                                 {{ m.createdAt|date('H:i') }}
                                 <span class="chat-jour">{{ m.createdAt|date('d/m/Y') }}</span>
+                                {% if m.expediteur.id == moi.id %}
+                                    {% set etat = accuses[m.id] ?? null %}
+                                    <span class="chat-accuse"
+                                          data-etat="{{ etat ? etat.statut : 'envoye' }}"
+                                          title="{% if etat and etat.statut == 'lu' %}{{ etat.total > 1 ? 'Lu par ' ~ etat.lu_par ~ ' personne(s) sur ' ~ etat.total : 'Lu par le destinataire' }}{% if etat.lu_at %} · {{ etat.lu_at|date('d/m à H:i') }}{% endif %}{% elseif etat and etat.statut == 'remis' %}Remis : reçu sur l'appareil du destinataire{% else %}Envoyé : enregistré sur le serveur{% endif %}">{% if etat and etat.statut == 'lu' %}✓✓{% if etat.total > 1 %}<span class="chat-lu-par">{{ etat.lu_par }}/{{ etat.total }}</span>{% endif %}{% elseif etat and etat.statut == 'remis' %}✓✓{% else %}✓{% endif %}</span>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -424,6 +455,15 @@
         jour.className = 'chat-jour';
         jour.textContent = m.jour || '';
         meta.appendChild(jour);
+
+        if (m.moi) {
+            const acc = document.createElement('span');
+            acc.className = 'chat-accuse';
+            acc.dataset.etat = m.statut || 'envoye';
+            ecrireAccuse(acc, null);
+            meta.appendChild(acc);
+        }
+
         bulleEl.appendChild(meta);
 
         wrap.appendChild(bulleEl);
@@ -443,6 +483,50 @@
         if (ajout) basDePage(force !== false);
     }
 
+    // ---------- Accusé de réception / lecture ----------
+    function libelleAccuse(etat) {
+        if (!etat) return 'Envoyé : enregistré sur le serveur';
+        if (etat.statut === 'lu') {
+            let t = etat.total > 1
+                ? 'Lu par ' + etat.lu_par + ' personne(s) sur ' + etat.total
+                : 'Lu par le destinataire';
+            if (etat.lu_at) t += ' · ' + etat.lu_at.slice(11, 16);
+            return t;
+        }
+        if (etat.statut === 'remis') return "Remis : reçu sur l'appareil du destinataire";
+        return 'Envoyé : enregistré sur le serveur';
+    }
+
+    function ecrireAccuse(el, etat) {
+        const statut = etat ? etat.statut : (el.dataset.etat || 'envoye');
+        el.dataset.etat = statut;
+        el.title = libelleAccuse(etat);
+        el.textContent = statut === 'envoye' ? '✓' : '✓✓';
+        if (statut === 'lu' && etat && etat.total > 1) {
+            const n = document.createElement('span');
+            n.className = 'chat-lu-par';
+            n.textContent = etat.lu_par + '/' + etat.total;
+            el.appendChild(n);
+        }
+    }
+
+    function majAccuses(accuses) {
+        if (!accuses) return;
+        Object.keys(accuses).forEach(function (id) {
+            const bulle = fil.querySelector('.chat-msg.moi[data-id="' + id + '"]');
+            if (!bulle) return;
+            let el = bulle.querySelector('.chat-accuse');
+            if (!el) {
+                const meta = bulle.querySelector('.chat-meta');
+                if (!meta) return;
+                el = document.createElement('span');
+                el.className = 'chat-accuse';
+                meta.appendChild(el);
+            }
+            ecrireAccuse(el, accuses[id]);
+        });
+    }
+
     function majEtat(ok) {
         if (!etat) return;
         etat.style.background = ok ? '#1e7e46' : '#c98a1b';
@@ -458,6 +542,7 @@
         .then(function (data) {
             majEtat(true);
             if (data && data.messages) ajouter(data.messages, false);
+            if (data && data.accuses) majAccuses(data.accuses);
         })
         .catch(function () { majEtat(false); });
     }

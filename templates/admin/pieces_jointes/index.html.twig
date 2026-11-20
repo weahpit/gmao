@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pieces jointes — CITRAC GMAO{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item">Administration</span>
+    <span class="breadcrumb-item">Pieces jointes</span>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Pieces jointes du serveur</h1>
+            <p class="text-muted mb-0">
+                {{ total }} fichier(s) dans {{ racine }} — {{ poidsTotal }} au total.
+            </p>
+        </div>
+        {% if zipDisponible and total > 0 %}
+            <a href="{{ path('admin_pieces_jointes_export', {dossier: 'tout'}) }}" class="btn btn-cacao">
+                Telecharger tout (ZIP)
+            </a>
+        {% endif %}
+    </div>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }} py-2">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    {% if not zipDisponible %}
+        <div class="alert alert-warning">
+            L'extension <strong>zip</strong> de PHP n'est pas activee sur ce serveur : l'export ne peut pas etre cree.
+            Demandez a l'hebergeur de l'activer, puis rechargez cette page.
+        </div>
+    {% endif %}
+
+    <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Dossier</th>
+                        <th class="text-end">Fichiers</th>
+                        <th class="text-end">Poids</th>
+                        <th class="text-end">Export</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for dossier in dossiers %}
+                    <tr>
+                        <td>
+                            <strong>{{ dossier.nom }}</strong>
+                            <div class="small text-muted">{{ racine }}/{{ dossier.nom }}</div>
+                        </td>
+                        <td class="text-end">{{ dossier.nombre }}</td>
+                        <td class="text-end">{{ dossier.poidsLisible }}</td>
+                        <td class="text-end">
+                            {% if dossier.nombre > 0 and zipDisponible %}
+                                <a href="{{ path('admin_pieces_jointes_export', {dossier: dossier.nom}) }}" class="btn btn-sm btn-outline-secondary">
+                                    ZIP
+                                </a>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" class="text-muted">Aucun dossier de pieces jointes sur ce serveur.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted mb-0 mt-3">
+            L'archive contient les fichiers dans leur arborescence d'origine (annee/mois) et un fichier
+            <strong>inventaire.csv</strong> (dossier, nom, taille, date). Les fichiers techniques du serveur
+            (.htaccess, index.html) ne sont pas inclus.
+        </p>
+        <p class="small text-muted mb-0">
+            Les donnees medicales restent dans l'archive : ne diffusez ces fichiers qu'aux personnes habilitees.
+        </p>
+    </div>
+</div>
+{% endblock %}

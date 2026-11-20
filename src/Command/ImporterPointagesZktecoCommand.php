@@ -44,6 +44,7 @@ class ImporterPointagesZktecoCommand extends Command
             ->addOption('au', null, InputOption::VALUE_REQUIRED, 'Dernier jour a importer (AAAA-MM-JJ). Defaut : aujourd\'hui.')
             ->addOption('diagnostic', null, InputOption::VALUE_NONE, 'Affiche les tables et colonnes de la base Access, sans rien importer.')
             ->addOption('csv', null, InputOption::VALUE_REQUIRED, 'Lit un export CSV de la pointeuse au lieu de la base Access.')
+            ->addOption('sans-requete', null, InputOption::VALUE_NONE, 'Ignore la requete Access (Req_UserCheck) et lit directement les tables USERINFO / CHECKINOUT.')
             ->addOption('simulation', null, InputOption::VALUE_NONE, 'Affiche ce qui serait importe sans enregistrer en base.')
             ->addOption('tolerance', null, InputOption::VALUE_REQUIRED, 'Minutes de retard ignorees apres l\'heure d\'arrivee (defaut 5).', '5')
             ->addOption('lot', null, InputOption::VALUE_REQUIRED, 'Nombre de pointages enregistres par flush (defaut 200).', '200');
@@ -61,6 +62,7 @@ class ImporterPointagesZktecoCommand extends Command
         $configuration = $this->zkteco->configuration();
         $io->definitionList(
             ['Base / DSN' => $configuration['ZKTECO_ACCESS_DSN'] ?: ($configuration['ZKTECO_ACCESS_FICHIER'] ?: 'non configure')],
+            ['Requete Access' => $configuration['ZKTECO_REQUETE'] ?: 'aucune'],
             ['Table employes' => $configuration['ZKTECO_TABLE_USERS']],
             ['Table pointages' => $configuration['ZKTECO_TABLE_POINTAGES']],
             ['Heure d\'arrivee' => $configuration['ZKTECO_HEURE_ARRIVEE']],
@@ -79,7 +81,7 @@ class ImporterPointagesZktecoCommand extends Command
         try {
             $passages = $csv !== ''
                 ? $this->zkteco->pointagesDepuisCsv($csv)
-                : $this->zkteco->pointages($du, $au);
+                : $this->zkteco->pointages($du, $au, (bool) $input->getOption('sans-requete'));
         } catch (\RuntimeException $e) {
             $io->error($e->getMessage());
             $io->note('Pour verifier la connexion et les noms de colonnes : php bin/console app:pointage:zkteco --diagnostic');
@@ -214,6 +216,7 @@ class ImporterPointagesZktecoCommand extends Command
         }
 
         $io->success([
+            'Source lue : ' . ($this->zkteco->sourceUtilisee() ?: 'inconnue'),
             'Passages lus : ' . count($passages),
             'Journees traitees : ' . $traites,
             $simulation ? 'Simulation : aucune ecriture en base.' : 'Pointages crees : ' . $crees . ' / mis a jour : ' . $maj,
@@ -261,6 +264,17 @@ class ImporterPointagesZktecoCommand extends Command
         ] as $variable => $valeur) {
             if (!in_array(strtolower($valeur), $tables, true)) {
                 $io->warning('La table « ' . $valeur . ' » (' . $variable . ') n\'existe pas dans ce fichier. Choisissez un nom parmi ceux affiches ci-dessus, puis mettez a jour le fichier .env.local.');
+            }
+        }
+
+        $requete = $this->zkteco->diagnosticRequete();
+        if ($requete['nom'] !== '') {
+            $io->section('Requete ' . $requete['nom']);
+            if ($requete['colonnes'] === []) {
+                $io->warning($requete['message']);
+            } else {
+                $io->success($requete['message']);
+                $io->listing($requete['colonnes']);
             }
         }
 

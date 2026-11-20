@@ -26,17 +26,18 @@
     {% endfor %}
 
     <div class="row g-2 mb-3">
-        {% for libelle, valeur, detail in [
-            ['Effectif actif', effectif, hommes ~ ' hommes / ' ~ femmes ~ ' femmes'],
-            ['Absenteisme du mois', tauxAbsenteisme ~ ' %', joursAbsenceMois ~ ' jours cumules'],
-            ['Demandes en attente', absencesEnAttente, 'conges a valider'],
-            ['Recrutements ' ~ annee, recrutementsAnnee, candidaturesEnCours ~ ' candidatures en cours']
+        {% set cartes = [
+            {libelle: 'Effectif actif', valeur: effectif, detail: hommes ~ ' hommes / ' ~ femmes ~ ' femmes'},
+            {libelle: 'Absenteisme du mois', valeur: tauxAbsenteisme ~ ' %', detail: joursAbsenceMois ~ ' jours cumules'},
+            {libelle: 'Demandes en attente', valeur: absencesEnAttente, detail: 'conges a valider'},
+            {libelle: 'Recrutements ' ~ annee, valeur: recrutementsAnnee, detail: candidaturesEnCours ~ ' candidatures en cours'}
         ] %}
+        {% for carte in cartes %}
             <div class="col-6 col-lg-3">
                 <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
-                    <div class="text-muted small text-uppercase" style="letter-spacing:.03em;">{{ libelle }}</div>
-                    <div class="h4 mb-0" style="color:#7a4c33;">{{ valeur }}</div>
-                    <div class="small text-muted">{{ detail }}</div>
+                    <div class="text-muted small text-uppercase" style="letter-spacing:.03em;">{{ carte.libelle }}</div>
+                    <div class="h4 mb-0" style="color:#7a4c33;">{{ carte.valeur }}</div>
+                    <div class="small text-muted">{{ carte.detail }}</div>
                 </div>
             </div>
         {% endfor %}
@@ -52,7 +53,10 @@
                     <table class="table table-sm align-middle mb-0">
                         <tbody>
                         {% for service, total in parService %}
-                            <tr><td>{{ service }}</td><td class="text-end">{{ total }}</td></tr>
+                            <tr>
+                                <td>{{ service is iterable ? service.service|default('-') : service }}</td>
+                                <td class="text-end">{{ total is iterable ? total.total|default(0) : total }}</td>
+                            </tr>
                         {% endfor %}
                         </tbody>
                     </table>

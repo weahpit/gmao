@@ -6,6 +6,7 @@ use App\Entity\Logistique\Proprietaire;
 use App\Entity\Production\Produit;
 use App\Entity\ZoneExploitation;
 use Doctrine\ORM\EntityManagerInterface;
+use PDO;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -166,7 +167,7 @@ final class ApiProduitController extends AbstractController
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
-            try {
+            /*try {
                 $produit = $this->em->getRepository(Produit::class)->find(Uuid::fromString($id_produit));
 
                 if ($produit){
@@ -185,37 +186,13 @@ final class ApiProduitController extends AbstractController
 
             } catch (\Throwable $throwable) {
                 $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
-            }
-        } else {
-            $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');
-        }
-        return new JsonResponse($reponse);
-    }
+            }*/
 
-    #[Route('api/supprimerRh', name: 'supprimer_rh')]
-    public function supprimer_rh(): Response
-    {
-        $reponse = array();
-        if (!$this->getUser()){return $this->redirectToRoute("app_login");}
-        if ($this->isGranted("ROLE_ADMIN")) {
-            try {$conn = $this->em->getConnection();
-
-                $tables = $conn->fetchFirstColumn("
-                    SELECT tablename
-                    FROM pg_tables
-                    WHERE schemaname = 'public'
-                      AND tablename LIKE 'rh_%'
-                ");
-
-                foreach ($tables as $table) {
-                    $conn->executeStatement(sprintf(
-                        'DROP TABLE IF EXISTS "%s" CASCADE',
-                        $table
-                    ));
-                }
-                $reponse = ['code' => "success", 'msg' => 'Supprimé !'];
-            } catch (\Throwable $throwable) {
-                $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
+            try {
+                $pdo = new PDO("odbc:DSN=ZKTECO_CITRAC");
+                echo "Connexion OK";
+            } catch (Exception $e) {
+                echo $e->getMessage();
             }
         } else {
             $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');

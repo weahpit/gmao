@@ -16,7 +16,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  * considere ROLE_ADMIN comme super-administrateur.
  *
  * Roles attendus (a declarer dans la gestion des utilisateurs) :
- *   ROLE_RESP_RH          directeur des ressources humaines
+ *   ROLE_DRH          directeur des ressources humaines
  *   ROLE_RH           gestionnaire RH (dossiers, contrats, conges)
  *   ROLE_MEDECIN      medecin du travail
  *   ROLE_INFIRMIER    infirmier(ere)
@@ -25,9 +25,9 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 final class RhAcces
 {
-    public const ROLES_RH = ['ROLE_RESP_RH', 'ROLE_RH'];
+    public const ROLES_RH = ['ROLE_DRH', 'ROLE_RH'];
     public const ROLES_MEDICAUX = ['ROLE_MEDECIN', 'ROLE_INFIRMIER'];
-    public const ROLES_SALAIRES = ['ROLE_RESP_RH', 'ROLE_RH'];
+    public const ROLES_SALAIRES = ['ROLE_DRH', 'ROLE_RH'];
 
     public function __construct(private Security $security) {}
 
@@ -74,12 +74,12 @@ final class RhAcces
 
     public function peutRecruter(): bool
     {
-        return $this->aRole('ROLE_RESP_RH', 'ROLE_RH');
+        return $this->aRole('ROLE_DRH', 'ROLE_RH');
     }
 
     public function peutEvaluer(): bool
     {
-        return $this->aRole('ROLE_RESP_RH', 'ROLE_RH', 'ROLE_MANAGER', 'ROLE_CHEF_SERVICE');
+        return $this->aRole('ROLE_DRH', 'ROLE_RH', 'ROLE_MANAGER', 'ROLE_CHEF_SERVICE');
     }
 
     /**

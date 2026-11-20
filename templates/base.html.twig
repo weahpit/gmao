@@ -368,55 +368,6 @@
                     </div>
                 </div>
             </div>
-
-            {# ------------------------ RESSOURCES HUMAINES ------------------------ #}
-            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RESP_RH') or is_granted('ROLE_RH')
-                or is_granted('ROLE_CHEF_SERVICE') or is_granted('ROLE_MANAGER') %}
-                <div class="nav-section">
-                    <div class="nav-group">
-                        <button type="button" class="nav-item has-submenu {{ app.request.attributes.get('_route') starts with 'rh_' ? 'active' }}">
-                            <i data-lucide="users"></i>
-                            <span class="nav-label">Ressources humaines</span>
-                            <i data-lucide="chevron-down" class="nav-chevron"></i>
-                        </button>
-                        <div class="nav-submenu">
-                            <a href="{{ path('rh_dashboard') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'rh_dashboard' ? 'active' }}">
-                                <span class="nav-label">Tableau de bord RH</span>
-                            </a>
-                            <a href="{{ path('rh_employes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_employe' ? 'active' }}">
-                                <span class="nav-label">Employés</span>
-                            </a>
-                            <a href="{{ path('rh_contrats') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_contrat' ? 'active' }}">
-                                <span class="nav-label">Contrats</span>
-                            </a>
-                            <a href="{{ path('rh_recrutement') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_recrutement' ? 'active' }}">
-                                <span class="nav-label">Recrutement</span>
-                            </a>
-                            <a href="{{ path('rh_temps_pointages') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'rh_temps_pointages' ? 'active' }}">
-                                <span class="nav-label">Pointages</span>
-                            </a>
-                            <a href="{{ path('rh_temps_absences') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_temps_absence' ? 'active' }}">
-                                <span class="nav-label">Absences et congés</span>
-                            </a>
-                            <a href="{{ path('rh_evaluations') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_evaluations' ? 'active' }}">
-                                <span class="nav-label">Évaluations</span>
-                            </a>
-                            <a href="{{ path('rh_formations') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_formations' ? 'active' }}">
-                                <span class="nav-label">Formations</span>
-                            </a>
-                            <a href="{{ path('rh_documents') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_documents' ? 'active' }}">
-                                <span class="nav-label">Documents RH</span>
-                            </a>
-                            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RESP_RH') or is_granted('ROLE_MEDECIN') or is_granted('ROLE_INFIRMIER') %}
-                                <a href="{{ path('rh_medical') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_medical' ? 'active' }}">
-                                    <span class="nav-label">Santé au travail</span>
-                                </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-
             {% if is_granted('ROLE_COURRIER')%}
             <div class="nav-section">
                 <!-- DA avec sous-menu -->
@@ -689,7 +640,53 @@
                 </div>
             </div>
 
-
+            {# ------------------------ RESSOURCES HUMAINES ------------------------ #}
+            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DRH') or is_granted('ROLE_RH')
+                  or is_granted('ROLE_CHEF_SERVICE') or is_granted('ROLE_MANAGER') %}
+                <div class="nav-section">
+                    <div class="nav-group">
+                        <button type="button" class="nav-item has-submenu {{ app.request.attributes.get('_route') starts with 'rh_' ? 'active' }}">
+                            <i data-lucide="users"></i>
+                            <span class="nav-label">Ressources humaines</span>
+                            <i data-lucide="chevron-down" class="nav-chevron"></i>
+                        </button>
+                        <div class="nav-submenu">
+                            <a href="{{ path('rh_dashboard') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'rh_dashboard' ? 'active' }}">
+                                <span class="nav-label">Tableau de bord RH</span>
+                            </a>
+                            <a href="{{ path('rh_employes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_employe' ? 'active' }}">
+                                <span class="nav-label">Employés</span>
+                            </a>
+                            <a href="{{ path('rh_contrats') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_contrat' ? 'active' }}">
+                                <span class="nav-label">Contrats</span>
+                            </a>
+                            <a href="{{ path('rh_recrutement') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_recrutement' ? 'active' }}">
+                                <span class="nav-label">Recrutement</span>
+                            </a>
+                            <a href="{{ path('rh_temps_pointages') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'rh_temps_pointages' ? 'active' }}">
+                                <span class="nav-label">Pointages</span>
+                            </a>
+                            <a href="{{ path('rh_temps_absences') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_temps_absence' ? 'active' }}">
+                                <span class="nav-label">Absences et congés</span>
+                            </a>
+                            <a href="{{ path('rh_evaluations') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_evaluations' ? 'active' }}">
+                                <span class="nav-label">Évaluations</span>
+                            </a>
+                            <a href="{{ path('rh_formations') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_formations' ? 'active' }}">
+                                <span class="nav-label">Formations</span>
+                            </a>
+                            <a href="{{ path('rh_documents') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_documents' ? 'active' }}">
+                                <span class="nav-label">Documents RH</span>
+                            </a>
+                            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DRH') or is_granted('ROLE_MEDECIN') or is_granted('ROLE_INFIRMIER') %}
+                                <a href="{{ path('rh_medical') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_medical' ? 'active' }}">
+                                    <span class="nav-label">Santé au travail</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
 
             {% if is_granted('ROLE_ADMIN') %}
                 <div class="nav-section">

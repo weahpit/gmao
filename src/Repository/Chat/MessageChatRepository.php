@@ -213,18 +213,76 @@ class MessageChatRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /** Marque comme lus tous les messages privés reçus d'un utilisateur. */
+    /**
+     * Marque comme lus tous les messages privés reçus d'un utilisateur.
+     *
+     * La date d'ouverture est enregistrée (`lu_at`) : c'est elle que
+     * l'expéditeur voit dans l'accusé de lecture (« Lu à 14:32 »).
+     */
     public function marquerLusDe(User $moi, User $autre): void
     {
+        $maintenant = new \DateTimeImmutable();
+
+        // 1) Les messages pas encore ouverts : on les marque lus maintenant.
         $this->createQueryBuilder('m')
             ->update()
             ->set('m.lu', 'true')
+            ->set('m.lu_at', ':maintenant')
             ->andWhere('m.destinataire = :moi')
             ->andWhere('m.expediteur = :autre')
             ->andWhere('m.lu = false')
             ->setParameter('moi', $moi)
             ->setParameter('autre', $autre)
+            ->setParameter('maintenant', $maintenant)
+            ->getQuery()
+            ->execute();
+
+        // 2) Les messages remis mais jamais datés recoivent leur date d'arrivée.
+        $this->createQueryBuilder('m')
+            ->update()
+            ->set('m.remis_at', ':maintenant')
+            ->andWhere('m.destinataire = :moi')
+            ->andWhere('m.expediteur = :autre')
+            ->andWhere('m.remis_at IS NULL')
+            ->setParameter('moi', $moi)
+            ->setParameter('autre', $autre)
+            ->setParameter('maintenant', $maintenant)
             ->getQuery()
             ->execute();
     }
+
+    /**
+     * Messages envoyés par l'utilisateur sur un canal, depuis une date.
+     *
+     * Sert à l'accusé de lecture : l'expéditeur interroge régulièrement
+     * l'état de ses propres messages (envoyé / remis / lu).
+     *
+     * @return MessageChat[]
+     */
+    public function miensDepuis(
+        User $moi,
+        ?User $autre,
+        ?ListeDiffusion $liste,
+        \DateTimeImmutable $depuis,
+        int $limite = 100
+    ): array {
+        $qb = $this->createQueryBuilder('m')
+            ->andWhere('m.expediteur = :moi')
+            ->andWhere('m.created_at >= :depuis')
+            ->setParameter('moi', $moi)
+            ->setParameter('depuis', $depuis)
+            ->orderBy('m.created_at', 'ASC')
+            ->setMaxResults($limite);
+
+        if (null !== $liste) {
+            $qb->andWhere('m.listeDiffusion = :liste')->setParameter('liste', $liste);
+        } elseif ($autre !== null) {
+            $qb->andWhere('m.destinataire = :autre')->setParameter('autre', $autre);
+        } else {
+            $qb->andWhere('m.destinataire IS NULL')->andWhere('m.listeDiffusion IS NULL');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
 }

@@ -104,9 +104,14 @@ class EmployeRepository extends ServiceEntityRepository
     }
 
     /** Effectif actif par service, pour le tableau de bord. */
+    /**
+     * Nombre d'employes actifs par service.
+     *
+     * @return array<string, int> libelle du service => effectif
+     */
     public function compterParService(): array
     {
-        return $this->createQueryBuilder('e')
+        $lignes = $this->createQueryBuilder('e')
             ->select('COALESCE(s.libelle, :sansService) AS service', 'COUNT(e.id) AS total')
             ->leftJoin('e.service', 's')
             ->andWhere('e.statut = :statut')
@@ -116,6 +121,13 @@ class EmployeRepository extends ServiceEntityRepository
             ->orderBy('total', 'DESC')
             ->getQuery()
             ->getArrayResult();
+
+        $resultat = [];
+        foreach ($lignes as $ligne) {
+            $resultat[(string) $ligne['service']] = (int) $ligne['total'];
+        }
+
+        return $resultat;
     }
 
     public function compterParDirection(): array
