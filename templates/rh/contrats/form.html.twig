@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ estCreation ? 'Nouveau contrat' : 'Contrat ' ~ contrat.reference }} — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_contrats') }}">Contrats</a></span>
+    <span class="breadcrumb-item">{{ estCreation ? 'Nouveau' : contrat.reference }}</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="page-header mb-3">
+        <h1 class="h4 mb-1">{{ estCreation ? 'Nouveau contrat' : 'Contrat ' ~ contrat.reference }}</h1>
+        <p class="text-muted mb-0">Un seul contrat peut etre en cours par employe.</p>
+    </div>
+
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0 small">{% for erreur in erreurs %}<li>{{ erreur }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <form method="post" class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px; max-width:900px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_contrat') }}">
+        <div class="row g-2">
+            <div class="col-12 col-md-4">
+                <label class="form-label small mb-1" for="reference">Reference</label>
+                <input id="reference" name="reference" value="{{ donnees.reference }}" class="form-control form-control-sm" placeholder="Auto si vide">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label small mb-1" for="employe">Employe *</label>
+                <select id="employe" name="employe" class="form-select form-select-sm" required>
+                    <option value="">Choisir...</option>
+                    {% for e in employes %}<option value="{{ e.id }}" {{ e.id == donnees.employe ? 'selected' : '' }}>{{ e.nomComplet }} ({{ e.matricule }})</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label small mb-1" for="type">Type de contrat</label>
+                <select id="type" name="type" class="form-select form-select-sm">
+                    {% for cle, libelle in types %}<option value="{{ cle }}" {{ cle == donnees.type ? 'selected' : '' }}>{{ libelle }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label small mb-1" for="fonction">Fonction</label>
+                <input id="fonction" name="fonction" value="{{ donnees.fonction }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label small mb-1" for="poste">Poste</label>
+                <select id="poste" name="poste" class="form-select form-select-sm">
+                    <option value="">Non precise</option>
+                    {% for p in postes %}<option value="{{ p.id }}" {{ p.id == donnees.poste ? 'selected' : '' }}>{{ p.libelle }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-4">
+                <label class="form-label small mb-1" for="salaire">Salaire brut (FCFA)</label>
+                <input id="salaire" name="salaire" value="{{ donnees.salaire }}" class="form-control form-control-sm" inputmode="decimal">
+            </div>
+            <div class="col-6 col-md-4">
+                <label class="form-label small mb-1" for="date_debut">Debut *</label>
+                <input type="date" id="date_debut" name="date_debut" value="{{ donnees.date_debut }}" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-6 col-md-4">
+                <label class="form-label small mb-1" for="date_fin">Fin</label>
+                <input type="date" id="date_fin" name="date_fin" value="{{ donnees.date_fin }}" class="form-control form-control-sm">
+                <div class="form-text">Laisser vide pour un contrat a duree indeterminee.</div>
+            </div>
+            <div class="col-6 col-md-4">
+                <label class="form-label small mb-1" for="statut">Statut</label>
+                <select id="statut" name="statut" class="form-select form-select-sm">
+                    {% for cle, libelle in statuts %}<option value="{{ cle }}" {{ cle == donnees.statut ? 'selected' : '' }}>{{ libelle }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-8">
+                <label class="form-label small mb-1" for="motif_fin">Motif de fin</label>
+                <input id="motif_fin" name="motif_fin" value="{{ donnees.motif_fin }}" class="form-control form-control-sm" placeholder="A renseigner si le contrat est termine ou rompu">
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-sm btn-cacao" type="submit">Enregistrer</button>
+            <a href="{{ path('rh_contrats') }}" class="btn btn-sm btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}État des visites — CITRAC{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('app_visites') }}">Visites</a></span>
+    <span class="breadcrumb-item">État des visites</span>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">État des visites</h1>
+            <p class="text-muted mb-0">Filtrez par période, par visiteur ou par service, puis éditez l'état au format PDF.</p>
+        </div>
+        <a href="{{ path('app_visites') }}" class="btn btn-sm btn-outline-secondary">Retour à l'accueil des visiteurs</a>
+    </div>
+
+    <form method="get" action="{{ path('app_visites_etat') }}" class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="du">Du</label>
+                <input type="date" id="du" name="du" value="{{ filtres.du }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="au">Au</label>
+                <input type="date" id="au" name="au" value="{{ filtres.au }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label small" for="q">Visiteur (nom, pièce, société)</label>
+                <input type="text" id="q" name="q" value="{{ filtres.q }}" class="form-control form-control-sm" placeholder="Recherche libre">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label small" for="service">Service visité</label>
+                <select id="service" name="service" class="form-select form-select-sm">
+                    <option value="">Tous les services</option>
+                    {% for unService in services %}
+                        <option value="{{ unService.id }}" {{ (filtres.service_id ?? filtres.service ?? '')|trim == (unService.id ~ '') ? 'selected' }}>
+                            {{ unService.code_direction ? unService.code_direction.libelle ~ ' / ' : '' }}{{ unService.libelle }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="statut">Statut</label>
+                <select id="statut" name="statut" class="form-select form-select-sm">
+                    <option value="">Tous</option>
+                    {% for code, libelle in statuts %}
+                        <option value="{{ code }}" {{ filtres.statut == code ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <button type="submit" class="btn btn-sm btn-cacao">Afficher l'état</button>
+            <a href="{{ path('app_visites_etat_pdf', {
+                    du: filtres.du,
+                    au: filtres.au,
+                    q: filtres.q,
+                    service: filtres.service_id ?? filtres.service ?? '',
+                    statut: filtres.statut
+                }) }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
+                Télécharger le PDF
+            </a>
+            <a href="{{ path('app_visites_etat') }}" class="btn btn-sm btn-link text-muted">Réinitialiser</a>
+        </div>
+
+        <div class="small text-muted mt-2">
+            Période appliquée : du {{ filtres.du|date('d/m/Y') }} au {{ filtres.au|date('d/m/Y') }}.
+            Sans filtre de date, le mois en cours est proposé par défaut.
+        </div>
+    </form>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="small text-muted">Visites trouvées</div>
+                <div class="h4 mb-0" style="color:#5a371e;">{{ total }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="small text-muted">Encore présents</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ apercu|filter(v => v.enCours)|length }}</div>
+                <div class="small text-muted">sur l'aperçu affiché</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="small text-muted">Passages clôturés</div>
+                <div class="h4 mb-0" style="color:#22684d;">{{ apercu|filter(v => not v.enCours)|length }}</div>
+                <div class="small text-muted">sur l'aperçu affiché</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#faf6f2; border:1px dashed #cbb6a4; border-radius:14px;">
+                <div class="small text-muted">Durée moyenne</div>
+                <div class="h4 mb-0" style="color:#5a371e;">
+                    {% if apercu is not empty %}
+                        {% set minutes = (apercu|reduce((somme, v) => somme + v.dureeMinutes, 0) / apercu|length)|round %}
+                        {{ (minutes / 60)|round(0, 'floor') }} h {{ '%02d'|format(minutes % 60) }}
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+            <h2 class="h6 mb-0">Aperçu des passages</h2>
+            <span class="small text-muted">
+                {% if total > limiteApercu %}
+                    {{ limiteApercu }} premiers résultats sur {{ total }} — le PDF contient l'intégralité.
+                {% else %}
+                    {{ total }} résultat(s).
+                {% endif %}
+            </span>
+        </div>
+
+        {% if apercu is empty %}
+            <div class="alert alert-info mb-0">Aucune visite ne correspond à ces critères. Élargissez la période ou retirez un filtre.</div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead style="background:#faf6f2;">
+                        <tr>
+                            <th class="small text-muted">Référence</th>
+                            <th class="small text-muted">Date</th>
+                            <th class="small text-muted">Visiteur</th>
+                            <th class="small text-muted">Pièce</th>
+                            <th class="small text-muted">Société</th>
+                            <th class="small text-muted">Service</th>
+                            <th class="small text-muted">Motif</th>
+                            <th class="small text-muted">Entrée</th>
+                            <th class="small text-muted">Sortie</th>
+                            <th class="small text-muted">Durée</th>
+                            <th class="small text-muted">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for visite in apercu %}
+                            <tr>
+                                <td class="small"><a href="{{ path('app_visites_sortie', {id: visite.id}) }}">{{ visite.reference }}</a></td>
+                                <td class="small">{{ visite.heureEntree|date('d/m/Y') }}</td>
+                                <td class="small">
+                                    {% if visite.visiteur %}
+                                        <a href="{{ path('app_visites_visiteur', {id: visite.visiteur.id}) }}">{{ visite.visiteur.nomComplet }}</a>
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td class="small">{{ visite.visiteur ? visite.visiteur.pieceComplete : '—' }}</td>
+                                <td class="small">{{ visite.visiteur and visite.visiteur.societe ? visite.visiteur.societe : '—' }}</td>
+                                <td class="small">{{ visite.serviceLibelle }}</td>
+                                <td class="small">{{ visite.motif ?? '—' }}</td>
+                                <td class="small">{{ visite.heureEntree|date('H:i') }}</td>
+                                <td class="small">{{ visite.heureSortie ? visite.heureSortie|date('H:i') : '—' }}</td>
+                                <td class="small">{{ visite.dureeLibelle }}</td>
+                                <td class="small">
+                                    {% if visite.enCours %}
+                                        <span class="badge" style="background:#7a4c33;">Présent</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark border">{{ visite.statutLibelle }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+{% block title %}Demande {{ absence.reference }} — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_temps_absences') }}">Absences et conges</a></span>
+    <span class="breadcrumb-item">{{ absence.reference }}</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header mb-3">
+        <h1 class="h4 mb-1">{{ absence.reference }} — {{ absence.typeLibelle }}</h1>
+        <p class="text-muted mb-0">
+            {{ absence.employe ? absence.employe.nomComplet : 'Employe supprime' }}
+            · {{ absence.periodeLibelle }} · {{ absence.nombreJours }} jour(s)
+        </p>
+    </div>
+
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0 small">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Detail de la demande</h2>
+                <dl class="row small mb-0">
+                    <dt class="col-4 text-muted fw-normal">Statut</dt><dd class="col-8">{{ absence.statutLibelle }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Periode</dt><dd class="col-8">{{ absence.periodeLibelle }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Jours ouvrables</dt><dd class="col-8">{{ absence.nombreJours }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Motif</dt><dd class="col-8" style="white-space:pre-line;">{{ absence.motif ? absence.motif : '-' }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Justificatif</dt>
+                    <dd class="col-8">
+                        {% if absence.justificatif %}
+                            <a href="{{ path('rh_documents') }}">Voir les documents RH</a>
+                        {% else %}—{% endif %}
+                    </dd>
+                    <dt class="col-4 text-muted fw-normal">Validation chef</dt>
+                    <dd class="col-8">{{ absence.valideChefPar ? absence.valideChefPar.nom ~ ' le ' ~ (absence.dateValidationChef ? absence.dateValidationChef|date('d/m/Y') : '') : 'En attente' }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Validation RH</dt>
+                    <dd class="col-8">{{ absence.valideRhPar ? absence.valideRhPar.nom ~ ' le ' ~ (absence.dateValidationRh ? absence.dateValidationRh|date('d/m/Y') : '') : 'En attente' }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Decision</h2>
+                {% if peutValider %}
+                    <form method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token('rh_absence_decision_' ~ absence.id) }}">
+                        <div class="mb-2">
+                            <label class="form-label small mb-1" for="commentaire">Commentaire</label>
+                            <textarea id="commentaire" name="commentaire" rows="3" class="form-control form-control-sm">{{ absence.commentaireValidation }}</textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-cacao" name="action" value="valider" type="submit">Valider</button>
+                            <button class="btn btn-sm btn-outline-danger" name="action" value="refuser" type="submit">Refuser</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <p class="small text-muted mb-0">Vous n'etes pas habilite a statuer sur cette demande, ou elle est deja traitee.</p>
+                    {% if absence.commentaireValidation %}
+                        <p class="small mt-2 mb-0">Commentaire : {{ absence.commentaireValidation }}</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

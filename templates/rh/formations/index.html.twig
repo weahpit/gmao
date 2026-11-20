@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+{% block title %}Formations — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">Formations</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Formations</h1>
+            <p class="text-muted mb-0">Plan de formation, inscriptions et résultats.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if estRh %}
+                <a href="{{ path('rh_formations_new') }}" class="btn btn-sm btn-cacao">+ Nouvelle formation</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-4">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Sessions à venir</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ aVenir|length }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Total des sessions</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ formations|length }}</div>
+            </div>
+        </div>
+        {% if estRh and coutAnnee is not null %}
+            <div class="col-12 col-md-4">
+                <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                    <div class="small text-muted text-uppercase">Coût {{ annee }}</div>
+                    <div class="h4 mb-0" style="color:#7a4c33;">{{ coutAnnee|number_format(0, ',', ' ') }} FCFA</div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="table-responsive" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Intitulé</th><th>Organisme</th><th>Période</th><th>Inscrits</th><th>Coût</th><th>Statut</th></tr></thead>
+            <tbody>
+            {% for formation in formations %}
+                <tr>
+                    <td><a href="{{ path('rh_formations_detail', {id: formation.id}) }}" style="color:#5a371e;">{{ formation.intitule }}</a></td>
+                    <td class="small">{{ formation.organisme ?: '—' }}</td>
+                    <td class="small">{{ formation.periodeLibelle }}</td>
+                    <td class="small">{{ formation.nombreParticipants }}{% if formation.nombrePlaces %} / {{ formation.nombrePlaces }}{% endif %}</td>
+                    <td class="small">{{ formation.cout is not null ? formation.cout|number_format(0, ',', ' ') ~ ' FCFA' : '—' }}</td>
+                    <td><span class="badge" style="background:#f2e7dd; color:#5a371e;">{{ formation.statutLibelle }}</span></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-3">Aucune formation enregistrée.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

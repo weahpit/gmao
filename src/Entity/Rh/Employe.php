@@ -2,135 +2,172 @@
 
 namespace App\Entity\Rh;
 
+use App\Entity\Directions;
+use App\Entity\Poste;
+use App\Entity\Services;
+use App\Entity\User;
 use App\Repository\Rh\EmployeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
-#[ORM\Table(name: 'rh_employe')]
+/**
+ * Dossier administratif d'un employe CITRAC.
+ *
+ * Le domaine Medical est volontairement separe : Employe ne porte aucune
+ * donnee de sante, celles-ci vivent dans DossierMedical.
+ */
 #[ORM\Entity(repositoryClass: EmployeRepository::class)]
+#[ORM\Table(name: 'rh_employe')]
+#[ORM\Index(columns: ['nom', 'prenoms'], name: 'idx_employe_nom')]
+#[ORM\Index(columns: ['statut'], name: 'idx_employe_statut')]
+#[ORM\Index(columns: ['code_pointage'], name: 'idx_employe_code_pointage')]
 class Employe
 {
+    public const STATUT_ACTIF = 'actif';
+    public const STATUT_SUSPENDU = 'suspendu';
+    public const STATUT_SORTI = 'sorti';
+
+    public const STATUTS = [
+        self::STATUT_ACTIF => 'Actif',
+        self::STATUT_SUSPENDU => 'Suspendu',
+        self::STATUT_SORTI => 'Sorti',
+    ];
+
+    public const SEXES = [
+        'M' => 'Masculin',
+        'F' => 'Feminin',
+    ];
+
+    public const SITUATIONS = [
+        'celibataire' => 'Celibataire',
+        'marie' => 'Marie(e)',
+        'divorce' => 'Divorce(e)',
+        'veuf' => 'Veuf(ve)',
+    ];
+
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: 'uuid', unique: true)]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    private ?Uuid $id = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $nom_prenoms = null;
-
-    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTime $date_naissance = null;
-
-    #[ORM\Column(length: 10, nullable: true)]
-    private ?string $sexe = null;
-
-    #[ORM\Column(length: 25, nullable: true)]
+    #[ORM\Column(length: 20, unique: true)]
     private ?string $matricule = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?int $code_zkteco = null;
+    /** Numero de badge enregistre sur la pointeuse ZKTECO (Badgenumber). */
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $codePointage = null;
+
+    #[ORM\Column(length: 100)]
+    private ?string $nom = null;
+
+    #[ORM\Column(length: 150, nullable: true)]
+    private ?string $prenoms = null;
+
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?\DateTimeInterface $dateNaissance = null;
+
+    #[ORM\Column(length: 1, nullable: true)]
+    private ?string $sexe = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $situationMatrimoniale = null;
+
+    #[ORM\Column(length: 60, nullable: true)]
+    private ?string $nationalite = 'Ivoirienne';
+
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $telephone = null;
+
+    #[ORM\Column(length: 180, nullable: true)]
+    private ?string $email = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    private ?string $fonction = null;
+    private ?string $adresse = null;
 
-    #[ORM\ManyToOne(inversedBy: 'employes')]
-    private ?Departement $code_departement = null;
-
-    #[ORM\Column(length: 50, nullable: true)]
-    private ?string $type_contrat = null;
-
-    #[ORM\Column(nullable: true)]
-    private ?bool $soumis_au_pointage = null;
-
-    #[ORM\Column(nullable: true)]
-    private ?int $type_horraire = null;
-
-    #[ORM\ManyToOne(inversedBy: 'employes')]
-    private ?Poste $poste = null;
-
-    #[ORM\ManyToOne(inversedBy: 'employes')]
-    private ?Equipe $code_equipe = null;
-
-    /**
-     * @var Collection<int, Absences>
-     */
-    #[ORM\OneToMany(targetEntity: Absences::class, mappedBy: 'code_employe')]
-    private Collection $absences;
-
-    #[ORM\Column(nullable: true)]
-    private ?bool $demission = null;
-
-    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTime $date_demission = null;
-
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $motif_demission = null;
-
+    /** Chemin relatif de la photo dans public/data/rh/photos/. */
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $photo = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?bool $supprimer = null;
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $numeroCnps = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?bool $chef_quart = null;
+    #[ORM\ManyToOne(targetEntity: Directions::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Directions $direction = null;
 
-    /**
-     * @var Collection<int, Historique>
-     */
-    #[ORM\OneToMany(targetEntity: Historique::class, mappedBy: 'code_employe')]
-    private Collection $historiques;
+    #[ORM\ManyToOne(targetEntity: Services::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Services $service = null;
 
-    #[ORM\ManyToOne(inversedBy: 'employes')]
-    private ?HorairesPersonnalises $horaire_p = null;
+    #[ORM\ManyToOne(targetEntity: Poste::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Poste $poste = null;
+
+    /** Responsable hierarchique (autre employe). */
+    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'subordonnes')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Employe $manager = null;
+
+    /** @var Collection<int, Employe> */
+    #[ORM\OneToMany(targetEntity: self::class, mappedBy: 'manager')]
+    private Collection $subordonnes;
+
+    #[ORM\Column(type: 'date')]
+    private ?\DateTimeInterface $dateEmbauche = null;
+
+    #[ORM\Column(length: 20)]
+    private string $statut = self::STATUT_ACTIF;
+
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?\DateTimeInterface $dateSortie = null;
+
+    #[ORM\Column(length: 180, nullable: true)]
+    private ?string $motifSortie = null;
+
+    /** Compte applicatif rattache, si l'employe se connecte a la GMAO. */
+    #[ORM\OneToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $utilisateur = null;
+
+    #[ORM\Column(type: 'datetime_immutable')]
+    private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column(type: 'datetime_immutable')]
+    private \DateTimeImmutable $updatedAt;
+
+    /** @var Collection<int, Contrat> */
+    #[ORM\OneToMany(targetEntity: Contrat::class, mappedBy: 'employe')]
+    private Collection $contrats;
+
+    /** @var Collection<int, Affectation> */
+    #[ORM\OneToMany(targetEntity: Affectation::class, mappedBy: 'employe')]
+    private Collection $affectations;
+
+    /** @var Collection<int, Absence> */
+    #[ORM\OneToMany(targetEntity: Absence::class, mappedBy: 'employe')]
+    private Collection $absences;
+
+    /** @var Collection<int, ParticipationFormation> */
+    #[ORM\OneToMany(targetEntity: ParticipationFormation::class, mappedBy: 'employe')]
+    private Collection $formations;
 
     public function __construct()
     {
+        $this->createdAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
+        $this->subordonnes = new ArrayCollection();
+        $this->contrats = new ArrayCollection();
+        $this->affectations = new ArrayCollection();
         $this->absences = new ArrayCollection();
-        $this->historiques = new ArrayCollection();
+        $this->formations = new ArrayCollection();
     }
 
-    public function getId(): ?int
+    public function getId(): ?Uuid
     {
         return $this->id;
-    }
-
-    public function getNomPrenoms(): ?string
-    {
-        return $this->nom_prenoms;
-    }
-
-    public function setNomPrenoms(string $nom_prenoms): static
-    {
-        $this->nom_prenoms = $nom_prenoms;
-
-        return $this;
-    }
-
-    public function getDateNaissance(): ?\DateTime
-    {
-        return $this->date_naissance;
-    }
-
-    public function setDateNaissance(?\DateTime $date_naissance): static
-    {
-        $this->date_naissance = $date_naissance;
-
-        return $this;
-    }
-
-    public function getSexe(): ?string
-    {
-        return $this->sexe;
-    }
-
-    public function setSexe(?string $sexe): static
-    {
-        $this->sexe = $sexe;
-
-        return $this;
     }
 
     public function getMatricule(): ?string
@@ -145,164 +182,150 @@ class Employe
         return $this;
     }
 
-    public function getCodeZkteco(): ?int
+    public function getCodePointage(): ?string
     {
-        return $this->code_zkteco;
+        return $this->codePointage;
     }
 
-    public function setCodeZkteco(?int $code_zkteco): static
+    public function setCodePointage(?string $code): static
     {
-        $this->code_zkteco = $code_zkteco;
+        $code = $code === null ? null : trim($code);
+        $this->codePointage = $code === '' ? null : $code;
 
         return $this;
     }
 
-    public function getFonction(): ?string
+    public function getNom(): ?string
     {
-        return $this->fonction;
+        return $this->nom;
     }
 
-    public function setFonction(?string $fonction): static
+    public function setNom(?string $nom): static
     {
-        $this->fonction = $fonction;
+        $this->nom = $nom !== null ? mb_strtoupper(trim($nom), 'UTF-8') : null;
+        $this->touch();
 
         return $this;
     }
 
-    public function getCodeDepartement(): ?Departement
+    public function getPrenoms(): ?string
     {
-        return $this->code_departement;
+        return $this->prenoms;
     }
 
-    public function setCodeDepartement(?Departement $code_departement): static
+    public function setPrenoms(?string $prenoms): static
     {
-        $this->code_departement = $code_departement;
+        $this->prenoms = $prenoms === null ? null : mb_strtoupper(trim($prenoms), 'UTF-8');
+        $this->touch();
 
         return $this;
     }
 
-    public function getTypeContrat(): ?string
+    public function getNomComplet(): string
     {
-        return $this->type_contrat;
+        return trim(($this->nom ?? '') . ' ' . ($this->prenoms ?? ''));
     }
 
-    public function setTypeContrat(?string $type_contrat): static
+    public function getInitiales(): string
     {
-        $this->type_contrat = $type_contrat;
+        return mb_substr((string) $this->nom, 0, 1) . mb_substr((string) $this->prenoms, 0, 1);
+    }
+
+    public function getDateNaissance(): ?\DateTimeInterface
+    {
+        return $this->dateNaissance;
+    }
+
+    public function setDateNaissance(?\DateTimeInterface $dateNaissance): static
+    {
+        $this->dateNaissance = $dateNaissance === null ? null : \DateTime::createFromInterface($dateNaissance);
 
         return $this;
     }
 
-    public function isSoumisAuPointage(): ?bool
+    public function getAge(): ?int
     {
-        return $this->soumis_au_pointage;
+        return $this->dateNaissance?->diff(new \DateTimeImmutable())->y;
     }
 
-    public function setSoumisAuPointage(?bool $soumis_au_pointage): static
+    public function getSexe(): ?string
     {
-        $this->soumis_au_pointage = $soumis_au_pointage;
+        return $this->sexe;
+    }
+
+    public function setSexe(?string $sexe): static
+    {
+        $this->sexe = $sexe;
 
         return $this;
     }
 
-    public function getTypeHorraire(): ?int
+    public function getSexeLibelle(): string
     {
-        return $this->type_horraire;
+        return self::SEXES[$this->sexe ?? ''] ?? 'Non renseigne';
     }
 
-    public function setTypeHorraire(?int $type_horraire): static
+    public function getSituationMatrimoniale(): ?string
     {
-        $this->type_horraire = $type_horraire;
+        return $this->situationMatrimoniale;
+    }
+
+    public function setSituationMatrimoniale(?string $situation): static
+    {
+        $this->situationMatrimoniale = $situation;
 
         return $this;
     }
 
-    public function getPoste(): ?Poste
+    public function getSituationLibelle(): string
     {
-        return $this->poste;
+        return self::SITUATIONS[$this->situationMatrimoniale ?? ''] ?? 'Non renseignee';
     }
 
-    public function setPoste(?Poste $poste): static
+    public function getNationalite(): ?string
     {
-        $this->poste = $poste;
+        return $this->nationalite;
+    }
+
+    public function setNationalite(?string $nationalite): static
+    {
+        $this->nationalite = $nationalite === null ? null : mb_strtoupper(trim($nationalite), 'UTF-8');
 
         return $this;
     }
 
-    public function getCodeEquipe(): ?Equipe
+    public function getTelephone(): ?string
     {
-        return $this->code_equipe;
+        return $this->telephone;
     }
 
-    public function setCodeEquipe(?Equipe $code_equipe): static
+    public function setTelephone(?string $telephone): static
     {
-        $this->code_equipe = $code_equipe;
+        $this->telephone = $telephone;
 
         return $this;
     }
 
-    /**
-     * @return Collection<int, Absences>
-     */
-    public function getAbsences(): Collection
+    public function getEmail(): ?string
     {
-        return $this->absences;
+        return $this->email;
     }
 
-    public function addAbsence(Absences $absence): static
+    public function setEmail(?string $email): static
     {
-        if (!$this->absences->contains($absence)) {
-            $this->absences->add($absence);
-            $absence->setCodeEmploye($this);
-        }
+        $this->email = $email;
 
         return $this;
     }
 
-    public function removeAbsence(Absences $absence): static
+    public function getAdresse(): ?string
     {
-        if ($this->absences->removeElement($absence)) {
-            // set the owning side to null (unless already changed)
-            if ($absence->getCodeEmploye() === $this) {
-                $absence->setCodeEmploye(null);
-            }
-        }
-
-        return $this;
+        return $this->adresse;
     }
 
-    public function isDemission(): ?bool
+    public function setAdresse(?string $adresse): static
     {
-        return $this->demission;
-    }
-
-    public function setDemission(?bool $demission): static
-    {
-        $this->demission = $demission;
-
-        return $this;
-    }
-
-    public function getDateDemission(): ?\DateTime
-    {
-        return $this->date_demission;
-    }
-
-    public function setDateDemission(?\DateTime $date_demission): static
-    {
-        $this->date_demission = $date_demission;
-
-        return $this;
-    }
-
-    public function getMotifDemission(): ?string
-    {
-        return $this->motif_demission;
-    }
-
-    public function setMotifDemission(?string $motif_demission): static
-    {
-        $this->motif_demission = $motif_demission;
+        $this->adresse = $adresse === null ? null : mb_strtoupper(trim($adresse), 'UTF-8');
 
         return $this;
     }
@@ -319,69 +342,199 @@ class Employe
         return $this;
     }
 
-    public function isSupprimer(): ?bool
+    public function getNumeroCnps(): ?string
     {
-        return $this->supprimer;
+        return $this->numeroCnps;
     }
 
-    public function setSupprimer(?bool $supprimer): static
+    public function setNumeroCnps(?string $numeroCnps): static
     {
-        $this->supprimer = $supprimer;
+        $this->numeroCnps = $numeroCnps;
 
         return $this;
     }
 
-    public function isChefQuart(): ?bool
+    public function getDirection(): ?Directions
     {
-        return $this->chef_quart;
+        return $this->direction;
     }
 
-    public function setChefQuart(?bool $chef_quart): static
+    public function setDirection(?Directions $direction): static
     {
-        $this->chef_quart = $chef_quart;
+        $this->direction = $direction;
 
         return $this;
     }
 
-    /**
-     * @return Collection<int, Historique>
-     */
-    public function getHistoriques(): Collection
+    public function getService(): ?Services
     {
-        return $this->historiques;
+        return $this->service;
     }
 
-    public function addHistorique(Historique $historique): static
+    public function setService(?Services $service): static
     {
-        if (!$this->historiques->contains($historique)) {
-            $this->historiques->add($historique);
-            $historique->setCodeEmploye($this);
+        $this->service = $service;
+
+        return $this;
+    }
+
+    public function getPoste(): ?Poste
+    {
+        return $this->poste;
+    }
+
+    public function setPoste(?Poste $poste): static
+    {
+        $this->poste = $poste;
+
+        return $this;
+    }
+
+    public function getManager(): ?self
+    {
+        return $this->manager;
+    }
+
+    public function setManager(?self $manager): static
+    {
+        if ($manager !== null && $manager->getId() !== null && $manager->getId() === $this->getId()) {
+            return $this;
         }
+        $this->manager = $manager;
 
         return $this;
     }
 
-    public function removeHistorique(Historique $historique): static
+    /** @return Collection<int, Employe> */
+    public function getSubordonnes(): Collection
     {
-        if ($this->historiques->removeElement($historique)) {
-            // set the owning side to null (unless already changed)
-            if ($historique->getCodeEmploye() === $this) {
-                $historique->setCodeEmploye(null);
+        return $this->subordonnes;
+    }
+
+    public function getDateEmbauche(): ?\DateTimeInterface
+    {
+        return $this->dateEmbauche;
+    }
+
+    public function setDateEmbauche(?\DateTimeInterface $dateEmbauche): static
+    {
+        $this->dateEmbauche = $dateEmbauche === null ? null : \DateTime::createFromInterface($dateEmbauche);
+
+        return $this;
+    }
+
+    public function getAncienneteAnnees(): ?int
+    {
+        return $this->dateEmbauche?->diff(new \DateTimeImmutable())->y;
+    }
+
+    public function getStatut(): string
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(string $statut): static
+    {
+        $this->statut = isset(self::STATUTS[$statut]) ? $statut : self::STATUT_ACTIF;
+
+        return $this;
+    }
+
+    public function getStatutLibelle(): string
+    {
+        return self::STATUTS[$this->statut] ?? $this->statut;
+    }
+
+    public function isActif(): bool
+    {
+        return $this->statut === self::STATUT_ACTIF;
+    }
+
+    public function getDateSortie(): ?\DateTimeInterface
+    {
+        return $this->dateSortie;
+    }
+
+    public function setDateSortie(?\DateTimeInterface $dateSortie): static
+    {
+        $this->dateSortie = $dateSortie === null ? null : \DateTime::createFromInterface($dateSortie);
+
+        return $this;
+    }
+
+    public function getMotifSortie(): ?string
+    {
+        return $this->motifSortie;
+    }
+
+    public function setMotifSortie(?string $motifSortie): static
+    {
+        $this->motifSortie = $motifSortie === null ? null : mb_strtoupper(trim($motifSortie), 'UTF-8');
+
+        return $this;
+    }
+
+    public function getUtilisateur(): ?User
+    {
+        return $this->utilisateur;
+    }
+
+    public function setUtilisateur(?User $utilisateur): static
+    {
+        $this->utilisateur = $utilisateur;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function getUpdatedAt(): \DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function touch(): static
+    {
+        $this->updatedAt = new \DateTimeImmutable();
+
+        return $this;
+    }
+
+    /** @return Collection<int, Contrat> */
+    public function getContrats(): Collection
+    {
+        return $this->contrats;
+    }
+
+    public function getContratEnCours(): ?Contrat
+    {
+        foreach ($this->contrats as $contrat) {
+            if ($contrat->isEnCours()) {
+                return $contrat;
             }
         }
 
-        return $this;
+        return null;
     }
 
-    public function getHoraireP(): ?HorairesPersonnalises
+    /** @return Collection<int, Affectation> */
+    public function getAffectations(): Collection
     {
-        return $this->horaire_p;
+        return $this->affectations;
     }
 
-    public function setHoraireP(?HorairesPersonnalises $horaire_p): static
+    /** @return Collection<int, Absence> */
+    public function getAbsences(): Collection
     {
-        $this->horaire_p = $horaire_p;
+        return $this->absences;
+    }
 
-        return $this;
+    /** @return Collection<int, ParticipationFormation> */
+    public function getFormations(): Collection
+    {
+        return $this->formations;
     }
 }

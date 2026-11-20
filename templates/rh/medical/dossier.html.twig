@@ -1,0 +1,147 @@
+{% extends 'base.html.twig' %}
+{% block title %}Dossier médical — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_medical') }}">Santé au travail</a></span>
+    <span class="breadcrumb-item">Dossier</span>
+    <span class="breadcrumb-item">Dossier médical</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    <div class="alert py-2 small" style="background:#f6efe8; border:1px solid #e9ded5; color:#5a371e;">
+        Données médicales confidentielles : accès réservé au médecin du travail et à l'infirmerie.
+    </div>
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">{{ dossier.employe ? dossier.employe.nomComplet : 'Dossier médical' }}</h1>
+            <p class="text-muted mb-0">{{ dossier.numeroDossier }} · {{ dossier.employe ? dossier.employe.matricule : '' }}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('rh_medical') }}" class="btn btn-sm btn-outline-secondary">Retour</a>
+            <a href="{{ path('rh_medical_pdf', {id: dossier.id}) }}" class="btn btn-sm btn-outline-secondary" target="_blank">PDF</a>
+            <a href="{{ path('rh_medical_dossier_edit', {id: dossier.id}) }}" class="btn btn-sm btn-cacao">Modifier</a>
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Groupe sanguin</div>
+                <div class="h6 mb-0" style="color:#5a371e;">{{ dossier.groupeSanguin ?: '—' }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Visites</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ dossier.visites|length }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Vaccinations</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ dossier.vaccinations|length }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Accidents</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ dossier.accidents|length }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <div class="small text-muted text-uppercase">Allergies</div>
+                <p class="mb-0 small" style="white-space:pre-line;">{{ dossier.allergies ?: 'Aucune allergie signalée.' }}</p>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="small text-muted text-uppercase">Antécédents</div>
+                <p class="mb-0 small" style="white-space:pre-line;">{{ dossier.antecedents ?: 'Non renseigné.' }}</p>
+            </div>
+            {% if dossier.notes %}
+                <div class="col-12">
+                    <div class="small text-muted text-uppercase">Notes du médecin</div>
+                    <p class="mb-0 small" style="white-space:pre-line;">{{ dossier.notes }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a href="{{ path('rh_medical_visite_new', {id: dossier.id}) }}" class="btn btn-sm btn-cacao">+ Visite médicale</a>
+        <a href="{{ path('rh_medical_vaccination_new', {id: dossier.id}) }}" class="btn btn-sm btn-outline-secondary">+ Vaccination</a>
+        <a href="{{ path('rh_medical_accident_new', {id: dossier.id}) }}" class="btn btn-sm btn-outline-secondary">+ Accident du travail</a>
+    </div>
+
+    <h2 class="h6 mb-2" style="color:#5a371e;">Visites médicales</h2>
+    <div class="table-responsive mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Date</th><th>Type</th><th>Aptitude</th><th>Médecin</th><th>Prochaine</th></tr></thead>
+            <tbody>
+            {% for visite in dossier.visites %}
+                <tr>
+                    <td class="small">{{ visite.date ? visite.date|date('d/m/Y') : '—' }}</td>
+                    <td class="small">{{ visite.typeLibelle }}</td>
+                    <td class="small">{{ visite.aptitudeLibelle }}</td>
+                    <td class="small">{{ visite.medecin ?: '—' }}</td>
+                    <td class="small">{{ visite.dateProchaine ? visite.dateProchaine|date('d/m/Y') : '—' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">Aucune visite enregistrée.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="h6 mb-2" style="color:#5a371e;">Vaccinations</h2>
+    <div class="table-responsive mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Vaccin</th><th>Date</th><th>Rappel</th><th>Lot</th></tr></thead>
+            <tbody>
+            {% for vaccination in dossier.vaccinations %}
+                <tr>
+                    <td class="small">{{ vaccination.vaccin }}</td>
+                    <td class="small">{{ vaccination.date ? vaccination.date|date('d/m/Y') : '—' }}</td>
+                    <td class="small">{{ vaccination.prochainRappel ? vaccination.prochainRappel|date('d/m/Y') : '—' }}</td>
+                    <td class="small">{{ vaccination.lot ?: '—' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-3">Aucune vaccination enregistrée.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="h6 mb-2" style="color:#5a371e;">Accidents du travail</h2>
+    <div class="table-responsive" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Date</th><th>Lieu</th><th>Gravité</th><th>Arrêt</th><th>Déclaration</th></tr></thead>
+            <tbody>
+            {% for accident in dossier.accidents %}
+                <tr>
+                    <td class="small">{{ accident.date ? accident.date|date('d/m/Y') : '—' }}</td>
+                    <td class="small">{{ accident.lieu ?: '—' }}</td>
+                    <td class="small">{{ accident.graviteLibelle }}</td>
+                    <td class="small">
+                        {% if accident.dateDebutArret %}
+                            du {{ accident.dateDebutArret|date('d/m/Y') }}
+                            {% if accident.dateFinArret %} au {{ accident.dateFinArret|date('d/m/Y') }}{% endif %}
+                            {% if accident.joursArret %} ({{ accident.joursArret }} j){% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="small">{{ accident.numeroDeclaration ?: '—' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">Aucun accident enregistré.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

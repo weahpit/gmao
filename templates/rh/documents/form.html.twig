@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+{% block title %}Déposer un document — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_documents') }}">Documents RH</a></span>
+    <span class="breadcrumb-item">Dépôt</span>
+    <span class="breadcrumb-item">Déposer un document</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Déposer un document RH</h1>
+        <a href="{{ path('rh_documents') }}" class="btn btn-sm btn-outline-secondary">Retour</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_document') }}">
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="categorie">Catégorie <span class="text-danger">*</span></label>
+                <select class="form-select" id="categorie" name="categorie" required>
+                    {% for cle, libelle in categories %}
+                        <option value="{{ cle }}" {{ donnees.categorie|default('') == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="type">Type de pièce</label>
+                <select class="form-select" id="type" name="type">
+                    {% for cle, libelle in types %}
+                        <option value="{{ cle }}" {{ donnees.type|default('') == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="titre">Titre <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="titre" name="titre" maxlength="180" required value="{{ donnees.titre|default('') }}">
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="employe">Employé concerné</label>
+                <select class="form-select" id="employe" name="employe">
+                    <option value="">— Aucun —</option>
+                    {% for e in employes %}
+                        <option value="{{ e.id }}" {{ (donnees.employe|default('')) == (e.id ~ '') ? 'selected' }}>{{ e.nomComplet }} ({{ e.matricule }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="candidat">Ou candidat</label>
+                <select class="form-select" id="candidat" name="candidat">
+                    <option value="">— Aucun —</option>
+                    {% for c in candidats %}
+                        <option value="{{ c.id }}" {{ (donnees.candidat|default('')) == (c.id ~ '') ? 'selected' }}>{{ c.nomComplet }}{% if c.email %} — {{ c.email }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="fichier">Fichier <span class="text-danger">*</span></label>
+                <input type="file" class="form-control" id="fichier" name="fichier" required>
+                <div class="form-text">PDF, Word ou image. Le document doit être rattaché à un employé ou à un candidat.</div>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-cacao">Déposer le document</button>
+            <a href="{{ path('rh_documents') }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

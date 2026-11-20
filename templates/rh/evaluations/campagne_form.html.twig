@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouvelle campagne — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">Évaluations</span>
+    <span class="breadcrumb-item">Nouvelle campagne</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2">
+            <ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Nouvelle campagne d'évaluation</h1>
+        <a href="{{ path('rh_evaluations') }}" class="btn btn-sm btn-outline-secondary">Retour</a>
+    </div>
+
+    <form method="post" class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_campagne') }}">
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="libelle">Libellé <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="libelle" name="libelle" maxlength="150" required value="{{ donnees.libelle|default('') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="annee">Année <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="annee" name="annee" min="2000" max="2100" required value="{{ donnees.annee|default('') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="date_debut">Début <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="date_debut" name="date_debut" required value="{{ donnees.date_debut|default('') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="date_fin">Fin <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="date_fin" name="date_fin" required value="{{ donnees.date_fin|default('') }}">
+            </div>
+            <div class="col-12 col-md-9">
+                <label class="form-label" for="objectifs">Objectifs de la campagne</label>
+                <textarea class="form-control" id="objectifs" name="objectifs" rows="2">{{ donnees.objectifs|default('') }}</textarea>
+            </div>
+        </div>
+
+        <hr>
+        <h2 class="h6 mb-2" style="color:#5a371e;">Critères d'évaluation</h2>
+        <p class="small text-muted">Chaque critère est noté de 0 à 5. Le poids (1 à 10) module son influence sur la note globale.</p>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Critère</th><th style="width:120px;">Poids</th></tr></thead>
+                <tbody>
+                {% for i in 0..5 %}
+                    <tr>
+                        <td><input type="text" class="form-control form-control-sm" name="criteres_libelle[]" maxlength="150" value="{{ donnees.criteres_libelle is defined and donnees.criteres_libelle[i] is defined ? donnees.criteres_libelle[i] : '' }}" placeholder="{{ i == 0 ? 'Ex. Objectifs atteints' : '' }}"></td>
+                        <td><input type="number" class="form-control form-control-sm" name="criteres_poids[]" min="1" max="10" value="{{ donnees.criteres_poids[i]|default(1) }}"></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-cacao">Ouvrir la campagne</button>
+            <a href="{{ path('rh_evaluations') }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

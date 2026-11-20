@@ -1,0 +1,93 @@
+{% extends 'base.html.twig' %}
+{% block title %}Saisie évaluation — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">Évaluations</span>
+    <span class="breadcrumb-item">Saisie</span>
+    <span class="breadcrumb-item">Saisie évaluation</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2">
+            <ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+    {% endif %}
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">{{ employe.nomComplet }}</h1>
+            <p class="text-muted mb-0">{{ employe.matricule }} · {{ campagne.libelle }}</p>
+        </div>
+        <a href="{{ path('rh_evaluations_campagne', {id: campagne.id}) }}" class="btn btn-sm btn-outline-secondary">Retour à la campagne</a>
+    </div>
+
+    <form method="post" class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_evaluation_' ~ campagne.id ~ '_' ~ employe.id) }}">
+
+        <div class="table-responsive mb-3">
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Critère</th><th style="width:110px;">Poids</th><th style="width:130px;">Note / 5</th></tr></thead>
+                <tbody>
+                {% for critere in campagne.criteres %}
+                    {% set noteActuelle = evaluation.note(critere.id) %}
+                    <tr>
+                        <td>{{ critere.libelle }}</td>
+                        <td class="small text-muted">{{ critere.poids }}</td>
+                        <td>
+                            <select class="form-select form-select-sm" name="notes[{{ critere.id }}]">
+                                <option value="">—</option>
+                                {% for n in 0..5 %}
+                                    <option value="{{ n }}" {{ noteActuelle is not null and noteActuelle == n ? 'selected' }}>{{ n }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="3" class="text-muted">Cette campagne n'a aucun critère.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="type">Type d'évaluation</label>
+                <select class="form-select" id="type" name="type">
+                    {% for cle, libelle in types %}
+                        <option value="{{ cle }}" {{ evaluation.type == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="statut">Statut de la fiche</label>
+                <select class="form-select" id="statut" name="statut">
+                    {% for cle, libelle in statuts %}
+                        <option value="{{ cle }}" {{ evaluation.statut == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Note globale actuelle</label>
+                <div class="form-control-plaintext">{{ evaluation.noteGlobale is not null ? evaluation.noteGlobale|number_format(2, ',', ' ') ~ ' / 5' : 'Calculée à l’enregistrement' }}</div>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="commentaire">Commentaire de l'évaluateur</label>
+                <textarea class="form-control" id="commentaire" name="commentaire" rows="3">{{ evaluation.commentaire|default('') }}</textarea>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="plan_developpement">Plan de développement</label>
+                <textarea class="form-control" id="plan_developpement" name="plan_developpement" rows="3">{{ evaluation.planDeveloppement|default('') }}</textarea>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-cacao">Enregistrer la fiche</button>
+            <a href="{{ path('rh_evaluations_campagne', {id: campagne.id}) }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

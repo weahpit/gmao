@@ -1,0 +1,88 @@
+{% extends 'base.html.twig' %}
+{% block title %}Pointages — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">Pointages</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Pointages</h1>
+            <p class="text-muted mb-0">Journee du {{ jour|date('d/m/Y') }} — reference 08h00 / 17h00.</p>
+        </div>
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <label class="form-label small mb-0" for="jour">Jour</label>
+            <input type="date" id="jour" name="jour" value="{{ jour|date('Y-m-d') }}" class="form-control form-control-sm">
+            <button class="btn btn-sm btn-outline-secondary" type="submit">Afficher</button>
+        </form>
+    </div>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="row g-2 mb-3">
+        <div class="col-4">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="small text-muted text-uppercase">Presents</div>
+                <div class="h4 mb-0" style="color:#22684d;">{{ presents }}</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="small text-muted text-uppercase">Retards du mois</div>
+                <div class="h4 mb-0" style="color:#a15c1e;">{{ (retardsMois / 60)|round(0, 'floor') }} h {{ '%02d'|format(retardsMois % 60) }}</div>
+                <div class="small text-muted">{{ retardsMois }} minutes cumulees</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="small text-muted text-uppercase">Heures supplementaires</div>
+                <div class="h4 mb-0" style="color:#5a371e;">{{ heuresSupMois }}</div>
+                <div class="small text-muted">heures sur le mois</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Employe</th><th>Arrivee</th><th>Depart</th><th>Duree</th><th>Retard</th><th>Suppl.</th><th>Saisie</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for employe in employes %}
+                {% set p = pointages[employe.id] ?? null %}
+                <tr>
+                    <td>
+                        {{ employe.nomComplet }}
+                        <div class="small text-muted">{{ employe.matricule }}{% if employe.service %} · {{ employe.service.libelle }}{% endif %}</div>
+                    </td>
+                    <td class="small">{{ p and p.heureArrivee ? p.heureArrivee|date('H:i') : '—' }}</td>
+                    <td class="small">{{ p and p.heureDepart ? p.heureDepart|date('H:i') : '—' }}</td>
+                    <td class="small">{{ p ? p.dureeLibelle : '—' }}</td>
+                    <td class="small">{{ p and p.retardMinutes > 0 ? p.retardMinutes ~ ' min' : '—' }}</td>
+                    <td class="small">{{ p and p.heuresSupplementaires > 0 ? (p.heuresSupplementaires / 60)|round(1) ~ ' h' : '—' }}</td>
+                    <td>
+                        {% if estRh %}
+                            <form method="post" action="{{ path('rh_temps_pointage_save') }}" class="d-flex gap-1 align-items-center">
+                                <input type="hidden" name="_token" value="{{ csrf_token('rh_pointage') }}">
+                                <input type="hidden" name="jour" value="{{ jour|date('Y-m-d') }}">
+                                <input type="hidden" name="employe" value="{{ employe.id }}">
+                                <input type="time" name="heure_arrivee" value="{{ p and p.heureArrivee ? p.heureArrivee|date('H:i') : '' }}" class="form-control form-control-sm" style="max-width:100px;">
+                                <input type="time" name="heure_depart" value="{{ p and p.heureDepart ? p.heureDepart|date('H:i') : '' }}" class="form-control form-control-sm" style="max-width:100px;">
+                                <button class="btn btn-sm btn-cacao" type="submit">OK</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-4">Aucun employe actif.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

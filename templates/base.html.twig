@@ -618,54 +618,75 @@
                 </a>
             </div>
 
-            {# ----------------------------- RESSOURCES HUMAINES ----------------------------- #}
-{#            <div class="nav-section">#}
-{#                <div class="nav-group">#}
-{#                    <button type="button" class="nav-item has-submenu {{ app.request.attributes.get('_route') starts with 'rh_' ? 'active' }}">#}
-{#                        <i data-lucide="users"></i>#}
-{#                        <span class="nav-label">Ressources humaines</span>#}
-{#                        <i data-lucide="chevron-down" class="nav-chevron"></i>#}
-{#                    </button>#}
-{#                    <div class="nav-submenu">#}
-{#                        <a href="{{ path('rh_accueil') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'rh_accueil' ? 'active' }}">#}
-{#                            <span class="nav-label">Tableau de bord RH</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_employes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_employes' or app.request.attributes.get('_route') starts with 'rh_add_employe' or app.request.attributes.get('_route') starts with 'rh_rm_employe' ? 'active' }}">#}
-{#                            <span class="nav-label">Fichier employés</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_departements') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_departements' ? 'active' }}">#}
-{#                            <span class="nav-label">Départements</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_datarh') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_datarh' ? 'active' }}">#}
-{#                            <span class="nav-label">Postes</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_equipes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_equipes' ? 'active' }}">#}
-{#                            <span class="nav-label">Équipes et quarts</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_horaires') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_horaires' ? 'active' }}">#}
-{#                            <span class="nav-label">Horaires</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_programmation') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_programmation' ? 'active' }}">#}
-{#                            <span class="nav-label">Programmation des quarts</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_presences_journalieres') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_presences_journalieres' ? 'active' }}">#}
-{#                            <span class="nav-label">Présences du jour</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_presences') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_presences' ? 'active' }}">#}
-{#                            <span class="nav-label">Absences et permissions</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_exceptions') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_exceptions' ? 'active' }}">#}
-{#                            <span class="nav-label">Jours fériés et démissions</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_historique') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_historique' ? 'active' }}">#}
-{#                            <span class="nav-label">Historique des mouvements</span>#}
-{#                        </a>#}
-{#                        <a href="{{ path('rh_app_options') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_app_options' ? 'active' }}">#}
-{#                            <span class="nav-label">Paramètres de pointage</span>#}
-{#                        </a>#}
-{#                    </div>#}
-{#                </div>#}
-{#            </div>#}
+            {# ----------------------------- VISITES ----------------------------- #}
+            <div class="nav-section">
+                <div class="nav-group">
+                    <button type="button" class="nav-item has-submenu {{ app.request.attributes.get('_route') starts with 'app_visites' ? 'active' }}">
+                        <i data-lucide="id-card"></i>
+                        <span class="nav-label">Visites</span>
+                        <i data-lucide="chevron-down" class="nav-chevron"></i>
+                    </button>
+                    <div class="nav-submenu">
+                        <a href="{{ path('app_visites') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'app_visites' ? 'active' }}">
+                            <span class="nav-label">Accueil des visiteurs</span>
+                        </a>
+                        <a href="{{ path('app_visites_entree') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'app_visites_entree' ? 'active' }}">
+                            <span class="nav-label">Nouvelle entrée</span>
+                        </a>
+                        <a href="{{ path('app_visites_etat') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_visites_etat' ? 'active' }}">
+                            <span class="nav-label">État des visites</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ------------------------ RESSOURCES HUMAINES ------------------------ #}
+            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DRH') or is_granted('ROLE_RH')
+                  or is_granted('ROLE_CHEF_SERVICE') or is_granted('ROLE_MANAGER') %}
+                <div class="nav-section">
+                    <div class="nav-group">
+                        <button type="button" class="nav-item has-submenu {{ app.request.attributes.get('_route') starts with 'rh_' ? 'active' }}">
+                            <i data-lucide="users"></i>
+                            <span class="nav-label">Ressources humaines</span>
+                            <i data-lucide="chevron-down" class="nav-chevron"></i>
+                        </button>
+                        <div class="nav-submenu">
+                            <a href="{{ path('rh_dashboard') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'rh_dashboard' ? 'active' }}">
+                                <span class="nav-label">Tableau de bord RH</span>
+                            </a>
+                            <a href="{{ path('rh_employes') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_employe' ? 'active' }}">
+                                <span class="nav-label">Employés</span>
+                            </a>
+                            <a href="{{ path('rh_contrats') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_contrat' ? 'active' }}">
+                                <span class="nav-label">Contrats</span>
+                            </a>
+                            <a href="{{ path('rh_recrutement') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_recrutement' ? 'active' }}">
+                                <span class="nav-label">Recrutement</span>
+                            </a>
+                            <a href="{{ path('rh_temps_pointages') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'rh_temps_pointages' ? 'active' }}">
+                                <span class="nav-label">Pointages</span>
+                            </a>
+                            <a href="{{ path('rh_temps_absences') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_temps_absence' ? 'active' }}">
+                                <span class="nav-label">Absences et congés</span>
+                            </a>
+                            <a href="{{ path('rh_evaluations') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_evaluations' ? 'active' }}">
+                                <span class="nav-label">Évaluations</span>
+                            </a>
+                            <a href="{{ path('rh_formations') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_formations' ? 'active' }}">
+                                <span class="nav-label">Formations</span>
+                            </a>
+                            <a href="{{ path('rh_documents') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_documents' ? 'active' }}">
+                                <span class="nav-label">Documents RH</span>
+                            </a>
+                            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DRH') or is_granted('ROLE_MEDECIN') or is_granted('ROLE_INFIRMIER') %}
+                                <a href="{{ path('rh_medical') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_medical' ? 'active' }}">
+                                    <span class="nav-label">Santé au travail</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
 
             {% if is_granted('ROLE_ADMIN') %}
                 <div class="nav-section">

@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+{% block title %}Formation — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_formations') }}">Formations</a></span>
+    <span class="breadcrumb-item">Fiche</span>
+    <span class="breadcrumb-item">Formation</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">{{ estCreation ? 'Nouvelle formation' : 'Modifier la formation' }}</h1>
+        <a href="{{ path('rh_formations') }}" class="btn btn-sm btn-outline-secondary">Retour</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_formation') }}">
+        <div class="row g-3">
+            <div class="col-12 col-md-8">
+                <label class="form-label" for="intitule">Intitulé <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="intitule" name="intitule" maxlength="180" required value="{{ donnees.intitule|default('') }}">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="statut">Statut</label>
+                <select class="form-select" id="statut" name="statut">
+                    {% for cle, libelle in statuts %}
+                        <option value="{{ cle }}" {{ donnees.statut|default('') == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="organisme">Organisme</label>
+                <input type="text" class="form-control" id="organisme" name="organisme" maxlength="150" value="{{ donnees.organisme|default('') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="date_debut">Début</label>
+                <input type="date" class="form-control" id="date_debut" name="date_debut" value="{{ donnees.date_debut|default('') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="date_fin">Fin</label>
+                <input type="date" class="form-control" id="date_fin" name="date_fin" value="{{ donnees.date_fin|default('') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="nombre_places">Nombre de places</label>
+                <input type="number" class="form-control" id="nombre_places" name="nombre_places" min="0" value="{{ donnees.nombre_places|default(0) }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="cout">Coût (FCFA)</label>
+                <input type="text" class="form-control" id="cout" name="cout" value="{{ donnees.cout|default('') }}" placeholder="Ex. 250000">
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="description">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="4">{{ donnees.description|default('') }}</textarea>
+            </div>
+        </div>
+
+        <hr>
+        <h2 class="h6 mb-2" style="color:#5a371e;">Documents de la formation</h2>
+        <p class="small text-muted mb-3">
+            Formats acceptés : PDF, Word, Excel, PowerPoint, OpenDocument, images — 25 Mo maximum par fichier.
+            {% if not estCreation %}Un nouveau fichier remplace l'ancien.{% endif %}
+        </p>
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="support">Support de présentation</label>
+                <input type="file" class="form-control" id="support" name="support"
+                       accept=".pdf,.ppt,.pptx,.odp,.doc,.docx,.odt,.rtf,.txt,.jpg,.jpeg,.png,.webp">
+                {% if donnees.support_nom|default('') %}
+                    <div class="form-text">Fichier actuel : {{ donnees.support_nom|default('') }}</div>
+                {% elseif not estCreation %}
+                    <div class="form-text">Aucun support enregistré.</div>
+                {% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="liste_presences">Liste de présences</label>
+                <input type="file" class="form-control" id="liste_presences" name="liste_presences"
+                       accept=".pdf,.xls,.xlsx,.ods,.csv,.doc,.docx,.odt,.jpg,.jpeg,.png,.webp">
+                {% if donnees.liste_presences_nom|default('') %}
+                    <div class="form-text">Fichier actuel : {{ donnees.liste_presences_nom|default('') }}</div>
+                {% elseif not estCreation %}
+                    <div class="form-text">Aucune liste enregistrée.</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-cacao">{{ estCreation ? 'Créer la formation' : 'Enregistrer' }}</button>
+            <a href="{{ path('rh_formations') }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

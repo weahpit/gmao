@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ offre.intitule }} — Recrutement{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_recrutement') }}">Recrutement</a></span>
+    <span class="breadcrumb-item">{{ offre.reference }}</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">{{ offre.intitule }}</h1>
+            <p class="text-muted mb-0">
+                {{ offre.reference }} · {{ offre.nombrePostes }} poste(s) · {{ offre.serviceLibelle }}
+                · {{ offre.dateCloture ? 'cloture le ' ~ offre.dateCloture|date('d/m/Y') : 'sans date de cloture' }}
+            </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if estRh %}
+                <a href="{{ path('rh_recrutement_offre_edit', {id: offre.id}) }}" class="btn btn-sm btn-outline-secondary">Modifier</a>
+                <a href="{{ path('rh_recrutement_candidature_new', {offre: offre.id}) }}" class="btn btn-sm btn-cacao">+ Candidature</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-8">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Description</h2>
+                <p class="small mb-3" style="white-space:pre-line;">{{ offre.description ? offre.description : 'Non renseignee.' }}</p>
+                <h2 class="h6 mb-2" style="color:#5a371e;">Profil recherche</h2>
+                <p class="small mb-0" style="white-space:pre-line;">{{ offre.profil ? offre.profil : 'Non renseigne.' }}</p>
+            </div>
+
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Candidatures ({{ candidatures|length }})</h2>
+                {% if candidatures is empty %}
+                    <p class="text-muted small mb-0">Aucune candidature pour cette offre.</p>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Candidat</th><th>Recu le</th><th>Statut</th><th>Entretien</th><th></th></tr></thead>
+                            <tbody>
+                            {% for candidature in candidatures %}
+                                <tr>
+                                    <td>{{ candidature.candidat ? candidature.candidat.nomComplet : '—' }}</td>
+                                    <td class="small">{{ candidature.dateSoumission ? candidature.dateSoumission|date('d/m/Y') : '-' }}</td>
+                                    <td><span class="badge" style="background:#f2e7dd; color:#5a371e;">{{ candidature.statutLibelle }}</span></td>
+                                    <td class="small">{{ candidature.dateEntretien ? candidature.dateEntretien|date('d/m/Y H:i') : '—' }}</td>
+                                    <td class="text-end"><a href="{{ path('rh_recrutement_candidature', {id: candidature.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir</a></td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Circuit de validation</h2>
+                <p class="small mb-2">Statut actuel : <strong>{{ offre.statutLibelle }}</strong></p>
+                {% if estRh %}
+                    <form method="post" action="{{ path('rh_recrutement_offre_statut', {id: offre.id}) }}" class="d-grid gap-2">
+                        <input type="hidden" name="_token" value="{{ csrf_token('rh_offre_statut_' ~ offre.id) }}">
+                        {% if offre.statut == 'brouillon' %}
+                            <button class="btn btn-sm btn-cacao" name="action" value="soumettre">Soumettre a la DRH</button>
+                        {% endif %}
+                        {% if offre.statut == 'soumise' %}
+                            <button class="btn btn-sm btn-cacao" name="action" value="valider">Valider (DRH)</button>
+                        {% endif %}
+                        {% if offre.statut in ['soumise', 'validee_drh'] %}
+                            <button class="btn btn-sm btn-outline-secondary" name="action" value="publier">Publier l'offre</button>
+                        {% endif %}
+                        {% if offre.statut != 'cloturee' %}
+                            <button class="btn btn-sm btn-outline-secondary" name="action" value="cloturer">Cloturer</button>
+                        {% endif %}
+                        {% if offre.statut in ['brouillon', 'soumise'] %}
+                            <button class="btn btn-sm btn-outline-danger" name="action" value="refuser">Refuser</button>
+                        {% endif %}
+                    </form>
+                {% endif %}
+                <p class="small text-muted mt-2 mb-0">Publiee le {{ offre.datePublication ? offre.datePublication|date('d/m/Y') : '—' }}.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

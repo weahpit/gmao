@@ -1,0 +1,119 @@
+{% extends 'base.html.twig' %}
+{% block title %}Candidature {{ candidature.reference }} — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_recrutement') }}">Recrutement</a></span>
+    <span class="breadcrumb-item">{{ candidature.reference }}</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header mb-3">
+        <h1 class="h4 mb-1">{{ candidature.candidat ? candidature.candidat.nomComplet : 'Candidat inconnu' }}</h1>
+        <p class="text-muted mb-0">
+            {{ candidature.reference }} · {{ candidature.offre ? candidature.offre.intitule : 'offre supprimee' }}
+            · recue le {{ candidature.dateSoumission ? candidature.dateSoumission|date('d/m/Y') : '-' }}
+        </p>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        {% for etape in pipeline %}
+            <span class="badge" style="background:{{ etape == candidature.statut ? '#5a371e' : '#f2e7dd' }}; color:{{ etape == candidature.statut ? '#fff' : '#5a371e' }};">
+                {{ statuts[etape] ?? etape }}
+            </span>
+        {% endfor %}
+    </div>
+
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0 small">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Dossier du candidat</h2>
+                <dl class="row small mb-0">
+                    <dt class="col-4 text-muted fw-normal">Telephone</dt><dd class="col-8">{{ candidature.candidat and candidature.candidat.telephone ? candidature.candidat.telephone : '-' }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Email</dt><dd class="col-8">{{ candidature.candidat and candidature.candidat.email ? candidature.candidat.email : '-' }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Adresse</dt><dd class="col-8">{{ candidature.candidat and candidature.candidat.adresse ? candidature.candidat.adresse : '-' }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Diplomes</dt><dd class="col-8" style="white-space:pre-line;">{{ candidature.candidat and candidature.candidat.diplomes ? candidature.candidat.diplomes : '-' }}</dd>
+                    <dt class="col-4 text-muted fw-normal">Experiences</dt><dd class="col-8" style="white-space:pre-line;">{{ candidature.candidat and candidature.candidat.experiences ? candidature.candidat.experiences : '-' }}</dd>
+                </dl>
+            </div>
+
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Pieces du dossier</h2>
+                {% if documents is empty %}
+                    <p class="text-muted small mb-0">Aucune piece deposee.</p>
+                {% else %}
+                    <ul class="list-unstyled small mb-0">
+                    {% for document in documents %}
+                        <li class="d-flex justify-content-between border-bottom py-1">
+                            <a href="{{ path('rh_documents_telecharger', {id: document.id}) }}">{{ document.titre ? document.titre : document.nomOriginal }}</a>
+                            <span class="text-muted">{{ document.typeLibelle }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Suivi de la candidature</h2>
+                {% if estRh %}
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="_token" value="{{ csrf_token('rh_candidature_suivi_' ~ candidature.id) }}">
+                        <div class="mb-2">
+                            <label class="form-label small mb-1" for="statut">Etape</label>
+                            <select id="statut" name="statut" class="form-select form-select-sm">
+                                {% for cle, libelle in statuts %}<option value="{{ cle }}" {{ cle == candidature.statut ? 'selected' : '' }}>{{ libelle }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label small mb-1" for="note_tests">Note tests /100</label>
+                                <input type="number" min="0" max="100" id="note_tests" name="note_tests" value="{{ candidature.noteTests }}" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small mb-1" for="note_entretien">Note entretien /100</label>
+                                <input type="number" min="0" max="100" id="note_entretien" name="note_entretien" value="{{ candidature.noteEntretien }}" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="date_entretien">Date et heure d'entretien</label>
+                                <input type="datetime-local" id="date_entretien" name="date_entretien" value="{{ candidature.dateEntretien ? candidature.dateEntretien|date('Y-m-d\\TH:i') : '' }}" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="evaluateurs">Evaluateurs</label>
+                                <input id="evaluateurs" name="evaluateurs" value="{{ candidature.evaluateurs }}" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="compte_rendu">Compte rendu d'entretien</label>
+                                <textarea id="compte_rendu" name="compte_rendu" rows="3" class="form-control form-control-sm">{{ candidature.compteRenduEntretien }}</textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="compte_rendu_fichier">Compte rendu (fichier)</label>
+                                <input type="file" id="compte_rendu_fichier" name="compte_rendu_fichier" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small mb-1" for="observations">Observations</label>
+                                <textarea id="observations" name="observations" rows="2" class="form-control form-control-sm">{{ candidature.observations }}</textarea>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-cacao" type="submit">Enregistrer le suivi</button>
+                    </form>
+                {% else %}
+                    <dl class="row small mb-0">
+                        <dt class="col-5 text-muted fw-normal">Statut</dt><dd class="col-7">{{ candidature.statutLibelle }}</dd>
+                        <dt class="col-5 text-muted fw-normal">Note tests</dt><dd class="col-7">{{ candidature.noteTests is not null ? candidature.noteTests ~ ' / 100' : '-' }}</dd>
+                        <dt class="col-5 text-muted fw-normal">Entretien</dt><dd class="col-7">{{ candidature.dateEntretien ? candidature.dateEntretien|date('d/m/Y H:i') : '-' }}</dd>
+                        <dt class="col-5 text-muted fw-normal">Observations</dt><dd class="col-7">{{ candidature.observations ? candidature.observations : '-' }}</dd>
+                    </dl>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

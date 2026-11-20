@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+{% block title %}Accident du travail — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_medical') }}">Santé au travail</a></span>
+    <span class="breadcrumb-item">Accident</span>
+    <span class="breadcrumb-item">Accident du travail</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    <div class="alert py-2 small" style="background:#f6efe8; border:1px solid #e9ded5; color:#5a371e;">
+        Données médicales confidentielles : accès réservé au médecin du travail et à l'infirmerie.
+    </div>
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h4 mb-0">Déclarer un accident du travail</h1>
+            <p class="text-muted mb-0 small">{{ dossier.employe ? dossier.employe.nomComplet : '' }} · {{ dossier.numeroDossier }}</p>
+        </div>
+        <a href="{{ path('rh_medical_dossier', {id: dossier.id}) }}" class="btn btn-sm btn-outline-secondary">Retour au dossier</a>
+    </div>
+
+    <form method="post" class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_accident') }}">
+        <div class="row g-3">
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="date">Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="date" name="date" required value="{{ donnees.date|default('') }}">
+            </div>
+            <div class="col-12 col-md-5">
+                <label class="form-label" for="lieu">Lieu</label>
+                <input type="text" class="form-control" id="lieu" name="lieu" maxlength="180" value="{{ donnees.lieu|default('') }}">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="gravite">Gravité</label>
+                <select class="form-select" id="gravite" name="gravite">
+                    {% for cle, libelle in gravites %}
+                        <option value="{{ cle }}" {{ donnees.gravite|default('') == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="description">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ donnees.description|default('') }}</textarea>
+            </div>
+            <div class="col-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="arret_travail" name="arret_travail" value="1" {{ donnees.arret_travail|default('0') == '1' ? 'checked' }}>
+                    <label class="form-check-label" for="arret_travail">Arrêt de travail prescrit</label>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="date_debut_arret">Début de l'arrêt</label>
+                <input type="date" class="form-control" id="date_debut_arret" name="date_debut_arret" value="{{ donnees.date_debut_arret|default('') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="date_fin_arret">Fin de l'arrêt</label>
+                <input type="date" class="form-control" id="date_fin_arret" name="date_fin_arret" value="{{ donnees.date_fin_arret|default('') }}">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="numero_declaration">N° de déclaration</label>
+                <input type="text" class="form-control" id="numero_declaration" name="numero_declaration" maxlength="80" value="{{ donnees.numero_declaration|default('') }}">
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-cacao">Enregistrer l'accident</button>
+            <a href="{{ path('rh_medical_dossier', {id: dossier.id}) }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

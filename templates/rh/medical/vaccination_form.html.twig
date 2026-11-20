@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+{% block title %}Vaccination — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_medical') }}">Santé au travail</a></span>
+    <span class="breadcrumb-item">Vaccination</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    <div class="alert py-2 small" style="background:#f6efe8; border:1px solid #e9ded5; color:#5a371e;">
+        Données médicales confidentielles : accès réservé au médecin du travail et à l'infirmerie.
+    </div>
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h4 mb-0">Nouvelle vaccination</h1>
+            <p class="text-muted mb-0 small">{{ dossier.employe ? dossier.employe.nomComplet : '' }} · {{ dossier.numeroDossier }}</p>
+        </div>
+        <a href="{{ path('rh_medical_dossier', {id: dossier.id}) }}" class="btn btn-sm btn-outline-secondary">Retour au dossier</a>
+    </div>
+
+    <form method="post" class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_vaccination') }}">
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="vaccin">Vaccin <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="vaccin" name="vaccin" maxlength="150" required value="{{ donnees.vaccin|default('') }}" placeholder="Ex. Tétanos, Fièvre jaune">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="date">Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="date" name="date" required value="{{ donnees.date|default('') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="prochain_rappel">Prochain rappel</label>
+                <input type="date" class="form-control" id="prochain_rappel" name="prochain_rappel" value="{{ donnees.prochain_rappel|default('') }}">
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="lot">Numéro de lot</label>
+                <input type="text" class="form-control" id="lot" name="lot" maxlength="60" value="{{ donnees.lot|default('') }}">
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-cacao">Enregistrer la vaccination</button>
+            <a href="{{ path('rh_medical_dossier', {id: dossier.id}) }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

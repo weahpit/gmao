@@ -1,0 +1,162 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ employe.nomComplet }} — Dossier RH{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_employes') }}">Employes</a></span>
+    <span class="breadcrumb-item">{{ employe.nomComplet }}</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div class="d-flex gap-3 align-items-center">
+            {% if employe.photo %}
+                <img src="{{ asset('data/rh/' ~ employe.photo) }}" alt="{{ employe.nomComplet }}"
+                     style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #e9ded5;">
+            {% else %}
+                <div class="d-flex align-items-center justify-content-center" style="width:56px; height:56px; border-radius:50%; background:#5a371e; color:#fff; font-weight:600;">
+                    {{ employe.initiales }}
+                </div>
+            {% endif %}
+            <div>
+                <h1 class="h4 mb-1">{{ employe.nomComplet }}</h1>
+                <p class="text-muted mb-0 small">
+                    {{ employe.matricule }} · {{ employe.poste ? employe.poste.libelle : 'poste non defini' }}
+                    {% if employe.service %} · {{ employe.service.libelle }}{% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('rh_employes_edit', {id: employe.id}) }}" class="btn btn-sm btn-cacao">Modifier</a>
+            <a href="{{ path('rh_employes_affectation', {id: employe.id}) }}" class="btn btn-sm btn-outline-secondary">Affecter</a>
+            <a href="{{ path('rh_contrats_new', {employe: employe.id}) }}" class="btn btn-sm btn-outline-secondary">Nouveau contrat</a>
+            <a href="{{ path('rh_employes_pdf', {id: employe.id}) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Fiche PDF</a>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-4">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Informations</h2>
+                {% if accesRh is not defined or accesRh %}
+                <form method="post" action="{{ path('rh_employes_photo', {id: employe.id}) }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-center mb-3">
+                    <input type="hidden" name="_token" value="{{ csrf_token('rh_employe_photo_' ~ employe.id) }}">
+                    <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="form-control form-control-sm">
+                    <button class="btn btn-sm btn-outline-secondary text-nowrap" type="submit">Photo</button>
+                </form>
+                {% endif %}
+                <dl class="row small mb-0">
+                    <dt class="col-5 text-muted fw-normal">Statut</dt><dd class="col-7">{{ employe.statutLibelle }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Sexe</dt><dd class="col-7">{{ employe.sexeLibelle }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Age</dt><dd class="col-7">{{ employe.age is not null ? employe.age ~ ' ans' : '-' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Situation</dt><dd class="col-7">{{ employe.situationLibelle }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Embauche</dt><dd class="col-7">{{ employe.dateEmbauche ? employe.dateEmbauche|date('d/m/Y') : '-' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Anciennete</dt><dd class="col-7">{{ employe.ancienneteAnnees }} an(s)</dd>
+                    <dt class="col-5 text-muted fw-normal">Telephone</dt><dd class="col-7">{{ employe.telephone ? employe.telephone : '-' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Email</dt><dd class="col-7">{{ employe.email ? employe.email : '-' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">CNPS</dt><dd class="col-7">{{ employe.numeroCnps ? employe.numeroCnps : '-' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Responsable</dt><dd class="col-7">{{ employe.manager ? employe.manager.nomComplet : '-' }}</dd>
+                </dl>
+            </div>
+
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Conges {{ annee }}</h2>
+                <p class="small mb-2">Solde de conges annuel : <strong>{{ soldeConges }} jour(s)</strong></p>
+                {% if employe.isActif %}
+                    <a href="{{ path('rh_temps_absence_new', {employe: employe.id}) }}" class="btn btn-sm btn-outline-secondary">Demander un conge</a>
+                {% endif %}
+                {% if estRh and employe.isActif %}
+                    <form method="post" action="{{ path('rh_employes_sortie', {id: employe.id}) }}" class="mt-2" onsubmit="return confirm('Confirmer la sortie de {{ employe.nomComplet|escape('js') }} ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('rh_employes_sortie_' ~ employe.id) }}">
+                        <div class="input-group input-group-sm">
+                            <input name="date_sortie" type="date" class="form-control" value="{{ 'now'|date('Y-m-d') }}" required>
+                            <input name="motif_sortie" class="form-control" placeholder="Motif">
+                            <button class="btn btn-outline-danger" type="submit">Sortie</button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Contrats</h2>
+                {% if contrats is empty %}
+                    <p class="text-muted small mb-0">Aucun contrat enregistre.</p>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead><tr><th>Reference</th><th>Type</th><th>Periode</th><th>Statut</th>{% if peutVoirSalaires %}<th class="text-end">Salaire</th>{% endif %}<th></th></tr></thead>
+                            <tbody>
+                            {% for contrat in contrats %}
+                                <tr>
+                                    <td>{{ contrat.reference }}</td>
+                                    <td>{{ contrat.typeLibelle }}</td>
+                                    <td>{{ contrat.dateDebut ? contrat.dateDebut|date('d/m/Y') : '-' }} → {{ contrat.dateFin ? contrat.dateFin|date('d/m/Y') : 'sans terme' }}</td>
+                                    <td><span class="badge" style="background:#f2e7dd; color:#5a371e;">{{ contrat.statutLibelle }}</span></td>
+                                    {% if peutVoirSalaires %}<td class="text-end">{{ contrat.salaire ? contrat.salaire ~ ' FCFA' : '-' }}</td>{% endif %}
+                                    <td class="text-end"><a href="{{ path('rh_contrats_edit', {id: contrat.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir</a></td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Historique des affectations</h2>
+                {% if affectations is empty %}
+                    <p class="text-muted small mb-0">Aucune affectation enregistree.</p>
+                {% else %}
+                    <ul class="list-unstyled small mb-0">
+                    {% for affectation in affectations %}
+                        <li class="border-bottom py-1">
+                            {{ affectation.dateDebut ? affectation.dateDebut|date('d/m/Y') : '-' }}
+                            → {{ affectation.dateFin ? affectation.dateFin|date('d/m/Y') : 'en cours' }}
+                            — {{ affectation.poste ? affectation.poste.libelle : '-' }}
+                            {% if affectation.service %} ({{ affectation.service.libelle }}){% endif %}
+                            {% if affectation.motif %}<div class="text-muted">{{ affectation.motif }}</div>{% endif %}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Absences recentes</h2>
+                {% if absences is empty %}
+                    <p class="text-muted small mb-0">Aucune absence enregistree.</p>
+                {% else %}
+                    <ul class="list-unstyled small mb-0">
+                    {% for absence in absences %}
+                        <li class="d-flex justify-content-between border-bottom py-1">
+                            <span>{{ absence.typeLibelle }} · {{ absence.periodeLibelle }}</span>
+                            <span class="text-muted">{{ absence.nombreJours }} j — {{ absence.statutLibelle }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Documents du dossier</h2>
+                {% if documents is empty %}
+                    <p class="text-muted small mb-0">Aucune piece deposee. <a href="{{ path('rh_documents_new') }}">Deposer un document</a>.</p>
+                {% else %}
+                    <ul class="list-unstyled small mb-0">
+                    {% for document in documents %}
+                        <li class="d-flex justify-content-between border-bottom py-1">
+                            <a href="{{ path('rh_documents_telecharger', {id: document.id}) }}">{{ document.titre ? document.titre : document.nomOriginal }}</a>
+                            <span class="text-muted">{{ document.typeLibelle }} · {{ document.tailleLibelle }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

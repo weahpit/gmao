@@ -1,0 +1,124 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ visiteur.nomComplet }} — Visites CITRAC{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('app_visites') }}">Visites</a></span>
+    <span class="breadcrumb-item">{{ visiteur.nomComplet }}</span>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">{{ visiteur.nomComplet }}</h1>
+            <p class="text-muted mb-0">{{ visiteur.pieceComplete }}{% if visiteur.societe %} · {{ visiteur.societe }}{% endif %}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_visites_entree', {visiteur: visiteur.id}) }}" class="btn btn-sm btn-cacao">Nouvelle visite</a>
+            <a href="{{ path('app_visites') }}" class="btn btn-sm btn-outline-secondary">Retour</a>
+        </div>
+    </div>
+
+    {% if enCours %}
+        <div class="alert" style="background:#fdf6ec; border:1px solid #e6cfa8; border-radius:12px;" role="alert">
+            <div class="fw-semibold mb-1">Ce visiteur est actuellement présent ({{ enCours|length }} passage en cours).</div>
+            {% for passage in enCours %}
+                <div class="small">
+                    {{ passage.reference }} · entrée à {{ passage.heureEntree|date('H:i') }} · {{ passage.serviceLibelle }}
+                    · présent depuis {{ passage.dureeLibelle }}
+                    <a href="{{ path('app_visites_sortie', {id: passage.id}) }}" class="ms-1">Enregistrer la sortie</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-4">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6">Fiche visiteur</h2>
+                <dl class="row g-1 small mb-0">
+                    <dt class="col-5 text-muted fw-normal">Nom</dt><dd class="col-7 mb-1">{{ visiteur.nom }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Prénoms</dt><dd class="col-7 mb-1">{{ visiteur.prenoms ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Pièce</dt><dd class="col-7 mb-1">{{ visiteur.typePieceLibelle }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Numéro</dt><dd class="col-7 mb-1">{{ visiteur.numeroPiece ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Société</dt><dd class="col-7 mb-1">{{ visiteur.societe ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Fonction</dt><dd class="col-7 mb-1">{{ visiteur.fonction ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Téléphone</dt><dd class="col-7 mb-1">{{ visiteur.telephone ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">E-mail</dt><dd class="col-7 mb-1">{{ visiteur.email ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Fiche créée</dt><dd class="col-7 mb-1">{{ visiteur.createdAt|date('d/m/Y') }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Dernier passage</dt><dd class="col-7 mb-1">{{ visiteur.updatedAt|date('d/m/Y H:i') }}</dd>
+                </dl>
+
+                {% if visiteur.observations %}
+                    <hr style="border-color:#eadfd6;">
+                    <div class="small text-muted">Observations permanentes : {{ visiteur.observations }}</div>
+                {% endif %}
+            </div>
+
+            <div class="p-3 mt-3" style="background:#faf6f2; border:1px dashed #cbb6a4; border-radius:14px;">
+                <div class="d-flex justify-content-between">
+                    <div><div class="small text-muted">Passages enregistrés</div><div class="h5 mb-0" style="color:#7a4c33;">{{ historique|length }}</div></div>
+                    <div class="text-end"><div class="small text-muted">En cours</div><div class="h5 mb-0" style="color:#7a4c33;">{{ enCours|length }}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">Historique des passages</h2>
+                    <span class="small text-muted">Du plus récent au plus ancien</span>
+                </div>
+
+                {% if historique is empty %}
+                    <p class="text-muted mb-0">Aucun passage enregistré pour ce visiteur.</p>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead style="background:#faf6f2;">
+                                <tr>
+                                    <th class="small text-muted">Référence</th>
+                                    <th class="small text-muted">Entrée</th>
+                                    <th class="small text-muted">Sortie</th>
+                                    <th class="small text-muted">Service</th>
+                                    <th class="small text-muted">Personne visitée</th>
+                                    <th class="small text-muted">Durée</th>
+                                    <th class="small text-muted">Statut</th>
+                                    <th class="small text-muted">Pièce</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for passage in historique %}
+                                    <tr>
+                                        <td class="small"><a href="{{ path('app_visites_sortie', {id: passage.id}) }}">{{ passage.reference }}</a></td>
+                                        <td class="small">{{ passage.heureEntree|date('d/m/Y H:i') }}</td>
+                                        <td class="small">{{ passage.heureSortie ? passage.heureSortie|date('d/m/Y H:i') : '—' }}</td>
+                                        <td class="small">{{ passage.serviceLibelle }}</td>
+                                        <td class="small">{{ passage.personneVisitee ?? '—' }}</td>
+                                        <td class="small">{{ passage.dureeLibelle }}</td>
+                                        <td class="small">
+                                            {% if passage.enCours %}
+                                                <span class="badge" style="background:#7a4c33;">Présent</span>
+                                            {% else %}
+                                                <span class="badge bg-light text-dark border">{{ passage.statutLibelle }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="small">
+                                            {% if passage.aUnePieceJointe %}
+                                                <a href="{{ path('app_visites_piece', {id: passage.id}) }}" target="_blank" rel="noopener">Scan</a>
+                                            {% else %}—{% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends 'base.html.twig' %}
+{% block title %}Formation — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_formations') }}">Formations</a></span>
+    <span class="breadcrumb-item">Détail</span>
+    <span class="breadcrumb-item">Formation</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">{{ formation.intitule }}</h1>
+            <p class="text-muted mb-0">{{ formation.organisme ?: 'Organisme non renseigné' }} · {{ formation.periodeLibelle }}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('rh_formations') }}" class="btn btn-sm btn-outline-secondary">Retour</a>
+            {% if estRh %}
+                <a href="{{ path('rh_formations_edit', {id: formation.id}) }}" class="btn btn-sm btn-cacao">Modifier</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Statut</div>
+                <div class="h6 mb-0" style="color:#5a371e;">{{ formation.statutLibelle }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Participants</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ participations|length }}{% if formation.nombrePlaces %} / {{ formation.nombrePlaces }}{% endif %}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Coût session</div>
+                <div class="h6 mb-0" style="color:#5a371e;">{{ formation.cout is not null ? formation.cout|number_format(0, ',', ' ') ~ ' FCFA' : '—' }}</div>
+            </div>
+        </div>
+    </div>
+
+    {% if formation.description %}
+        <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+            <h2 class="h6 mb-2" style="color:#5a371e;">Description</h2>
+            <p class="mb-0 small" style="white-space:pre-line;">{{ formation.description }}</p>
+        </div>
+    {% endif %}
+
+    <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h2 class="h6 mb-0" style="color:#5a371e;">Documents de la formation</h2>
+            {% if estRh %}
+                <a href="{{ path('rh_formations_edit', {id: formation.id}) }}" class="btn btn-sm btn-outline-secondary">Ajouter / remplacer</a>
+            {% endif %}
+        </div>
+        <div class="row g-2">
+            {% for cle, doc in documents %}
+                <div class="col-12 col-md-6">
+                    <div class="p-2 h-100 d-flex flex-column" style="background:#faf6f2;border:1px solid #e9ded5;border-radius:12px;">
+                        <div class="small text-muted text-uppercase">{{ doc.libelle }}</div>
+                        {% if doc.existe %}
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                {% if doc.extension %}<span class="badge" style="background:#f2e7dd;color:#5a371e;">{{ doc.extension }}</span>{% endif %}
+                                <span class="small text-truncate" title="{{ doc.nom }}">{{ doc.nom }}</span>
+                            </div>
+                            <div class="d-flex gap-2 mt-2">
+                                <a href="{{ asset('data/rh/' ~ doc.chemin) }}" class="btn btn-sm btn-cacao" target="_blank" rel="noopener">Télécharger</a>
+                                {% if estRh %}
+                                    <form method="post" action="{{ path('rh_formations_document_supprimer', {id: formation.id, type: cle}) }}" onsubmit="return confirm('Supprimer définitivement ce fichier ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('rh_formation_doc_' ~ formation.id ~ '_' ~ cle) }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="small text-muted mt-1">Aucun fichier enregistré.</div>
+                            {% if estRh %}
+                                <div class="mt-2"><a href="{{ path('rh_formations_edit', {id: formation.id}) }}" class="btn btn-sm btn-outline-secondary">Choisir un fichier</a></div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <p class="small text-muted mb-0 mt-2">Formats acceptés : PDF, Word, Excel, PowerPoint, OpenDocument, images — 25 Mo maximum par fichier.</p>
+    </div>
+
+    <div class="table-responsive mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Participant</th><th>Service</th><th>Résultat</th><th>Note</th><th class="text-end">Enregistrer</th></tr></thead>
+            <tbody>
+            {% for participation in participations %}
+                <tr>
+                    <td>
+                        <strong>{{ participation.employe ? participation.employe.nomComplet : 'Employé supprimé' }}</strong>
+                        {% if participation.commentaire %}<div class="small text-muted">{{ participation.commentaire }}</div>{% endif %}
+                    </td>
+                    <td class="small">{{ participation.employe and participation.employe.service ? participation.employe.service.libelle : '—' }}</td>
+                    <td colspan="3">
+                        {% if estRh %}
+                            <form method="post" action="{{ path('rh_formations_resultat', {id: formation.id, participationId: participation.id}) }}" class="d-flex flex-wrap gap-2 align-items-center">
+                                <input type="hidden" name="_token" value="{{ csrf_token('rh_formation_resultat_' ~ participation.id) }}">
+                                <select name="resultat" class="form-select form-select-sm" style="max-width:150px;">
+                                    {% for cle, libelle in resultats %}
+                                        <option value="{{ cle }}" {{ participation.resultat == cle ? 'selected' }}>{{ libelle }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="number" name="note" min="0" max="100" class="form-control form-control-sm" style="max-width:90px;" value="{{ participation.note is not null ? participation.note : '' }}" placeholder="Note">
+                                <input type="text" name="commentaire" class="form-control form-control-sm" style="max-width:220px;" value="{{ participation.commentaire|default('') }}" placeholder="Commentaire">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">OK</button>
+                            </form>
+                        {% else %}
+                            <span class="small">{{ participation.resultatLibelle }}{% if participation.note is not null %} — {{ participation.note }}/100{% endif %}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">Aucun participant inscrit.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if estRh %}
+        <div class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+            <h2 class="h6 mb-2" style="color:#5a371e;">Inscrire des participants</h2>
+            <form method="post" action="{{ path('rh_formations_participants', {id: formation.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('rh_formation_participants_' ~ formation.id) }}">
+                <div class="row g-2" style="max-height:260px; overflow:auto;">
+                    {% for employe in employes %}
+                        {% if inscrits[(employe.id ~ '')] is not defined %}
+                            <div class="col-12 col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="employes[]" value="{{ employe.id }}" id="emp-{{ employe.id }}">
+                                    <label class="form-check-label small" for="emp-{{ employe.id }}">{{ employe.nomComplet }} <span class="text-muted">— {{ employe.matricule }}</span></label>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-sm btn-cacao mt-3">Inscrire la sélection</button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

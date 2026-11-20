@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+{% block title %}Visite médicale — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_medical') }}">Santé au travail</a></span>
+    <span class="breadcrumb-item">Visite</span>
+    <span class="breadcrumb-item">Visite médicale</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    <div class="alert py-2 small" style="background:#f6efe8; border:1px solid #e9ded5; color:#5a371e;">
+        Données médicales confidentielles : accès réservé au médecin du travail et à l'infirmerie.
+    </div>
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h4 mb-0">Nouvelle visite médicale</h1>
+            <p class="text-muted mb-0 small">{{ dossier.employe ? dossier.employe.nomComplet : '' }} · {{ dossier.numeroDossier }}</p>
+        </div>
+        <a href="{{ path('rh_medical_dossier', {id: dossier.id}) }}" class="btn btn-sm btn-outline-secondary">Retour au dossier</a>
+    </div>
+
+    <form method="post" class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_visite_medicale') }}">
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="type">Type de visite</label>
+                <select class="form-select" id="type" name="type">
+                    {% for cle, libelle in types %}
+                        <option value="{{ cle }}" {{ donnees.type|default('') == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="date">Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="date" name="date" required value="{{ donnees.date|default('') }}">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="aptitude">Aptitude</label>
+                <select class="form-select" id="aptitude" name="aptitude">
+                    {% for cle, libelle in aptitudes %}
+                        <option value="{{ cle }}" {{ donnees.aptitude|default('') == cle ? 'selected' }}>{{ libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="medecin">Médecin</label>
+                <input type="text" class="form-control" id="medecin" name="medecin" maxlength="150" value="{{ donnees.medecin|default('') }}">
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="centre_medical">Centre médical</label>
+                <input type="text" class="form-control" id="centre_medical" name="centre_medical" maxlength="150" value="{{ donnees.centre_medical|default('') }}">
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="date_prochaine">Prochaine visite</label>
+                <input type="date" class="form-control" id="date_prochaine" name="date_prochaine" value="{{ donnees.date_prochaine|default('') }}">
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="conclusion">Conclusion</label>
+                <textarea class="form-control" id="conclusion" name="conclusion" rows="3">{{ donnees.conclusion|default('') }}</textarea>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-cacao">Enregistrer la visite</button>
+            <a href="{{ path('rh_medical_dossier', {id: dossier.id}) }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,306 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle entrée visiteur — CITRAC{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('app_visites') }}">Visites</a></span>
+    <span class="breadcrumb-item">Nouvelle entrée</span>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Enregistrer une entrée</h1>
+            <p class="text-muted mb-0">Identité du visiteur, service visité et pièce d'identité déposée à la réception.</p>
+        </div>
+        <a href="{{ path('app_visites') }}" class="btn btn-sm btn-outline-secondary">Retour à l'accueil des visiteurs</a>
+    </div>
+
+    {% if erreurs %}
+        <div class="alert alert-danger" role="alert">
+            <div class="fw-semibold mb-1">L'enregistrement n'a pas été effectué :</div>
+            <ul class="mb-0 ps-3">
+                {% for erreur in erreurs %}
+                    <li>{{ erreur }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-8">
+            <form method="post" action="{{ path('app_visites_entree') }}" enctype="multipart/form-data"
+                  class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;" id="form-entree">
+                <input type="hidden" name="_token" value="{{ csrf_token('visite_entree') }}">
+                <input type="hidden" name="visiteur_id" id="visiteur_id" value="{{ donnees.visiteur_id }}">
+
+                <div class="mb-3 p-2" style="background:#faf6f2; border:1px dashed #cbb6a4; border-radius:10px;">
+                    <label for="recherche-visiteur" class="form-label small fw-semibold mb-1">
+                        Visiteur déjà enregistré ? Recherchez-le pour préremplir la fiche
+                    </label>
+                    <input type="text" id="recherche-visiteur" class="form-control form-control-sm" autocomplete="off"
+                           placeholder="Nom, prénoms, téléphone ou numéro de pièce (2 caractères minimum)">
+                    <div id="suggestions" class="list-group mt-1" style="position:relative; z-index:5;"></div>
+                    <div id="fiche-choisie" class="small mt-2" {{ donnees.visiteur_id ? '' : 'hidden' }}>
+                        <span class="badge" style="background:#22684d;">Fiche existante</span>
+                        <span id="fiche-choisie-texte" class="ms-1">{{ donnees.visiteur_id ? donnees.nom ~ (donnees.numero_piece ? ' — ' ~ donnees.numero_piece : '') }}</span>
+                        <button type="button" class="btn btn-link btn-sm p-0 ms-2" id="annuler-fiche">Nouvelle fiche</button>
+                    </div>
+                    <div class="small text-muted mt-1">
+                        Si le visiteur est inconnu, laissez vide et saisissez simplement ses informations ci-dessous.
+                    </div>
+                </div>
+
+                <h2 class="h6 mb-2">Identité</h2>
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small" for="nom">Nom <span style="color:#a33;">*</span></label>
+                        <input type="text" id="nom" name="nom" maxlength="100" required value="{{ donnees.nom }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small" for="prenoms">Prénoms</label>
+                        <input type="text" id="prenoms" name="prenoms" maxlength="150" value="{{ donnees.prenoms }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <label class="form-label small" for="type_piece">Type de pièce</label>
+                        <select id="type_piece" name="type_piece" class="form-select form-select-sm">
+                            {% for code, libelle in typesPiece %}
+                                <option value="{{ code }}" {{ donnees.type_piece == code ? 'selected' }}>{{ libelle }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <label class="form-label small" for="numero_piece">Numéro de la pièce</label>
+                        <input type="text" id="numero_piece" name="numero_piece" maxlength="60" value="{{ donnees.numero_piece }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small" for="telephone">Téléphone</label>
+                        <input type="tel" id="telephone" name="telephone" maxlength="40" value="{{ donnees.telephone }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small" for="societe">Société / organisme</label>
+                        <input type="text" id="societe" name="societe" maxlength="150" value="{{ donnees.societe }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small" for="fonction">Fonction</label>
+                        <input type="text" id="fonction" name="fonction" maxlength="120" value="{{ donnees.fonction }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small" for="email">E-mail</label>
+                        <input type="email" id="email" name="email" maxlength="180" value="{{ donnees.email }}" class="form-control form-control-sm">
+                    </div>
+                </div>
+
+                <h2 class="h6 mb-2">Visite</h2>
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small" for="service_id">Service / direction visité</label>
+                        <select id="service_id" name="service_id" class="form-select form-select-sm">
+                            <option value="">— Choisir —</option>
+                            {% for groupe in servicesParDirection %}
+                                <optgroup label="{{ groupe.direction }}">
+                                    {% for service in groupe.services %}
+                                        <option value="{{ service.id }}"
+                                            {{ donnees.service_id == (service.id ~ '') ? 'selected' : '' }}>
+                                            {{ service.libelle }}
+                                        </option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small" for="personne_visitee">Personne visitée</label>
+                        <input type="text" id="personne_visitee" name="personne_visitee" maxlength="160" value="{{ donnees.personne_visitee }}"
+                               class="form-control form-control-sm" placeholder="Nom du responsable ou de l'agent reçu">
+                    </div>
+                    <div class="col-8 col-md-4">
+                        <label class="form-label small" for="motif">Motif</label>
+                        <select id="motif" name="motif" class="form-select form-select-sm">
+                            <option value="">— Choisir —</option>
+                            {% for code, libelle in motifs %}
+                                <option value="{{ code }}" {{ donnees.motif == code ? 'selected' }}>{{ libelle }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <label class="form-label small" for="nombre_accompagnants">Accompagnants</label>
+                        <input type="number" id="nombre_accompagnants" name="nombre_accompagnants" min="0" max="20"
+                               value="{{ donnees.nombre_accompagnants }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small" for="observations">Observations</label>
+                        <input type="text" id="observations" name="observations" maxlength="500" value="{{ donnees.observations }}" class="form-control form-control-sm">
+                    </div>
+                </div>
+
+                <h2 class="h6 mb-2">Pièce d'identité déposée <span style="color:#a33;">*</span></h2>
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
+                        <input type="file" id="piece" name="piece" required
+                               accept=".jpg,.jpeg,.png,.webp,.pdf"
+                               class="form-control form-control-sm">
+                        <div class="small text-muted mt-1">
+                            Scan ou photo de la pièce (JPG, PNG, WEBP ou PDF · {{ (tailleMax / 1048576)|round }} Mo maximum).
+                            Le fichier est conservé dans l'espace des visites et n'est visible que par les utilisateurs connectés.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-cacao">Enregistrer l'entrée</button>
+                    <a href="{{ path('app_visites') }}" class="btn btn-outline-secondary">Annuler</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6">Rappel du circuit</h2>
+                <ol class="small text-muted ps-3 mb-0">
+                    <li class="mb-2">La réception identifie le visiteur. S'il est déjà venu, la saisie semi-automatique reprend sa fiche (nom, pièce, société).</li>
+                    <li class="mb-2">La pièce d'identité est scannée ou photographiée et conservée avec le passage.</li>
+                    <li class="mb-2">À la sortie, le visiteur est choisi dans la liste des présents, puis sa pièce lui est remise : la sortie est alors enregistrée.</li>
+                    <li>L'état PDF se génère ensuite par période, par nom ou par service.</li>
+                </ol>
+            </div>
+
+            <div class="p-3" style="background:#faf6f2; border:1px dashed #cbb6a4; border-radius:14px;">
+                <h2 class="h6">Bon à savoir</h2>
+                <p class="small text-muted mb-2">
+                    Une fiche est créée automatiquement pour un nouveau visiteur. Si le numéro de pièce existe déjà,
+                    la fiche existante est complétée au lieu de créer un doublon.
+                </p>
+                <p class="small text-muted mb-0">
+                    Les visiteurs encore présents restent affichés en haut du tableau de bord, avec la durée de présence, tant que leur pièce n'a pas été remise.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function () {
+    const champ = document.getElementById('recherche-visiteur');
+    const liste = document.getElementById('suggestions');
+    const cache = document.getElementById('visiteur_id');
+    const blocFiche = document.getElementById('fiche-choisie');
+    const texteFiche = document.getElementById('fiche-choisie-texte');
+    const boutonAnnuler = document.getElementById('annuler-fiche');
+    const urlRecherche = '{{ path('app_visites_autocomplete') }}';
+    let minuteur = null;
+    let dernierResultat = [];
+
+    const champs = {
+        nom: document.getElementById('nom'),
+        prenoms: document.getElementById('prenoms'),
+        type_piece: document.getElementById('type_piece'),
+        numero_piece: document.getElementById('numero_piece'),
+        societe: document.getElementById('societe'),
+        fonction: document.getElementById('fonction'),
+        telephone: document.getElementById('telephone'),
+        email: document.getElementById('email')
+    };
+
+    function viderListe() {
+        liste.innerHTML = '';
+        dernierResultat = [];
+    }
+
+    function choisir(fiche) {
+        Object.keys(champs).forEach(function (cle) {
+            if (champs[cle] && fiche[cle] !== undefined) {
+                champs[cle].value = fiche[cle];
+            }
+        });
+        cache.value = fiche.id;
+        texteFiche.textContent = fiche.nomComplet + ' — ' + fiche.pieceComplete
+            + (fiche.societe ? ' — ' + fiche.societe : '')
+            + ' (' + fiche.visites + ' passage(s) enregistré(s))';
+        blocFiche.hidden = false;
+        champ.value = fiche.nomComplet;
+        viderListe();
+    }
+
+    function reinitialiser() {
+        cache.value = '';
+        blocFiche.hidden = true;
+        texteFiche.textContent = '';
+        champ.value = '';
+    }
+
+    function afficher(resultats) {
+        viderListe();
+        dernierResultat = resultats;
+        resultats.forEach(function (fiche, index) {
+            const bouton = document.createElement('button');
+            bouton.type = 'button';
+            bouton.className = 'list-group-item list-group-item-action py-1';
+            bouton.dataset.index = String(index);
+
+            const titre = document.createElement('div');
+            titre.className = 'fw-semibold small';
+            titre.textContent = fiche.nomComplet;
+
+            const detail = document.createElement('div');
+            detail.className = 'small text-muted';
+            detail.textContent = [fiche.pieceComplete, fiche.societe, fiche.telephone]
+                .filter(function (v) { return v && v !== '-'; }).join(' · ');
+
+            bouton.appendChild(titre);
+            bouton.appendChild(detail);
+            bouton.addEventListener('click', function () { choisir(fiche); });
+            liste.appendChild(bouton);
+        });
+    }
+
+    function rechercher(texte) {
+        fetch(urlRecherche + '?q=' + encodeURIComponent(texte), { headers: { 'Accept': 'application/json' } })
+            .then(function (reponse) { return reponse.ok ? reponse.json() : { resultats: [] }; })
+            .then(function (donnees) { afficher(donnees.resultats || []); })
+            .catch(function () { viderListe(); });
+    }
+
+    champ.addEventListener('input', function () {
+        const texte = champ.value.trim();
+        if (cache.value !== '') {
+            reinitialiser();
+        }
+        window.clearTimeout(minuteur);
+        if (texte.length < 2) {
+            viderListe();
+            return;
+        }
+        minuteur = window.setTimeout(function () { rechercher(texte); }, 250);
+    });
+
+    champ.addEventListener('keydown', function (evenement) {
+        if (evenement.key === 'Enter') {
+            evenement.preventDefault();
+            if (dernierResultat.length > 0) {
+                choisir(dernierResultat[0]);
+            }
+        }
+        if (evenement.key === 'Escape') {
+            viderListe();
+        }
+    });
+
+    boutonAnnuler.addEventListener('click', function () {
+        reinitialiser();
+        champs.nom.focus();
+    });
+
+    document.addEventListener('click', function (evenement) {
+        if (!liste.contains(evenement.target) && evenement.target !== champ) {
+            viderListe();
+        }
+    });
+})();
+</script>
+{% endblock %}

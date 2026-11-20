@@ -1,0 +1,144 @@
+{% extends 'base.html.twig' %}
+{% block title %}Ressources humaines — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item">Ressources humaines</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Tableau de bord RH</h1>
+            <p class="text-muted mb-0">Effectif, mouvements, absences et echeances — annee {{ annee }}.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('rh_employes_new') }}" class="btn btn-sm btn-cacao">+ Nouvel employe</a>
+            <a href="{{ path('rh_contrats_new') }}" class="btn btn-sm btn-outline-secondary">+ Contrat</a>
+            <a href="{{ path('rh_temps_absence_new') }}" class="btn btn-sm btn-outline-secondary">+ Demande d'absence</a>
+        </div>
+    </div>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }} py-2">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="row g-2 mb-3">
+        {% for libelle, valeur, detail in [
+            ['Effectif actif', effectif, hommes ~ ' hommes / ' ~ femmes ~ ' femmes'],
+            ['Absenteisme du mois', tauxAbsenteisme ~ ' %', joursAbsenceMois ~ ' jours cumules'],
+            ['Demandes en attente', absencesEnAttente, 'conges a valider'],
+            ['Recrutements ' ~ annee, recrutementsAnnee, candidaturesEnCours ~ ' candidatures en cours']
+        ] %}
+            <div class="col-6 col-lg-3">
+                <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                    <div class="text-muted small text-uppercase" style="letter-spacing:.03em;">{{ libelle }}</div>
+                    <div class="h4 mb-0" style="color:#7a4c33;">{{ valeur }}</div>
+                    <div class="small text-muted">{{ detail }}</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-6">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Effectif par service</h2>
+                {% if parService is empty %}
+                    <p class="text-muted small mb-0">Aucun employe enregistre.</p>
+                {% else %}
+                    <table class="table table-sm align-middle mb-0">
+                        <tbody>
+                        {% for service, total in parService %}
+                            <tr><td>{{ service }}</td><td class="text-end">{{ total }}</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Echeances des 30 prochains jours</h2>
+                {% if echeances is empty %}
+                    <p class="text-muted small mb-0">Aucune echeance imminente.</p>
+                {% else %}
+                    <ul class="list-unstyled small mb-0">
+                    {% for contrat in echeances %}
+                        <li class="d-flex justify-content-between border-bottom py-1">
+                            <span>{{ contrat.employe ? contrat.employe.nomComplet : 'Employe supprime' }} — {{ contrat.getTypeLibelle }}</span>
+                            <span class="text-muted">{{ contrat.dateFin ? contrat.dateFin|date('d/m/Y') : 'sans terme' }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if contratsExpires > 0 %}
+                    <p class="small mt-2 mb-0" style="color:#a15c1e;">{{ contratsExpires }} contrat(s) termine(s) a regulariser.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-6">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Pipeline de recrutement</h2>
+                {% if pipeline is empty %}
+                    <p class="text-muted small mb-0">Aucune candidature en cours.</p>
+                {% else %}
+                    {% for etape, total in pipeline %}
+                        <div class="d-flex justify-content-between small py-1 border-bottom">
+                            <span>{{ etape|replace({'_': ' '})|capitalize }}</span><span>{{ total }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="p-3 h-100" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Formations a venir</h2>
+                {% if formationsAVenir is empty %}
+                    <p class="text-muted small mb-0">Aucune formation planifiee.</p>
+                {% else %}
+                    <ul class="list-unstyled small mb-0">
+                    {% for formation in formationsAVenir %}
+                        <li class="d-flex justify-content-between border-bottom py-1">
+                            <a href="{{ path('rh_formations_detail', {id: formation.id}) }}" class="text-decoration-none">{{ formation.intitule }}</a>
+                            <span class="text-muted">{{ formation.periodeLibelle }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if coutFormation is not null %}
+                    <p class="small mt-2 mb-0 text-muted">Budget formation {{ annee }} : {{ coutFormation }} FCFA</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if visitesMedicales %}
+        <div class="p-3 mt-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+            <h2 class="h6 mb-2" style="color:#5a371e;">Sante au travail — visites a renouveler (60 jours)</h2>
+            {% if visitesARenouveler is empty %}
+                <p class="text-muted small mb-0">Aucune visite a renouveler.</p>
+            {% else %}
+                <ul class="list-unstyled small mb-0">
+                {% for visite in visitesARenouveler %}
+                    <li class="d-flex justify-content-between border-bottom py-1">
+                        <span>{{ visite.dossier.employe ? visite.dossier.employe.nomComplet : 'Employe supprime' }}</span>
+                        <span class="text-muted">{{ visite.dateProchaine ? visite.dateProchaine|date('d/m/Y') : 'a planifier' }}</span>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            <p class="small text-muted mt-2 mb-0">{{ accidentsAnnee }} accident(s) du travail en {{ annee }} — {{ joursArretAnnee }} jours d'arret cumules.</p>
+        </div>
+    {% endif %}
+
+    {% if peutVoirSalaires and masseSalariale is not null %}
+        <p class="small text-muted mt-3 mb-0">Masse salariale mensuelle estimee : {{ masseSalariale }} FCFA</p>
+    {% endif %}
+</div>
+{% endblock %}

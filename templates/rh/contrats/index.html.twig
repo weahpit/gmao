@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+{% block title %}Contrats — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">Contrats</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Contrats et affectations</h1>
+            <p class="text-muted mb-0">Suivi des contrats, des echeances et des regularisations.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('rh_contrats_new') }}" class="btn btn-sm btn-cacao">+ Nouveau contrat</a>
+            <a href="{{ path('rh_contrats_pdf') }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Liste PDF</a>
+        </div>
+    </div>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    {% if echeances is not empty %}
+        <div class="p-3 mb-3" style="background:#fdf6ef; border:1px solid #e9ded5; border-radius:14px;">
+            <h2 class="h6 mb-2" style="color:#a15c1e;">Echeances dans les 60 jours ({{ echeances|length }})</h2>
+            <ul class="small mb-0">
+            {% for contrat in echeances %}
+                <li>{{ contrat.employe ? contrat.employe.nomComplet : 'Employe supprime' }} — {{ contrat.reference }} se termine le {{ contrat.dateFin|date('d/m/Y') }} ({{ contrat.joursRestants }} j).</li>
+            {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if expires is not empty %}
+        <div class="alert alert-warning py-2 small">{{ expires|length }} contrat(s) arrive(s) a terme sans sortie enregistree. Pensez a renouveler ou a cloturer.</div>
+    {% endif %}
+
+    <form method="get" class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1" for="type">Type</label>
+                <select id="type" name="type" class="form-select form-select-sm">
+                    <option value="">Tous</option>
+                    {% for cle, libelle in types %}<option value="{{ cle }}" {{ cle == type ? 'selected' : '' }}>{{ libelle }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1" for="statut">Statut</label>
+                <select id="statut" name="statut" class="form-select form-select-sm">
+                    <option value="">Tous</option>
+                    {% for cle, libelle in statuts %}<option value="{{ cle }}" {{ cle == statut ? 'selected' : '' }}>{{ libelle }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-3 d-flex gap-2">
+                <button class="btn btn-sm btn-cacao" type="submit">Filtrer</button>
+                <a href="{{ path('rh_contrats') }}" class="btn btn-sm btn-outline-secondary">Effacer</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="table-responsive" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Reference</th><th>Employe</th><th>Type</th><th>Periode</th><th>Statut</th>{% if peutVoirSalaires %}<th class="text-end">Salaire</th>{% endif %}<th></th></tr></thead>
+            <tbody>
+            {% for contrat in contrats %}
+                <tr>
+                    <td>{{ contrat.reference }}</td>
+                    <td>{% if contrat.employe %}<a href="{{ path('rh_employes_fiche', {id: contrat.employe.id}) }}" class="text-decoration-none">{{ contrat.employe.nomComplet }}</a>{% else %}-{% endif %}</td>
+                    <td>{{ contrat.typeLibelle }}</td>
+                    <td class="small">{{ contrat.dateDebut ? contrat.dateDebut|date('d/m/Y') : '-' }} → {{ contrat.dateFin ? contrat.dateFin|date('d/m/Y') : 'sans terme' }}<br><span class="text-muted">{{ contrat.dureeMois ? contrat.dureeMois ~ ' mois' : '' }}</span></td>
+                    <td><span class="badge" style="background:#f2e7dd; color:#5a371e;">{{ contrat.statutLibelle }}</span></td>
+                    {% if peutVoirSalaires %}<td class="text-end small">{{ contrat.salaire ? contrat.salaire ~ ' FCFA' : '-' }}</td>{% endif %}
+                    <td class="text-end text-nowrap">
+                        <a href="{{ path('rh_contrats_edit', {id: contrat.id}) }}" class="btn btn-sm btn-outline-secondary">Modifier</a>
+                        {% if contrat.isEnCours %}
+                            <form method="post" action="{{ path('rh_contrats_fin', {id: contrat.id}) }}" class="d-inline" onsubmit="return confirm('Cloturer ce contrat ?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('rh_contrat_fin_' ~ contrat.id) }}">
+                                <input type="hidden" name="motif_fin" value="Fin de contrat">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Cloturer</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-4">Aucun contrat ne correspond au filtre.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

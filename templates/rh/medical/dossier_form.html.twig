@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+{% block title %}Dossier médical — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_medical') }}">Santé au travail</a></span>
+    <span class="breadcrumb-item">Dossier</span>
+    <span class="breadcrumb-item">Dossier médical</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    <div class="alert py-2 small" style="background:#f6efe8; border:1px solid #e9ded5; color:#5a371e;">
+        Données médicales confidentielles : accès réservé au médecin du travail et à l'infirmerie.
+    </div>
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h4 mb-0">{{ estCreation ? 'Nouveau dossier médical' : 'Modifier le dossier' }}</h1>
+            <p class="text-muted mb-0 small">Numéro : {{ dossier.numeroDossier ?: 'attribué à l’enregistrement' }}</p>
+        </div>
+        <a href="{{ path('rh_medical') }}" class="btn btn-sm btn-outline-secondary">Retour</a>
+    </div>
+
+    <form method="post" class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('rh_dossier_medical') }}">
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="employe">Employé <span class="text-danger">*</span></label>
+                <select class="form-select" id="employe" name="employe" {{ estCreation ? '' : 'disabled' }}>
+                    <option value="">— Sélectionner —</option>
+                    {% for e in employes %}
+                        <option value="{{ e.id }}" {{ (donnees.employe|default('')) == (e.id ~ '') ? 'selected' }}>{{ e.nomComplet }} ({{ e.matricule }})</option>
+                    {% endfor %}
+                </select>
+                {% if not estCreation %}<div class="form-text">L'employé rattaché au dossier ne peut plus être changé.</div>{% endif %}
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="groupe_sanguin">Groupe sanguin</label>
+                <select class="form-select" id="groupe_sanguin" name="groupe_sanguin">
+                    <option value="">—</option>
+                    {% for g in groupes %}
+                        <option value="{{ g }}" {{ donnees.groupe_sanguin|default('') == g ? 'selected' }}>{{ g }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="allergies">Allergies</label>
+                <textarea class="form-control" id="allergies" name="allergies" rows="2">{{ donnees.allergies|default('') }}</textarea>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="antecedents">Antécédents médicaux</label>
+                <textarea class="form-control" id="antecedents" name="antecedents" rows="3">{{ donnees.antecedents|default('') }}</textarea>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="notes">Notes du médecin</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3">{{ donnees.notes|default('') }}</textarea>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-cacao">{{ estCreation ? 'Créer le dossier' : 'Enregistrer' }}</button>
+            <a href="{{ path('rh_medical') }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+{% block title %}Évaluations — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">Évaluations</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Évaluations du personnel</h1>
+            <p class="text-muted mb-0">Campagnes annuelles, critères pondérés et fiches d'évaluation.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if estRh and campagne %}
+                <a href="{{ path('rh_evaluations_campagne_pdf', {id: campagne.id}) }}" class="btn btn-sm btn-outline-secondary" target="_blank">Rapport PDF</a>
+            {% endif %}
+            {% if estRh %}
+                <a href="{{ path('rh_evaluations_campagne_new') }}" class="btn btn-sm btn-cacao">+ Nouvelle campagne</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if campagnes is empty %}
+        <div class="p-4 text-center text-muted" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">Aucune campagne d'évaluation n'est encore ouverte.</div>
+    {% else %}
+        <form method="get" class="d-flex flex-wrap align-items-end gap-2 mb-3 p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+            <div>
+                <label class="form-label small mb-1" for="campagne">Campagne</label>
+                <select name="campagne" id="campagne" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for c in campagnes %}
+                        <option value="{{ c.id }}" {{ campagne and c.id == campagne.id ? 'selected' }}>{{ c.libelle }} ({{ c.annee }}) — {{ c.statutLibelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Afficher</button></noscript>
+        </form>
+
+        {% if campagne %}
+            <div class="row g-2 mb-3">
+                <div class="col-6 col-md-3">
+                    <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                        <div class="small text-muted text-uppercase">Statut</div>
+                        <div class="h6 mb-0" style="color:#5a371e;">{{ campagne.statutLibelle }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                        <div class="small text-muted text-uppercase">Période</div>
+                        <div class="h6 mb-0" style="color:#5a371e;">
+                            {{ campagne.dateDebut ? campagne.dateDebut|date('d/m/Y') : '—' }} → {{ campagne.dateFin ? campagne.dateFin|date('d/m/Y') : '—' }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                        <div class="small text-muted text-uppercase">Fiches</div>
+                        <div class="h4 mb-0" style="color:#7a4c33;">{{ fiches|length }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                        <div class="small text-muted text-uppercase">Note moyenne</div>
+                        <div class="h4 mb-0" style="color:#7a4c33;">{{ moyenne is not null ? moyenne|number_format(2, ',', ' ') ~ ' / 5' : '—' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if parStatut is not empty %}
+                <div class="p-3 mb-3 d-flex flex-wrap gap-2" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                    {% for cle, total in parStatut %}
+                        <span class="badge" style="background:#f2e7dd; color:#5a371e;">{{ statuts[cle] ?? cle }} : {{ total }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if campagne.objectifs %}
+                <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                    <h2 class="h6 mb-2" style="color:#5a371e;">Objectifs de la campagne</h2>
+                    <p class="mb-0 small text-muted" style="white-space:pre-line;">{{ campagne.objectifs }}</p>
+                </div>
+            {% endif %}
+
+            <div class="table-responsive" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Employé</th><th>Type</th><th>Note globale</th><th>Statut</th><th class="text-end">Action</th></tr></thead>
+                    <tbody>
+                    {% for fiche in fiches %}
+                        <tr>
+                            <td>
+                                <strong>{{ fiche.employe ? fiche.employe.nomComplet : 'Employé supprimé' }}</strong>
+                                {% if fiche.employe %}<div class="small text-muted">{{ fiche.employe.matricule }}</div>{% endif %}
+                            </td>
+                            <td class="small">{{ fiche.typeLibelle }}</td>
+                            <td>{{ fiche.noteGlobale is not null ? fiche.noteGlobale|number_format(2, ',', ' ') ~ ' / 5' : '—' }}</td>
+                            <td><span class="badge" style="background:#f2e7dd; color:#5a371e;">{{ fiche.statutLibelle }}</span></td>
+                            <td class="text-end">
+                                {% if fiche.employe %}
+                                    <a href="{{ path('rh_evaluations_saisie', {id: campagne.id, employeId: fiche.employe.id}) }}" class="btn btn-sm btn-outline-secondary">Ouvrir</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">Aucune fiche pour cette campagne.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if estRh %}
+                <div class="mt-3">
+                    <a href="{{ path('rh_evaluations_campagne', {id: campagne.id}) }}" class="btn btn-sm btn-cacao">Gérer les fiches</a>
+                </div>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

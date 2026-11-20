@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+{% block title %}Documents RH — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">Documents RH</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Documents RH</h1>
+            <p class="text-muted mb-0">Contrats, pièces administratives et documents confidentiels.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('rh_documents_new') }}" class="btn btn-sm btn-cacao">+ Déposer un document</a>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a href="{{ path('rh_documents') }}" class="btn btn-sm {{ categorie == '' ? 'btn-cacao' : 'btn-outline-secondary' }}">Tous</a>
+        {% for cle, libelle in categories %}
+            <a href="{{ path('rh_documents', {categorie: cle}) }}" class="btn btn-sm {{ categorie == cle ? 'btn-cacao' : 'btn-outline-secondary' }}">
+                {{ libelle }}{% if compteurs[cle] is defined %} ({{ compteurs[cle] }}){% endif %}
+            </a>
+        {% endfor %}
+    </div>
+
+    <div class="table-responsive" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Titre</th><th>Catégorie</th><th>Type</th><th>Rattaché à</th><th>Taille</th><th>Déposé le</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>
+            {% for document in documents %}
+                <tr>
+                    <td>
+                        <strong>{{ document.titre ?: document.nomOriginal }}</strong>
+                        {% if document.nomOriginal %}<div class="small text-muted">{{ document.nomOriginal }}</div>{% endif %}
+                    </td>
+                    <td class="small">{{ document.categorieLibelle }}</td>
+                    <td class="small">{{ document.typeLibelle }}</td>
+                    <td class="small">
+                        {% if document.employe %}{{ document.employe.nomComplet }}
+                        {% elseif document.candidat %}{{ document.candidat.nomComplet }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="small">{{ document.tailleLibelle }}</td>
+                    <td class="small">{{ document.createdAt ? document.createdAt|date('d/m/Y') : '—' }}</td>
+                    <td class="text-end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <a href="{{ path('rh_documents_telecharger', {id: document.id}) }}" class="btn btn-sm btn-outline-secondary">Télécharger</a>
+                            <form method="post" action="{{ path('rh_documents_supprimer', {id: document.id}) }}" onsubmit="return confirm('Supprimer définitivement ce document ?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('rh_document_suppression_' ~ document.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-3">Aucun document pour ce filtre.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
