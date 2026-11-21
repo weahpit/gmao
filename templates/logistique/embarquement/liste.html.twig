@@ -146,7 +146,8 @@
             </div>
         {% else %}
             <div class="dc-table-wrap">
-                <table class="dc-table">
+                {# Pagination deja geree par le serveur : on desactive la pagination automatique. #}
+                <table class="dc-table" data-pagination="off">
                     <thead>
                         <tr>
                             <th>N° OT</th>

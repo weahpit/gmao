@@ -15,12 +15,14 @@ class VisiteMedicale
     public const PERIODIQUE = 'periodique';
     public const REPRISE = 'reprise';
     public const SPECIALE = 'speciale';
+    public const MALADIE = 'maladie';
 
     public const TYPES = [
         self::EMBAUCHE => 'Visite d\'embauche',
         self::PERIODIQUE => 'Visite periodique',
         self::REPRISE => 'Visite de reprise',
         self::SPECIALE => 'Visite speciale',
+        self::MALADIE => 'Visite maladie',
     ];
 
     public const APTE = 'apte';

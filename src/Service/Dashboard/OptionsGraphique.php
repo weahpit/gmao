@@ -41,6 +41,7 @@ final class OptionsGraphique
         'COURRIER' => 2,    // violet
         'MAINTENANCE' => 6, // olive
         'SECURITE' => 3,    // rose
+        'VISITES' => 5,     // cyan
         'SANTE' => 7,       // magenta
         'ENCADREMENT' => 1, // bleu
         'MON_ESPACE' => 2,  // violet

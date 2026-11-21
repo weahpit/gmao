@@ -111,58 +111,275 @@ final class ZktecoAccess
     }
 
     /**
-     * Etat du fichier Access : chemin reellement utilise, existence, droits.
+     * Etat du fichier Access : chemin reellement utilise, existence, droits,
+     * partage reseau et compte qui execute PHP.
      *
-     * @return array{fichier: string, brut: string, existe: bool, lisible: bool, taille: int, modifie: ?string, message: string}
+     * Le chemin est d'abord nettoye : les guillemets et les barres obliques
+     * inverses doublees (copier-coller Windows ou valeur .env trop echappee)
+     * sont la cause la plus frequente d'un « Existe : NON » alors que le
+     * fichier est bien present sur le partage.
+     *
+     * @return array<string, mixed>
      */
     public function etatFichier(?string $fichier = null): array
     {
         $brut = trim((string) ($fichier ?? $this->configuration()['ZKTECO_ACCESS_FICHIER']));
         $brut = trim($brut, " \t\n\r\0\x0B\"'");
 
+        $etat = [
+            'fichier' => '',
+            'brut' => $brut,
+            'normalise' => '',
+            'type' => 'aucun',
+            'existe' => false,
+            'lisible' => false,
+            'taille' => 0,
+            'modifie' => null,
+            'partage' => [],
+            'compte' => $this->compteExecution(),
+            'architecture' => PHP_INT_SIZE * 8 . ' bits',
+            'pistes' => [],
+            'message' => '',
+        ];
+
         if ($brut === '') {
-            return [
-                'fichier' => '', 'brut' => '', 'existe' => false, 'lisible' => false,
-                'taille' => 0, 'modifie' => null,
-                'message' => 'Aucun fichier configure (ZKTECO_ACCESS_FICHIER vide).',
-            ];
+            $etat['message'] = 'Aucun fichier configure : renseignez ZKTECO_ACCESS_FICHIER dans .env.local'
+                . ' (exemple : ZKTECO_ACCESS_FICHIER="\\\\\\\\192.168.10.15\\\\ZKTeco\\\\att2000.mdb").';
+
+            return $etat;
         }
 
-        $fichier = $brut;
-        $message = '';
+        $chemin = $this->normaliserCheminFichier($brut);
+        $etat['normalise'] = $chemin;
+        $etat['fichier'] = $chemin;
+        $etat['partage'] = $this->partageDepuisChemin($chemin);
 
-        if (str_starts_with($fichier, 'smb://')) {
-            $message = 'Les adresses smb:// ne sont pas lisibles directement par PHP. Montez le partage (montage CIFS) puis indiquez le chemin du fichier monte.';
-        } elseif (preg_match('#^\\\\#', $fichier) === 1) {
-            // Chemin reseau Windows (\\serveur\partage\fichier.mdb)
-            if (DIRECTORY_SEPARATOR === '\\') {
-                $message = 'Chemin reseau Windows : le compte qui execute PHP doit avoir les droits sur le partage.';
+        if (stripos($brut, 'smb://') === 0 || stripos($chemin, 'smb://') === 0) {
+            $etat['type'] = 'smb';
+            $etat['message'] = "Les adresses smb:// ne sont pas lisibles directement par PHP : "
+                . 'montez le partage (montage CIFS) ou mappez un lecteur reseau, puis indiquez le chemin du fichier monte.';
+            $etat['pistes'] = [
+                'Windows : net use Z: \\\\192.168.10.15\\ZKTeco /user:DOMAINE\\compte /persistent:yes puis ZKTECO_ACCESS_FICHIER="Z:\\att2000.mdb".',
+                'Linux : mount -t cifs //192.168.10.15/ZKTeco /mnt/zkteco -o username=...,password=...,vers=3.0 puis /mnt/zkteco/att2000.mdb.',
+            ];
+
+            return $etat;
+        }
+
+        $existe = @is_file($chemin);
+        $estDossier = !$existe && @is_dir($chemin);
+
+        if ($existe) {
+            $etat['type'] = 'fichier';
+            $etat['existe'] = true;
+            $etat['lisible'] = @is_readable($chemin);
+            $etat['taille'] = (int) @filesize($chemin);
+            $modifie = @filemtime($chemin);
+            $etat['modifie'] = $modifie ? (string) @date('d/m/Y H:i', (int) $modifie) : null;
+
+            if (!$etat['lisible']) {
+                $etat['message'] = 'Le fichier existe mais le compte « ' . $etat['compte']
+                    . ' » (celui qui execute PHP) n\'a pas le droit de le lire.'
+                    . ' Accordez au moins « Lecture » sur le fichier et sur le dossier partage.';
+            }
+
+            return $etat;
+        }
+
+        if ($estDossier) {
+            $etat['type'] = 'dossier';
+            $etat['message'] = 'Le chemin designe un dossier, pas le fichier Access : ajoutez le nom du fichier'
+                . ' (att2000.mdb) a la fin du chemin.';
+
+            return $etat;
+        }
+
+        $etat['type'] = 'introuvable';
+
+        if ($etat['partage'] !== []) {
+            $partage = $etat['partage'];
+            $racineAccessible = @is_dir($partage['racine']);
+            $dossierLisible = @is_readable($partage['racine']);
+
+            if (!$racineAccessible) {
+                $etat['message'] = 'Le partage ' . $partage['racine'] . ' n\'est pas accessible depuis le compte « '
+                    . $etat['compte'] . ' » qui execute PHP. Le chemin du fichier est donc juste,'
+                    . ' mais ce compte n\'a pas le droit d\'ouvrir le partage (ou le poste 192.168.10.15 est eteint,'
+                    . ' ou le pare-feu bloque le partage de fichiers).';
+
+                $etat['pistes'] = DIRECTORY_SEPARATOR === '\\'
+                    ? [
+                        'Testez avec le MEME compte que le service : ouvrez une invite de commandes en tant que ce compte puis « dir \\\\192.168.10.15\\\\ZKTeco ».',
+                        'Dans PowerShell : Test-Path \'\\\\192.168.10.15\\ZKTeco\\att2000.mdb\' — un False confirme un probleme de droits ou de reseau, pas de chemin.',
+                        'Mappez le partage pour ce compte : net use Z: \\\\192.168.10.15\\ZKTeco /user:DOMAINE\\compte /persistent:yes, puis ZKTECO_ACCESS_FICHIER="Z:\\att2000.mdb".',
+                        'Verifiez que le partage ZKTeco autorise le compte du service (et non seulement votre session Windows).',
+                        'Si le serveur est en 64 bits, le pilote ODBC Access doit aussi etre en 64 bits.',
+                    ]
+                    : [
+                        'Montez le partage : mount -t cifs //192.168.10.15/ZKTeco /mnt/zkteco -o username=...,password=...,vers=3.0',
+                        'Puis ZKTECO_ACCESS_FICHIER="/mnt/zkteco/att2000.mdb".',
+                        'Verifiez que le compte du service web (www-data) peut lire /mnt/zkteco/att2000.mdb.',
+                    ];
+            } elseif (!$dossierLisible) {
+                $etat['message'] = 'Le partage ' . $partage['racine'] . ' existe mais n\'est pas lisible par le compte « '
+                    . $etat['compte'] . ' ». Accordez les droits de lecture au compte du service.';
             } else {
-                $fichier = '//' . ltrim(str_replace('\\', '/', $fichier), '/');
-                $message = 'Chemin reseau Windows converti en ' . $fichier . ' : sur Linux, ce chemin n\'est lisible que si le partage est monte (mount -t cifs) sur ce point.';
+                $etat['message'] = 'Le partage ' . $partage['racine'] . ' est accessible, mais le fichier « '
+                    . ($partage['fichier'] !== '' ? $partage['fichier'] : basename($chemin))
+                    . ' » n\'y a pas ete trouve. Verifiez le nom exact du fichier (att2000.mdb) et le sous-dossier.';
+                $etat['pistes'] = [
+                    'Le partage est joignable : le probleme vient du nom du fichier ou du sous-dossier, pas des droits.',
+                    'Verifiez la casse et l\'extension reelle (.mdb ou .accdb) dans l\'explorateur Windows.',
+                ];
+            }
+        } else {
+            $etat['message'] = 'Fichier introuvable a cet emplacement : ' . $chemin . '.'
+                . ' Verifiez le chemin (lecteur reseau mappe ou dossier local) et l\'orthographe du fichier.';
+            $etat['pistes'] = DIRECTORY_SEPARATOR === '\\'
+                ? [
+                    'Un chemin en \\\\serveur\\partage n\'est lisible par PHP que si le compte du service a acces au partage.',
+                    'Vous pouvez aussi mapper un lecteur (Z:) et utiliser Z:\\att2000.mdb.',
+                ]
+                : [
+                    'Sur Linux, un chemin Windows doit etre monte (mount -t cifs) avant d\'etre lu par PHP.',
+                ];
+        }
+
+        return $etat;
+    }
+
+    /**
+     * Nettoie un chemin saisi dans .env, dans une variable d'environnement ou
+     * sur la ligne de commande.
+     *
+     *   "\\\\192.168.10.15\\ZKTeco\\att2000.mdb"  ->  \\192.168.10.15\ZKTeco\att2000.mdb
+     *   \\?\UNC\192.168.10.15\ZKTeco\att2000.mdb     ->  \\192.168.10.15\ZKTeco\att2000.mdb
+     */
+    public function normaliserCheminFichier(?string $brut): string
+    {
+        $chemin = str_replace("\xC2\xA0", ' ', (string) $brut);
+        $chemin = trim($chemin);
+        $chemin = trim($chemin, "\"'");
+        $chemin = trim($chemin);
+
+        if ($chemin === '') {
+            return '';
+        }
+
+        if (stripos($chemin, 'file://') === 0) {
+            $chemin = substr($chemin, 7);
+            if (preg_match('#^/[A-Za-z]:#', $chemin) === 1) {
+                $chemin = ltrim($chemin, '/');
             }
         }
 
-        $existe = @is_file($fichier);
-        $lisible = $existe && @is_readable($fichier);
-        $taille = $existe ? (int) @filesize($fichier) : 0;
-        $modifie = $existe ? (@date('d/m/Y H:i', (int) @filemtime($fichier)) ?: null) : null;
+        if (str_starts_with($chemin, '\\\\?\\')) {
+            $reste = substr($chemin, 4);
+            $chemin = stripos($reste, 'UNC\\') === 0 ? '\\\\' . substr($reste, 4) : $reste;
+        }
 
-        if (!$existe && $message === '') {
-            $message = 'Fichier introuvable a cet emplacement.';
-        } elseif ($existe && !$lisible) {
-            $message = 'Fichier present mais non lisible par le compte qui execute PHP.';
+        $reseau = str_starts_with($chemin, '\\\\') || str_starts_with($chemin, '//');
+        $chemin = (string) preg_replace_callback(
+            '#[\\\\/]+#',
+            static fn (): string => DIRECTORY_SEPARATOR,
+            $chemin
+        );
+
+        if ($reseau) {
+            $chemin = (DIRECTORY_SEPARATOR === '\\' ? '\\\\' : '//') . ltrim($chemin, '/\\');
+        }
+
+        return $chemin;
+    }
+
+    /**
+     * Decoupe un chemin reseau en serveur / partage / reste du chemin.
+     *
+     * @return array{serveur: string, partage: string, racine: string, fichier: string}|array{}
+     */
+    public function partageDepuisChemin(string $chemin): array
+    {
+        if ($chemin === '') {
+            return [];
+        }
+
+        // On analyse une copie en barres obliques : le motif reste lisible et
+        // fonctionne aussi bien sous Windows que sous Linux.
+        $normalise = str_replace('\\', '/', $chemin);
+
+        if (preg_match('#^//([^/]+)/([^/]+)(?:/(.*))?$#', $normalise, $m) !== 1) {
+            return [];
+        }
+
+        $racine = '//' . $m[1] . '/' . $m[2];
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $racine = str_replace('/', '\\', $racine);
         }
 
         return [
-            'fichier' => $fichier,
-            'brut' => $brut,
-            'existe' => $existe,
-            'lisible' => $lisible,
-            'taille' => $taille,
-            'modifie' => $modifie,
-            'message' => $message,
+            'serveur' => $m[1],
+            'partage' => $m[2],
+            'racine' => $racine,
+            'fichier' => $m[3] ?? '',
         ];
+    }
+
+    /** Compte systeme qui execute PHP (utile quand le service n'a pas les droits). */
+    public function compteExecution(): string
+    {
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $utilisateur = getenv('USERNAME');
+            $domaine = getenv('USERDOMAIN');
+            if (is_string($utilisateur) && $utilisateur !== '') {
+                return is_string($domaine) && $domaine !== '' ? $domaine . '\\' . $utilisateur : $utilisateur;
+            }
+
+            return 'compte du service';
+        }
+
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            $infos = @posix_getpwuid(posix_geteuid());
+            if (is_array($infos) && isset($infos['name'])) {
+                return (string) $infos['name'];
+            }
+        }
+
+        $utilisateur = getenv('USER');
+
+        return is_string($utilisateur) && $utilisateur !== '' ? $utilisateur : 'compte du service';
+    }
+
+    /**
+     * Sources ODBC declarees sur le poste (Windows : Outils d'administration >
+     * Sources de donnees ODBC). Permet de voir le nom exact du DSN a utiliser.
+     *
+     * @return list<string>
+     */
+    public function sourcesOdbc(): array
+    {
+        if (!function_exists('odbc_data_source') || !defined('SQL_FETCH_FIRST')) {
+            return [];
+        }
+
+        $sources = [];
+        try {
+            $source = @odbc_data_source(null, SQL_FETCH_FIRST);
+            while (is_array($source)) {
+                $nom = (string) reset($source);
+                if ($nom === '') {
+                    break;
+                }
+                $sources[] = $nom;
+                if (count($sources) >= 50) {
+                    break;
+                }
+                $source = @odbc_data_source(null, SQL_FETCH_NEXT);
+            }
+        } catch (\Throwable) {
+            // Extension ODBC absente ou pilote muet : on renvoie ce qu'on a.
+        }
+
+        return array_values(array_unique($sources));
     }
 
     /**
@@ -187,6 +404,7 @@ final class ZktecoAccess
         $dsn = trim($config['ZKTECO_ACCESS_DSN']);
         $fichier = trim($config['ZKTECO_ACCESS_FICHIER']);
         $etat = $dsn === '' ? $this->etatFichier($fichier) : null;
+        $architecture = (PHP_INT_SIZE * 8) . ' bits';
 
         if ($dsn !== '') {
             $chaines = ['odbc:' . $dsn];
@@ -195,9 +413,9 @@ final class ZktecoAccess
                 throw new \RuntimeException(
                     'Base Access inaccessible : ' . $etat['message']
                     . ' Chemin utilise : ' . $etat['fichier'] . '.'
-                    . ' Verifiez ZKTECO_ACCESS_FICHIER, les droits du compte PHP sur le partage,'
-                    . ' ou montez le dossier reseau puis indiquez le chemin monte (/mnt/zkteco/att2000.mdb).'
-                    . ' Pour un essai rapide sans modifier .env : --fichier="chemin\\att2000.mdb".'
+                    . ' Compte PHP : ' . $etat['compte'] . ' | PHP ' . $architecture . '.'
+                    . ($etat['pistes'] !== [] ? ' A verifier : ' . implode(' ', $etat['pistes']) : '')
+                    . ' Pour un essai rapide sans modifier .env : php bin/console app:pointage:zkteco --fichier="C:\\ZKTeco\\att2000.mdb".'
                 );
             }
 
@@ -237,11 +455,27 @@ final class ZktecoAccess
             }
         }
 
+        $sources = $this->sourcesOdbc();
+        $piloteAbsent = $erreurs !== [] && count(array_filter(
+            $erreurs,
+            static fn (string $erreur): bool => stripos($erreur, 'IM002') !== false
+                || stripos($erreur, 'data source name not found') !== false
+                || stripos($erreur, 'driver not found') !== false
+        )) === count($erreurs);
+
         throw new \RuntimeException(
             'Connexion a la base ZKTECO impossible. Tentatives : ' . implode(' | ', array_slice($erreurs, 0, 3))
-            . ' Verifiez que le pilote ODBC Access est installe (Windows : « Microsoft Access Driver »),'
-            . ' que le DSN existe (Panneau de configuration > Outils d\'administration > Sources de donnees ODBC)'
-            . ' et que le compte du serveur a acces au fichier.'
+            . ($piloteAbsent
+                ? ' Aucun pilote ODBC Access n\'est installe pour PHP ' . $architecture . ' : installez le moteur'
+                    . ' « Microsoft Access Database Engine » de la MEME architecture que PHP, puis redemarrez le service.'
+                    . ' Un PHP 64 bits ne voit pas un pilote 32 bits (et inversement).'
+                : ' Verifiez que le pilote ODBC Access est installe (Windows : « Microsoft Access Driver (*.mdb, *.accdb) »),'
+                    . ' que le DSN existe (Panneau de configuration > Outils d\'administration > Sources de donnees ODBC)'
+                    . ' et que le compte du serveur a acces au fichier.')
+            . ' PHP ' . $architecture . '.'
+            . ($sources !== []
+                ? ' Sources ODBC declarees sur ce poste : ' . implode(', ', array_slice($sources, 0, 10)) . '.'
+                : ' Aucune source ODBC n\'est declaree sur ce poste.')
             . (count($erreurs) > 3 ? ' (' . (count($erreurs) - 3) . ' autre(s) tentative(s) similaire(s).)' : '')
         );
     }
@@ -951,6 +1185,19 @@ final class ZktecoAccess
     {
         if (isset($this->surcharges[$cle])) {
             return trim($this->surcharges[$cle]);
+        }
+
+        // Parametres enregistres depuis la page « Connexion ZKTECO » : ils
+        // priment sur le fichier .env, sans avoir a le modifier sur le serveur.
+        $correspondance = [
+            'ZKTECO_ACCESS_FICHIER' => 'fichier',
+            'ZKTECO_ACCESS_DSN' => 'dsn',
+        ];
+        if (isset($correspondance[$cle])) {
+            $enregistre = (new ZktecoParametres())->valeur($correspondance[$cle]);
+            if ($enregistre !== null) {
+                return $enregistre;
+            }
         }
 
         $valeur = $_ENV[$cle] ?? $_SERVER[$cle] ?? getenv($cle);

@@ -77,6 +77,7 @@
         <a href="{{ path('rh_medical_visite_new', {id: dossier.id}) }}" class="btn btn-sm btn-cacao">+ Visite médicale</a>
         <a href="{{ path('rh_medical_vaccination_new', {id: dossier.id}) }}" class="btn btn-sm btn-outline-secondary">+ Vaccination</a>
         <a href="{{ path('rh_medical_accident_new', {id: dossier.id}) }}" class="btn btn-sm btn-outline-secondary">+ Accident du travail</a>
+        <a href="{{ path('rh_medical_arrets', {dossier: dossier.id}) }}" class="btn btn-sm btn-outline-secondary">+ Arrêt de travail</a>
     </div>
 
     <h2 class="h6 mb-2" style="color:#5a371e;">Visites médicales</h2>

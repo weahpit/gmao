@@ -1,0 +1,147 @@
+{% extends 'base.html.twig' %}
+{% block title %}Arrêts de travail — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_medical') }}">Santé au travail</a></span>
+    <span class="breadcrumb-item">Arrêts de travail</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    <div class="alert py-2 small" style="background:#f6efe8; border:1px solid #e9ded5; color:#5a371e;">
+        Données médicales confidentielles : accès réservé au médecin du travail et à l'infirmerie.
+    </div>
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Arrêts de travail</h1>
+            <p class="text-muted mb-0">Demandes d'arrêt pour maladie, accident du travail ou maternité.</p>
+        </div>
+        <a href="{{ path('rh_medical') }}" class="btn btn-sm btn-outline-secondary">Retour à la santé au travail</a>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Arrêts ouverts</div>
+                <div class="h4 mb-0" style="color:#7a4c33;">{{ nbOuverts }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <div class="small text-muted text-uppercase">Demandes à traiter</div>
+                <div class="h4 mb-0" style="color:#a15c1e;">{{ nbEnAttente }}</div>
+            </div>
+        </div>
+    </div>
+
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <h2 class="h6 mb-3" style="color:#5a371e;">Enregistrer une demande d'arrêt</h2>
+        <form method="post" action="{{ path('rh_medical_arrets') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('rh_arret_travail') }}">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="dossier">Employé <span class="text-danger">*</span></label>
+                    <select class="form-select" id="dossier" name="dossier" required>
+                        <option value="">— Choisir —</option>
+                        {% for d in dossiers %}
+                            <option value="{{ d.id }}" {{ donnees.dossier|default('') == d.id ? 'selected' }}>
+                                {{ d.employe ? d.employe.nomComplet : 'Sans employé' }} ({{ d.numeroDossier }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="type">Motif</label>
+                    <select class="form-select" id="type" name="type">
+                        {% for cle, libelle in types %}
+                            <option value="{{ cle }}" {{ donnees.type|default('maladie') == cle ? 'selected' }}>{{ libelle }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="date_debut">Début <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="date_debut" name="date_debut" required value="{{ donnees.date_debut|default('') }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="date_fin">Fin</label>
+                    <input type="date" class="form-control" id="date_fin" name="date_fin" value="{{ donnees.date_fin|default('') }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="medecin">Médecin</label>
+                    <input type="text" class="form-control" id="medecin" name="medecin" maxlength="120" value="{{ donnees.medecin|default('') }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="motif">Précisions (facultatif)</label>
+                    <textarea class="form-control" id="motif" name="motif" rows="2" maxlength="1000">{{ donnees.motif|default('') }}</textarea>
+                </div>
+            </div>
+            <div class="mt-3 d-flex justify-content-end">
+                <button type="submit" class="btn btn-sm btn-cacao">Enregistrer la demande</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+        <h2 class="h6 mb-2" style="color:#5a371e;">Historique des arrêts</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Employé</th><th>Motif</th><th>Du</th><th>Au</th><th>Jours</th><th>Médecin</th><th>Statut</th><th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for a in arrets %}
+                    <tr>
+                        <td class="small">
+                            {% if a.dossier and a.dossier.employe %}
+                                <a href="{{ path('rh_medical_dossier', {id: a.dossier.id}) }}">{{ a.dossier.employe.nomComplet }}</a>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="small">{{ a.typeLibelle }}</td>
+                        <td class="small">{{ a.dateDebut ? a.dateDebut|date('d/m/Y') : '—' }}</td>
+                        <td class="small">{{ a.dateFin ? a.dateFin|date('d/m/Y') : '—' }}</td>
+                        <td class="small">{{ a.jours is not null ? a.jours : '—' }}</td>
+                        <td class="small">{{ a.medecin ?: '—' }}</td>
+                        <td class="small">
+                            <span class="badge" style="background:{{ a.statut == 'valide' ? '#e7f0e5' : (a.statut == 'refuse' ? '#f7e3e0' : '#f6efe8') }};color:#5a371e;">{{ a.statutLibelle }}</span>
+                        </td>
+                        <td class="text-end">
+                            {% if a.statut == 'demande' %}
+                                <form method="post" action="{{ path('rh_medical_arret_statut', {id: a.id}) }}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('rh_arret_statut') }}">
+                                    <input type="hidden" name="statut" value="valide">
+                                    <button class="btn btn-sm btn-cacao">Valider</button>
+                                </form>
+                                <form method="post" action="{{ path('rh_medical_arret_statut', {id: a.id}) }}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('rh_arret_statut') }}">
+                                    <input type="hidden" name="statut" value="refuse">
+                                    <button class="btn btn-sm btn-outline-secondary">Refuser</button>
+                                </form>
+                            {% elseif a.statut == 'valide' %}
+                                <form method="post" action="{{ path('rh_medical_arret_statut', {id: a.id}) }}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('rh_arret_statut') }}">
+                                    <input type="hidden" name="statut" value="termine">
+                                    <button class="btn btn-sm btn-outline-secondary">Clôturer</button>
+                                </form>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="text-center text-muted small py-3">Aucun arrêt enregistré pour le moment.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

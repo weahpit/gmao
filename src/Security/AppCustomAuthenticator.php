@@ -67,7 +67,7 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
         }*/
 
         // For example:
-         return new RedirectResponse($this->urlGenerator->generate('app_dashboard'));
+         return new RedirectResponse($this->urlGenerator->generate('tdb_role'));
     }
 
     protected function getLoginUrl(Request $request): string

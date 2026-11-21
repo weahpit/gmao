@@ -1,0 +1,202 @@
+{% extends 'base.html.twig' %}
+{% block title %}Connexion ZKTECO — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item">Connexion ZKTECO</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2" style="white-space:pre-line;">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Connexion ZKTECO</h1>
+            <p class="text-muted mb-0">Chemin de la base de la pointeuse, test de connexion et import automatique des pointages.</p>
+        </div>
+        <a href="{{ path('rh_temps_pointages') }}" class="btn btn-sm btn-outline-secondary">Voir les pointages</a>
+    </div>
+
+    {% if not dossierInscriptible %}
+        <div class="alert alert-danger py-2 small">
+            Le dossier <code>var/zkteco</code> n'est pas inscriptible par le compte PHP : les paramètres ne pourront pas être enregistrés.
+            Accordez les droits d'écriture sur ce dossier (ou sur <code>var/</code>), puis rechargez la page.
+        </div>
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-5">
+            <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <h2 class="h6 mb-3" style="color:#5a371e;">Paramètres de connexion</h2>
+                <form method="post" action="{{ path('pointage_zkteco_enregistrer') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('zkteco_parametres') }}">
+                    <div class="mb-2">
+                        <label class="form-label" for="fichier">Base Access de la pointeuse</label>
+                        <input type="text" class="form-control" id="fichier" name="fichier" maxlength="255"
+                               placeholder="\\192.168.10.15\ZKTeco\att2000.mdb"
+                               value="{{ config.fichier|default('') }}">
+                        <div class="form-text">Chemin UNC ou lecteur mappé (Z:\att2000.mdb). Les guillemets et les doubles barres obliques sont nettoyés automatiquement.</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="dsn">Ou nom du DSN ODBC (facultatif)</label>
+                        <input type="text" class="form-control" id="dsn" name="dsn" maxlength="150"
+                               placeholder="ZKTecoAccess" value="{{ config.dsn|default('') }}">
+                        <div class="form-text">Utilisé seulement si aucun fichier n'est indiqué. Le DSN doit exister sur le serveur, en 64 bits si PHP est en 64 bits.</div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label" for="jours_reprise">Jours repris à chaque import</label>
+                            <input type="number" class="form-control" id="jours_reprise" name="jours_reprise" min="1" max="90"
+                                   value="{{ config.jours_reprise|default(3) }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="tolerance">Tolérance de retard (min)</label>
+                            <input type="number" class="form-control" id="tolerance" name="tolerance" min="0" max="120"
+                                   value="{{ config.tolerance|default(5) }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="heure">Heure souhaitée</label>
+                            <input type="time" class="form-control" id="heure" name="heure"
+                                   value="{{ config.heure|default('07:30') }}">
+                            <div class="form-text">Indicative : elle sert à composer la tâche planifiée.</div>
+                        </div>
+                        <div class="col-6 d-flex align-items-end">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="auto_actif" name="auto_actif" value="1"
+                                       {{ config.auto_actif ? 'checked' }}>
+                                <label class="form-check-label" for="auto_actif">Import automatique actif</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button type="submit" class="btn btn-sm btn-cacao">Enregistrer</button>
+                    </div>
+                </form>
+
+                <hr style="border-color:#e9ded5;">
+                <div class="d-flex flex-wrap gap-2">
+                    <form method="post" action="{{ path('pointage_zkteco_tester') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('zkteco_test') }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Tester la connexion</button>
+                    </form>
+                    <form method="post" action="{{ path('pointage_zkteco_importer') }}" class="d-flex gap-2 align-items-center">
+                        <input type="hidden" name="_token" value="{{ csrf_token('zkteco_import') }}">
+                        <input type="number" class="form-control form-control-sm" name="jours" min="1" max="90"
+                               style="width:90px;" value="{{ config.jours_reprise|default(3) }}" title="Nombre de jours à importer">
+                        <button type="submit" class="btn btn-sm btn-cacao">Importer maintenant</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">État du fichier</h2>
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr><th class="small" style="width:45%;">Chemin utilisé</th><td class="small text-break">{{ etatFichier.normalise ?: '—' }}</td></tr>
+                        <tr><th class="small">Type</th><td class="small">{{ etatFichier.type }}</td></tr>
+                        <tr>
+                            <th class="small">Existe</th>
+                            <td class="small">
+                                {% if etatFichier.existe %}
+                                    <span class="badge" style="background:#e7f0e5;color:#3f5a37;">Oui</span>
+                                {% else %}
+                                    <span class="badge" style="background:#f7e3e0;color:#8a3b2e;">Non</span>
+                                {% endif %}
+                                {% if etatFichier.existe %} · lisible : {{ etatFichier.lisible ? 'oui' : 'non' }} · {{ (etatFichier.taille / 1024)|round(0) }} Ko{% endif %}
+                            </td>
+                        </tr>
+                        <tr><th class="small">Dernière modification</th><td class="small">{{ etatFichier.modifie ?: '—' }}</td></tr>
+                        <tr><th class="small">Compte qui exécute PHP</th><td class="small text-break">{{ etatFichier.compte }}</td></tr>
+                        <tr><th class="small">Architecture</th><td class="small">{{ etatFichier.architecture }}</td></tr>
+                        <tr><th class="small">Pilotes ODBC</th><td class="small">{{ drivers|join(', ') ?: 'aucun pilote PDO visible' }}</td></tr>
+                    </tbody>
+                </table>
+                {% if etatFichier.message %}
+                    <div class="alert py-2 small mt-2 mb-0" style="background:#f6efe8;border:1px solid #e9ded5;color:#5a371e;">{{ etatFichier.message }}</div>
+                {% endif %}
+                {% if etatFichier.pistes is not empty %}
+                    <ul class="small text-muted mt-2 mb-0">
+                        {% for piste in etatFichier.pistes %}<li>{{ piste }}</li>{% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-7">
+            {% if diagnostic %}
+                <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                    <h2 class="h6 mb-2" style="color:#5a371e;">Résultat du test de connexion</h2>
+                    {% if diagnostic.erreur is defined %}
+                        <div class="alert alert-danger py-2 small mb-0">{{ diagnostic.erreur }}</div>
+                    {% else %}
+                        <p class="small mb-2">
+                            {% if diagnostic.connecte is defined and diagnostic.connecte %}
+                                <span class="badge" style="background:#e7f0e5;color:#3f5a37;">Connexion réussie</span>
+                            {% else %}
+                                <span class="badge" style="background:#f7e3e0;color:#8a3b2e;">Connexion impossible</span>
+                            {% endif %}
+                            <span class="ms-2">{{ diagnostic.message|default('') }}</span>
+                        </p>
+                        {% if diagnostic.tables is defined and diagnostic.tables|length > 0 %}
+                            <p class="small text-muted mb-1">Tables détectées ({{ diagnostic.tables|length }}) :</p>
+                            <ul class="small mb-0" style="columns:2;">
+                                {% for nom, colonnes in diagnostic.tables|slice(0, 24) %}
+                                    <li><strong>{{ nom }}</strong>{% if colonnes is not empty %} — {{ colonnes|slice(0, 6)|join(', ') }}{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Automatiser l'import</h2>
+                <p class="small mb-2">
+                    La page enregistre les paramètres ; l'import quotidien est déclenché par le Planificateur de tâches Windows
+                    (ou cron) sur le poste qui voit le partage. La commande ne fait rien si la case « Import automatique actif » est décochée.
+                </p>
+                <p class="small mb-1"><strong>Commande à planifier :</strong></p>
+                <pre class="small p-2 mb-2" style="background:#f6efe8;border-radius:8px;white-space:pre-wrap;">{{ commandeAuto }} --silence</pre>
+                <p class="small mb-1"><strong>Windows — exemple de tâche quotidienne à {{ config.heure|default('07:30') }} :</strong></p>
+                <pre class="small p-2 mb-2" style="background:#f6efe8;border-radius:8px;white-space:pre-wrap;">schtasks /Create /SC DAILY /ST {{ config.heure|default('07:30') }} /TN "CITRAC - Pointages ZKTECO" /TR "C:\php\php.exe C:\citrac\bin\console app:pointage:zkteco:auto --silence" /F</pre>
+                <p class="small mb-1"><strong>Linux — crontab du compte du service :</strong></p>
+                <pre class="small p-2 mb-0" style="background:#f6efe8;border-radius:8px;white-space:pre-wrap;">30 7 * * * cd /var/www/citrac && php bin/console app:pointage:zkteco:auto --silence >> var/log/zkteco.log 2>&1</pre>
+                <p class="small text-muted mt-2 mb-0">
+                    Adaptez les chemins à votre serveur. La tâche doit tourner avec un compte qui a accès au partage réseau de la pointeuse.
+                    {% if derniere %}Dernière exécution réussie : {{ derniere.date }}{% if derniere.du is defined %} (du {{ derniere.du }} au {{ derniere.au }}){% endif %}.{% endif %}
+                </p>
+            </div>
+
+            <div class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Historique des imports ({{ historique|length }})</h2>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Date</th><th>Période</th><th>Origine</th><th>Résultat</th></tr></thead>
+                        <tbody>
+                        {% for h in historique %}
+                            <tr>
+                                <td class="small">{{ h.date|default('—') }}</td>
+                                <td class="small">{{ h.du|default('—') }} → {{ h.au|default('—') }}</td>
+                                <td class="small">{{ h.origine|default('—') }}</td>
+                                <td class="small">
+                                    {% if h.succes|default(false) %}
+                                        <span class="badge" style="background:#e7f0e5;color:#3f5a37;">Réussi</span>
+                                    {% else %}
+                                        <span class="badge" style="background:#f7e3e0;color:#8a3b2e;">Échec</span>
+                                    {% endif %}
+                                    {% if h.resume|default('') %}<div class="text-muted text-break" style="font-size:.75rem;">{{ h.resume }}</div>{% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4" class="text-center text-muted small py-3">Aucun import enregistré pour le moment.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="small text-muted mt-2 mb-0">Paramètres conservés dans <code>{{ cheminConfiguration }}</code>.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

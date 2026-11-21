@@ -1,0 +1,114 @@
+{% extends 'base.html.twig' %}
+{% block title %}Plan vaccinal — CITRAC{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('rh_medical') }}">Santé au travail</a></span>
+    <span class="breadcrumb-item">Plan vaccinal</span>
+{% endblock %}
+{% block body %}
+<div class="container-fluid py-3">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}<div class="alert alert-{{ type }} py-2">{{ message }}</div>{% endfor %}
+    {% endfor %}
+    <div class="alert py-2 small" style="background:#f6efe8; border:1px solid #e9ded5; color:#5a371e;">
+        Données médicales confidentielles : accès réservé au médecin du travail et à l'infirmerie.
+    </div>
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Plan vaccinal</h1>
+            <p class="text-muted mb-0">Vaccins obligatoires ou recommandés, avec leur périodicité de rappel appliquée aux employés.</p>
+        </div>
+        <a href="{{ path('rh_medical') }}" class="btn btn-sm btn-outline-secondary">Retour à la santé au travail</a>
+    </div>
+
+    {% if erreurs is not empty %}
+        <div class="alert alert-danger py-2"><ul class="mb-0">{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-4">
+            <div class="p-3 h-100" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <h2 class="h6 mb-3" style="color:#5a371e;">Ajouter un vaccin au plan</h2>
+                <form method="post" action="{{ path('rh_medical_plan_vaccinal') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('rh_plan_vaccinal') }}">
+                    <div class="mb-2">
+                        <label class="form-label" for="vaccin">Vaccin <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="vaccin" name="vaccin" maxlength="150" required
+                               placeholder="Ex. Fièvre jaune, Tétanos, Hépatite B" value="{{ donnees.vaccin|default('') }}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="periodicite_mois">Périodicité de rappel (mois)</label>
+                        <input type="number" class="form-control" id="periodicite_mois" name="periodicite_mois" min="1" max="120"
+                               value="{{ donnees.periodicite_mois|default('12') }}">
+                        <div class="form-text">10 ans = 120 mois. Laisser vide si aucun rappel n'est planifié.</div>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="obligatoire" name="obligatoire" value="1"
+                               {{ donnees.obligatoire|default('1') == '1' ? 'checked' }}>
+                        <label class="form-check-label" for="obligatoire">Vaccin obligatoire</label>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="description">Description (facultatif)</label>
+                        <textarea class="form-control" id="description" name="description" rows="2" maxlength="1000">{{ donnees.description|default('') }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-cacao w-100">Ajouter au plan</button>
+                </form>
+
+                <hr style="border-color:#e9ded5;">
+                <form method="post" action="{{ path('rh_medical_plan_appliquer') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('rh_plan_appliquer') }}">
+                    <p class="small text-muted mb-2">
+                        Génère, pour chaque employé actif ayant un dossier médical, la vaccination due
+                        (date du jour et rappel calculé selon la périodicité). Aucun doublon n'est créé.
+                    </p>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Appliquer le plan aux employés</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="p-3 mb-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Vaccins du plan ({{ plans|length }})</h2>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Vaccin</th><th>Périodicité</th><th>Obligatoire</th><th>Description</th></tr></thead>
+                        <tbody>
+                        {% for p in plans %}
+                            <tr>
+                                <td class="small fw-semibold">{{ p.vaccin }}</td>
+                                <td class="small">{{ p.periodiciteLibelle }}</td>
+                                <td class="small">{{ p.obligatoire ? 'Oui' : 'Non' }}</td>
+                                <td class="small text-muted">{{ p.description ?: '—' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4" class="text-center text-muted small py-3">Le plan vaccinal est vide.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-3" style="background:#fff;border:1px solid #e9ded5;border-radius:14px;">
+                <h2 class="h6 mb-2" style="color:#5a371e;">Rappels vaccinaux à venir (90 jours)</h2>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Employé</th><th>Vaccin</th><th>Rappel prévu</th></tr></thead>
+                        <tbody>
+                        {% for r in rappels %}
+                            <tr>
+                                <td class="small">{{ r.employe }}</td>
+                                <td class="small">{{ r.vaccin }}</td>
+                                <td class="small">{{ r.date ? r.date|date('d/m/Y') : '—' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="text-center text-muted small py-3">Aucun rappel dans les 90 prochains jours.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

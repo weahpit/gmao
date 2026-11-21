@@ -10,6 +10,9 @@ use App\Entity\Equipement;
 use App\Entity\Logistique\DocsDossier;
 use App\Entity\Logistique\Dossier;
 use App\Entity\Maintenance\FicheIntervention;
+use App\Entity\Production\Lot;
+use App\Entity\Rh\ArretTravail;
+use App\Entity\Rh\PlanVaccinal;
 use App\Entity\MouvementEquipement;
 use App\Entity\Rh\Absence;
 use App\Entity\Rh\AccidentTravail;
@@ -522,79 +525,79 @@ class DonneesTableauDeBord
     }
 
     /**
-     * Recapitulatif du stock cacao : une ligne par rubrique et par nature
-     * de produit, calculee par le service officiel du stock (inventaire +
-     * entrees - sorties).
+     * Recapitulatif du stock cacao presente comme la page « Consultation des
+     * stocks » : une seule ligne par type de stock, avec les entrees et
+     * sorties de la periode et l'unite du stock, puis le stock initial et le
+     * stock final issus de l'inventaire. Un bouton renvoie vers la page
+     * complete pour le detail par nature.
      *
      * @return array<string, mixed>
      */
     public function recapitulatifStockCacao(): array
     {
-        $colonnes = ['Type de stock', 'Produit', 'Unité', 'Stock initial', 'Entrées', 'Sorties', 'Stock final'];
+        $colonnes = ['Type de stock', 'Entrées', 'Sorties', 'Unité', 'Stock initial', 'Stock final'];
         $rubriques = $this->rubriquesCacao();
         $apercu = $this->stockInitial->apercu($rubriques);
+        $initialise = (bool) ($apercu['initialise'] ?? false);
         $lignes = [];
 
         foreach ($apercu['parRubrique'] as $rubrique => $ligne) {
-            $natures = $ligne['parNature'] ?? [];
+            // Meme regle que la page de consultation : si la rubrique bouge
+            // en litres, on affiche les litres, sinon les kilogrammes.
+            $litres = (float) $ligne['entreeLitres'] > 0 || (float) $ligne['sortieLitres'] > 0;
+            $unite = $litres ? 'Litres' : 'Kg';
+            $entrees = $litres ? (float) $ligne['entreeLitres'] : (float) $ligne['entreeKg'];
+            $sorties = $litres ? (float) $ligne['sortieLitres'] : (float) $ligne['sortieKg'];
 
-            if ($natures === []) {
+            if (!$initialise) {
                 $lignes[] = [
                     $rubrique,
-                    'Aucun mouvement',
-                    'Kg',
-                    $this->quantite((float) $ligne['stockInitialKg']),
-                    $this->quantite((float) $ligne['entreeKg']),
-                    $this->quantite((float) $ligne['sortieKg']),
-                    $this->quantite((float) $ligne['stockFinalKg']),
+                    $this->quantite($entrees),
+                    $this->quantite($sorties),
+                    $unite,
+                    '—',
+                    '—',
                 ];
+
                 continue;
             }
 
-            foreach ($natures as $nature => $detail) {
-                $ajoutee = false;
+            $uniteInitiale = (float) $ligne['stockInitialLitres'] > 0 ? 'Litres' : $unite;
+            $initial = $uniteInitiale === 'Litres' ? (float) $ligne['stockInitialLitres'] : (float) $ligne['stockInitialKg'];
+            $final = $uniteInitiale === 'Litres' ? (float) $ligne['stockFinalLitres'] : (float) $ligne['stockFinalKg'];
 
-                foreach (['Kg', 'Litres'] as $unite) {
-                    $initial = (float) ($detail['stockInitial' . $unite] ?? 0);
-                    $entrees = (float) ($detail['entree' . $unite] ?? 0);
-                    $sorties = (float) ($detail['sortie' . $unite] ?? 0);
-                    $final = (float) ($detail['stockFinal' . $unite] ?? 0);
-
-                    if (abs($initial) + abs($entrees) + abs($sorties) + abs($final) < 0.0001) {
-                        continue;
-                    }
-
-                    $lignes[] = [
-                        $rubrique,
-                        $nature,
-                        $unite,
-                        $this->quantite($initial),
-                        $this->quantite($entrees),
-                        $this->quantite($sorties),
-                        $this->quantite($final),
-                    ];
-                    $ajoutee = true;
-                }
-
-                if (!$ajoutee) {
-                    $lignes[] = [$rubrique, $nature, 'Kg', '0', '0', '0', '0'];
-                }
-            }
+            $lignes[] = [
+                $rubrique,
+                $this->quantite($entrees),
+                $this->quantite($sorties),
+                $unite,
+                $this->quantite($initial) . ' ' . $uniteInitiale,
+                $this->quantite($final) . ' ' . $uniteInitiale,
+            ];
         }
+
+        $lien = [
+            'route' => 'app_saisies_stock',
+            'libelle' => 'Ouvrir la consultation des stocks',
+            'icone' => 'external-link',
+        ];
 
         if ($lignes === []) {
             return [
                 'colonnes' => $colonnes,
                 'lignes' => [],
                 'vide' => "Aucun stock enregistré pour l'instant : aucune rubrique ne contient de mouvement.",
+                'lien' => $lien,
             ];
         }
 
         return [
             'colonnes' => $colonnes,
             'lignes' => $lignes,
-            'sous_titre' => count($lignes) . ' ligne(s) sur ' . count($rubriques) . ' rubrique(s) de stock cacao.',
-            'note' => "Stock final = quantité inventoriée + entrées - sorties postérieures à l'inventaire.",
+            'sous_titre' => count($lignes) . ' type(s) de stock'
+                . ($initialise ? ' · stock initial et stock final calculés depuis le dernier inventaire' : ' · stock initial non encore initialisé'),
+            'note' => "Entrées et sorties cumulées depuis le dernier inventaire. Stock final = stock initial + entrées - sorties. Le détail par nature de produit reste consultable sur la page de consultation des stocks.",
+            'lien' => $lien,
         ];
     }
 
@@ -1174,6 +1177,377 @@ class DonneesTableauDeBord
         ];
     }
 
+    /** Nom lisible d'un visiteur a partir d'un resultat de requete. */
+    private function nomVisiteur(array $ligne): string
+    {
+        $nom = trim(((string) ($ligne['nom'] ?? '')) . ' ' . ((string) ($ligne['prenoms'] ?? '')));
+
+        return $nom !== '' ? $nom : '—';
+    }
+
+    /** Valeur de texte affichable, ou un tiret quand la donnee manque. */
+    private function texteOuTiret(mixed $valeur): string
+    {
+        $texte = trim((string) $valeur);
+
+        return $texte !== '' ? $texte : '—';
+    }
+
+    /**
+     * Point global des visites : presents, entrees et sorties du jour, puis
+     * volume du mois en cours.
+     *
+     * @return array<string, mixed>
+     */
+    public function pointGlobalVisites(): array
+    {
+        $presents = $this->compter(Visite::class, 'e.statut = :statut', ['statut' => Visite::EN_COURS]);
+        $entrees = $this->compter(Visite::class, 'e.heureEntree >= :debut', ['debut' => new \DateTimeImmutable('today')]);
+        $sorties = $this->compter(Visite::class, 'e.heureSortie >= :debut', ['debut' => new \DateTimeImmutable('today')]);
+        $mois = $this->compter(Visite::class, 'e.heureEntree >= :debut', ['debut' => new \DateTimeImmutable('first day of this month 00:00:00')]);
+
+        return [
+            'lignes' => [
+                ['libelle' => 'Présents sur site', 'valeur' => $presents . ' visiteur(s)'],
+                ['libelle' => "Entrées aujourd'hui", 'valeur' => (string) $entrees],
+                ['libelle' => "Sorties aujourd'hui", 'valeur' => (string) $sorties],
+                ['libelle' => 'Visites ce mois', 'valeur' => (string) $mois],
+            ],
+        ];
+    }
+
+    /**
+     * Toutes les visites enregistrees aujourd hui, de la plus ancienne a la
+     * plus recente, avec l'heure de sortie quand la piece a ete remise.
+     *
+     * @return array<string, mixed>
+     */
+    public function visitesDuJour(): array
+    {
+        $colonnes = ['Heure', 'Visiteur', 'Société', 'Motif', 'Service visité', 'Personne visitée', 'Statut', 'Sortie'];
+
+        $resultats = $this->em->createQuery(
+            'SELECT v.heureEntree AS entree, v.heureSortie AS sortie, v.motif AS motif,'
+            . ' v.personneVisitee AS personne, v.statut AS statut,'
+            . ' vi.nom AS nom, vi.prenoms AS prenoms, vi.societe AS societe, s.libelle AS service'
+            . ' FROM ' . Visite::class . ' v'
+            . ' LEFT JOIN v.visiteur vi LEFT JOIN v.service s'
+            . ' WHERE v.heureEntree >= :debut ORDER BY v.heureEntree ASC'
+        )->setParameter('debut', new \DateTimeImmutable('today 00:00:00'))->getArrayResult();
+
+        $lignes = [];
+        foreach ($resultats as $ligne) {
+            $statut = (string) ($ligne['statut'] ?? '');
+
+            $lignes[] = [
+                $this->heureDe($ligne['entree']),
+                $this->nomVisiteur($ligne),
+                $this->texteOuTiret($ligne['societe'] ?? null),
+                $this->texteOuTiret($ligne['motif'] ?? null),
+                $this->texteOuTiret($ligne['service'] ?? null),
+                $this->texteOuTiret($ligne['personne'] ?? null),
+                Visite::STATUTS[$statut] ?? $this->texteOuTiret($statut),
+                $this->heureDe($ligne['sortie']),
+            ];
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => "Aucune visite enregistrée aujourd'hui pour le moment.",
+            ];
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => count($lignes) . ' visite(s) enregistrée(s) ce jour.',
+        ];
+    }
+
+    /**
+     * Recapitulatif des visites par motif sur une periode glissante.
+     *
+     * @return array<string, mixed>
+     */
+    public function recapitulatifVisites(int $jours = 30): array
+    {
+        $colonnes = ['Motif', 'Visites', 'Part'];
+        $debut = new \DateTimeImmutable(sprintf('-%d days', max(1, $jours) - 1));
+
+        $resultats = $this->em->createQuery(
+            'SELECT v.motif AS motif, COUNT(v.id) AS total'
+            . ' FROM ' . Visite::class . ' v'
+            . ' WHERE v.heureEntree >= :debut GROUP BY v.motif ORDER BY total DESC'
+        )->setParameter('debut', $debut)->getArrayResult();
+
+        $total = 0;
+        foreach ($resultats as $ligne) {
+            $total += (int) ($ligne['total'] ?? 0);
+        }
+
+        $lignes = [];
+        foreach ($resultats as $ligne) {
+            $nombre = (int) ($ligne['total'] ?? 0);
+            $part = $total > 0 ? round($nombre * 100 / $total, 1) : 0.0;
+
+            $motif = trim((string) ($ligne['motif'] ?? ''));
+
+            $lignes[] = [
+                $motif !== '' ? $motif : 'Motif non précisé',
+                (string) $nombre,
+                number_format($part, 1, ',', ' ') . ' %',
+            ];
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => 'Aucune visite sur la période : rien à récapituler.',
+            ];
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => $total . ' visite(s) sur les ' . $jours . ' derniers jours.',
+            'note' => 'La part est calculée sur le total des visites de la période.',
+        ];
+    }
+
+    /**
+     * Derniers passages enregistres, tous motifs confondus.
+     *
+     * @return array<string, mixed>
+     */
+    public function detailsVisites(int $limite = 15): array
+    {
+        $colonnes = ['Date', 'Heure', 'Référence', 'Visiteur', 'Motif', 'Service visité', 'Statut', 'Sortie'];
+
+        $resultats = $this->em->createQuery(
+            'SELECT v.reference AS reference, v.heureEntree AS entree, v.heureSortie AS sortie,'
+            . ' v.motif AS motif, v.statut AS statut,'
+            . ' vi.nom AS nom, vi.prenoms AS prenoms, s.libelle AS service'
+            . ' FROM ' . Visite::class . ' v'
+            . ' LEFT JOIN v.visiteur vi LEFT JOIN v.service s'
+            . ' ORDER BY v.heureEntree DESC'
+        )->setMaxResults(max(1, $limite))->getArrayResult();
+
+        $lignes = [];
+        foreach ($resultats as $ligne) {
+            $date = $this->enDate($ligne['entree'] ?? null);
+            $statut = (string) ($ligne['statut'] ?? '');
+
+            $lignes[] = [
+                $date !== null ? $date->format('d/m/Y') : '—',
+                $this->heureDe($ligne['entree']),
+                $this->texteOuTiret($ligne['reference'] ?? null),
+                $this->nomVisiteur($ligne),
+                $this->texteOuTiret($ligne['motif'] ?? null),
+                $this->texteOuTiret($ligne['service'] ?? null),
+                Visite::STATUTS[$statut] ?? $this->texteOuTiret($statut),
+                $this->heureDe($ligne['sortie']),
+            ];
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => 'Aucune visite enregistrée pour le moment.',
+            ];
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => 'Les ' . count($lignes) . ' dernier(s) passage(s) enregistré(s).',
+        ];
+    }
+
+    // -----------------------------------------------------------------
+    //  Logistique et production : lots, embarquements
+    // -----------------------------------------------------------------
+
+    /**
+     * Derniers lots de production avec leur poids net encore disponible.
+     */
+    public function lotsDisponibles(int $limite = 20): array
+    {
+        $colonnes = ['Lot', 'Produit', 'Qualité', 'Magasin', 'Production', 'Poids net dispo (kg)', 'Sacs'];
+
+        $resultats = $this->em->createQuery(
+            'SELECT l.numero_lot AS lot, l.qualite AS qualite, l.date_prod AS date_prod,'
+            . ' l.poids_net_dispo AS poids, l.nb_sacs AS sacs,'
+            . ' p.libelle AS produit, m.libelle AS magasin'
+            . ' FROM ' . Lot::class . ' l'
+            . ' LEFT JOIN l.code_produit p LEFT JOIN l.code_magasin m'
+            . ' ORDER BY l.date_prod DESC, l.numero_lot ASC'
+        )->setMaxResults(max(1, $limite))->getArrayResult();
+
+        $lignes = [];
+        foreach ($resultats as $ligne) {
+            $date = $this->enDate($ligne['date_prod'] ?? null);
+
+            $lignes[] = [
+                $this->texteOuTiret($ligne['lot'] ?? null),
+                $this->texteOuTiret($ligne['produit'] ?? null),
+                $this->texteOuTiret($ligne['qualite'] ?? null),
+                $this->texteOuTiret($ligne['magasin'] ?? null),
+                $date !== null ? $date->format('d/m/Y') : '—',
+                $ligne['poids'] !== null ? $this->quantite((float) $ligne['poids']) : '—',
+                $ligne['sacs'] !== null ? $this->quantite((float) $ligne['sacs']) : '—',
+            ];
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => "Aucun lot de production enregistré pour le moment.",
+            ];
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => 'Les ' . count($lignes) . ' dernier(s) lot(s) de production.',
+            'note' => 'Le poids net disponible est celui du lot après sorties ; il ne remplace pas un inventaire.',
+        ];
+    }
+
+    /** Poids net disponible par produit fini. */
+    public function poidsDisponibleParProduit(int $limite = 8): array
+    {
+        return $this->tableau(
+            'SELECT p.libelle AS libelle, SUM(l.poids_net_dispo) AS total'
+            . ' FROM ' . Lot::class . ' l LEFT JOIN l.code_produit p'
+            . ' GROUP BY p.libelle ORDER BY total DESC',
+            [],
+            'libelle',
+            'total',
+            [],
+            $limite
+        );
+    }
+
+    /** Répartition des lots par qualité déclarée. */
+    public function lotsParQualite(): array
+    {
+        return $this->tableau(
+            'SELECT l.qualite AS libelle, COUNT(l.id) AS total'
+            . ' FROM ' . Lot::class . ' l GROUP BY l.qualite ORDER BY total DESC'
+        );
+    }
+
+    /** Dossiers d'embarquement par navire. */
+    public function embarquementsParNavire(int $limite = 8): array
+    {
+        return $this->tableau(
+            'SELECT n.nom AS libelle, COUNT(d.id) AS total'
+            . ' FROM ' . Dossier::class . ' d LEFT JOIN d.code_navire n'
+            . ' GROUP BY n.nom ORDER BY total DESC',
+            [],
+            'libelle',
+            'total',
+            [],
+            $limite
+        );
+    }
+
+    /** Dossiers d'embarquement par destination. */
+    public function embarquementsParDestination(int $limite = 8): array
+    {
+        return $this->tableau(
+            'SELECT de.denomination AS libelle, COUNT(d.id) AS total'
+            . ' FROM ' . Dossier::class . ' d LEFT JOIN d.destination de'
+            . ' GROUP BY de.denomination ORDER BY total DESC',
+            [],
+            'libelle',
+            'total',
+            [],
+            $limite
+        );
+    }
+
+    /** Photo instantanee des dossiers d'embarquement. */
+    public function pointGlobalEmbarquement(): array
+    {
+        $total = $this->compter(Dossier::class);
+        $enCours = $this->compter(Dossier::class, 'e.cloture = false OR e.cloture IS NULL');
+        $clotures = $this->compter(Dossier::class, 'e.cloture = true');
+        $aPlanifier = $this->compter(Dossier::class, 'e.date_embarquement IS NULL');
+        $duMois = $this->compter(
+            Dossier::class,
+            'e.created_at >= :debut',
+            ['debut' => new \DateTimeImmutable('first day of this month 00:00:00')]
+        );
+
+        $tonnage = $this->em->createQuery(
+            'SELECT SUM(d.poids_sigam) FROM ' . Dossier::class . ' d'
+        )->getSingleScalarResult();
+
+        return [
+            'lignes' => [
+                ['libelle' => 'Dossiers suivis', 'valeur' => (string) $total],
+                ['libelle' => 'En cours', 'valeur' => (string) $enCours],
+                ['libelle' => 'Clôturés', 'valeur' => (string) $clotures],
+                ['libelle' => 'À planifier (sans date)', 'valeur' => (string) $aPlanifier],
+                ['libelle' => 'Ouverts ce mois', 'valeur' => (string) $duMois],
+                ['libelle' => 'Tonnage déclaré (SIGAM)', 'valeur' => $this->quantite((float) $tonnage) . ' kg'],
+            ],
+        ];
+    }
+
+    /** Derniers dossiers d'embarquement, avec navire, destination et poids. */
+    public function derniersEmbarquements(int $limite = 15): array
+    {
+        $colonnes = ['OT', 'Client', 'Produit', 'Destination', 'Navire', 'Embarquement', 'Poids SIGAM (kg)', 'Statut'];
+
+        $resultats = $this->em->createQuery(
+            'SELECT d.numero_ot AS ot, d.date_embarquement AS date_embarquement,'
+            . ' d.poids_sigam AS poids, d.cloture AS cloture,'
+            . ' c.nom_client AS client, p.libelle AS produit, de.denomination AS destination, n.nom AS navire'
+            . ' FROM ' . Dossier::class . ' d'
+            . ' LEFT JOIN d.client c LEFT JOIN d.produit p'
+            . ' LEFT JOIN d.destination de LEFT JOIN d.code_navire n'
+            . ' ORDER BY d.created_at DESC'
+        )->setMaxResults(max(1, $limite))->getArrayResult();
+
+        $lignes = [];
+        foreach ($resultats as $ligne) {
+            $date = $this->enDate($ligne['date_embarquement'] ?? null);
+            $cloture = $ligne['cloture'] ?? null;
+
+            $lignes[] = [
+                $this->texteOuTiret($ligne['ot'] ?? null),
+                $this->texteOuTiret($ligne['client'] ?? null),
+                $this->texteOuTiret($ligne['produit'] ?? null),
+                $this->texteOuTiret($ligne['destination'] ?? null),
+                $this->texteOuTiret($ligne['navire'] ?? null),
+                $date !== null ? $date->format('d/m/Y') : 'À planifier',
+                $ligne['poids'] !== null ? $this->quantite((float) $ligne['poids']) : '—',
+                $cloture === true ? 'Clôturé' : 'En cours',
+            ];
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => "Aucun dossier d'embarquement enregistré pour le moment.",
+            ];
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => 'Les ' . count($lignes) . ' dernier(s) dossier(s) créé(s).',
+        ];
+    }
+
     // -----------------------------------------------------------------
     //  Sante au travail (roles medicaux uniquement)
     // -----------------------------------------------------------------
@@ -1346,5 +1720,41 @@ class DonneesTableauDeBord
                 ['libelle' => 'Embauche', 'valeur' => $employe->getDateEmbauche()?->format('d/m/Y') ?? '-'],
             ],
         ];
+    }
+
+    // ------------------------------------------------------------------
+    // Sante au travail : arrets et plan vaccinal
+    // ------------------------------------------------------------------
+
+    /** Jours d'arret par motif sur douze mois (barres). */
+    public function arretsParType(): array
+    {
+        $debut = new \DateTimeImmutable('first day of -11 months 00:00:00');
+
+        $lignes = $this->em->createQuery(
+            'SELECT a.type AS type, SUM(a.jours) AS jours FROM ' . ArretTravail::class . ' a
+             WHERE a.dateDebut >= :debut AND a.statut <> :refuse
+             GROUP BY a.type ORDER BY jours DESC'
+        )->setParameter('debut', $debut)->setParameter('refuse', ArretTravail::REFUSE)->getArrayResult();
+
+        $out = [];
+        foreach ($lignes as $ligne) {
+            $code = (string) $ligne['type'];
+            $out[] = ['libelle' => ArretTravail::TYPES[$code] ?? $code, 'valeur' => (int) $ligne['jours']];
+        }
+
+        return ['lignes' => $out];
+    }
+
+    /** Demandes d'arret en attente de decision. */
+    public function arretsEnAttente(): string
+    {
+        return (string) $this->compter(ArretTravail::class, 'e.statut = :statut', ['statut' => ArretTravail::DEMANDE]);
+    }
+
+    /** Nombre de vaccins inscrits au plan vaccinal. */
+    public function vaccinsPlanifies(): string
+    {
+        return (string) $this->compter(PlanVaccinal::class);
     }
 }

@@ -18,7 +18,11 @@
             <h1 class="h4 mb-1">Santé au travail</h1>
             <p class="text-muted mb-0">Dossiers médicaux, visites, vaccinations et accidents du travail.</p>
         </div>
-        <a href="{{ path('rh_medical_dossier_new') }}" class="btn btn-sm btn-cacao">+ Nouveau dossier</a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ path('rh_medical_arrets') }}" class="btn btn-sm btn-outline-secondary">Arrêts de travail</a>
+            <a href="{{ path('rh_medical_plan_vaccinal') }}" class="btn btn-sm btn-outline-secondary">Plan vaccinal</a>
+            <a href="{{ path('rh_medical_dossier_new') }}" class="btn btn-sm btn-cacao">+ Nouveau dossier</a>
+        </div>
     </div>
 
     <div class="row g-2 mb-3">

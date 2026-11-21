@@ -3,11 +3,15 @@
 namespace App\Controller\Rh;
 
 use App\Entity\Rh\AccidentTravail;
+use App\Entity\Rh\ArretTravail;
 use App\Entity\Rh\DossierMedical;
+use App\Entity\Rh\PlanVaccinal;
 use App\Entity\Rh\VisiteMedicale;
 use App\Entity\Rh\Vaccination;
+use App\Repository\Rh\ArretTravailRepository;
 use App\Repository\Rh\DossierMedicalRepository;
 use App\Repository\Rh\EmployeRepository;
+use App\Repository\Rh\PlanVaccinalRepository;
 use App\Repository\Rh\VisiteMedicaleRepository;
 use App\Security\RhAcces;
 use App\Services\pdfService;
@@ -31,6 +35,8 @@ final class MedicalRhController extends AbstractController
         private DossierMedicalRepository $dossiers,
         private VisiteMedicaleRepository $visites,
         private EmployeRepository $employes,
+        private ArretTravailRepository $arrets,
+        private PlanVaccinalRepository $plans,
         private RhAcces $acces,
     ) {}
 
@@ -100,6 +106,215 @@ final class MedicalRhController extends AbstractController
             'erreurs' => $erreurs,
             'estCreation' => true,
         ]);
+    }
+
+    #[Route('/arrets', name: '_arrets', methods: ['GET', 'POST'])]
+    public function arrets(Request $request): Response
+    {
+        $this->acces->exigerMedical();
+
+        $donnees = [
+            'dossier' => (string) $request->query->get('dossier', ''),
+            'type' => ArretTravail::MALADIE,
+            'date_debut' => date('Y-m-d'),
+            'date_fin' => '',
+            'motif' => '',
+            'medecin' => '',
+        ];
+        $erreurs = [];
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('rh_arret_travail', (string) $request->request->get('_token'))) {
+                $erreurs[] = 'Le formulaire a expire. Rechargez la page puis recommencez.';
+            } else {
+                $donnees = $request->request->all();
+                $dossier = $this->dossiers->find((string) ($donnees['dossier'] ?? ''));
+                $debut = $this->date($donnees['date_debut'] ?? '');
+                $fin = $this->date($donnees['date_fin'] ?? '');
+
+                if ($dossier === null) {
+                    $erreurs[] = 'Choisissez l\'employe concerne (son dossier medical).';
+                }
+                if ($debut === null) {
+                    $erreurs[] = 'La date de debut de l\'arret est obligatoire.';
+                }
+                if ($fin !== null && $debut !== null && $fin < $debut) {
+                    $erreurs[] = 'La date de fin ne peut pas preceder la date de debut.';
+                }
+
+                if ($erreurs === []) {
+                    $arret = (new ArretTravail())
+                        ->setDossier($dossier)
+                        ->setType((string) ($donnees['type'] ?? ArretTravail::MALADIE))
+                        ->setDateDebut($debut)
+                        ->setMotif($this->texte($donnees['motif'] ?? null))
+                        ->setMedecin($this->texte($donnees['medecin'] ?? null))
+                        ->setStatut(ArretTravail::DEMANDE);
+                    $arret->setDateFin($fin);
+
+                    $this->em->persist($arret);
+                    $this->em->flush();
+                    $this->addFlash('success', 'La demande d\'arret de travail est enregistree.');
+
+                    return $this->redirectToRoute('rh_medical_arrets');
+                }
+            }
+        }
+
+        return $this->render('rh/medical/arret_liste.html.twig', [
+            'arrets' => $this->arrets->findRecents(80),
+            'dossiers' => $this->dossiers->findTousAvecEmploye(),
+            'donnees' => $donnees,
+            'erreurs' => $erreurs,
+            'types' => ArretTravail::TYPES,
+            'statuts' => ArretTravail::STATUTS,
+            'nbOuverts' => $this->arrets->compterOuverts(),
+            'nbEnAttente' => $this->arrets->compterEnAttente(),
+        ]);
+    }
+
+    #[Route('/arrets/{id}/statut', name: '_arret_statut', methods: ['POST'])]
+    public function arretStatut(Request $request, string $id): Response
+    {
+        $this->acces->exigerMedical();
+
+        $arret = $this->arrets->find($id);
+        if ($arret === null) {
+            throw $this->createNotFoundException('Arret de travail introuvable.');
+        }
+
+        if (!$this->isCsrfTokenValid('rh_arret_statut', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Le formulaire a expire. Rechargez la page puis recommencez.');
+
+            return $this->redirectToRoute('rh_medical_arrets');
+        }
+
+        $statut = (string) $request->request->get('statut', '');
+        if (!isset(ArretTravail::STATUTS[$statut])) {
+            $this->addFlash('danger', 'Statut inconnu : "' . $statut . '".');
+
+            return $this->redirectToRoute('rh_medical_arrets');
+        }
+
+        $arret->setStatut($statut);
+        $this->em->flush();
+        $this->addFlash('success', 'L\'arret est desormais « ' . $arret->getStatutLibelle() . ' ».');
+
+        return $this->redirectToRoute('rh_medical_arrets');
+    }
+
+    #[Route('/plan-vaccinal', name: '_plan_vaccinal', methods: ['GET', 'POST'])]
+    public function planVaccinal(Request $request): Response
+    {
+        $this->acces->exigerMedical();
+
+        $donnees = ['vaccin' => '', 'periodicite_mois' => '12', 'obligatoire' => '1', 'description' => ''];
+        $erreurs = [];
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('rh_plan_vaccinal', (string) $request->request->get('_token'))) {
+                $erreurs[] = 'Le formulaire a expire. Rechargez la page puis recommencez.';
+            } else {
+                $donnees = $request->request->all();
+                $vaccin = trim((string) ($donnees['vaccin'] ?? ''));
+                $periodicite = trim((string) ($donnees['periodicite_mois'] ?? ''));
+
+                if ($vaccin === '') {
+                    $erreurs[] = 'Indiquez le nom du vaccin.';
+                } elseif ($this->plans->trouverParVaccin($vaccin) !== null) {
+                    $erreurs[] = 'Le vaccin "' . $vaccin . '" figure deja dans le plan vaccinal.';
+                }
+
+                if ($periodicite !== '' && (!ctype_digit($periodicite) || (int) $periodicite < 1 || (int) $periodicite > 120)) {
+                    $erreurs[] = 'La periodicite doit etre un nombre de mois entre 1 et 120 (laisser vide si aucun rappel).';
+                }
+
+                if ($erreurs === []) {
+                    $plan = (new PlanVaccinal())
+                        ->setVaccin($vaccin)
+                        ->setPeriodiciteMois($periodicite === '' ? null : (int) $periodicite)
+                        ->setObligatoire((string) ($donnees['obligatoire'] ?? '') === '1')
+                        ->setDescription($this->texte($donnees['description'] ?? null));
+
+                    $this->em->persist($plan);
+                    $this->em->flush();
+                    $this->addFlash('success', 'Le vaccin "' . $vaccin . '" est ajoute au plan vaccinal.');
+
+                    return $this->redirectToRoute('rh_medical_plan_vaccinal');
+                }
+            }
+        }
+
+        return $this->render('rh/medical/plan_vaccinal.html.twig', [
+            'plans' => $this->plans->findTous(),
+            'donnees' => $donnees,
+            'erreurs' => $erreurs,
+            'rappels' => $this->rappelsVaccinaux(90),
+        ]);
+    }
+
+    #[Route('/plan-vaccinal/appliquer', name: '_plan_appliquer', methods: ['POST'])]
+    public function appliquerPlan(Request $request): Response
+    {
+        $this->acces->exigerMedical();
+
+        if (!$this->isCsrfTokenValid('rh_plan_appliquer', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Le formulaire a expire. Rechargez la page puis recommencez.');
+
+            return $this->redirectToRoute('rh_medical_plan_vaccinal');
+        }
+
+        $plans = $this->plans->findTous();
+        if ($plans === []) {
+            $this->addFlash('danger', 'Le plan vaccinal est vide : ajoutez d\'abord au moins un vaccin.');
+
+            return $this->redirectToRoute('rh_medical_plan_vaccinal');
+        }
+
+        $aujourdhui = new \DateTimeImmutable('today');
+        $creations = 0;
+
+        foreach ($plans as $plan) {
+            $rappel = null;
+            if ($plan->getPeriodiciteMois() !== null && $plan->getPeriodiciteMois() > 0) {
+                $rappel = $aujourdhui->modify('+' . $plan->getPeriodiciteMois() . ' months');
+            }
+
+            foreach ($this->dossiers->findTousAvecEmploye() as $dossier) {
+                $employe = $dossier->getEmploye();
+                if ($employe === null || !$employe->isActif()) {
+                    continue;
+                }
+
+                $deja = false;
+                foreach ($dossier->getVaccinations() as $vaccination) {
+                    if (mb_strtolower(trim((string) $vaccination->getVaccin())) === mb_strtolower(trim($plan->getVaccin()))) {
+                        $deja = true;
+                        break;
+                    }
+                }
+                if ($deja) {
+                    continue;
+                }
+
+                $vaccination = (new Vaccination())
+                    ->setDossier($dossier)
+                    ->setVaccin($plan->getVaccin())
+                    ->setDate($aujourdhui)
+                    ->setProchainRappel($rappel)
+                    ->setLot('Plan vaccinal');
+
+                $this->em->persist($vaccination);
+                ++$creations;
+            }
+        }
+
+        $this->em->flush();
+        $this->addFlash($creations > 0 ? 'success' : 'warning', $creations > 0
+            ? $creations . ' vaccination(s) creee(s) a partir du plan vaccinal.'
+            : 'Aucune creation : tous les employes actifs ont deja une trace pour ces vaccins.');
+
+        return $this->redirectToRoute('rh_medical_plan_vaccinal');
     }
 
     #[Route('/{id}', name: '_dossier', methods: ['GET'])]
@@ -424,5 +639,37 @@ final class MedicalRhController extends AbstractController
         $date = \DateTimeImmutable::createFromFormat('Y-m-d', $valeur);
 
         return $date instanceof \DateTimeImmutable ? $date : null;
+    }
+
+    /**
+     * Prochains rappels vaccinaux dans les N jours, toutes vaccinations confondues.
+     *
+     * @return array<int, array{employe: string, vaccin: string, date: \DateTimeInterface}>
+     */
+    private function rappelsVaccinaux(int $jours): array
+    {
+        $limite = new \DateTimeImmutable('+' . $jours . ' days');
+
+        $lignes = $this->em->createQuery(
+            'SELECT v, d, e FROM ' . Vaccination::class . ' v
+             JOIN v.dossier d
+             LEFT JOIN d.employe e
+             WHERE v.prochainRappel IS NOT NULL AND v.prochainRappel <= :limite
+             ORDER BY v.prochainRappel ASC'
+        )->setParameter('limite', $limite)->setMaxResults(100)->getResult();
+
+        $out = [];
+        foreach ($lignes as $vaccination) {
+            $dossier = $vaccination->getDossier();
+            $employe = $dossier?->getEmploye();
+            $nom = $employe !== null ? trim($employe->getNom() . ' ' . $employe->getPrenoms()) : 'Employe non rattache';
+            $out[] = [
+                'employe' => $nom !== '' ? $nom : 'Employe sans nom',
+                'vaccin' => (string) $vaccination->getVaccin(),
+                'date' => $vaccination->getProchainRappel(),
+            ];
+        }
+
+        return $out;
     }
 }

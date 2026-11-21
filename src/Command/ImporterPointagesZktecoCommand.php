@@ -44,7 +44,7 @@ class ImporterPointagesZktecoCommand extends Command
             ->addOption('au', null, InputOption::VALUE_REQUIRED, 'Dernier jour a importer (AAAA-MM-JJ). Defaut : aujourd\'hui.')
             ->addOption('diagnostic', null, InputOption::VALUE_NONE, 'Affiche les tables et colonnes de la base Access, sans rien importer.')
             ->addOption('csv', null, InputOption::VALUE_REQUIRED, 'Lit un export CSV de la pointeuse au lieu de la base Access.')
-            ->addOption('fichier', null, InputOption::VALUE_REQUIRED, 'Chemin du fichier Access pour cet essai (remplace ZKTECO_ACCESS_FICHIER sans modifier .env).')
+            ->addOption('fichier', null, InputOption::VALUE_REQUIRED, 'Chemin du fichier Access pour cet essai (remplace ZKTECO_ACCESS_FICHIER sans modifier .env). Guillemets et doubles barres obliques acceptes.')
             ->addOption('dsn', null, InputOption::VALUE_REQUIRED, 'Nom du DSN ODBC pour cet essai (remplace ZKTECO_ACCESS_DSN).')
             ->addOption('verifier', null, InputOption::VALUE_NONE, 'Controle complet : fichier, volumes, plage de dates, badges. A utiliser quand l\'import ne remonte rien.')
             ->addOption('sans-requete', null, InputOption::VALUE_NONE, 'Ignore la requete Access (Req_UserCheck) et lit directement les tables USERINFO / CHECKINOUT.')
@@ -80,16 +80,7 @@ class ImporterPointagesZktecoCommand extends Command
         );
 
         if ($configuration['ZKTECO_ACCESS_DSN'] === '' && $configuration['ZKTECO_ACCESS_FICHIER'] !== '') {
-            $etat = $this->zkteco->etatFichier();
-            $io->text([
-                'Fichier Access : ' . $etat['fichier'],
-                '  Existe : ' . ($etat['existe'] ? 'oui' : 'NON')
-                . ' | Lisible : ' . ($etat['lisible'] ? 'oui' : 'non')
-                . ($etat['existe'] ? ' | ' . number_format($etat['taille'] / 1024, 0, ',', ' ') . ' Ko | modifie le ' . $etat['modifie'] : ''),
-            ]);
-            if ($etat['message'] !== '') {
-                $io->note($etat['message']);
-            }
+            $this->afficherEtatFichier($io, $this->zkteco->etatFichier());
         }
 
         $du = $this->dateOption((string) $input->getOption('du'), new \DateTimeImmutable('today'));
@@ -286,18 +277,14 @@ class ImporterPointagesZktecoCommand extends Command
             ['Fichier Access' => $rapport['fichier']['fichier'] !== '' ? $rapport['fichier']['fichier'] : '(non configure)'],
         );
 
-        $etat = $rapport['fichier'];
-        if ($etat['brut'] !== '') {
-            $io->text([
-                'Existe : ' . ($etat['existe'] ? 'oui' : 'NON')
-                . ' | Lisible : ' . ($etat['lisible'] ? 'oui' : 'non')
-                . ($etat['existe'] ? ' | ' . number_format($etat['taille'] / 1024, 0, ',', ' ') . ' Ko'
-                    . ' | modifie le ' . $etat['modifie'] : ''),
-            ]);
-            if ($etat['message'] !== '') {
-                $io->note($etat['message']);
-            }
-        }
+        $this->afficherEtatFichier($io, $rapport['fichier']);
+
+        $sources = $this->zkteco->sourcesOdbc();
+        $io->definitionList(
+            ['Compte qui execute PHP' => $rapport['fichier']['compte'] ?? 'inconnu'],
+            ['Architecture PHP' => $rapport['fichier']['architecture'] ?? ((PHP_INT_SIZE * 8) . ' bits')],
+            ['Sources ODBC du poste' => $sources !== [] ? implode(', ', $sources) : 'aucune (ou extension odbc inactive)'],
+        );
 
         if (!$rapport['connexion']) {
             $io->error($rapport['message']);
@@ -493,5 +480,41 @@ class ImporterPointagesZktecoCommand extends Command
         $date = \DateTimeImmutable::createFromFormat('Y-m-d', $valeur);
 
         return $date instanceof \DateTimeImmutable ? $date->setTime(0, 0) : $defaut->setTime(0, 0);
+    }
+
+    /**
+     * Affiche le diagnostic du fichier Access, y compris le chemin nettoye et
+     * les pistes a suivre quand il n'est pas trouve.
+     *
+     * @param array<string, mixed> $etat
+     */
+    private function afficherEtatFichier(SymfonyStyle $io, array $etat): void
+    {
+        $io->text([
+            'Fichier Access : ' . ($etat['fichier'] !== '' ? $etat['fichier'] : '(non configure)'),
+            '  Existe : ' . ($etat['existe'] ? 'oui' : 'NON')
+            . ' | Lisible : ' . ($etat['lisible'] ? 'oui' : 'non')
+            . ($etat['existe'] ? ' | ' . number_format($etat['taille'] / 1024, 0, ',', ' ') . ' Ko'
+                . ' | modifie le ' . $etat['modifie'] : ''),
+        ]);
+
+        if (($etat['normalise'] ?? '') !== '' && $etat['normalise'] !== $etat['brut']) {
+            $io->text('Chemin nettoye automatiquement : ' . $etat['normalise']);
+        }
+
+        if (($etat['partage']['racine'] ?? '') !== '') {
+            $io->text('Partage reseau : ' . $etat['partage']['racine']
+                . ' | accessible : ' . (@is_dir((string) $etat['partage']['racine']) ? 'oui' : 'non'));
+        }
+
+        if (($etat['message'] ?? '') !== '') {
+            $io->note($etat['message']);
+        }
+
+        $pistes = $etat['pistes'] ?? [];
+        if ($pistes !== []) {
+            $io->text('A verifier, dans cet ordre :');
+            $io->listing($pistes);
+        }
     }
 }

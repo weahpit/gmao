@@ -157,7 +157,7 @@
                     data-bs-target="#panneauPersonnalisation" aria-expanded="false" aria-controls="panneauPersonnalisation">
                 Personnaliser mes gadgets
             </button>
-            {#<a href="{{ path('app_dashboard') }}" class="btn btn-sm btn-outline-secondary">Tableau de bord general</a>#}
+            <a href="{{ path('app_dashboard') }}" class="btn btn-sm btn-outline-secondary">Tableau de bord general</a>
         </div>
     </div>
 
@@ -374,6 +374,14 @@
                                     {% if carte.donnees.note is defined %}
                                         <p class="tdb-note">{{ carte.donnees.note }}</p>
                                     {% endif %}
+                                {% endif %}
+                                {% if carte.donnees.lien is defined and carte.donnees.lien %}
+                                    <div class="mt-3">
+                                        <a href="{{ path(carte.donnees.lien.route, carte.donnees.lien.parametres|default({})) }}" class="btn btn-sm btn-cacao">
+                                            <i data-lucide="{{ carte.donnees.lien.icone|default('external-link') }}"></i>
+                                            {{ carte.donnees.lien.libelle }}
+                                        </a>
+                                    </div>
                                 {% endif %}
                             {% else %}
                                 <div id="graphe-{{ carte.code }}" class="tdb-chart"></div>

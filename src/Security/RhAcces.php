@@ -18,15 +18,18 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  * Roles attendus (a declarer dans la gestion des utilisateurs) :
  *   ROLE_DRH          directeur des ressources humaines
  *   ROLE_RH           gestionnaire RH (dossiers, contrats, conges)
- *   ROLE_MEDECIN      medecin du travail
- *   ROLE_INFIRMIER    infirmier(ere)
+ *   ROLE_MEDICAL      service de sante au travail (medecin, infirmier)
  *   ROLE_CHEF_SERVICE chef de service (valide les conges de son service)
  *   ROLE_MANAGER      responsable d'equipe (evaluations)
  */
 final class RhAcces
 {
     public const ROLES_RH = ['ROLE_DRH', 'ROLE_RH'];
-    public const ROLES_MEDICAUX = ['ROLE_MEDECIN', 'ROLE_INFIRMIER'];
+    /**
+     * Sante au travail : uniquement le service RH et le role medical dedie.
+     * ROLE_ADMIN reste super-administrateur via aRole().
+     */
+    public const ROLES_MEDICAUX = ['ROLE_RH', 'ROLE_MEDICAL'];
     public const ROLES_SALAIRES = ['ROLE_DRH', 'ROLE_RH'];
 
     public function __construct(private Security $security) {}
@@ -60,7 +63,7 @@ final class RhAcces
         return $this->aRole(...self::ROLES_RH);
     }
 
-    /** Donnees medicales : medecin, infirmier ou administrateur, jamais le RH administratif. */
+    /** Donnees medicales : service RH, role medical dedie ou administrateur. */
     public function peutVoirMedical(): bool
     {
         return $this->aRole(...self::ROLES_MEDICAUX);

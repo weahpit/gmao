@@ -31,8 +31,12 @@ class RegistreGadgets
         'COURRIER' => ['ROLE_COURRIER'],
         'MAINTENANCE' => ['ROLE_TECHNICIAN'],
         'SECURITE' => ['ROLE_VIGIL'],
-        'SANTE' => ['ROLE_MEDECIN', 'ROLE_INFIRMIER'],
+        'SANTE' => ['ROLE_RH', 'ROLE_MEDICAL'],
         'ENCADREMENT' => ['ROLE_CHEF_SERVICE', 'ROLE_MANAGER'],
+        // Accueil des visiteurs : guerite et roles de supervision. Place apres
+        // l'encadrement pour ne pas changer le tableau par defaut d'un chef
+        // de service.
+        'VISITES' => ['ROLE_VIGIL', 'ROLE_ADMIN', 'ROLE_DG', 'ROLE_DL', 'ROLE_CHEF_SERVICE'],
         'MON_ESPACE' => ['ROLE_USER'],
     ];
 
@@ -165,7 +169,7 @@ class RegistreGadgets
                 'icone' => 'package',
                 'accroche' => 'Mouvements, seuils et circuit des bons.',
                 'gadgets' => [
-                    ['code' => 'st_recap', 'libelle' => 'Récapitulatif du stock par produit', 'description' => 'Stock cacao, par rubrique et par nature : stock initial, entrées, sorties et stock final.', 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->recapitulatifStockCacao()],
+                    ['code' => 'st_recap', 'libelle' => 'Récapitulatif du stock par produit', 'description' => 'Comme la consultation des stocks : une ligne par type de stock (entrées, sorties, unité, stock initial, stock final).', 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->recapitulatifStockCacao()],
                     ['code' => 'st_jour', 'libelle' => 'Saisies du jour', 'description' => "Détail des entrées de stock cacao enregistrées aujourd'hui.", 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->saisiesDuJour()],
                     ['code' => 'st_seuil', 'libelle' => 'Articles sous le seuil', 'description' => 'Articles dont la quantite atteint le seuil.', 'type' => 'chiffre', 'largeur' => 4, 'calcul' => static fn () => $d->articlesSousSeuil()],
                     ['code' => 'st_bons', 'libelle' => 'Bons de sortie par statut', 'description' => 'Attente, validation, cloture, annulation.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->bonsParStatut()],
@@ -190,10 +194,17 @@ class RegistreGadgets
             ],
 
             'LOGISTIQUE' => [
-                'libelle' => 'Logistique et documents',
+                'libelle' => 'Logistique et production',
                 'icone' => 'ship',
-                'accroche' => 'Dossiers, documents export et parc equipements.',
+                'accroche' => 'Lots de production, embarquements, documents export et parc equipements.',
                 'gadgets' => [
+                    ['code' => 'lg_embarq_point', 'libelle' => 'Point embarquement', 'description' => 'Dossiers en cours, clôturés, à planifier et tonnage déclaré.', 'type' => 'fiche', 'largeur' => 4, 'calcul' => static fn () => $d->pointGlobalEmbarquement()],
+                    ['code' => 'lg_lots_produit', 'libelle' => 'Poids net disponible par produit', 'description' => 'Somme du poids net disponible des lots, par produit fini.', 'type' => 'barres', 'largeur' => 4, 'calcul' => static fn () => $d->poidsDisponibleParProduit()],
+                    ['code' => 'lg_lots_qualite', 'libelle' => 'Lots par qualité', 'description' => 'Répartition des lots de production selon la qualité déclarée.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->lotsParQualite()],
+                    ['code' => 'lg_embarq_recents', 'libelle' => 'Derniers embarquements', 'description' => 'Référence OT, client, produit, destination, navire, poids et statut.', 'type' => 'tableau', 'largeur' => 8, 'calcul' => static fn () => $d->derniersEmbarquements(15)],
+                    ['code' => 'lg_embarq_navire', 'libelle' => 'Dossiers par navire', 'description' => 'Navires les plus chargés en nombre de dossiers.', 'type' => 'barres', 'largeur' => 4, 'calcul' => static fn () => $d->embarquementsParNavire()],
+                    ['code' => 'lg_lots', 'libelle' => 'Lots de production', 'description' => 'Derniers lots : produit, qualité, magasin, poids net disponible et sacs.', 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->lotsDisponibles(20)],
+                    ['code' => 'lg_embarq_dest', 'libelle' => 'Dossiers par destination', 'description' => 'Répartition des dossiers d\'embarquement par destination.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->embarquementsParDestination()],
                     ['code' => 'lg_dossiers', 'libelle' => 'Dossiers suivis', 'description' => 'Dossiers et documents rattaches.', 'type' => 'chiffre', 'largeur' => 4, 'calcul' => static fn () => $d->dossiersEtDocuments()],
                     ['code' => 'lg_documents', 'libelle' => 'Documents par modele', 'description' => 'Repartition des pieces par modele.', 'type' => 'barres', 'largeur' => 4, 'calcul' => static fn () => $d->documentsParModele()],
                     ['code' => 'lg_equipements', 'libelle' => 'Equipements par etat', 'description' => 'Bon, en panne, en maintenance.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->equipementsParEtat()],
@@ -241,6 +252,19 @@ class RegistreGadgets
                 ],
             ],
 
+            'VISITES' => [
+                'libelle' => 'Visites',
+                'icone' => 'door-open',
+                'accroche' => "Passages du jour, visiteurs présents et historique des visites.",
+                'gadgets' => [
+                    ['code' => 'vs_point', 'libelle' => 'Point global', 'description' => 'Présents, entrées et sorties du jour, visites du mois.', 'type' => 'fiche', 'largeur' => 4, 'calcul' => static fn () => $d->pointGlobalVisites()],
+                    ['code' => 'vs_jour', 'libelle' => 'Visites du jour', 'description' => "Toutes les entrées enregistrées aujourd'hui, avec l'heure de sortie.", 'type' => 'tableau', 'largeur' => 8, 'calcul' => static fn () => $d->visitesDuJour()],
+                    ['code' => 'vs_recap', 'libelle' => 'Récapitulatif par motif', 'description' => 'Trente derniers jours, avec la part de chaque motif.', 'type' => 'tableau', 'largeur' => 6, 'calcul' => static fn () => $d->recapitulatifVisites(30)],
+                    ['code' => 'vs_freq', 'libelle' => 'Fréquentation', 'description' => 'Entrées des sept derniers jours.', 'type' => 'barres', 'largeur' => 6, 'calcul' => static fn () => $d->visitesParJour(7)],
+                    ['code' => 'vs_details', 'libelle' => 'Détails des visites', 'description' => 'Quinze derniers passages : date, heure, visiteur, motif, service et sortie.', 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->detailsVisites(15)],
+                ],
+            ],
+
             'SANTE' => [
                 'libelle' => 'Sante au travail',
                 'icone' => 'heart-pulse',
@@ -251,6 +275,9 @@ class RegistreGadgets
                     ['code' => 'md_echeances', 'libelle' => 'Echeances a venir', 'description' => 'Controles prevus sous trente jours.', 'type' => 'chiffre', 'largeur' => 4, 'calcul' => static fn () => $d->prochainesVisites()],
                     ['code' => 'md_types', 'libelle' => 'Types de visite', 'description' => 'Periodique, embauche, reprise.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->typesVisiteMedicale()],
                     ['code' => 'md_accidents', 'libelle' => 'Accidents du travail', 'description' => 'Douze derniers mois, par gravite.', 'type' => 'barres', 'largeur' => 4, 'calcul' => static fn () => $d->accidentsParGravite()],
+                    ['code' => 'md_arrets', 'libelle' => 'Arrets de travail', 'description' => 'Jours d\'arret par motif sur douze mois.', 'type' => 'barres', 'largeur' => 6, 'calcul' => static fn () => $d->arretsParType()],
+                    ['code' => 'md_arrets_attente', 'libelle' => 'Arrets a instruire', 'description' => 'Demandes d\'arret en attente de decision.', 'type' => 'chiffre', 'largeur' => 3, 'calcul' => static fn () => $d->arretsEnAttente()],
+                    ['code' => 'md_plan_vaccinal', 'libelle' => 'Vaccins planifies', 'description' => 'Vaccins inscrits au plan vaccinal de l\'entreprise.', 'type' => 'chiffre', 'largeur' => 3, 'calcul' => static fn () => $d->vaccinsPlanifies()],
                 ],
             ],
 

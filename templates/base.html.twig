@@ -54,6 +54,10 @@
        Pour revenir a l'affichage d'origine : retirer la ligne ci-dessous. #}
     <link rel="stylesheet" href="{{ asset('css/rh-module.css') }}">
 
+    {# Pagination automatique des tableaux (10 / 25 / 50 / Tout).
+       Pour la retirer : supprimer cette ligne et le script en bas de page. #}
+    <link rel="stylesheet" href="{{ asset('css/table-pagination.css') }}">
+
     <style>
         /* Selecteur de langue FR / EN dans l'en-tete (habillage cacao) */
         .langue-switch {
@@ -462,9 +466,14 @@
                         <a href="{{ path('rh_documents') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_documents' ? 'active' }}">
                             <span class="nav-label">Documents RH</span>
                         </a>
-                        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RESP_RH') or is_granted('ROLE_MEDECIN') or is_granted('ROLE_INFIRMIER') %}
+                        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') or is_granted('ROLE_MEDICAL') %}
                             <a href="{{ path('rh_medical') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'rh_medical' ? 'active' }}">
                                 <span class="nav-label">Santé au travail</span>
+                            </a>
+                        {% endif %}
+                        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
+                            <a href="{{ path('pointage_zkteco') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'pointage_zkteco' ? 'active' }}">
+                                <span class="nav-label">Connexion ZKTECO</span>
                             </a>
                         {% endif %}
                     </div>
@@ -1190,6 +1199,9 @@
         })();
     </script>
 {% endif %}
+{# Pagination automatique de tous les tableaux de contenu.
+   Exclure un tableau : data-pagination="off" ou class="no-pagination". #}
+<script src="{{ asset('js/table-pagination.js') }}"></script>
 {% block javascripts %}{% endblock %}
 </body>
 </html>

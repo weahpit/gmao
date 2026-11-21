@@ -1,0 +1,122 @@
+/* ------------------------------------------------------------------
+   Pagination des tableaux - CITRAC GMAO
+   Feuille dediee : elle ne touche a aucun autre style de l'application.
+   Pour desactiver la pagination : retirer le <link> dans base.html.twig
+   ou poser data-pagination="off" sur le tableau concerne.
+   ------------------------------------------------------------------ */
+
+.table-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem .75rem;
+    padding: .55rem .85rem;
+    margin: .35rem 0 .85rem;
+    background: #fff;
+    border: 1px solid #e9ded5;
+    border-radius: 14px;
+    font-size: .82rem;
+    color: #5a371e;
+}
+
+.table-pagination__resume {
+    color: #7a4c33;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.table-pagination__pages {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .2rem;
+}
+
+.table-pagination__bouton {
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 .5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e9ded5;
+    border-radius: 9px;
+    background: #fff;
+    color: #5a371e;
+    font-size: .8rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.table-pagination__bouton:hover:not(:disabled) {
+    background: #f6efe8;
+    border-color: #d9c6b6;
+}
+
+.table-pagination__bouton:focus-visible {
+    outline: 2px solid #a5714f;
+    outline-offset: 1px;
+}
+
+.table-pagination__bouton.is-active {
+    background: #5a371e;
+    border-color: #5a371e;
+    color: #fff;
+    font-weight: 600;
+    cursor: default;
+}
+
+.table-pagination__bouton:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.table-pagination__points {
+    padding: 0 .25rem;
+    color: #a5714f;
+}
+
+.table-pagination__taille {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin: 0;
+    color: #7a4c33;
+    white-space: nowrap;
+}
+
+.table-pagination__taille .form-select {
+    width: auto;
+    min-width: 4.5rem;
+    padding: .2rem 1.6rem .2rem .5rem;
+    font-size: .8rem;
+    border-color: #e9ded5;
+    border-radius: 9px;
+    color: #5a371e;
+}
+
+/* Aucune impression des controles de pagination */
+@media print {
+    .table-pagination,
+    .no-print {
+        display: none !important;
+    }
+
+    tbody tr[hidden] {
+        display: table-row !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .table-pagination {
+        justify-content: center;
+        padding: .5rem;
+    }
+
+    .table-pagination__resume {
+        width: 100%;
+        text-align: center;
+    }
+}
