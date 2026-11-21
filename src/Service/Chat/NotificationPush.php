@@ -38,9 +38,6 @@ class NotificationPush
     private ?array $compte = null;
     private bool $compteCharge = false;
 
-    /** Dernier corps de reponse FCM (pour les messages d'erreur). */
-    private string $dernierCorps = '';
-
     public function __construct(
         private readonly HttpClientInterface $http,
         private readonly DeviceTokenRepository $jetons,
@@ -84,101 +81,46 @@ class NotificationPush
                 continue;
             }
 
-            $charge = $this->charge($token, $titre, $corps, $donnees);
+            $charge = [
+                'message' => [
+                    'token'        => $token,
+                    'notification' => ['title' => $titre, 'body' => $corps],
+                    'data'         => array_map('strval', $donnees),
+                    'android'      => [
+                        'priority'     => 'high',
+                        'notification' => [
+                            'channel_id' => self::CHANNEL_ANDROID,
+                            'sound'      => 'default',
+                        ],
+                    ],
+                    'apns' => [
+                        'payload' => ['aps' => ['sound' => 'default', 'badge' => 1]],
+                    ],
+                ],
+            ];
 
             try {
-                $statut = $this->poster($url, $acces, $charge);
+                $reponse = $this->http->request('POST', $url, [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $acces,
+                        'Content-Type'  => 'application/json',
+                    ],
+                    'json'    => $charge,
+                    'timeout' => 10,
+                ]);
 
-                // Jeton OAuth2 expire : on le renouvelle une fois puis on reessaie.
-                if ($statut === 401) {
-                    $this->jetonAcces = null;
-                    $this->expirationJeton = 0;
-                    $acces = $this->jetonAcces($compte);
-                    if ($acces !== null) {
-                        $statut = $this->poster($url, $acces, $charge);
-                    }
-                }
-
-                if ($statut >= 200 && $statut < 300) {
-                    continue; // notification acceptee par Firebase
-                }
-
-                // Jeton perime (application desinstallee, appareil change) :
-                // on le retire pour ne plus perdre de temps dessus.
-                if ($statut === 404) {
+                if ($reponse->getStatusCode() === 404 || $reponse->getStatusCode() === 400) {
+                    // Jeton perime ou invalide : on le retire de la base.
                     $this->em->remove($appareil);
                     $this->em->flush();
-                    continue;
                 }
-
-                $this->logger->warning('Push FCM : notification refusee', [
-                    'statut' => $statut,
-                    'corps'  => mb_substr($this->dernierCorps, 0, 300),
-                ]);
             } catch (\Throwable $e) {
-                $this->logger->warning('Push FCM : echec reseau pour un appareil', [
+                $this->logger->warning('Push FCM : echec pour un appareil', [
                     'erreur' => $e->getMessage(),
-                    'type'   => $e::class,
+                    'statut' => method_exists($e, 'getStatusCode') ? null : null,
                 ]);
             }
         }
-    }
-
-    /** Corps de la requete FCM pour un appareil. */
-    private function charge(string $token, string $titre, string $corps, array $donnees): array
-    {
-        return [
-            'message' => [
-                'token'        => $token,
-                'notification' => ['title' => $titre, 'body' => $corps],
-                'data'         => array_map('strval', $donnees),
-                'android'      => [
-                    // Priorite haute : la notification arrive meme quand
-                    // l'application est fermee (Doze / veille profonde).
-                    'priority'     => 'high',
-                    'ttl'          => '86400s',
-                    'notification' => [
-                        'channel_id'                => self::CHANNEL_ANDROID,
-                        'sound'                     => 'default',
-                        // Ouvre la conversation au toucher (plugin Flutter).
-                        'click_action'              => 'FLUTTER_NOTIFICATION_CLICK',
-                        'default_vibrate_timings'   => true,
-                        'priority'                  => 'PRIORITY_HIGH',
-                        'visibility'                => 'PUBLIC',
-                    ],
-                ],
-                'apns' => [
-                    'headers' => [
-                        'apns-priority'  => '10',
-                        'apns-push-type' => 'alert',
-                    ],
-                    'payload' => [
-                        'aps' => [
-                            'sound'             => 'default',
-                            'content-available' => 1,
-                            'mutable-content'   => 1,
-                        ],
-                    ],
-                ],
-            ],
-        ];
-    }
-
-    /** Envoie le message a Firebase et retient le corps de la reponse. */
-    private function poster(string $url, string $acces, array $charge): int
-    {
-        $reponse = $this->http->request('POST', $url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $acces,
-                'Content-Type'  => 'application/json',
-            ],
-            'json'    => $charge,
-            'timeout' => 10,
-        ]);
-
-        $this->dernierCorps = (string) $reponse->getContent(false);
-
-        return $reponse->getStatusCode();
     }
 
     /** Indique si les notifications push sont configurees sur ce serveur. */

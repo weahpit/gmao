@@ -72,14 +72,28 @@
                     <ul class="list-unstyled small mb-0">
                     {% for contrat in echeances %}
                         <li class="d-flex justify-content-between border-bottom py-1">
-                            <span>{{ contrat.employe ? contrat.employe.nomComplet : 'Employe supprime' }} — {{ contrat.getTypeLibelle }}</span>
+                            <span>{{ contrat.employe ? contrat.employe.nomComplet : 'Employe supprime' }} — {{ contrat.typeLibelle|default('-') }}</span>
                             <span class="text-muted">{{ contrat.dateFin ? contrat.dateFin|date('d/m/Y') : 'sans terme' }}</span>
                         </li>
                     {% endfor %}
                     </ul>
                 {% endif %}
-                {% if contratsExpires > 0 %}
-                    <p class="small mt-2 mb-0" style="color:#a15c1e;">{{ contratsExpires }} contrat(s) termine(s) a regulariser.</p>
+                {% set nbExpires = contratsExpires is iterable ? contratsExpires|length : (contratsExpires|default(0)) %}
+                {% if nbExpires > 0 %}
+                    <p class="small mt-2 mb-1" style="color:#a15c1e;">{{ nbExpires }} contrat(s) termine(s) a regulariser.</p>
+                    {% if contratsExpiresListe is defined and contratsExpiresListe is not empty %}
+                        <ul class="list-unstyled small mb-0" style="color:#8a6a58;">
+                            {% for contratExpire in contratsExpiresListe|slice(0, 4) %}
+                                <li class="py-1 border-bottom">
+                                    {{ contratExpire.employe ? contratExpire.employe.nomComplet : 'Employe supprime' }}
+                                    — fin le {{ contratExpire.dateFin ? contratExpire.dateFin|date('d/m/Y') : '-' }}
+                                </li>
+                            {% endfor %}
+                            {% if nbExpires > 4 %}
+                                <li class="pt-1">... et {{ nbExpires - 4 }} autre(s).</li>
+                            {% endif %}
+                        </ul>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>

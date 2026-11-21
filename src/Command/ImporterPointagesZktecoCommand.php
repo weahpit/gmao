@@ -44,6 +44,9 @@ class ImporterPointagesZktecoCommand extends Command
             ->addOption('au', null, InputOption::VALUE_REQUIRED, 'Dernier jour a importer (AAAA-MM-JJ). Defaut : aujourd\'hui.')
             ->addOption('diagnostic', null, InputOption::VALUE_NONE, 'Affiche les tables et colonnes de la base Access, sans rien importer.')
             ->addOption('csv', null, InputOption::VALUE_REQUIRED, 'Lit un export CSV de la pointeuse au lieu de la base Access.')
+            ->addOption('fichier', null, InputOption::VALUE_REQUIRED, 'Chemin du fichier Access pour cet essai (remplace ZKTECO_ACCESS_FICHIER sans modifier .env).')
+            ->addOption('dsn', null, InputOption::VALUE_REQUIRED, 'Nom du DSN ODBC pour cet essai (remplace ZKTECO_ACCESS_DSN).')
+            ->addOption('verifier', null, InputOption::VALUE_NONE, 'Controle complet : fichier, volumes, plage de dates, badges. A utiliser quand l\'import ne remonte rien.')
             ->addOption('sans-requete', null, InputOption::VALUE_NONE, 'Ignore la requete Access (Req_UserCheck) et lit directement les tables USERINFO / CHECKINOUT.')
             ->addOption('simulation', null, InputOption::VALUE_NONE, 'Affiche ce qui serait importe sans enregistrer en base.')
             ->addOption('tolerance', null, InputOption::VALUE_REQUIRED, 'Minutes de retard ignorees apres l\'heure d\'arrivee (defaut 5).', '5')
@@ -55,7 +58,14 @@ class ImporterPointagesZktecoCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Pointages ZKTECO');
 
-        if ((bool) $input->getOption('diagnostic')) {
+        foreach (['ZKTECO_ACCESS_FICHIER' => 'fichier', 'ZKTECO_ACCESS_DSN' => 'dsn'] as $cle => $option) {
+            $valeur = trim((string) $input->getOption($option));
+            if ($valeur !== '') {
+                $this->zkteco->setSurcharge($cle, $valeur);
+            }
+        }
+
+        if ((bool) $input->getOption('diagnostic') || (bool) $input->getOption('verifier')) {
             return $this->diagnostic($io);
         }
 
@@ -68,6 +78,19 @@ class ImporterPointagesZktecoCommand extends Command
             ['Heure d\'arrivee' => $configuration['ZKTECO_HEURE_ARRIVEE']],
             ['Heure de depart' => $configuration['ZKTECO_HEURE_DEPART']],
         );
+
+        if ($configuration['ZKTECO_ACCESS_DSN'] === '' && $configuration['ZKTECO_ACCESS_FICHIER'] !== '') {
+            $etat = $this->zkteco->etatFichier();
+            $io->text([
+                'Fichier Access : ' . $etat['fichier'],
+                '  Existe : ' . ($etat['existe'] ? 'oui' : 'NON')
+                . ' | Lisible : ' . ($etat['lisible'] ? 'oui' : 'non')
+                . ($etat['existe'] ? ' | ' . number_format($etat['taille'] / 1024, 0, ',', ' ') . ' Ko | modifie le ' . $etat['modifie'] : ''),
+            ]);
+            if ($etat['message'] !== '') {
+                $io->note($etat['message']);
+            }
+        }
 
         $du = $this->dateOption((string) $input->getOption('du'), new \DateTimeImmutable('today'));
         $au = $this->dateOption((string) $input->getOption('au'), $du);
@@ -90,12 +113,21 @@ class ImporterPointagesZktecoCommand extends Command
         }
 
         if ($csv !== '') {
-            $passages = array_values(array_filter($passages, static fn (array $p) => $p['quand'] >= $du && $p['quand'] <= $au->modify('+1 day')));
+            $fin = $au->modify('+1 day');
+            $passages = array_values(array_filter($passages, static fn (array $p) => $p['quand'] >= $du && $p['quand'] < $fin));
         }
 
         if ($passages === []) {
             $io->warning('Aucun passage trouve entre le ' . $du->format('d/m/Y') . ' et le ' . $au->format('d/m/Y') . '.');
-            $io->note('Si la pointeuse enregistre bien des passages, verifiez les noms de colonnes avec --diagnostic, ou exportez un CSV.');
+            if ($csv !== '') {
+                $io->note(
+                    'Le fichier « ' . $csv . ' » ne contient aucun passage sur cette periode.'
+                    . ' Verifiez le separateur (; ou ,), la presence d\'une ligne d\'en-tete avec les colonnes'
+                    . ' badge / nom / date heure (ou checktime), et la periode demandee.'
+                );
+            } else {
+                $this->expliquerImportVide($io, $du, $au);
+            }
 
             return Command::SUCCESS;
         }
@@ -220,7 +252,12 @@ class ImporterPointagesZktecoCommand extends Command
             'Passages lus : ' . count($passages),
             'Journees traitees : ' . $traites,
             $simulation ? 'Simulation : aucune ecriture en base.' : 'Pointages crees : ' . $crees . ' / mis a jour : ' . $maj,
+            'Filtre de dates retenu : ' . ($this->zkteco->methodeFiltre() ?: 'aucun'),
         ]);
+
+        if ($this->zkteco->journal() !== []) {
+            $io->text($this->zkteco->journal());
+        }
 
         if ($badgesInconnus !== []) {
             $io->warning(
@@ -239,48 +276,167 @@ class ImporterPointagesZktecoCommand extends Command
 
     private function diagnostic(SymfonyStyle $io): int
     {
-        $rapport = $this->zkteco->diagnostic();
+        $rapport = $this->zkteco->verifierSource();
 
-        if (!$rapport['connecte']) {
+        $io->section('Environnement');
+        $io->definitionList(
+            ['Systeme' => $rapport['os']],
+            ['Pilotes PDO' => implode(', ', $rapport['drivers']) ?: 'aucun'],
+            ['DSN ODBC' => $rapport['dsn'] !== '' ? $rapport['dsn'] : '(non utilise)'],
+            ['Fichier Access' => $rapport['fichier']['fichier'] !== '' ? $rapport['fichier']['fichier'] : '(non configure)'],
+        );
+
+        $etat = $rapport['fichier'];
+        if ($etat['brut'] !== '') {
+            $io->text([
+                'Existe : ' . ($etat['existe'] ? 'oui' : 'NON')
+                . ' | Lisible : ' . ($etat['lisible'] ? 'oui' : 'non')
+                . ($etat['existe'] ? ' | ' . number_format($etat['taille'] / 1024, 0, ',', ' ') . ' Ko'
+                    . ' | modifie le ' . $etat['modifie'] : ''),
+            ]);
+            if ($etat['message'] !== '') {
+                $io->note($etat['message']);
+            }
+        }
+
+        if (!$rapport['connexion']) {
             $io->error($rapport['message']);
-            $io->note('Solution de repli : exportez les pointages en CSV depuis le logiciel ZKTECO, puis lancez la commande avec --csv=chemin/du/fichier.csv');
+            $io->note('Verifiez le chemin et les droits, ou exportez les pointages en CSV puis relancez avec --csv=chemin/du/fichier.csv.');
 
             return Command::FAILURE;
         }
 
         $io->success($rapport['message']);
 
-        foreach ($rapport['tables'] as $table => $colonnes) {
-            $io->section('Table ' . $table);
-            $io->listing($colonnes === [] ? ['(aucune colonne lisible)'] : $colonnes);
-        }
-
-        $configuration = $this->zkteco->configuration();
-        $tables = array_map('strtolower', array_keys($rapport['tables']));
-
-        foreach ([
-            'ZKTECO_TABLE_USERS' => $configuration['ZKTECO_TABLE_USERS'],
-            'ZKTECO_TABLE_POINTAGES' => $configuration['ZKTECO_TABLE_POINTAGES'],
-        ] as $variable => $valeur) {
-            if (!in_array(strtolower($valeur), $tables, true)) {
-                $io->warning('La table « ' . $valeur . ' » (' . $variable . ') n\'existe pas dans ce fichier. Choisissez un nom parmi ceux affiches ci-dessus, puis mettez a jour le fichier .env.local.');
-            }
-        }
-
-        $requete = $this->zkteco->diagnosticRequete();
-        if ($requete['nom'] !== '') {
-            $io->section('Requete ' . $requete['nom']);
-            if ($requete['colonnes'] === []) {
-                $io->warning($requete['message']);
+        foreach ($rapport['volumes'] as $libelle => $volume) {
+            if (isset($volume['erreur'])) {
+                $io->warning('Table ' . $volume['table'] . ' (' . $libelle . ') : ' . $volume['erreur']);
             } else {
-                $io->success($requete['message']);
-                $io->listing($requete['colonnes']);
+                $io->text('Table ' . $volume['table'] . ' (' . $libelle . ') : ' . number_format($volume['lignes'], 0, ',', ' ') . ' ligne(s).');
             }
         }
 
-        $io->note('Si les noms de colonnes different, ajustez ZKTECO_COL_USERID, ZKTECO_COL_BADGE, ZKTECO_COL_NOM, ZKTECO_COL_CHECKTIME et ZKTECO_COL_CHECKTYPE dans .env.local.');
+        if (isset($rapport['plage']['debut'])) {
+            $io->text('Periode couverte par la pointeuse : du ' . $rapport['plage']['debut'] . ' au ' . $rapport['plage']['fin'] . '.');
+        } elseif (isset($rapport['plage']['erreur'])) {
+            $io->warning('Plage de dates illisible : ' . $rapport['plage']['erreur']);
+        }
+
+        if ($rapport['requete'] !== []) {
+            if (isset($rapport['requete']['erreur'])) {
+                $io->warning('Requete ' . $rapport['requete']['nom'] . ' : ' . $rapport['requete']['erreur']);
+            } else {
+                $io->text('Requete ' . $rapport['requete']['nom'] . ' : ' . number_format($rapport['requete']['lignes'], 0, ',', ' ') . ' ligne(s).');
+            }
+        }
+
+        // Inventaire des tables (noms et colonnes reels)
+        $inventaire = $this->zkteco->diagnostic();
+        if ($inventaire['connecte']) {
+            foreach ($inventaire['tables'] as $table => $colonnes) {
+                if (in_array(strtolower($table), ['userinfo', 'checkinout'], true)) {
+                    $io->section('Table ' . $table);
+                    $io->listing($colonnes === [] ? ['(aucune colonne lisible)'] : $colonnes);
+                }
+            }
+
+            $tables = array_map('strtolower', array_keys($inventaire['tables']));
+            $configuration = $this->zkteco->configuration();
+            foreach ([
+                'ZKTECO_TABLE_USERS' => $configuration['ZKTECO_TABLE_USERS'],
+                'ZKTECO_TABLE_POINTAGES' => $configuration['ZKTECO_TABLE_POINTAGES'],
+            ] as $variable => $valeur) {
+                if (!in_array(strtolower($valeur), $tables, true)) {
+                    $io->warning('La table « ' . $valeur . ' » (' . $variable . ') n\'existe pas dans ce fichier.');
+                }
+            }
+        }
+
+        // Badges cote pointeuse et cote RH : la comparaison explique la
+        // plupart des imports « vides » alors que la base contient des passages.
+        if ($rapport['echantillon'] !== []) {
+            $io->section('Badges lus dans la pointeuse (5 premiers)');
+            $lignes = [];
+            foreach ($rapport['echantillon'] as $badge) {
+                if (isset($badge['erreur'])) {
+                    $lignes[] = 'Lecture impossible : ' . $badge['erreur'];
+                    continue;
+                }
+                $lignes[] = trim((string) ($badge['badge'] ?? '')) . ' — ' . trim((string) ($badge['nom'] ?? ''));
+            }
+            $io->listing($lignes);
+        }
+
+        $employes = $this->mapEmployes();
+        $codes = [];
+        foreach ($employes as $code => $employe) {
+            if (count($codes) >= 8) {
+                break;
+            }
+            $codes[] = $code . ' — ' . $employe->getNomComplet();
+        }
+        $io->section('Codes de pointage / matricules cote RH (8 premiers)');
+        $io->listing($codes === [] ? ['Aucun employe actif avec un code de pointage ou un matricule.'] : $codes);
+        $io->note('Un badge de la pointeuse doit correspondre exactement a un code de pointage (ou a un matricule) de la fiche employe. Sinon, renseignez « Code de pointage » dans la fiche.');
+
+        foreach ($this->zkteco->journal() as $etape) {
+            $io->text('• ' . $etape);
+        }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Explique un import vide : etat du fichier, volumes, plage de dates
+     * reellement presente, et suggestion de periode.
+     */
+    private function expliquerImportVide(SymfonyStyle $io, \DateTimeImmutable $du, \DateTimeImmutable $au): void
+    {
+        foreach ($this->zkteco->journal() as $etape) {
+            $io->text('• ' . $etape);
+        }
+
+        $rapport = $this->zkteco->verifierSource();
+        if (!$rapport['connexion']) {
+            $io->error($rapport['message']);
+
+            return;
+        }
+
+        foreach ($rapport['volumes'] as $libelle => $volume) {
+            if (!isset($volume['erreur'])) {
+                $io->text(ucfirst($libelle) . ' : ' . number_format($volume['lignes'], 0, ',', ' ') . ' ligne(s) dans ' . $volume['table'] . '.');
+            }
+        }
+
+        $vide = true;
+        foreach ($rapport['volumes'] as $volume) {
+            if (!isset($volume['erreur']) && (int) $volume['lignes'] > 0) {
+                $vide = false;
+                break;
+            }
+        }
+        if ($vide) {
+            $io->warning('Les tables lues ne contiennent aucune ligne : le fichier Access n\'est probablement pas celui de la pointeuse.');
+        }
+
+        $debut = substr((string) ($rapport['plage']['debut'] ?? ''), 0, 10);
+        $fin = substr((string) ($rapport['plage']['fin'] ?? ''), 0, 10);
+        if ($debut !== '') {
+            $io->text('La pointeuse contient des passages du ' . $rapport['plage']['debut'] . ' au ' . $rapport['plage']['fin'] . '.');
+            $io->note(
+                'Periode demandee : du ' . $du->format('d/m/Y') . ' au ' . $au->format('d/m/Y') . '.'
+                . ' Relancez avec la plage reellement presente : --du=' . $debut . ' --au=' . $fin
+            );
+        } else {
+            $io->note('Periode demandee : du ' . $du->format('d/m/Y') . ' au ' . $au->format('d/m/Y') . '.');
+        }
+
+        $io->note(
+            'Si la periode est correcte : verifiez que le fichier Access est bien celui de la pointeuse'
+            . ' (--verifier affiche les volumes et les badges), puis exportez un CSV depuis ZKTECO'
+            . ' et relancez avec --csv=chemin/du/fichier.csv.'
+        );
     }
 
     /**

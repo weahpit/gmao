@@ -17,7 +17,7 @@ namespace App\Service\Pointage;
  *
  * Variables reconnues (fichier .env ou .env.local) :
  *   ZKTECO_ACCESS_DSN      DSN ODBC deja configure (ex. « ZKTECO »)
- *   ZKTECO_ACCESS_FICHIER  chemin du fichier .mdb / .accdb
+ *   ZKTECO_ACCESS_FICHIER  chemin du fichier .mdb / .accdb (local ou partage)
  *   ZKTECO_TABLE_USERS     defaut USERINFO
  *   ZKTECO_TABLE_POINTAGES defaut CHECKINOUT
  *   ZKTECO_COL_USERID      defaut USERID
@@ -43,17 +43,41 @@ final class ZktecoAccess
         'ZKTECO_HEURE_DEPART' => '17:00',
     ];
 
+    /** Plafond de securite quand on doit filtrer les dates cote PHP. */
+    private const PLAFOND_LECTURE = 100000;
+
     /** Source reellement utilisee lors du dernier import. */
     private string $source = '';
 
-    public function __construct()
+    /** Trace des tentatives de lecture (affichee par --diagnostic). */
+    private array $journal = [];
+
+    /** Methode de filtrage qui a effectivement fonctionne. */
+    private string $methodeFiltre = '';
+
+    /** Surcharges ponctuelles (options de la commande). */
+    private array $surcharges = [];
+
+    public function setSurcharge(string $cle, string $valeur): void
     {
+        $this->surcharges[$cle] = $valeur;
     }
 
     /** Exemple : « requete Req_UserCheck » ou « tables USERINFO + CHECKINOUT ». */
     public function sourceUtilisee(): string
     {
         return $this->source;
+    }
+
+    /** @return list<string> */
+    public function journal(): array
+    {
+        return $this->journal;
+    }
+
+    public function methodeFiltre(): string
+    {
+        return $this->methodeFiltre;
     }
 
     /** @return array<string, string> */
@@ -87,6 +111,61 @@ final class ZktecoAccess
     }
 
     /**
+     * Etat du fichier Access : chemin reellement utilise, existence, droits.
+     *
+     * @return array{fichier: string, brut: string, existe: bool, lisible: bool, taille: int, modifie: ?string, message: string}
+     */
+    public function etatFichier(?string $fichier = null): array
+    {
+        $brut = trim((string) ($fichier ?? $this->configuration()['ZKTECO_ACCESS_FICHIER']));
+        $brut = trim($brut, " \t\n\r\0\x0B\"'");
+
+        if ($brut === '') {
+            return [
+                'fichier' => '', 'brut' => '', 'existe' => false, 'lisible' => false,
+                'taille' => 0, 'modifie' => null,
+                'message' => 'Aucun fichier configure (ZKTECO_ACCESS_FICHIER vide).',
+            ];
+        }
+
+        $fichier = $brut;
+        $message = '';
+
+        if (str_starts_with($fichier, 'smb://')) {
+            $message = 'Les adresses smb:// ne sont pas lisibles directement par PHP. Montez le partage (montage CIFS) puis indiquez le chemin du fichier monte.';
+        } elseif (preg_match('#^\\\\#', $fichier) === 1) {
+            // Chemin reseau Windows (\\serveur\partage\fichier.mdb)
+            if (DIRECTORY_SEPARATOR === '\\') {
+                $message = 'Chemin reseau Windows : le compte qui execute PHP doit avoir les droits sur le partage.';
+            } else {
+                $fichier = '//' . ltrim(str_replace('\\', '/', $fichier), '/');
+                $message = 'Chemin reseau Windows converti en ' . $fichier . ' : sur Linux, ce chemin n\'est lisible que si le partage est monte (mount -t cifs) sur ce point.';
+            }
+        }
+
+        $existe = @is_file($fichier);
+        $lisible = $existe && @is_readable($fichier);
+        $taille = $existe ? (int) @filesize($fichier) : 0;
+        $modifie = $existe ? (@date('d/m/Y H:i', (int) @filemtime($fichier)) ?: null) : null;
+
+        if (!$existe && $message === '') {
+            $message = 'Fichier introuvable a cet emplacement.';
+        } elseif ($existe && !$lisible) {
+            $message = 'Fichier present mais non lisible par le compte qui execute PHP.';
+        }
+
+        return [
+            'fichier' => $fichier,
+            'brut' => $brut,
+            'existe' => $existe,
+            'lisible' => $lisible,
+            'taille' => $taille,
+            'modifie' => $modifie,
+            'message' => $message,
+        ];
+    }
+
+    /**
      * Ouvre la base Access.
      *
      * @throws \RuntimeException message directement affichable (pilote absent, chemin faux...)
@@ -107,21 +186,28 @@ final class ZktecoAccess
 
         $dsn = trim($config['ZKTECO_ACCESS_DSN']);
         $fichier = trim($config['ZKTECO_ACCESS_FICHIER']);
+        $etat = $dsn === '' ? $this->etatFichier($fichier) : null;
 
         if ($dsn !== '') {
             $chaines = ['odbc:' . $dsn];
         } elseif ($fichier !== '') {
-            if (!is_file($fichier)) {
+            if (!$etat['existe'] || !$etat['lisible']) {
                 throw new \RuntimeException(
-                    'Le fichier Access « ' . $fichier . ' » est introuvable.'
-                    . ' Verifiez le chemin (ZKTECO_ACCESS_FICHIER) et les droits de lecture du serveur web.'
+                    'Base Access inaccessible : ' . $etat['message']
+                    . ' Chemin utilise : ' . $etat['fichier'] . '.'
+                    . ' Verifiez ZKTECO_ACCESS_FICHIER, les droits du compte PHP sur le partage,'
+                    . ' ou montez le dossier reseau puis indiquez le chemin monte (/mnt/zkteco/att2000.mdb).'
+                    . ' Pour un essai rapide sans modifier .env : --fichier="chemin\\att2000.mdb".'
                 );
             }
 
+            $chemin = $etat['fichier'];
             $chaines = [
-                'odbc:Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=' . $fichier . ';',
-                'odbc:Driver={Microsoft Access Driver (*.mdb)};Dbq=' . $fichier . ';',
-                'odbc:DRIVER={MDBTools};DBQ=' . $fichier . ';',
+                'odbc:Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=' . $chemin . ';',
+                'odbc:Driver={Microsoft Access Driver (*.mdb)};Dbq=' . $chemin . ';',
+                'odbc:Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=' . $chemin . ';',
+                'odbc:DRIVER={MDBTools};DBQ=' . $chemin . ';',
+                'odbc:Driver={MDBTools};DBQ=' . $chemin . ';',
             ];
         } else {
             throw new \RuntimeException(
@@ -131,7 +217,7 @@ final class ZktecoAccess
             );
         }
 
-        $derniereErreur = '';
+        $erreurs = [];
         foreach ($chaines as $chaine) {
             try {
                 $pdo = new \PDO($chaine, null, null, [
@@ -139,26 +225,34 @@ final class ZktecoAccess
                     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                 ]);
 
-                // Certains pilotes ODBC refusent la pose du delai au constructeur :
-                // on la tente ici sans bloquer la connexion.
                 try {
-                    $pdo->setAttribute(\PDO::ATTR_TIMEOUT, 10);
+                    $pdo->setAttribute(\PDO::ATTR_TIMEOUT, 15);
                 } catch (\Throwable) {
                     // delai non supporte par ce pilote : sans consequence.
                 }
 
                 return $pdo;
             } catch (\Throwable $e) {
-                $derniereErreur = $e->getMessage();
+                $erreurs[] = $this->resumeChaine($chaine) . ' -> ' . $e->getMessage();
             }
         }
 
         throw new \RuntimeException(
-            'Connexion a la base ZKTECO impossible : ' . $derniereErreur
+            'Connexion a la base ZKTECO impossible. Tentatives : ' . implode(' | ', array_slice($erreurs, 0, 3))
             . ' Verifiez que le pilote ODBC Access est installe (Windows : « Microsoft Access Driver »),'
             . ' que le DSN existe (Panneau de configuration > Outils d\'administration > Sources de donnees ODBC)'
             . ' et que le compte du serveur a acces au fichier.'
+            . (count($erreurs) > 3 ? ' (' . (count($erreurs) - 3) . ' autre(s) tentative(s) similaire(s).)' : '')
         );
+    }
+
+    private function resumeChaine(string $chaine): string
+    {
+        if (preg_match('/Driver=\{([^}]+)\}/i', $chaine, $m) === 1) {
+            return 'pilote ' . $m[1];
+        }
+
+        return 'DSN ' . substr($chaine, 5, 40);
     }
 
     /**
@@ -224,17 +318,106 @@ final class ZktecoAccess
     }
 
     /**
+     * Controle complet de la chaine d'import : fichier, tables, volumes,
+     * plage de dates reellement presente et correspondance des badges.
+     *
+     * C'est ce rapport qui permet de comprendre pourquoi un import ne remonte
+     * aucune ligne alors que la pointeuse contient des passages.
+     *
+     * @return array<string, mixed>
+     */
+    public function verifierSource(): array
+    {
+        $config = $this->configuration();
+        $rapport = [
+            'os' => PHP_OS_FAMILY . ' / PHP ' . PHP_VERSION,
+            'drivers' => $this->driversDisponibles(),
+            'fichier' => $this->etatFichier(),
+            'dsn' => $config['ZKTECO_ACCESS_DSN'],
+            'connexion' => false,
+            'message' => '',
+            'tables' => [],
+            'volumes' => [],
+            'plage' => [],
+            'requete' => [],
+            'echantillon' => [],
+        ];
+
+        try {
+            $pdo = $this->connecter();
+        } catch (\RuntimeException $e) {
+            $rapport['message'] = $e->getMessage();
+
+            return $rapport;
+        }
+
+        $rapport['connexion'] = true;
+
+        $tablePointages = $this->nomSur($config['ZKTECO_TABLE_POINTAGES']);
+        $tableUsers = $this->nomSur($config['ZKTECO_TABLE_USERS']);
+        $colQuand = $config['ZKTECO_COL_CHECKTIME'];
+
+        foreach ([$tableUsers => 'employes', $tablePointages => 'pointages'] as $table => $libelle) {
+            try {
+                $total = (int) $pdo->query('SELECT COUNT(*) FROM [' . $table . ']')->fetchColumn();
+                $rapport['volumes'][$libelle] = ['table' => $table, 'lignes' => $total];
+            } catch (\Throwable $e) {
+                $rapport['volumes'][$libelle] = ['table' => $table, 'erreur' => $e->getMessage()];
+            }
+        }
+
+        try {
+            $bornes = $pdo->query('SELECT MIN([' . $colQuand . ']) AS debut, MAX([' . $colQuand . ']) AS fin FROM [' . $tablePointages . ']')->fetch();
+            if ($bornes) {
+                $rapport['plage'] = [
+                    'debut' => (string) ($bornes['debut'] ?? ''),
+                    'fin' => (string) ($bornes['fin'] ?? ''),
+                ];
+            }
+        } catch (\Throwable $e) {
+            $rapport['plage'] = ['erreur' => $e->getMessage()];
+        }
+
+        try {
+            $sql = 'SELECT TOP 5 [' . $config['ZKTECO_COL_BADGE'] . '] AS badge, [' . $config['ZKTECO_COL_NOM'] . '] AS nom FROM [' . $tableUsers . ']';
+            $rapport['echantillon'] = $pdo->query($sql)->fetchAll();
+        } catch (\Throwable $e) {
+            $rapport['echantillon'] = [['erreur' => $e->getMessage()]];
+        }
+
+        $nomRequete = trim($config['ZKTECO_REQUETE']);
+        if ($nomRequete !== '') {
+            try {
+                $total = (int) $pdo->query('SELECT COUNT(*) FROM [' . $nomRequete . ']')->fetchColumn();
+                $rapport['requete'] = ['nom' => $nomRequete, 'lignes' => $total];
+            } catch (\Throwable $e) {
+                $rapport['requete'] = ['nom' => $nomRequete, 'erreur' => $e->getMessage()];
+            }
+        }
+
+        $rapport['message'] = 'Connexion reussie.';
+
+        return $rapport;
+    }
+
+    /**
      * Pointages bruts sur une periode.
      *
      * Deux sources possibles, dans cet ordre :
      *   1. la requete enregistree dans la base Access (par defaut
      *      « Req_UserCheck »), c'est celle que l'equipe RH utilise deja ;
-     *   2. a defaut, les tables USERINFO et CHECKINOUT jointes sur USERID.
+     *   2. les tables USERINFO et CHECKINOUT jointes sur USERID.
+     *
+     * Si la requete ne renvoie aucune ligne sur la periode demandee, on lit
+     * les tables : c'est le cas le plus frequent quand la requete enregistree
+     * filtre sur une autre date (aujourd'hui, par exemple).
      *
      * @return list<array{badge: string, nom: string, quand: \DateTimeImmutable, sens: string}>
      */
     public function pointages(\DateTimeInterface $du, \DateTimeInterface $au, bool $ignorerRequete = false): array
     {
+        $this->journal = [];
+        $this->methodeFiltre = '';
         $pdo = $this->connecter();
         $config = $this->configuration();
 
@@ -242,15 +425,24 @@ final class ZktecoAccess
         if ($requete !== '' && !$ignorerRequete) {
             $passages = $this->pointagesViaRequete($pdo, $requete, $du, $au);
             if ($passages !== null) {
-                $this->source = 'requete ' . $requete;
+                $this->journal[] = 'Requete ' . $requete . ' : ' . count($passages) . ' passage(s) sur la periode.';
+                if ($passages !== []) {
+                    $this->source = 'requete ' . $requete;
 
-                return $passages;
+                    return $passages;
+                }
+                $this->journal[] = 'Requete ' . $requete . ' vide sur cette periode : lecture directe des tables.';
+            } else {
+                $this->journal[] = 'Requete ' . $requete . ' illisible ou sans colonne de date : lecture directe des tables.';
             }
         }
 
         $this->source = 'tables ' . $config['ZKTECO_TABLE_USERS'] . ' + ' . $config['ZKTECO_TABLE_POINTAGES'];
 
-        return $this->pointagesViaTables($pdo, $config, $du, $au);
+        $passages = $this->pointagesViaTables($pdo, $config, $du, $au);
+        $this->journal[] = 'Tables : ' . count($passages) . ' passage(s) sur la periode (filtre : ' . ($this->methodeFiltre ?: 'inconnu') . ').';
+
+        return $passages;
     }
 
     /**
@@ -348,6 +540,10 @@ final class ZktecoAccess
             );
         }
 
+        if ($utilisateurs === []) {
+            $this->journal[] = 'Table ' . $tableUsers . ' vide : les badges ne pourront pas etre traduits en noms, mais les passages restent lisibles par USERID.';
+        }
+
         $colonnes = [
             ['nom' => $colQuand, 'normalise' => $this->normaliser($colQuand)],
         ];
@@ -383,8 +579,11 @@ final class ZktecoAccess
     /**
      * Execute la requete de periode sur une source (requete ou table).
      *
-     * Access accepte les dates entre #...# ; certaines bases stockent la date
-     * en texte ISO, d'ou le second essai entre apostrophes.
+     * Access accepte les dates entre #...# ; d'autres pilotes (MDBTools) ne
+     * les comprennent pas et comparent la date a du texte. On essaie donc
+     * plusieurs ecritures, puis, en dernier recours, on lit la table et on
+     * filtre en PHP : c'est ce qui evite un import vide alors que la base
+     * contient bien des passages.
      *
      * @param list<array{nom: string, normalise: string}> $colonnes
      *
@@ -409,22 +608,99 @@ final class ZktecoAccess
             : '*';
 
         $conditions = [
-            '[' . $nomDate . '] >= #' . $debut . '# AND [' . $nomDate . '] <= #' . $fin . '#',
-            "[" . $nomDate . "] >= '" . $debut . "' AND [" . $nomDate . "] <= '" . $fin . "'",
+            'dates Access' => '[' . $nomDate . '] >= #' . $debut . '# AND [' . $nomDate . '] <= #' . $fin . '#',
+            'dates texte' => "[" . $nomDate . "] >= '" . $debut . "' AND [" . $nomDate . "] <= '" . $fin . "'",
+            'CDate' => "[" . $nomDate . "] >= CDate('" . $debut . "') AND [" . $nomDate . "] <= CDate('" . $fin . "')",
         ];
 
         $derniereErreur = null;
-        foreach ($conditions as $condition) {
+        foreach ($conditions as $libelle => $condition) {
             $sql = 'SELECT ' . $select . ' FROM [' . $source . '] WHERE ' . $condition . ' ORDER BY [' . $nomDate . '] ASC';
             try {
-                return $pdo->query($sql)->fetchAll();
+                $lignes = $pdo->query($sql)->fetchAll();
+                $this->methodeFiltre = $libelle;
+                $this->journal[] = $source . ' : filtre ' . $libelle . ' -> ' . count($lignes) . ' ligne(s).';
+
+                // Un resultat vide peut venir d'une comparaison mal comprise
+                // par le pilote : on verifie une fois sans filtre avant de
+                // conclure qu'il n'y a rien.
+                if ($lignes !== []) {
+                    return $lignes;
+                }
+
+                $verification = $this->lignesSansFiltre($pdo, $source, $select, $nomDate, $du, $au, $colUser !== null);
+                if ($verification !== []) {
+                    $this->methodeFiltre = 'lecture complete filtree en PHP';
+                    $this->journal[] = $source . ' : le filtre ' . $libelle . ' ne remontait rien, '
+                        . count($verification) . ' ligne(s) trouvee(s) en filtrant en PHP.';
+
+                    return $verification;
+                }
+
+                return [];
             } catch (\Throwable $e) {
                 $derniereErreur = $e;
             }
         }
 
+        $verification = $this->lignesSansFiltre($pdo, $source, $select, $nomDate, $du, $au, $colUser !== null);
+        if ($verification !== []) {
+            $this->methodeFiltre = 'lecture complete filtree en PHP';
+
+            return $verification;
+        }
+
         if ($derniereErreur !== null) {
+            $this->journal[] = $source . ' : aucune ecriture de date acceptee (' . $derniereErreur->getMessage() . ').';
+
             return null;
+        }
+
+        return [];
+    }
+
+    /**
+     * Lecture de secours : la source entiere (plafonnee), filtree en PHP.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function lignesSansFiltre(
+        \PDO $pdo,
+        string $source,
+        string $select,
+        string $nomDate,
+        \DateTimeInterface $du,
+        \DateTimeInterface $au,
+        bool $dateAliasee,
+    ): array {
+        $colonneLue = $dateAliasee ? 'quand' : $nomDate;
+        $debut = \DateTimeImmutable::createFromInterface($du)->setTime(0, 0, 0);
+        $fin = \DateTimeImmutable::createFromInterface($au)->setTime(23, 59, 59);
+
+        $sqls = [
+            'SELECT TOP ' . self::PLAFOND_LECTURE . ' ' . $select . ' FROM [' . $source . '] ORDER BY [' . $nomDate . '] DESC',
+            'SELECT ' . $select . ' FROM [' . $source . ']',
+        ];
+
+        foreach ($sqls as $sql) {
+            try {
+                $lignes = $pdo->query($sql)->fetchAll();
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $retenues = [];
+            foreach ($lignes as $ligne) {
+                $quand = $this->versDate($ligne[$colonneLue] ?? $ligne[$nomDate] ?? null);
+                if ($quand === null) {
+                    continue;
+                }
+                if ($quand >= $debut && $quand <= $fin) {
+                    $retenues[] = $ligne;
+                }
+            }
+
+            return $retenues;
         }
 
         return [];
@@ -473,19 +749,6 @@ final class ZktecoAccess
 
         return null;
     }
-
-    /** @param list<array{nom: string, normalise: string}> $colonnes */
-    private function indexDe(array $colonnes, string $nom): ?int
-    {
-        foreach ($colonnes as $indice => $colonne) {
-            if ($colonne['normalise'] === $nom) {
-                return $indice;
-            }
-        }
-
-        return null;
-    }
-
 
     /**
      * Controle de la requete enregistree : nom, colonnes renvoyees, message.
@@ -635,6 +898,9 @@ final class ZktecoAccess
             return null;
         }
 
+        // Date Access avec millisecondes ou fraction de seconde.
+        $texte = preg_replace('/\.\d+$/', '', $texte) ?? $texte;
+
         foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'd/m/Y H:i:s', 'd/m/Y H:i', 'Y-m-d', 'd/m/Y', 'm/d/Y H:i:s a', 'm/d/Y H:i:s'] as $format) {
             $date = \DateTimeImmutable::createFromFormat($format, $texte);
             if ($date instanceof \DateTimeImmutable) {
@@ -683,6 +949,10 @@ final class ZktecoAccess
 
     private function valeur(string $cle, string $defaut): string
     {
+        if (isset($this->surcharges[$cle])) {
+            return trim($this->surcharges[$cle]);
+        }
+
         $valeur = $_ENV[$cle] ?? $_SERVER[$cle] ?? getenv($cle);
 
         if ($valeur === false || $valeur === null || trim((string) $valeur) === '') {

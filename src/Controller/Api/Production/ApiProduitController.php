@@ -6,7 +6,6 @@ use App\Entity\Logistique\Proprietaire;
 use App\Entity\Production\Produit;
 use App\Entity\ZoneExploitation;
 use Doctrine\ORM\EntityManagerInterface;
-use PDO;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -167,7 +166,7 @@ final class ApiProduitController extends AbstractController
         $reponse = array();
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN")) {
-            /*try {
+            try {
                 $produit = $this->em->getRepository(Produit::class)->find(Uuid::fromString($id_produit));
 
                 if ($produit){
@@ -186,13 +185,6 @@ final class ApiProduitController extends AbstractController
 
             } catch (\Throwable $throwable) {
                 $reponse = ['code' => "error", 'msg' => 'Une erreur s\'est produite !<br>' . $throwable->getMessage()];
-            }*/
-
-            try {
-                $pdo = new PDO("odbc:DSN=ZKTECO_CITRAC");
-                echo "Connexion OK";
-            } catch (Exception $e) {
-                echo $e->getMessage();
             }
         } else {
             $reponse = array('code'=>'warning', 'msg'=>'Vous n\'êtes pas autorisé à accéder à cette ressource');

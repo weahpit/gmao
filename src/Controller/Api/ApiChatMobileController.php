@@ -8,7 +8,6 @@ use App\Entity\User;
 use App\Repository\Chat\LectureChatRepository;
 use App\Repository\Chat\ListeDiffusionRepository;
 use App\Repository\Chat\MessageChatRepository;
-use App\Service\Chat\AccuseLecture;
 use App\Service\Chat\NotificationPush;
 use App\Service\Chat\StockageMediasChat;
 use Doctrine\ORM\EntityManagerInterface;
@@ -47,7 +46,6 @@ final class ApiChatMobileController extends AbstractController
         private readonly ListeDiffusionRepository $listes,
         private readonly StockageMediasChat $stockage,
         private readonly NotificationPush $push,
-        private readonly AccuseLecture $accuse,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -72,7 +70,7 @@ final class ApiChatMobileController extends AbstractController
             'sous_titre'  => $peutPublier
                 ? 'Tous les utilisateurs · ecriture autorisee'
                 : 'Tous les utilisateurs · lecture seule',
-            'dernier'     => $this->resume($dernierGeneral, $moi),
+            'dernier'     => $this->resume($dernierGeneral),
             'non_lus'     => $this->nonLusGeneral($moi),
             'ecriture'    => $peutPublier,
         ];
@@ -89,7 +87,7 @@ final class ApiChatMobileController extends AbstractController
                 'type'       => 'liste',
                 'titre'      => (string) $liste->getNom(),
                 'sous_titre' => $nbMembres . ' membre(s)' . ($liste->isActive() ? '' : ' · inactive'),
-                'dernier'    => $this->resume($dernier, $moi),
+                'dernier'    => $this->resume($dernier),
                 'non_lus'    => $this->messages->nonLusListe(
                     $liste,
                     $moi,
@@ -119,7 +117,7 @@ final class ApiChatMobileController extends AbstractController
                 'type'       => 'prive',
                 'titre'      => $nom,
                 'sous_titre' => 'Conversation privee',
-                'dernier'    => $this->resume($message, $moi),
+                'dernier'    => $this->resume($message),
                 'non_lus'    => (int) ($nonLus[$id] ?? 0),
                 'ecriture'   => true,
             ];
@@ -165,10 +163,6 @@ final class ApiChatMobileController extends AbstractController
             };
         }
 
-        // Les messages que je viens de recuperer sont marques « remis » :
-        // l'expediteur voit alors deux coches sur son telephone.
-        $this->accuse->marquerRemis($bruts, $moi);
-
         $donnees = [];
         foreach ($bruts as $message) {
             $donnees[] = $this->serialiser($message, $moi, $request);
@@ -181,7 +175,6 @@ final class ApiChatMobileController extends AbstractController
             'ok'       => true,
             'canal'    => $this->canalCourant($resolu),
             'messages' => $donnees,
-            'accuses'  => $this->accuses($resolu, $moi),
         ]);
     }
 
@@ -302,7 +295,7 @@ final class ApiChatMobileController extends AbstractController
 
         $this->marquerLu($moi, $resolu);
 
-        return new JsonResponse(['ok' => true, 'accuses' => $this->accuses($resolu, $moi)]);
+        return new JsonResponse(['ok' => true]);
     }
 
     // ------------------------------------------------------------------
@@ -449,7 +442,7 @@ final class ApiChatMobileController extends AbstractController
     }
 
     /** Resume court pour la liste des conversations. */
-    private function resume(?MessageChat $message, ?User $moi = null): ?array
+    private function resume(?MessageChat $message): ?array
     {
         if (!$message instanceof MessageChat) {
             return null;
@@ -469,10 +462,6 @@ final class ApiChatMobileController extends AbstractController
             'texte'  => mb_substr($texte, 0, 90),
             'iso'    => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
             'type'   => $message->getType(),
-            'statut' => $message->statut(),
-            // Permet a l'application d'afficher la coche sur l'apercu
-            // quand le dernier message vient de moi.
-            'moi'    => $moi instanceof User && $message->getExpediteur() === $moi,
         ];
     }
 
@@ -495,8 +484,6 @@ final class ApiChatMobileController extends AbstractController
             'fichier_url' => $message->getFichier() ? $base . '/uploads/chat/' . $message->getFichier() : null,
             'fichier_nom' => $message->getFichierNom(),
             'duree'       => $message->getDuree(),
-            // Etat pour l'expediteur : envoye, remis ou lu.
-            'statut'      => $message->statut(),
         ];
     }
 
@@ -511,30 +498,6 @@ final class ApiChatMobileController extends AbstractController
         }
 
         return $lettres !== '' ? $lettres : '?';
-    }
-
-    /**
-     * Etats « envoye / remis / lu » des messages que j'ai envoyes sur ce canal.
-     *
-     * @param array{type: string, user: ?User, liste: ?ListeDiffusion} $resolu
-     *
-     * @return array<string, array{statut: string, lu_par: int, total: int, lu_at: ?string, remis_at: ?string}>
-     */
-    private function accuses(array $resolu, User $moi): array
-    {
-        $mesMessages = $this->messages->miensDepuis(
-            $moi,
-            $resolu['user'],
-            $resolu['liste'],
-            new \DateTimeImmutable('-3 days')
-        );
-
-        return $this->accuse->etats(
-            $mesMessages,
-            $this->canalCourant($resolu),
-            $resolu['type'],
-            $this->accuse->totalDestinataires($resolu['type'], $resolu['liste'], $moi)
-        );
     }
 
     /** Envoi silencieux des notifications push (ne bloque jamais l'envoi). */
@@ -574,12 +537,8 @@ final class ApiChatMobileController extends AbstractController
                 $this->nomComplet($moi),
                 $apercu,
                 [
-                    'canal'      => $this->canalCourant($resolu),
-                    'type'       => 'chat',
-                    // Identifiant du message : evite d'afficher deux fois la
-                    // meme notification sur le telephone.
-                    'message_id' => (string) $message->getId(),
-                    'titre'      => $this->nomComplet($moi),
+                    'canal' => $this->canalCourant($resolu),
+                    'type'  => 'chat',
                 ]
             );
         } catch (\Throwable $e) {

@@ -8,7 +8,6 @@ use App\Entity\User;
 use App\Repository\Chat\LectureChatRepository;
 use App\Repository\Chat\ListeDiffusionRepository;
 use App\Repository\Chat\MessageChatRepository;
-use App\Service\Chat\AccuseLecture;
 use App\Service\Chat\StockageMediasChat;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -43,7 +42,6 @@ final class ChatController extends AbstractController
         private LectureChatRepository $lectures,
         private ListeDiffusionRepository $listes,
         private StockageMediasChat $stockage,
-        private AccuseLecture $accuse,
     ) {}
 
     // ------------------------------------------------------------------
@@ -70,23 +68,7 @@ final class ChatController extends AbstractController
             default  => $this->messages->filGeneral(80),
         };
 
-        // Consulter la conversation vaut remise : les messages que je viens de
-        // recevoir passent en « remis » pour leur expéditeur.
-        $this->accuse->marquerRemis($messages, $moi);
-
         $this->marquerLu($moi, $canalDemande, $resolu);
-
-        // États « envoyé / remis / lu » des messages que J'AI envoyés.
-        $mesMessages = array_values(array_filter(
-            $messages,
-            static fn (MessageChat $m) => (string) $m->getExpediteur()?->getId() === (string) $moi->getId()
-        ));
-        $accuses = $this->accuse->etats(
-            $mesMessages,
-            $this->canalCourant($resolu),
-            $resolu['type'],
-            $this->accuse->totalDestinataires($resolu['type'], $resolu['liste'], $moi)
-        );
 
         // --- Liste des conversations privées ---------------------------------
         $nonLus = $this->messages->nonLusParExpediteur($moi);
@@ -146,7 +128,6 @@ final class ChatController extends AbstractController
             'peutPublierGeneral' => $this->peutPublierGeneral(),
             'estAdmin'         => $estAdmin,
             'dureeAudioMax'    => MessageChat::DUREE_AUDIO_MAX,
-            'accuses'          => $accuses,
         ]);
     }
 
@@ -273,9 +254,6 @@ final class ChatController extends AbstractController
 
         $nouveaux = $this->messages->nouveaux($resolu['user'], $moi, $date, $resolu['liste']);
 
-        // Les messages recus a l'instant sont marques « remis ».
-        $this->accuse->marquerRemis($nouveaux, $moi);
-
         $donnees = [];
         foreach ($nouveaux as $message) {
             if ($message->getExpediteur() === $moi) {
@@ -288,22 +266,7 @@ final class ChatController extends AbstractController
             $this->marquerLu($moi, $canal, $resolu);
         }
 
-        // Etats de mes propres messages : mis a jour a chaque rafraichissement.
-        $canalCourant = $this->canalCourant($resolu);
-        $mesMessages = $this->messages->miensDepuis(
-            $moi,
-            $resolu['user'],
-            $resolu['liste'],
-            new \DateTimeImmutable('-3 days')
-        );
-        $accuses = $this->accuse->etats(
-            $mesMessages,
-            $canalCourant,
-            $resolu['type'],
-            $this->accuse->totalDestinataires($resolu['type'], $resolu['liste'], $moi)
-        );
-
-        return new JsonResponse(['ok' => true, 'messages' => $donnees, 'accuses' => $accuses]);
+        return new JsonResponse(['ok' => true, 'messages' => $donnees]);
     }
 
     // ------------------------------------------------------------------
@@ -475,7 +438,6 @@ final class ChatController extends AbstractController
             'fichier'   => $message->getFichier() ? '/uploads/chat/' . $message->getFichier() : null,
             'fichier_nom' => $message->getFichierNom(),
             'duree'     => $message->getDuree(),
-            'statut'    => $message->statut(),
         ];
     }
 

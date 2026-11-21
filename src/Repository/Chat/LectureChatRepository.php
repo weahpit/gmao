@@ -27,25 +27,6 @@ class LectureChatRepository extends ServiceEntityRepository
         return $lecture?->getDernierLuAt();
     }
 
-    /**
-     * Repères de lecture de tous les utilisateurs sur un canal.
-     *
-     * Sert à l'accusé de lecture des canaux de groupe : un message est
-     * considéré comme lu par une personne si elle a ouvert le canal après
-     * l'envoi du message.
-     *
-     * @return LectureChat[]
-     */
-    public function parCanal(string $canal): array
-    {
-        return $this->createQueryBuilder('l')
-            ->leftJoin('l.utilisateur', 'u')->addSelect('u')
-            ->andWhere('l.canal = :canal')
-            ->setParameter('canal', $canal)
-            ->getQuery()
-            ->getResult();
-    }
-
     /** Enregistre (ou met à jour) le repère de lecture d'un canal. */
     public function marquerLu(User $utilisateur, string $canal, ?\DateTimeImmutable $quand = null): void
     {

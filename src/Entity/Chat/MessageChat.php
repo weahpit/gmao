@@ -61,20 +61,6 @@ class MessageChat
     #[ORM\Column]
     private bool $lu = false;
 
-    /**
-     * Date du premier acces d'un destinataire au message (« remis »).
-     *
-     * Renvoye au telephone de l'expediteur pour distinguer un message
-     * simplement depose sur le serveur d'un message reellement arrive
-     * sur l'appareil d'un destinataire.
-     */
-    #[ORM\Column(name: 'remis_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    private ?\DateTimeImmutable $remisAt = null;
-
-    /** Date d'ouverture effective du message par son destinataire (« lu »). */
-    #[ORM\Column(name: 'lu_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    private ?\DateTimeImmutable $luAt = null;
-
     /** Texte, image ou audio. */
     #[ORM\Column(length: 10, options: ['default' => 'texte'])]
     private string $type = self::TYPE_TEXTE;
@@ -167,46 +153,6 @@ class MessageChat
         $this->lu = $lu;
 
         return $this;
-    }
-
-    public function getRemisAt(): ?\DateTimeImmutable
-    {
-        return $this->remisAt;
-    }
-
-    public function setRemisAt(?\DateTimeImmutable $remisAt): static
-    {
-        $this->remisAt = $remisAt;
-
-        return $this;
-    }
-
-    public function getLuAt(): ?\DateTimeImmutable
-    {
-        return $this->luAt;
-    }
-
-    public function setLuAt(?\DateTimeImmutable $luAt): static
-    {
-        $this->luAt = $luAt;
-
-        return $this;
-    }
-
-    /**
-     * Avancement de la remise du message.
-     *
-     * - `envoye` : enregistre sur le serveur (le destinataire ne l'a pas encore recu) ;
-     * - `remis`  : arrive sur le telephone d'au moins un destinataire ;
-     * - `lu`     : ouvert par au moins un destinataire.
-     */
-    public function statut(): string
-    {
-        if ($this->lu || $this->luAt !== null) {
-            return 'lu';
-        }
-
-        return $this->remisAt !== null ? 'remis' : 'envoye';
     }
 
     public function getType(): string
