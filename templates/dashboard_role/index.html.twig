@@ -89,6 +89,34 @@
     .tdb-fiche dd { margin: 0; color: #3f2a1d; font-weight: 600; text-align: right; }
 
     .tdb-chart { width: 100%; min-height: 265px; }
+
+    /* Tableaux (recapitulatif des stocks, saisies du jour) */
+    .tdb-table-wrap {
+        max-height: 430px;
+        overflow: auto;
+        border: 1px solid #f1e8df;
+        border-radius: 10px;
+        background: #fff;
+    }
+    .tdb-table { font-size: 12.5px; margin: 0; }
+    .tdb-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--tdb-soft, #fbf6f1);
+        color: #6b5140;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        white-space: nowrap;
+        border-bottom: 1px solid #e9ded5;
+    }
+    .tdb-table tbody td { color: #3f2a1d; border-bottom-color: #f4ece4; }
+    .tdb-table tbody tr:last-child td { border-bottom: 0; }
+    .tdb-table tbody tr:hover td { background: #fdf8f3; }
+    .tdb-table td:first-child, .tdb-table th:first-child { white-space: nowrap; }
+    .tdb-note { color: #a08b7a; font-size: 11.5px; line-height: 1.4; margin: 8px 0 0; }
     .tdb-total { border-top: 1px dashed #efe4d9; margin-top: 8px; padding-top: 8px; font-size: 12px; color: #a08b7a; }
     .tdb-error { background: #fdf3ee; border: 1px solid #f0d8c8; color: #8a4b2a; border-radius: 10px; padding: 10px 12px; font-size: 12.5px; }
 
@@ -129,7 +157,7 @@
                     data-bs-target="#panneauPersonnalisation" aria-expanded="false" aria-controls="panneauPersonnalisation">
                 Personnaliser mes gadgets
             </button>
-            <a href="{{ path('app_dashboard') }}" class="btn btn-sm btn-outline-secondary">Tableau de bord general</a>
+            {#<a href="{{ path('app_dashboard') }}" class="btn btn-sm btn-outline-secondary">Tableau de bord general</a>#}
         </div>
     </div>
 
@@ -253,7 +281,8 @@
     <div class="row g-3">
         {% for carte in cartes %}
             {% if carte.visible %}
-                <div class="col-12 col-md-6 col-xl-{{ carte.largeur > 12 ? 12 : carte.largeur }}">
+                {% set largeurCarte = carte.largeur > 12 ? 12 : carte.largeur %}
+                <div class="col-12 {{ largeurCarte >= 12 ? '' : 'col-md-6' }} col-xl-{{ largeurCarte }}">
                     <div class="tdb-card{{ carte.actif ? '' : ' tdb-card-off' }}"
                          style="--tdb-accent: {{ carte.couleur }}; --tdb-soft: {{ carte.couleurDouce }};">
                         <div class="tdb-card-head">
@@ -315,6 +344,37 @@
                                         </div>
                                     {% endfor %}
                                 </dl>
+                            {% elseif carte.type == 'tableau' %}
+                                {% if carte.donnees.lignes is not defined or carte.donnees.lignes is empty %}
+                                    <div class="tdb-off-msg">{{ carte.donnees.vide|default('Aucune donnée à afficher pour le moment.') }}</div>
+                                {% else %}
+                                    <div class="tdb-table-wrap">
+                                        <table class="table table-sm align-middle tdb-table mb-0">
+                                            <thead>
+                                                <tr>
+                                                    {% for colonne in carte.donnees.colonnes %}
+                                                        <th>{{ colonne }}</th>
+                                                    {% endfor %}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for ligne in carte.donnees.lignes %}
+                                                    <tr>
+                                                        {% for cellule in ligne %}
+                                                            <td>{{ cellule }}</td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% if carte.donnees.sous_titre is defined %}
+                                        <div class="tdb-total">{{ carte.donnees.sous_titre }}</div>
+                                    {% endif %}
+                                    {% if carte.donnees.note is defined %}
+                                        <p class="tdb-note">{{ carte.donnees.note }}</p>
+                                    {% endif %}
+                                {% endif %}
                             {% else %}
                                 <div id="graphe-{{ carte.code }}" class="tdb-chart"></div>
                                 {% if carte.donnees.total is defined %}

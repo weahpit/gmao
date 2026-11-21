@@ -10,6 +10,7 @@ use App\Entity\Equipement;
 use App\Entity\Logistique\DocsDossier;
 use App\Entity\Logistique\Dossier;
 use App\Entity\Maintenance\FicheIntervention;
+use App\Entity\MouvementEquipement;
 use App\Entity\Rh\Absence;
 use App\Entity\Rh\AccidentTravail;
 use App\Entity\Rh\Contrat;
@@ -23,6 +24,8 @@ use App\Entity\Stock\SaisieStock;
 use App\Entity\Stock\SortieStock;
 use App\Entity\User;
 use App\Entity\Visite\Visite;
+use App\Service\Stock\ReferentielStock;
+use App\Service\Stock\StockInitialService;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -34,6 +37,8 @@ use Doctrine\ORM\EntityManagerInterface;
  *   ['categories' => [...], 'series' => [['nom' => ..., 'donnees' => [...]]], 'total' => int]
  * soit une petite fiche
  *   ['lignes' => [['libelle' => ..., 'valeur' => ...], ...]]
+ * soit un tableau pret a afficher
+ *   ['colonnes' => [...], 'lignes' => [[...], ...], 'vide' => string]
  *
  * Aucune de ces methodes n'est appelee directement par le gabarit : le
  * controleur les protege individuellement, de sorte qu'une donnee manquante
@@ -41,8 +46,11 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 class DonneesTableauDeBord
 {
-    public function __construct(private EntityManagerInterface $em)
-    {
+    public function __construct(
+        private EntityManagerInterface $em,
+        private StockInitialService $stockInitial,
+        private ReferentielStock $referentiel
+    ) {
     }
 
     // -----------------------------------------------------------------
@@ -461,6 +469,348 @@ class DonneesTableauDeBord
         }
 
         return $this->graphique(array_values($libelles), [['nom' => 'Kg decharges', 'donnees' => array_values($valeurs)]]);
+    }
+
+    // -----------------------------------------------------------------
+    //  Stocks : recapitulatif par produit et saisies du jour
+    // -----------------------------------------------------------------
+
+    /** Quantite lisible a la francaise (virgule decimale, espace des milliers). */
+    private function quantite(float $valeur): string
+    {
+        $arrondi = round($valeur, 3);
+        $decimales = fmod(abs($arrondi), 1.0) > 0.000001 ? 2 : 0;
+
+        return number_format($arrondi, $decimales, ',', ' ');
+    }
+
+    private function heureDe(mixed $valeur): string
+    {
+        $date = $this->enDate($valeur);
+
+        return $date !== null ? $date->format('H:i') : '-';
+    }
+
+    /**
+     * Vrai si le libelle de la rubrique designe des pieces de rechange (PDR).
+     * Sert au cloisonnement : le stock PDR n'est jamais melange au cacao.
+     */
+    private function rubriquePdr(string $libelle): bool
+    {
+        $texte = mb_strtolower($libelle);
+
+        foreach (['pdr', 'rechange', 'pièce', 'piece', 'détachée', 'detachee'] as $motif) {
+            if (mb_strpos($texte, $motif) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Rubriques du stock cacao : le referentiel, moins les rubriques PDR.
+     *
+     * @return list<string>
+     */
+    private function rubriquesCacao(): array
+    {
+        $rubriques = $this->referentiel->rubriques();
+        $cacao = array_values(array_filter($rubriques, fn (string $r): bool => !$this->rubriquePdr($r)));
+
+        return $cacao !== [] ? $cacao : $rubriques;
+    }
+
+    /**
+     * Recapitulatif du stock cacao : une ligne par rubrique et par nature
+     * de produit, calculee par le service officiel du stock (inventaire +
+     * entrees - sorties).
+     *
+     * @return array<string, mixed>
+     */
+    public function recapitulatifStockCacao(): array
+    {
+        $colonnes = ['Type de stock', 'Produit', 'Unité', 'Stock initial', 'Entrées', 'Sorties', 'Stock final'];
+        $rubriques = $this->rubriquesCacao();
+        $apercu = $this->stockInitial->apercu($rubriques);
+        $lignes = [];
+
+        foreach ($apercu['parRubrique'] as $rubrique => $ligne) {
+            $natures = $ligne['parNature'] ?? [];
+
+            if ($natures === []) {
+                $lignes[] = [
+                    $rubrique,
+                    'Aucun mouvement',
+                    'Kg',
+                    $this->quantite((float) $ligne['stockInitialKg']),
+                    $this->quantite((float) $ligne['entreeKg']),
+                    $this->quantite((float) $ligne['sortieKg']),
+                    $this->quantite((float) $ligne['stockFinalKg']),
+                ];
+                continue;
+            }
+
+            foreach ($natures as $nature => $detail) {
+                $ajoutee = false;
+
+                foreach (['Kg', 'Litres'] as $unite) {
+                    $initial = (float) ($detail['stockInitial' . $unite] ?? 0);
+                    $entrees = (float) ($detail['entree' . $unite] ?? 0);
+                    $sorties = (float) ($detail['sortie' . $unite] ?? 0);
+                    $final = (float) ($detail['stockFinal' . $unite] ?? 0);
+
+                    if (abs($initial) + abs($entrees) + abs($sorties) + abs($final) < 0.0001) {
+                        continue;
+                    }
+
+                    $lignes[] = [
+                        $rubrique,
+                        $nature,
+                        $unite,
+                        $this->quantite($initial),
+                        $this->quantite($entrees),
+                        $this->quantite($sorties),
+                        $this->quantite($final),
+                    ];
+                    $ajoutee = true;
+                }
+
+                if (!$ajoutee) {
+                    $lignes[] = [$rubrique, $nature, 'Kg', '0', '0', '0', '0'];
+                }
+            }
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => "Aucun stock enregistré pour l'instant : aucune rubrique ne contient de mouvement.",
+            ];
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => count($lignes) . ' ligne(s) sur ' . count($rubriques) . ' rubrique(s) de stock cacao.',
+            'note' => "Stock final = quantité inventoriée + entrées - sorties postérieures à l'inventaire.",
+        ];
+    }
+
+    /**
+     * Detail des saisies de stock cacao enregistrees aujourd hui.
+     *
+     * @return array<string, mixed>
+     */
+    public function saisiesDuJour(): array
+    {
+        $colonnes = ['Heure', 'Agent', 'Type de stock', 'Produit', 'Quantité', 'Unité', 'Service', 'Emplacement'];
+        $debut = new \DateTimeImmutable('today 00:00:00');
+
+        $saisies = $this->em->createQuery(
+            'SELECT s FROM ' . SaisieStock::class . ' s'
+            . ' WHERE s.dateSaisie >= :debut'
+            . ' ORDER BY s.dateSaisie ASC'
+        )->setParameter('debut', $debut)->setMaxResults(300)->getResult();
+
+        $lignes = [];
+        $totalKg = 0.0;
+        $totalLitres = 0.0;
+
+        foreach ($saisies as $saisie) {
+            if ($this->rubriquePdr((string) $saisie->getRubrique())) {
+                continue;
+            }
+
+            $agent = trim((string) $saisie->getAgentLibelle());
+            if ($agent === '') {
+                $compte = $saisie->getAgent();
+                $agent = trim(((string) ($compte?->getPrenoms() ?? '')) . ' ' . ((string) ($compte?->getNom() ?? '')));
+            }
+
+            $service = trim((string) $saisie->getServiceLibelle());
+            if ($service === '') {
+                $service = (string) ($saisie->getService()?->getLibelle() ?? '');
+            }
+
+            $emplacement = trim((string) $saisie->getEmplacementLibelle());
+            if ($emplacement === '') {
+                $emplacement = (string) ($saisie->getEmplacement()?->getLibelle() ?? '');
+            }
+
+            $unite = (string) ($saisie->getUnite() ?? 'Kg');
+            if ($unite === 'Litres') {
+                $totalLitres += (float) $saisie->getQuantite();
+            } else {
+                $totalKg += (float) $saisie->getQuantite();
+            }
+
+            $lignes[] = [
+                $this->heureDe($saisie->getDateSaisie()),
+                $agent !== '' ? $agent : 'Non renseigné',
+                (string) ($saisie->getRubrique() ?? 'Non renseigné'),
+                (string) ($saisie->getNature() ?? 'Non précisée'),
+                $this->quantite((float) $saisie->getQuantite()),
+                $unite,
+                $service !== '' ? $service : 'Non renseigné',
+                $emplacement !== '' ? $emplacement : '-',
+            ];
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => "Aucune saisie de stock cacao enregistrée aujourd'hui.",
+            ];
+        }
+
+        $totaux = [];
+        if ($totalKg > 0) {
+            $totaux[] = $this->quantite($totalKg) . ' Kg';
+        }
+        if ($totalLitres > 0) {
+            $totaux[] = $this->quantite($totalLitres) . ' Litres';
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => count($lignes) . ' saisie(s) aujourd hui'
+                . ($totaux !== [] ? ' - total : ' . implode(' et ', $totaux) : '') . '.',
+            'note' => "Seules les entrées de stock cacao sont listées ; le stock PDR n'apparaît jamais ici.",
+        ];
+    }
+
+    /**
+     * Recapitulatif du stock PDR (pieces de rechange) : aucune requete
+     * sur le stock cacao, uniquement le parc equipements.
+     *
+     * @return array<string, mixed>
+     */
+    public function recapitulatifStockPdr(): array
+    {
+        $colonnes = ['Code', 'Désignation', 'Nature', 'Stock actuel', 'Seuil', 'Alerte'];
+
+        $equipements = $this->em->createQuery(
+            'SELECT e FROM ' . Equipement::class . ' e ORDER BY e.nom ASC'
+        )->setMaxResults(300)->getResult();
+
+        $lignes = [];
+        $sousSeuil = 0;
+
+        foreach ($equipements as $equipement) {
+            $stock = $equipement->getStockActuel();
+            if ($stock === null) {
+                $stock = $equipement->getStockFinal();
+            }
+            if ($stock === null && $equipement->getQte() !== null) {
+                $stock = (float) $equipement->getQte();
+            }
+            $stock = (float) ($stock ?? 0);
+            $seuil = (int) ($equipement->getSeuil() ?? 0);
+
+            $alerte = '-';
+            if ($seuil > 0 && $stock <= 0) {
+                $alerte = 'Rupture';
+                $sousSeuil++;
+            } elseif ($seuil > 0 && $stock <= $seuil) {
+                $alerte = 'Sous le seuil';
+                $sousSeuil++;
+            }
+
+            $lignes[] = [
+                (string) ($equipement->getCode() ?? '-'),
+                (string) ($equipement->getNom() ?? '-'),
+                (string) ($equipement->getNature()?->getLibelle() ?? 'Non classé'),
+                $this->quantite($stock),
+                $seuil > 0 ? (string) $seuil : '-',
+                $alerte,
+            ];
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => "Aucune pièce de rechange enregistrée dans le parc.",
+            ];
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => count($lignes) . ' pièce(s) de rechange'
+                . ($sousSeuil > 0 ? ' - ' . $sousSeuil . ' à réapprovisionner.' : ' - aucun seuil dépassé.'),
+            'note' => "Stock PDR uniquement : le stock cacao est volontairement exclu de ce tableau.",
+        ];
+    }
+
+    /**
+     * Mouvements PDR du jour (entrees et sorties de pieces de rechange).
+     *
+     * @return array<string, mixed>
+     */
+    public function mouvementsPdrDuJour(): array
+    {
+        $colonnes = ['Heure', 'Pièce', 'Sens', 'Quantité', 'Service', 'Demandeur', 'Stock après'];
+        $debut = new \DateTimeImmutable('today 00:00:00');
+
+        $mouvements = $this->em->createQuery(
+            'SELECT m FROM ' . MouvementEquipement::class . ' m'
+            . ' LEFT JOIN m.code_equipement e'
+            . ' WHERE m.created_at >= :debut OR m.date_operation >= :jour'
+            . ' ORDER BY m.created_at ASC'
+        )
+            ->setParameter('debut', $debut)
+            ->setParameter('jour', new \DateTime('today'))
+            ->setMaxResults(300)
+            ->getResult();
+
+        $lignes = [];
+        $entrees = 0;
+        $sorties = 0;
+
+        foreach ($mouvements as $mouvement) {
+            $piece = $mouvement->getCodeEquipement();
+            $nom = (string) ($piece?->getNom() ?? 'Pièce non précisée');
+            $code = (string) ($piece?->getCode() ?? '');
+            $sens = $mouvement->getTypeMvt() === '1' ? 'Entrée' : 'Sortie';
+
+            if ($sens === 'Entrée') {
+                $entrees++;
+            } else {
+                $sorties++;
+            }
+
+            $stockApres = $mouvement->getStockApres();
+
+            $lignes[] = [
+                $this->heureDe($mouvement->getCreatedAt()),
+                $code !== '' ? $nom . ' (' . $code . ')' : $nom,
+                $sens,
+                $mouvement->getQte() !== null ? $this->quantite((float) $mouvement->getQte()) : '-',
+                (string) ($mouvement->getCodeService()?->getLibelle() ?? '-'),
+                (string) ($mouvement->getDemandeur() ?? '-'),
+                $stockApres !== null ? $this->quantite((float) $stockApres) : '-',
+            ];
+        }
+
+        if ($lignes === []) {
+            return [
+                'colonnes' => $colonnes,
+                'lignes' => [],
+                'vide' => "Aucun mouvement de pièce de rechange enregistré aujourd'hui.",
+            ];
+        }
+
+        return [
+            'colonnes' => $colonnes,
+            'lignes' => $lignes,
+            'sous_titre' => count($lignes) . ' mouvement(s) aujourd hui : ' . $entrees . ' entrée(s), ' . $sorties . ' sortie(s).',
+            'note' => "Sens du mouvement : type « 1 » = entrée, toute autre valeur = sortie.",
+        ];
     }
 
     // -----------------------------------------------------------------

@@ -36,6 +36,7 @@ final class OptionsGraphique
         'DIRECTION' => 1,   // bleu
         'RH' => 0,          // emeraude
         'STOCK' => 4,       // ambre
+        'STOCK_PDR' => 6,   // olive
         'LOGISTIQUE' => 5,  // cyan
         'COURRIER' => 2,    // violet
         'MAINTENANCE' => 6, // olive
