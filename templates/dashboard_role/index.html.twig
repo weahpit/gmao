@@ -3,7 +3,7 @@
 {% block title %}Mon tableau de bord — {{ roleLibelle }}{% endblock %}
 
 {% block breadcrumb %}
-    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('tdb_role') }}">Accueil</a></span>
     <span class="breadcrumb-item">Mon tableau de bord</span>
 {% endblock %}
 
@@ -157,7 +157,7 @@
                     data-bs-target="#panneauPersonnalisation" aria-expanded="false" aria-controls="panneauPersonnalisation">
                 Personnaliser mes gadgets
             </button>
-            <a href="{{ path('app_dashboard') }}" class="btn btn-sm btn-outline-secondary">Tableau de bord general</a>
+            <a href="{{ path('tdb_role') }}" class="btn btn-sm btn-outline-secondary">Tableau de bord general</a>
         </div>
     </div>
 

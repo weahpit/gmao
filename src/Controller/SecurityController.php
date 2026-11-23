@@ -15,7 +15,7 @@ class SecurityController extends AbstractController
     #[Route(path: '/Authentification', name: 'app_login')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        if ($this->getUser()){return  $this->redirectToRoute("app_dashboard");}
+        if ($this->getUser()){return  $this->redirectToRoute("tdb_role");}
 
         // get the login error if there is one
         $error = $authenticationUtils->getLastAuthenticationError();

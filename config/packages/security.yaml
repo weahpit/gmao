@@ -23,7 +23,7 @@
 #            logout:
 #                path: app_logout
 #                # where to redirect after logout
-#                target: app_dashboard
+#                target: tdb_role
 #
 #            remember_me:
 #                secret: '%kernel.secret%'
@@ -117,7 +117,7 @@ security:
             logout:
                 path: app_logout
                 # where to redirect after logout
-                target: app_dashboard
+                target: tdb_role
 
             remember_me:
                 secret: '%kernel.secret%'

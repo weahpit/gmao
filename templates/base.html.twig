@@ -389,7 +389,7 @@
         <div class="nav-section">
             {# <span class="nav-section-title">Principal</span>#}
 
-            {#<a href="{{ path('app_dashboard') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'dashboard' ? 'active' }}">
+            {#<a href="{{ path('tdb_role') }}" class="nav-item {{ app.request.attributes.get('_route') starts with 'dashboard' ? 'active' }}">
                 <i data-lucide="layout-dashboard"></i>
                 <span class="nav-label">Tableau de bord</span>
             </a>#}
@@ -835,7 +835,7 @@
         </button>
         <div class="breadcrumb">
             {% block breadcrumb %}
-                <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">{{ 'menu.accueil'|trans }}</a></span>
+                <span class="breadcrumb-item"><a href="{{ path('tdb_role') }}">{{ 'menu.accueil'|trans }}</a></span>
             {% endblock %}
         </div>
         <div class="banner-actions">

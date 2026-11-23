@@ -3,7 +3,7 @@
 {% block title %}Mon profil — CITRAC GMAO{% endblock %}
 
 {% block breadcrumb %}
-    <span class="breadcrumb-item"><a href="{{ path('app_dashboard') }}">Accueil</a></span>
+    <span class="breadcrumb-item"><a href="{{ path('tdb_role') }}">Accueil</a></span>
     <span class="breadcrumb-sep">/</span>
     <span class="breadcrumb-item">Mon profil</span>
 {% endblock %}
@@ -109,7 +109,7 @@
 
                 <div class="profile-actions">
                     <button type="submit" class="btn-blue"><i data-lucide="save"></i> Enregistrer les modifications</button>
-                    <a href="{{ path('app_dashboard') }}" class="btn-ghost">Annuler</a>
+                    <a href="{{ path('tdb_role') }}" class="btn-ghost">Annuler</a>
                 </div>
             </form>
         </div>

@@ -21,7 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class DashboardController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em){}
-    #[Route('/', name: 'app_dashboard')]
+    #[Route('/', name: 'tdb_role')]
     public function index(EquipementRepository $equipements, FicheInterventionRepository $ficheIntervention): Response
     {
         if (!$this->getUser()){return  $this->redirectToRoute("app_login");}

@@ -50,7 +50,7 @@ final class LangueController extends AbstractController
         }
 
         if ($cible === null) {
-            $cible = $this->generateUrl('app_dashboard');
+            $cible = $this->generateUrl('tdb_role');
         }
 
         return $this->redirect($cible);
