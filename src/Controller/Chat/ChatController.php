@@ -8,6 +8,8 @@ use App\Entity\User;
 use App\Repository\Chat\LectureChatRepository;
 use App\Repository\Chat\ListeDiffusionRepository;
 use App\Repository\Chat\MessageChatRepository;
+use App\Service\Chat\AccuseLecture;
+use App\Service\Chat\NotifieurChat;
 use App\Service\Chat\StockageMediasChat;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,6 +44,8 @@ final class ChatController extends AbstractController
         private LectureChatRepository $lectures,
         private ListeDiffusionRepository $listes,
         private StockageMediasChat $stockage,
+        private AccuseLecture $accuses,
+        private NotifieurChat $notifieur,
     ) {}
 
     // ------------------------------------------------------------------
@@ -68,7 +72,17 @@ final class ChatController extends AbstractController
             default  => $this->messages->filGeneral(80),
         };
 
+        // Ouvrir la conversation = les messages des autres sont remis, puis lus.
+        $this->accuses->marquerRemis($messages, $moi);
         $this->marquerLu($moi, $canalDemande, $resolu);
+
+        $canalId = $this->canalCourant($resolu);
+        $totalDestinataires = $this->accuses->totalDestinataires($resolu['type'], $liste, $moi);
+        $mesMessages = array_values(array_filter(
+            $messages,
+            static fn (MessageChat $m) => $m->getExpediteur() instanceof User && $m->getExpediteur()->getId() === $moi->getId()
+        ));
+        $etats = $this->accuses->etats($mesMessages, $canalId, $resolu['type'], $totalDestinataires);
 
         // --- Liste des conversations privées ---------------------------------
         $nonLus = $this->messages->nonLusParExpediteur($moi);
@@ -115,6 +129,7 @@ final class ChatController extends AbstractController
             'interlocuteur'    => $interlocuteur,
             'listeCourante'    => $liste,
             'messages'         => $messages,
+            'etats'            => $etats,
             'conversations'    => $conversations,
             'listesDiffusion'  => $blocsListes,
             'generalDernier'   => $general[0] ?? null,
@@ -197,9 +212,23 @@ final class ChatController extends AbstractController
             }
         }
 
+        // Envoi repete (double clic, coupure reseau) : on renvoie le message deja enregistre.
+        $idClient = trim((string) $request->request->get('client_id', ''));
+        if ($idClient !== '' && $estAjax) {
+            $existant = $this->messages->parIdClient($moi, mb_substr($idClient, 0, 64));
+            if ($existant instanceof MessageChat) {
+                return new JsonResponse([
+                    'ok'      => true,
+                    'doublon' => true,
+                    'message' => $this->serialiser($existant, $moi, $this->etatDe($existant, $moi, $resolu)),
+                ]);
+            }
+        }
+
         $message = (new MessageChat())
             ->setExpediteur($moi)
             ->setContenu($contenu)
+            ->setClientId($idClient !== '' ? $idClient : null)
             ->setLu(false);
 
         if ($resolu['type'] === 'prive') {
@@ -225,8 +254,20 @@ final class ChatController extends AbstractController
 
         $this->marquerLu($moi, $canal, $resolu);
 
+        // Notification push sur le telephone des destinataires (jamais bloquante).
+        $this->notifieur->notifier($message, $moi);
+
         if ($estAjax) {
-            return new JsonResponse(['ok' => true, 'message' => $this->serialiser($message, $moi)]);
+            return new JsonResponse([
+                'ok'      => true,
+                'message' => $this->serialiser($message, $moi, [
+                    'statut'   => 'envoye',
+                    'lu_par'   => 0,
+                    'total'    => $this->accuses->totalDestinataires($resolu['type'], $resolu['liste'], $moi),
+                    'lu_at'    => null,
+                    'remis_at' => null,
+                ]),
+            ]);
         }
 
         return $this->redirectToRoute('app_chat', ['canal' => $canal]);
@@ -254,6 +295,8 @@ final class ChatController extends AbstractController
 
         $nouveaux = $this->messages->nouveaux($resolu['user'], $moi, $date, $resolu['liste']);
 
+        $this->accuses->marquerRemis($nouveaux, $moi);
+
         $donnees = [];
         foreach ($nouveaux as $message) {
             if ($message->getExpediteur() === $moi) {
@@ -266,7 +309,16 @@ final class ChatController extends AbstractController
             $this->marquerLu($moi, $canal, $resolu);
         }
 
-        return new JsonResponse(['ok' => true, 'messages' => $donnees]);
+        // Etat actuel de mes derniers messages : les coches evoluent sans recharger la page.
+        $miens = $this->messages->recentsDe($moi, $resolu['user'], $resolu['liste'], 60);
+        $statuts = $this->accuses->etats(
+            $miens,
+            $this->canalCourant($resolu),
+            $resolu['type'],
+            $this->accuses->totalDestinataires($resolu['type'], $resolu['liste'], $moi)
+        );
+
+        return new JsonResponse(['ok' => true, 'messages' => $donnees, 'statuts' => (object) $statuts]);
     }
 
     // ------------------------------------------------------------------
@@ -276,6 +328,7 @@ final class ChatController extends AbstractController
     public function compteur(): JsonResponse
     {
         $moi = $this->utilisateurCourant();
+        $this->messages->marquerRecusPrives($moi);
 
         $prives = $this->messages->totalNonLusPrives($moi);
         $general = $this->nonLusGeneral($moi);
@@ -417,7 +470,21 @@ final class ChatController extends AbstractController
         }));
     }
 
-    private function serialiser(MessageChat $message, User $moi): array
+    /** Etat de remise/lecture d'un message que j'ai ecrit. */
+    private function etatDe(MessageChat $message, User $moi, array $resolu): array
+    {
+        $etats = $this->accuses->etats(
+            [$message],
+            $this->canalCourant($resolu),
+            $resolu['type'],
+            $this->accuses->totalDestinataires($resolu['type'], $resolu['liste'], $moi)
+        );
+
+        return $etats[(string) $message->getId()] ?? ['statut' => 'envoye', 'lu_par' => 0, 'total' => 1, 'lu_at' => null, 'remis_at' => null];
+    }
+
+    /** @param array<string, mixed>|null $etat */
+    private function serialiser(MessageChat $message, User $moi, ?array $etat = null): array
     {
         $auteur = $message->getExpediteur();
         $nom = $auteur ? trim(((string) $auteur->getNom()) . ' ' . ((string) $auteur->getPrenoms())) : '';
@@ -425,12 +492,18 @@ final class ChatController extends AbstractController
             $nom = $auteur ? (string) $auteur->getEmail() : 'Utilisateur';
         }
 
+        $estMoi = $auteur instanceof User && $auteur->getId() === $moi->getId();
+
         return [
             'id'        => (string) $message->getId(),
+            'client_id' => $message->getClientId(),
+            'statut'    => $estMoi ? ($etat['statut'] ?? 'envoye') : null,
+            'lu_par'    => $estMoi ? (int) ($etat['lu_par'] ?? 0) : null,
+            'total'     => $estMoi ? (int) ($etat['total'] ?? 1) : null,
             'contenu'   => (string) $message->getContenu(),
             'auteur'    => $nom,
             'initiales' => $this->initiales($nom),
-            'moi'       => $auteur === $moi,
+            'moi'       => $estMoi,
             'jour'      => $message->getCreatedAt()?->format('d/m/Y'),
             'heure'     => $message->getCreatedAt()?->format('H:i'),
             'iso'       => $message->getCreatedAt()?->format('Y-m-d H:i:s'),

@@ -5,6 +5,19 @@
 {% block stylesheets %}
     {{ parent() }}
     <link rel="stylesheet" href="{{ asset('css/chat.css') }}">
+    <style>
+        /* Coches d'envoi, de remise et de lecture (messages que j'ai écrits) */
+        .chat-coches{display:inline-flex;align-items:center;gap:3px;margin-left:.4rem;vertical-align:middle;font-size:.68rem;line-height:1;opacity:.8}
+        .chat-coches svg{width:15px;height:15px;display:block}
+        .chat-coches.st-lu{color:#2aa8ff;opacity:1}
+        .chat-coches.st-echec{color:#d93025;opacity:1}
+        .chat-coches .lu-par{font-weight:600}
+        .chat-msg.local .chat-bulle{opacity:.92}
+        .chat-msg.echec .chat-bulle{outline:1.5px solid #d93025}
+        .chat-actions-echec{display:flex;gap:.6rem;margin-top:.35rem;font-size:.75rem}
+        .chat-actions-echec button{background:none;border:0;padding:0;cursor:pointer;font:inherit;text-decoration:underline;color:#d93025}
+        .chat-actions-echec .raison{color:#d93025;opacity:.9}
+    </style>
 {% endblock %}
 
 {% block breadcrumb %}
@@ -264,6 +277,13 @@
                             <div class="chat-meta">
                                 {{ m.createdAt|date('H:i') }}
                                 <span class="chat-jour">{{ m.createdAt|date('d/m/Y') }}</span>
+                                {% if m.expediteur.id == moi.id %}
+                                    {% set etat = etats[m.id ~ ''] ?? null %}
+                                    <span class="chat-coches"
+                                          data-statut="{{ etat ? etat.statut : 'envoye' }}"
+                                          data-lu-par="{{ etat ? etat.lu_par : 0 }}"
+                                          data-total="{{ etat ? etat.total : 1 }}"></span>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -342,6 +362,56 @@
 
     let dernierIso = fil.querySelector('.chat-msg:last-child')?.dataset.iso || '{{ 'now'|date('Y-m-d H:i:s') }}';
     let envoiEnCours = false;
+
+    // ---------- Coches : envoi en cours / envoyé / remis / lu / échec ----------
+    const SVG = {
+        envoi:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>',
+        envoye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg>',
+        double: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 13 6.5 18 15.5 7"/><polyline points="9 15.5 10 16.5 19.5 6"/></svg>',
+        echec:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="7.5" x2="12" y2="13"/><circle cx="12" cy="16.5" r=".6"/></svg>'
+    };
+
+    function coches(el, statut, luPar, total) {
+        if (!el) return;
+        const libelles = {
+            envoi:  'Envoi en cours…',
+            envoye: 'Envoyé (enregistré sur le serveur, pas encore remis)',
+            remis:  'Remis (arrivé chez le destinataire, pas encore lu)',
+            lu:     'Lu',
+            echec:  'Non envoyé'
+        };
+        let titre = libelles[statut] || '';
+        let html = SVG[statut === 'remis' || statut === 'lu' ? 'double' : statut] || SVG.envoye;
+
+        if (statut === 'lu' && total > 1) {
+            titre = 'Lu par ' + luPar + ' sur ' + total;
+            html += '<span class="lu-par">' + luPar + '/' + total + '</span>';
+        }
+        el.className = 'chat-coches st-' + statut;
+        el.dataset.statut = statut;
+        el.dataset.luPar = String(luPar || 0);
+        el.dataset.total = String(total || 1);
+        el.title = titre;
+        el.setAttribute('aria-label', titre);
+        el.innerHTML = html;
+    }
+
+    function rendreCoches(racine) {
+        (racine || fil).querySelectorAll('.chat-coches').forEach(function (el) {
+            coches(el, el.dataset.statut || 'envoye', parseInt(el.dataset.luPar || '0', 10), parseInt(el.dataset.total || '1', 10));
+        });
+    }
+
+    /** Met à jour les coches des messages déjà affichés. */
+    function majStatuts(statuts) {
+        if (!statuts) return;
+        Object.keys(statuts).forEach(function (id) {
+            const ligne = fil.querySelector('[data-id="' + id + '"] .chat-coches');
+            if (!ligne) return;
+            const e = statuts[id];
+            coches(ligne, e.statut, e.lu_par, e.total);
+        });
+    }
 
     function basDePage(force) {
         const proche = fil.scrollHeight - fil.scrollTop - fil.clientHeight < 160;
@@ -424,6 +494,11 @@
         jour.className = 'chat-jour';
         jour.textContent = m.jour || '';
         meta.appendChild(jour);
+        if (m.moi) {
+            const c = document.createElement('span');
+            meta.appendChild(c);
+            coches(c, m.statut || 'envoye', m.lu_par || 0, m.total || 1);
+        }
         bulleEl.appendChild(meta);
 
         wrap.appendChild(bulleEl);
@@ -458,6 +533,7 @@
         .then(function (data) {
             majEtat(true);
             if (data && data.messages) ajouter(data.messages, false);
+            if (data && data.statuts) majStatuts(data.statuts);
         })
         .catch(function () { majEtat(false); });
     }
@@ -482,29 +558,113 @@
         if (bouton) bouton.disabled = v;
     }
 
+    // ---------- Envoi avec suivi : en cours -> envoyé, ou échec avec « Réessayer » ----------
+    function nouvelIdClient() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return 'c' + Date.now().toString(36) + Math.random().toString(16).slice(2);
+    }
+
+    function bulleLocale(resume, idClient) {
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-msg moi local';
+        wrap.dataset.client = idClient;
+
+        const b = document.createElement('div');
+        b.className = 'chat-bulle';
+        const t = document.createElement('div');
+        t.className = 'chat-texte';
+        t.textContent = resume;
+        b.appendChild(t);
+
+        const meta = document.createElement('div');
+        meta.className = 'chat-meta';
+        const c = document.createElement('span');
+        meta.appendChild(c);
+        b.appendChild(meta);
+        wrap.appendChild(b);
+        coches(c, 'envoi', 0, 1);
+        return wrap;
+    }
+
+    function actionsEchec(el, donnees, raison) {
+        el.classList.add('echec');
+        coches(el.querySelector('.chat-coches'), 'echec', 0, 1);
+
+        let zone = el.querySelector('.chat-actions-echec');
+        if (!zone) {
+            zone = document.createElement('div');
+            zone.className = 'chat-actions-echec';
+            el.querySelector('.chat-bulle').appendChild(zone);
+        }
+        zone.innerHTML = '';
+
+        const msg = document.createElement('span');
+        msg.className = 'raison';
+        msg.textContent = raison;
+        zone.appendChild(msg);
+
+        const reessayer = document.createElement('button');
+        reessayer.type = 'button';
+        reessayer.textContent = 'Réessayer';
+        reessayer.addEventListener('click', function () { tenter(el, donnees); });
+        zone.appendChild(reessayer);
+
+        const supprimer = document.createElement('button');
+        supprimer.type = 'button';
+        supprimer.textContent = 'Supprimer';
+        supprimer.addEventListener('click', function () { el.remove(); });
+        zone.appendChild(supprimer);
+    }
+
+    async function tenter(el, donnees) {
+        el.classList.remove('echec');
+        el.querySelector('.chat-actions-echec')?.remove();
+        coches(el.querySelector('.chat-coches'), 'envoi', 0, 1);
+
+        try {
+            const message = await poster(donnees);
+            if (fil.querySelector('[data-id="' + message.id + '"]')) {
+                el.remove();
+            } else {
+                el.replaceWith(bulle(message));
+            }
+            if (!dernierIso || message.iso > dernierIso) dernierIso = message.iso;
+            return true;
+        } catch (err) {
+            const horsLigne = err instanceof TypeError || !navigator.onLine;
+            actionsEchec(el, donnees, horsLigne ? 'Pas de connexion : message non envoyé.' : err.message);
+            return false;
+        }
+    }
+
+    /** Affiche tout de suite le message avec l'horloge, puis l'envoie. */
+    function envoyerSuivi(donnees, resume) {
+        document.getElementById('chatVide')?.remove();
+        const idClient = nouvelIdClient();
+        donnees.set('client_id', idClient);
+        const el = bulleLocale(resume, idClient);
+        fil.appendChild(el);
+        basDePage(true);
+        return tenter(el, donnees);
+    }
+
     // ---------- Envoi d'un texte ----------
     if (form) {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             const texte = input.value.trim();
-            if (texte === '' || envoiEnCours) return;
+            if (texte === '') return;
 
-            occupe(true);
             const donnees = new FormData(form);
             donnees.set('contenu', texte);
 
-            poster(donnees).then(function (message) {
-                input.value = '';
-                input.style.height = 'auto';
-                compteur.textContent = '0 / 2000';
-                compteur.classList.remove('trop');
-                ajouter([message], true);
-            }).catch(function (err) {
-                alert(err.message);
-            }).finally(function () {
-                occupe(false);
-                input.focus();
-            });
+            input.value = '';
+            input.style.height = 'auto';
+            compteur.textContent = '0 / 2000';
+            compteur.classList.remove('trop');
+
+            envoyerSuivi(donnees, texte);
+            input.focus();
         });
 
         input.addEventListener('keydown', function (e) {
@@ -526,16 +686,11 @@
     // ---------- Envoi d'une piece jointe ----------
     const apercu = document.getElementById('chatPjApercu');
 
-    async function envoyerFichier(fichier, type, duree) {
+    function envoyerFichier(fichier, type, duree) {
         if (!form) return;
         if (fichier.size > 15 * 1024 * 1024) {
             alert('Fichier trop volumineux : ' + (fichier.size / 1048576).toFixed(1) + ' Mo. Maximum 15 Mo.');
             return;
-        }
-        occupe(true);
-        if (apercu) {
-            apercu.hidden = false;
-            apercu.textContent = (type === 'audio' ? 'Envoi du message vocal…' : 'Envoi de la photo…');
         }
 
         const donnees = new FormData(form);
@@ -544,17 +699,10 @@
         if (type === 'audio') donnees.set('duree', String(Math.round(duree || 0)));
         donnees.set('fichier', fichier, fichier.name);
 
-        try {
-            const message = await poster(donnees);
-            if (input) { input.value = ''; input.style.height = 'auto'; }
-            if (compteur) compteur.textContent = '0 / 2000';
-            ajouter([message], true);
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            occupe(false);
-            if (apercu) { apercu.hidden = true; apercu.textContent = ''; }
-        }
+        if (input) { input.value = ''; input.style.height = 'auto'; }
+        if (compteur) compteur.textContent = '0 / 2000';
+
+        envoyerSuivi(donnees, type === 'audio' ? '🎤 Message vocal' : '📷 Photo');
     }
 
     const photoBtn = document.getElementById('chatPhotoBtn');
@@ -656,6 +804,7 @@
         shell.classList.add('ouvert');
     }
 
+    rendreCoches(fil);
     basDePage(true);
     setInterval(rafraichir, 4000);
     document.addEventListener('visibilitychange', function () {

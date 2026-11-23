@@ -8,7 +8,8 @@ use App\Entity\User;
 use App\Repository\Chat\LectureChatRepository;
 use App\Repository\Chat\ListeDiffusionRepository;
 use App\Repository\Chat\MessageChatRepository;
-use App\Service\Chat\NotificationPush;
+use App\Service\Chat\AccuseLecture;
+use App\Service\Chat\NotifieurChat;
 use App\Service\Chat\StockageMediasChat;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -45,7 +46,8 @@ final class ApiChatMobileController extends AbstractController
         private readonly LectureChatRepository $lectures,
         private readonly ListeDiffusionRepository $listes,
         private readonly StockageMediasChat $stockage,
-        private readonly NotificationPush $push,
+        private readonly AccuseLecture $accuses,
+        private readonly NotifieurChat $notifieur,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -58,6 +60,9 @@ final class ApiChatMobileController extends AbstractController
     {
         $moi = $this->utilisateurCourant();
         $peutPublier = $this->peutPublierGeneral();
+
+        // L'application vient de recuperer l'apercu des messages recus : ils sont « remis ».
+        $this->messages->marquerRecusPrives($moi);
 
         $canaux = [];
 
@@ -163,18 +168,31 @@ final class ApiChatMobileController extends AbstractController
             };
         }
 
+        // Les messages des autres sont arrives sur cet appareil : « remis ».
+        $this->accuses->marquerRemis($bruts, $moi);
+
+        $canalId = $this->canalCourant($resolu);
+        $etats = $this->etatsRecents($moi, $resolu, $canalId, $bruts);
+
         $donnees = [];
         foreach ($bruts as $message) {
-            $donnees[] = $this->serialiser($message, $moi, $request);
+            $donnees[] = $this->serialiser($message, $moi, $request, $etats[(string) $message->getId()] ?? null);
         }
 
         // Consulter un canal vaut lecture : la pastille se vide.
         $this->marquerLu($moi, $resolu);
 
+        // Etat actuel de mes derniers messages (coches de remise / lecture).
+        $statuts = [];
+        foreach ($etats as $id => $etat) {
+            $statuts[$id] = $etat;
+        }
+
         return new JsonResponse([
             'ok'       => true,
-            'canal'    => $this->canalCourant($resolu),
+            'canal'    => $canalId,
             'messages' => $donnees,
+            'statuts'  => (object) $statuts,
         ]);
     }
 
@@ -243,9 +261,31 @@ final class ApiChatMobileController extends AbstractController
             }
         }
 
+        // Envoi repete apres une coupure reseau : le message est peut-etre deja
+        // enregistre. On le renvoie tel quel, sans creer de doublon.
+        $idClient = trim((string) $request->request->get('client_id', ''));
+        if ($idClient !== '') {
+            $existant = $this->messages->parIdClient($moi, mb_substr($idClient, 0, 64));
+            if ($existant instanceof MessageChat) {
+                $etats = $this->accuses->etats(
+                    [$existant],
+                    $this->canalCourant($resolu),
+                    $resolu['type'],
+                    $this->accuses->totalDestinataires($resolu['type'], $resolu['liste'], $moi)
+                );
+
+                return new JsonResponse([
+                    'ok'      => true,
+                    'doublon' => true,
+                    'message' => $this->serialiser($existant, $moi, $request, $etats[(string) $existant->getId()] ?? null),
+                ]);
+            }
+        }
+
         $message = (new MessageChat())
             ->setExpediteur($moi)
             ->setContenu($contenu)
+            ->setClientId($idClient !== '' ? $idClient : null)
             ->setLu(false);
 
         if ($resolu['type'] === 'prive') {
@@ -271,11 +311,17 @@ final class ApiChatMobileController extends AbstractController
         $this->marquerLu($moi, $resolu);
 
         // Notification push aux destinataires (jamais bloquante).
-        $this->notifier($message, $resolu, $moi);
+        $this->notifieur->notifier($message, $moi);
 
         return new JsonResponse([
             'ok'      => true,
-            'message' => $this->serialiser($message, $moi, $request),
+            'message' => $this->serialiser($message, $moi, $request, [
+                'statut'   => 'envoye',
+                'lu_par'   => 0,
+                'total'    => $this->accuses->totalDestinataires($resolu['type'], $resolu['liste'], $moi),
+                'lu_at'    => null,
+                'remis_at' => null,
+            ]),
         ]);
     }
 
@@ -299,12 +345,46 @@ final class ApiChatMobileController extends AbstractController
     }
 
     // ------------------------------------------------------------------
+    //  Accuse de reception : la notification est arrivee sur le telephone
+    // ------------------------------------------------------------------
+    #[Route('/recu', name: 'api_mobile_chat_recu', methods: ['POST'])]
+    public function recu(Request $request): JsonResponse
+    {
+        $moi = $this->utilisateurCourant();
+        $id = trim((string) $request->request->get('message_id', ''));
+
+        try {
+            $message = $this->messages->find(Uuid::fromString($id));
+        } catch (\Throwable) {
+            return new JsonResponse(['ok' => false, 'erreur' => 'Identifiant de message invalide.'], 422);
+        }
+        if (!$message instanceof MessageChat) {
+            return new JsonResponse(['ok' => true]);
+        }
+
+        // Seul un destinataire reel peut accuser reception.
+        $liste = $message->getListeDiffusion();
+        $prive = $message->getDestinataire();
+        $autorise = match (true) {
+            $liste instanceof ListeDiffusion => $liste->contient($moi) || $this->isGranted('ROLE_ADMIN'),
+            $prive instanceof User           => $prive->getId() === $moi->getId(),
+            default                          => true,
+        };
+        if ($autorise) {
+            $this->accuses->marquerRemis([$message], $moi);
+        }
+
+        return new JsonResponse(['ok' => true]);
+    }
+
+    // ------------------------------------------------------------------
     //  Pastille globale « non lus »
     // ------------------------------------------------------------------
     #[Route('/compteur', name: 'api_mobile_chat_compteur', methods: ['GET'])]
     public function compteur(): JsonResponse
     {
         $moi = $this->utilisateurCourant();
+        $this->messages->marquerRecusPrives($moi);
         $total = $this->messages->totalNonLusPrives($moi) + $this->nonLusGeneral($moi);
 
         foreach ($this->listes->pourUtilisateur($moi, $this->isGranted('ROLE_ADMIN')) as $liste) {
@@ -465,18 +545,27 @@ final class ApiChatMobileController extends AbstractController
         ];
     }
 
-    private function serialiser(MessageChat $message, User $moi, Request $request): array
+    /** @param array<string, mixed>|null $etat etat de remise/lecture (messages que j'ai ecrits) */
+    private function serialiser(MessageChat $message, User $moi, Request $request, ?array $etat = null): array
     {
         $auteur = $message->getExpediteur();
         $nom = $auteur instanceof User ? $this->nomComplet($auteur) : 'Utilisateur';
         $base = $request->getSchemeAndHttpHost();
 
+        $estMoi = $auteur instanceof User && $auteur->getId() === $moi->getId();
+
         return [
             'id'          => (string) $message->getId(),
+            'client_id'   => $message->getClientId(),
+            'statut'      => $estMoi ? ($etat['statut'] ?? 'envoye') : null,
+            'lu_par'      => $estMoi ? (int) ($etat['lu_par'] ?? 0) : null,
+            'total'       => $estMoi ? (int) ($etat['total'] ?? 1) : null,
+            'lu_at'       => $estMoi ? ($etat['lu_at'] ?? null) : null,
+            'remis_at'    => $estMoi ? ($etat['remis_at'] ?? null) : null,
             'contenu'     => (string) $message->getContenu(),
             'auteur'      => $nom,
             'initiales'   => $this->initiales($nom),
-            'moi'         => $auteur === $moi,
+            'moi'         => $estMoi,
             'iso'         => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
             'heure'       => $message->getCreatedAt()?->format('H:i'),
             'jour'        => $message->getCreatedAt()?->format('d/m/Y'),
@@ -500,49 +589,38 @@ final class ApiChatMobileController extends AbstractController
         return $lettres !== '' ? $lettres : '?';
     }
 
-    /** Envoi silencieux des notifications push (ne bloque jamais l'envoi). */
-    private function notifier(MessageChat $message, array $resolu, User $moi): void
+    /**
+     * Etat de remise / lecture de mes derniers messages dans ce canal, plus
+     * celui des messages que l'on vient de charger.
+     *
+     * @param MessageChat[] $charges
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function etatsRecents(User $moi, array $resolu, string $canalId, array $charges): array
     {
-        try {
-            $destinataires = [];
-            if ($resolu['type'] === 'liste') {
-                /** @var ListeDiffusion $liste */
-                $liste = $resolu['liste'];
-                $destinataires = $liste->membresEffectifs();
-            } elseif ($resolu['type'] === 'prive' && $resolu['user'] instanceof User) {
-                $destinataires = [$resolu['user']];
-            } else {
-                $destinataires = $this->em->getRepository(User::class)->findAll();
+        $miens = $this->messages->recentsDe($moi, $resolu['user'], $resolu['liste'], 60);
+        foreach ($charges as $message) {
+            $auteur = $message->getExpediteur();
+            if ($auteur instanceof User && $auteur->getId() === $moi->getId()) {
+                $miens[] = $message;
             }
-
-            $destinataires = array_values(array_filter($destinataires, static function ($u) use ($moi) {
-                return $u instanceof User && $u->getId() !== $moi->getId();
-            }));
-
-            if ($destinataires === []) {
-                return;
-            }
-
-            $apercu = trim((string) $message->getContenu());
-            if ($message->getType() === MessageChat::TYPE_IMAGE && ($apercu === '' || $apercu === 'Photo')) {
-                $apercu = 'vous a envoye une photo';
-            } elseif ($message->getType() === MessageChat::TYPE_AUDIO) {
-                $apercu = 'vous a envoye un message vocal';
-            } else {
-                $apercu = 'vous a ecrit : ' . mb_substr($apercu, 0, 80);
-            }
-
-            $this->push->envoyer(
-                $destinataires,
-                $this->nomComplet($moi),
-                $apercu,
-                [
-                    'canal' => $this->canalCourant($resolu),
-                    'type'  => 'chat',
-                ]
-            );
-        } catch (\Throwable $e) {
-            $this->logger->warning('Chat mobile : notification non envoyee', ['erreur' => $e->getMessage()]);
         }
+        if ($miens === []) {
+            return [];
+        }
+
+        // Dedoublonnage par identifiant.
+        $uniques = [];
+        foreach ($miens as $message) {
+            $uniques[(string) $message->getId()] = $message;
+        }
+
+        return $this->accuses->etats(
+            array_values($uniques),
+            $canalId,
+            $resolu['type'],
+            $this->accuses->totalDestinataires($resolu['type'], $resolu['liste'], $moi)
+        );
     }
 }

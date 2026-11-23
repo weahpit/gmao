@@ -6,6 +6,7 @@ use App\Entity\Chat\ListeDiffusion;
 use App\Entity\Chat\MessageChat;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -216,15 +217,69 @@ class MessageChatRepository extends ServiceEntityRepository
     /** Marque comme lus tous les messages privés reçus d'un utilisateur. */
     public function marquerLusDe(User $moi, User $autre): void
     {
+        $maintenant = new \DateTimeImmutable();
+
         $this->createQueryBuilder('m')
             ->update()
             ->set('m.lu', 'true')
+            ->set('m.luAt', ':maintenant')
+            ->set('m.remisAt', 'COALESCE(m.remisAt, :maintenant)')
             ->andWhere('m.destinataire = :moi')
             ->andWhere('m.expediteur = :autre')
             ->andWhere('m.lu = false')
             ->setParameter('moi', $moi)
             ->setParameter('autre', $autre)
+            ->setParameter('maintenant', $maintenant, Types::DATETIME_IMMUTABLE)
             ->getQuery()
             ->execute();
+    }
+
+    /**
+     * Marque comme « remis » les messages privés adressés à cet utilisateur
+     * dont l'application vient de récupérer l'aperçu (liste des conversations,
+     * pastille) sans que la conversation ait été ouverte.
+     */
+    public function marquerRecusPrives(User $moi): void
+    {
+        $this->createQueryBuilder('m')
+            ->update()
+            ->set('m.remisAt', ':maintenant')
+            ->andWhere('m.destinataire = :moi')
+            ->andWhere('m.remisAt IS NULL')
+            ->setParameter('moi', $moi)
+            ->setParameter('maintenant', new \DateTimeImmutable(), Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->execute();
+    }
+
+    /** Retrouve un message deja enregistre pour cet envoi (evite les doublons). */
+    public function parIdClient(User $expediteur, string $idClient): ?MessageChat
+    {
+        return $this->findOneBy(['expediteur' => $expediteur, 'clientId' => $idClient]);
+    }
+
+    /**
+     * Derniers messages ecrits par cet utilisateur dans un canal (suivi des
+     * accuses de reception et de lecture).
+     *
+     * @return MessageChat[]
+     */
+    public function recentsDe(User $moi, ?User $autre, ?ListeDiffusion $liste, int $limite = 60): array
+    {
+        $qb = $this->createQueryBuilder('m')
+            ->andWhere('m.expediteur = :moi')
+            ->setParameter('moi', $moi)
+            ->orderBy('m.created_at', 'DESC')
+            ->setMaxResults($limite);
+
+        if ($liste !== null) {
+            $qb->andWhere('m.listeDiffusion = :liste')->setParameter('liste', $liste);
+        } elseif ($autre !== null) {
+            $qb->andWhere('m.destinataire = :autre')->setParameter('autre', $autre);
+        } else {
+            $qb->andWhere('m.destinataire IS NULL')->andWhere('m.listeDiffusion IS NULL');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 }

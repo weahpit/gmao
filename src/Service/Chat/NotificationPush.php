@@ -88,6 +88,7 @@ class NotificationPush
                     'data'         => array_map('strval', $donnees),
                     'android'      => [
                         'priority'     => 'high',
+                        'ttl'          => '259200s',
                         'notification' => [
                             'channel_id' => self::CHANNEL_ANDROID,
                             'sound'      => 'default',
@@ -109,16 +110,34 @@ class NotificationPush
                     'timeout' => 10,
                 ]);
 
-                if ($reponse->getStatusCode() === 404 || $reponse->getStatusCode() === 400) {
-                    // Jeton perime ou invalide : on le retire de la base.
+                $statut = $reponse->getStatusCode();
+                if ($statut >= 200 && $statut < 300) {
+                    continue;
+                }
+
+                $corps = (string) $reponse->getContent(false);
+                $erreur = json_decode($corps, true)['error'] ?? [];
+                $code = is_array($erreur) ? (string) ($erreur['status'] ?? '') : '';
+                $details = json_encode($erreur['details'] ?? []);
+
+                // Seul un jeton reellement perime est supprime : un 400 peut aussi
+                // venir d'une charge mal formee, et ne doit pas vider la table.
+                $jetonPerime = $statut === 404
+                    || $code === 'NOT_FOUND'
+                    || str_contains($details, 'UNREGISTERED')
+                    || ($statut === 400 && stripos((string) ($erreur['message'] ?? ''), 'registration token') !== false);
+
+                if ($jetonPerime) {
                     $this->em->remove($appareil);
                     $this->em->flush();
+                } else {
+                    $this->logger->warning('Push FCM : envoi refuse', [
+                        'statut' => $statut,
+                        'corps'  => mb_substr($corps, 0, 400),
+                    ]);
                 }
             } catch (\Throwable $e) {
-                $this->logger->warning('Push FCM : echec pour un appareil', [
-                    'erreur' => $e->getMessage(),
-                    'statut' => method_exists($e, 'getStatusCode') ? null : null,
-                ]);
+                $this->logger->warning('Push FCM : echec pour un appareil', ['erreur' => $e->getMessage()]);
             }
         }
     }

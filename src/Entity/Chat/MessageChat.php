@@ -24,6 +24,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Index(name: 'idx_chat_created', columns: ['created_at'])]
 #[ORM\Index(name: 'idx_chat_destinataire_lu', columns: ['destinataire_id', 'lu'])]
 #[ORM\Index(name: 'idx_chat_liste', columns: ['liste_diffusion_id'])]
+#[ORM\Index(name: 'idx_chat_client', columns: ['client_id'])]
 class MessageChat
 {
     /** Longueur maximale d'un message (caractères). */
@@ -79,6 +80,22 @@ class MessageChat
     /** Duree du vocal en secondes (null pour les autres types). */
     #[ORM\Column(nullable: true)]
     private ?int $duree = null;
+
+    /** Premier acces d'un destinataire au message (il est arrive sur son appareil). */
+    #[ORM\Column(name: 'remis_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $remisAt = null;
+
+    /** Ouverture du message par le destinataire (conversation privee). */
+    #[ORM\Column(name: 'lu_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $luAt = null;
+
+    /**
+     * Identifiant genere par l'application a l'envoi. Il permet de ne pas
+     * creer de doublon quand un envoi est repete apres une coupure reseau
+     * (le serveur avait deja enregistre le message, mais la reponse s'est perdue).
+     */
+    #[ORM\Column(name: 'client_id', length: 64, nullable: true)]
+    private ?string $clientId = null;
 
     /** Liste de diffusion concernee, le cas echeant. */
     #[ORM\ManyToOne(targetEntity: ListeDiffusion::class)]
@@ -225,6 +242,58 @@ class MessageChat
         $this->listeDiffusion = $listeDiffusion;
 
         return $this;
+    }
+
+    public function getRemisAt(): ?\DateTimeImmutable
+    {
+        return $this->remisAt;
+    }
+
+    public function setRemisAt(?\DateTimeImmutable $remisAt): static
+    {
+        $this->remisAt = $remisAt;
+
+        return $this;
+    }
+
+    public function getLuAt(): ?\DateTimeImmutable
+    {
+        return $this->luAt;
+    }
+
+    public function setLuAt(?\DateTimeImmutable $luAt): static
+    {
+        $this->luAt = $luAt;
+
+        return $this;
+    }
+
+    public function getClientId(): ?string
+    {
+        return $this->clientId;
+    }
+
+    public function setClientId(?string $clientId): static
+    {
+        $clientId = $clientId === null ? null : trim($clientId);
+        $this->clientId = ($clientId === null || $clientId === '') ? null : mb_substr($clientId, 0, 64);
+
+        return $this;
+    }
+
+    /**
+     * Etat d'un message PRIVE vu par son expediteur :
+     * `envoye` (enregistre sur le serveur), `remis` (arrive chez le
+     * destinataire) ou `lu` (conversation ouverte).
+     * Pour un canal de groupe, l'etat est calcule par AccuseLecture.
+     */
+    public function statut(): string
+    {
+        if ($this->lu || $this->luAt !== null) {
+            return 'lu';
+        }
+
+        return $this->remisAt !== null ? 'remis' : 'envoye';
     }
 
     /** Le message appartient-il au canal général ? */

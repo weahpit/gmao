@@ -27,6 +27,22 @@ class LectureChatRepository extends ServiceEntityRepository
         return $lecture?->getDernierLuAt();
     }
 
+    /**
+     * Reperes de lecture de tous les utilisateurs sur un canal
+     * (sert a calculer « Lu par 3 / 12 »).
+     *
+     * @return LectureChat[]
+     */
+    public function parCanal(string $canal): array
+    {
+        return $this->createQueryBuilder('l')
+            ->leftJoin('l.utilisateur', 'u')->addSelect('u')
+            ->andWhere('l.canal = :canal')
+            ->setParameter('canal', $canal)
+            ->getQuery()
+            ->getResult();
+    }
+
     /** Enregistre (ou met à jour) le repère de lecture d'un canal. */
     public function marquerLu(User $utilisateur, string $canal, ?\DateTimeImmutable $quand = null): void
     {
