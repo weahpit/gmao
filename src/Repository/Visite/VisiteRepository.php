@@ -33,6 +33,36 @@ class VisiteRepository extends ServiceEntityRepository
             ->leftJoin('service.code_direction', 'direction')
             ->orderBy('v.heureEntree', 'DESC');
 
+        $this->filtrer($qb, $filtres);
+
+        return $qb;
+    }
+
+    /**
+     * Nombre de visites correspondant aux filtres (requete legere, sans
+     * jointure de lecture : evite de compter a travers les alias charges).
+     *
+     * @param array<string, mixed> $filtres
+     */
+    public function compter(array $filtres): int
+    {
+        $qb = $this->createQueryBuilder('v')
+            ->select('COUNT(v.id)')
+            ->leftJoin('v.visiteur', 'visiteur');
+
+        $this->filtrer($qb, $filtres);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Applique les criteres (periode, nom, service, statut). Toutes les cles
+     * sont facultatives : une cle absente est simplement ignoree.
+     *
+     * @param array<string, mixed> $filtres
+     */
+    private function filtrer(QueryBuilder $qb, array $filtres): void
+    {
         $du = trim((string) ($filtres['du'] ?? ''));
         if ($du !== '') {
             $qb->andWhere('v.heureEntree >= :du')
@@ -48,23 +78,22 @@ class VisiteRepository extends ServiceEntityRepository
         $q = trim((string) ($filtres['q'] ?? ''));
         if ($q !== '') {
             $motif = '%' . mb_strtolower($q) . '%';
-            $qb->andWhere('LOWER(visiteur.nom) LIKE :motif OR LOWER(visiteur.prenoms) LIKE :motif'
+            // Parentheses indispensables : sans elles, les OR annulent le filtre de periode et de service.
+            $qb->andWhere('(LOWER(visiteur.nom) LIKE :motif OR LOWER(visiteur.prenoms) LIKE :motif'
                 . ' OR LOWER(visiteur.societe) LIKE :motif OR LOWER(visiteur.numeroPiece) LIKE :motif'
-                . ' OR LOWER(v.personneVisitee) LIKE :motif OR LOWER(v.reference) LIKE :motif')
+                . ' OR LOWER(v.personneVisitee) LIKE :motif OR LOWER(v.reference) LIKE :motif)')
                ->setParameter('motif', $motif);
         }
 
         $service = $filtres['service'] ?? null;
         if ($service instanceof Services) {
-            $qb->andWhere('v.service = :service')->setParameter('service', $service);
+            $qb->andWhere('v.service = :serviceFiltre')->setParameter('serviceFiltre', $service);
         }
 
         $statut = trim((string) ($filtres['statut'] ?? ''));
         if ($statut !== '' && isset(Visite::STATUTS[$statut])) {
             $qb->andWhere('v.statut = :statut')->setParameter('statut', $statut);
         }
-
-        return $qb;
     }
 
     /**

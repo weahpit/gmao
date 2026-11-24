@@ -86,7 +86,6 @@ final class EmployeRhController extends AbstractController
         $this->acces->exigerRh();
 
         $employe = new Employe();
-        $employe->setMatricule($this->references->matricule());
         $employe->setStatut(Employe::STATUT_ACTIF);
         $employe->setDateEmbauche(new \DateTime('today'));
         $donnees = $this->donneesVides();
@@ -116,7 +115,7 @@ final class EmployeRhController extends AbstractController
                     $this->em->persist($affectation);
                     $this->em->flush();
 
-                    $this->addFlash('success', 'L\'employe ' . $employe->getNomComplet() . ' a ete cree avec le matricule ' . $employe->getMatricule() . '.');
+                    $this->addFlash('success', 'L\'employe ' . $employe->getNomComplet() . ' a ete cree' . ($employe->getMatricule() ? ' avec le matricule ' . $employe->getMatricule() : '') . '.');
 
                     return $this->redirectToRoute('rh_employes_fiche', ['id' => $employe->getId()]);
                 }
@@ -521,8 +520,9 @@ final class EmployeRhController extends AbstractController
         $telephone = trim((string) ($donnees['telephone'] ?? ''));
         $codePointage = trim((string) ($donnees['code_pointage'] ?? ''));
 
-        if ($matricule === '') {
-            $erreurs[] = 'Le matricule est obligatoire.';
+        // Le matricule est facultatif : vide = aucun matricule enregistre.
+        if (mb_strlen($matricule) > 20) {
+            $erreurs[] = 'Le matricule ne doit pas depasser 20 caracteres.';
         }
         if ($nom === '') {
             $erreurs[] = 'Le nom est obligatoire.';
@@ -537,7 +537,8 @@ final class EmployeRhController extends AbstractController
             $erreurs[] = 'Le numero de telephone "' . $telephone . '" contient des caracteres inattendus.';
         }
 
-        if ($creation && $matricule !== '' && $this->employes->findOneBy(['matricule' => $matricule]) !== null) {
+        $existant = $matricule !== '' ? $this->employes->findOneBy(['matricule' => $matricule]) : null;
+        if ($existant !== null && $existant !== $employe) {
             $erreurs[] = 'Le matricule ' . $matricule . ' est deja utilise par un autre employe.';
         }
 
@@ -546,7 +547,7 @@ final class EmployeRhController extends AbstractController
         }
 
         $employe
-            ->setMatricule($matricule)
+            ->setMatricule($matricule !== '' ? $matricule : null)
             ->setNom($nom)
             ->setPrenoms($prenoms)
             ->setDateNaissance($this->date($donnees['date_naissance'] ?? ''))

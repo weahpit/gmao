@@ -53,7 +53,8 @@ class Employe
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
-    #[ORM\Column(length: 20, unique: true)]
+    /** Facultatif. Unique lorsqu'il est renseigne (plusieurs employes sans matricule sont permis). */
+    #[ORM\Column(length: 20, unique: true, nullable: true)]
     private ?string $matricule = null;
 
     /** Numero de badge enregistre sur la pointeuse ZKTECO (Badgenumber). */

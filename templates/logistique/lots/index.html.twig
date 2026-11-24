@@ -347,7 +347,7 @@
                                 <input id="date_prod" name="date_prod" type="date" required class="dc-input"
                                        value="{{ valeurs.date_prod }}" {{ peutModifier ? '' : 'readonly' }}>
                             </div>
-
+                            <div class="p-2 dc-form-grid" style="background: #fff6cb;border-radius: 10px;border: 1px solid lightgrey;">
                             <div class="dc-field">
                                 <label class="dc-label" for="pn_th">PN théorique (kg)</label>
                                 <input id="pn_th" name="pn_th" type="number" step="0.001" min="0" class="dc-input"
@@ -377,6 +377,7 @@
                                         <option value="{{ valeurs.qualite }}" selected>{{ valeurs.qualite }}</option>
                                     {% endif %}
                                 </select>
+                            </div>
                             </div>
                         </div>
 
@@ -440,9 +441,11 @@
         </form>
     </div>
 </div>
+    <script src="{{ asset('js/api/Production/Produit.js') }}"></script>
 {% endblock %}
 
 {% block javascripts %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // ---- Proposition automatique des valeurs du produit (PN / PB / sacs) ----
@@ -540,6 +543,9 @@ document.addEventListener('DOMContentLoaded', function () {
             opt.hidden = !visible;
             opt.disabled = !visible;
             if (visible && opt.value === courant) { courantVisible = true; }
+            /*document.getElementById("pn_th").value = opt.getAttribute('data-pn')
+            document.getElementById("pb_th").value = opt.getAttribute('data-pb')
+            document.getElementById("nb_sacs").value = opt.getAttribute('data-sacs')*/
         });
         if (courant && !courantVisible) { selProduit.value = ''; }
         if (typeof apres === 'function') { apres(); }
@@ -623,5 +629,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+
+document.getElementById("produit").addEventListener('change', ()=>{
+    let formData =new FormData()
+    formData.append('id_produit', document.getElementById("produit").value)
+    getSingleProduit(formData)
+        .then(pdt =>{
+            document.getElementById("pn_th").value = pdt.pn_th;
+            document.getElementById("pb_th").value = pdt.pb_th;
+            document.getElementById("nb_sacs").value = pdt.nbSacs;
+        })
+})
 </script>
 {% endblock %}

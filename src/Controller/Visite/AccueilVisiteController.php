@@ -2,6 +2,7 @@
 
 namespace App\Controller\Visite;
 
+use App\Entity\Directions;
 use App\Entity\Services;
 use App\Entity\Visite\Visite;
 use App\Entity\Visite\Visiteur;
@@ -204,6 +205,7 @@ final class AccueilVisiteController extends AbstractController
             'erreurs' => $erreurs,
             'services' => $this->listeServices(),
             'servicesParDirection' => $this->servicesParDirection(),
+            'servicesDirection' => $this->em->getRepository(Directions::class)->findBy([], ['libelle'=>'ASC']),
             'typesPiece' => Visiteur::TYPES_PIECE,
             'motifs' => Visite::MOTIFS,
             'tailleMax' => StockagePieceIdentite::TAILLE_MAX,

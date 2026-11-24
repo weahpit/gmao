@@ -90,8 +90,8 @@ final class ApiProduitController extends AbstractController
                     'id'=>$produit->getId(),
                     'produit'=>$produit->getLibelle(),
                     'proprietaire'=>$produit->getCodeProprio() ? $produit->getCodeProprio()->getDenomination() : "",
-                    'pb_th'=>$produit->getPoidsNetDefault() ? $produit->getPoidsNetDefault() : 0,
-                    'pn_th'=>$produit->getPoidsBrutDefault() ? $produit->getPoidsBrutDefault() : 0,
+                    'pb_th'=>$produit->getPoidsBrutDefault() ? $produit->getPoidsBrutDefault() : 0,
+                    'pn_th'=>$produit->getPoidsNetDefault() ? $produit->getPoidsNetDefault() : 0,
                     'nbSacs'=>$produit->getNbDefault() ? $produit->getNbDefault() : 0,
                     'unite'=>$produit->getUnite() ? $produit->getUnite()->getLibelle() : "",
                 );

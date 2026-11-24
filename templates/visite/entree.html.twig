@@ -100,8 +100,8 @@
                         <label class="form-label small" for="service_id">Service / direction visité</label>
                         <select id="service_id" name="service_id" class="form-select form-select-sm">
                             <option value="">— Choisir —</option>
-                            {% for groupe in servicesParDirection %}
-                                <optgroup label="{{ groupe.direction }}">
+                            {% for groupe in servicesDirection %}
+                                <optgroup label="{{ groupe.libelle }}">
                                     {% for service in groupe.services %}
                                         <option value="{{ service.id }}"
                                             {{ donnees.service_id == (service.id ~ '') ? 'selected' : '' }}>

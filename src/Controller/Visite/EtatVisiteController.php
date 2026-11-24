@@ -44,11 +44,13 @@ final class EtatVisiteController extends AbstractController
             'statut' => $filtres['statut'],
         ]);
 
-        $total = (int) (clone $requete)
-            ->select('COUNT(v.id)')
-            ->resetDQLPart('orderBy')
-            ->getQuery()
-            ->getSingleScalarResult();
+        $total = $this->visites->compter([
+            'du' => $filtres['du'],
+            'au' => $filtres['au'],
+            'q' => $filtres['q'],
+            'service' => $service,
+            'statut' => $filtres['statut'],
+        ]);
 
         $apercu = $requete->setMaxResults(self::LIMITE_APERCU)->getQuery()->getResult();
 
