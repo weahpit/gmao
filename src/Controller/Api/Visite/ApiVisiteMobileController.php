@@ -34,7 +34,8 @@ use Symfony\Component\Routing\Attribute\Route;
 class ApiVisiteMobileController extends AbstractController
 {
     /** Roles autorises a enregistrer / faire sortir (identiques au courrier). */
-    private const ROLES_GESTION = ['ROLE_COURRIER', 'ROLE_ADMIN', 'ROLE_TECHNICIAN', 'ROLE_DG', 'ROLE_PDR'];
+    private const ROLES_GESTION = ['ROLE_COURRIER', 'ROLE_VIGIL', 'ROLE_ADMIN', 'ROLE_TECHNICIAN', 'ROLE_DG', 'ROLE_PDR', 'ROLE_DL', 'ROLE_CHEF_SERVICE'];
+    private const ROLES_CONSULTATION = [...self::ROLES_GESTION, 'ROLE_AQ', 'ROLE_RESP_AQ'];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -48,6 +49,7 @@ class ApiVisiteMobileController extends AbstractController
     #[Route('/referentiel', name: 'api_visite_mobile_referentiel', methods: ['GET'])]
     public function referentiel(): JsonResponse
     {
+        if (!$this->aDroitDeConsulter()) return $this->erreur('Consultation des visites reservee aux personnes habilitees.', 403);
         if (!$this->getUser() instanceof User) {
             return $this->erreur('Non authentifie', 401);
         }
@@ -83,6 +85,7 @@ class ApiVisiteMobileController extends AbstractController
     #[Route('', name: 'api_visite_mobile_liste', methods: ['GET'])]
     public function liste(Request $request): JsonResponse
     {
+        if (!$this->aDroitDeConsulter()) return $this->erreur('Consultation des visites reservee aux personnes habilitees.', 403);
         if (!$this->getUser() instanceof User) {
             return $this->erreur('Non authentifie', 401);
         }
@@ -114,6 +117,7 @@ class ApiVisiteMobileController extends AbstractController
     #[Route('/autocomplete', name: 'api_visite_mobile_autocomplete', methods: ['GET'])]
     public function autocomplete(Request $request): JsonResponse
     {
+        if (!$this->aDroitDeConsulter()) return $this->erreur('Consultation des visites reservee aux personnes habilitees.', 403);
         if (!$this->getUser() instanceof User) {
             return $this->erreur('Non authentifie', 401);
         }
@@ -144,6 +148,7 @@ class ApiVisiteMobileController extends AbstractController
     #[Route('/{id}', name: 'api_visite_mobile_detail', methods: ['GET'], requirements: ['id' => '[0-9a-fA-F-]{36}'])]
     public function detail(string $id): JsonResponse
     {
+        if (!$this->aDroitDeConsulter()) return $this->erreur('Consultation des visites reservee aux personnes habilitees.', 403);
         if (!$this->getUser() instanceof User) {
             return $this->erreur('Non authentifie', 401);
         }
@@ -286,6 +291,12 @@ class ApiVisiteMobileController extends AbstractController
     // ------------------------------------------------------------------
     //  Utilitaires
     // ------------------------------------------------------------------
+    private function aDroitDeConsulter(): bool
+    {
+        foreach (self::ROLES_CONSULTATION as $role) if ($this->isGranted($role)) return true;
+        return false;
+    }
+
     private function aDroitDeGerer(): bool
     {
         foreach (self::ROLES_GESTION as $role) {
@@ -364,6 +375,8 @@ class ApiVisiteMobileController extends AbstractController
             'statutLibelle'      => Visite::STATUTS[$visite->getStatut()] ?? $visite->getStatut(),
             'duree'              => $visite->getDureeLibelle(),
             'pieceRemise'        => $visite->isPieceRemise(),
+            'enqueteSanitaire'   => $visite->getEnqueteSanitaire(),
+            'signature'          => $visite->getSignatureVisiteur() !== null,
         ];
 
         if ($complet) {

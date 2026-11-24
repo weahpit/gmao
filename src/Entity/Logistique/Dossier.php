@@ -21,11 +21,11 @@ class Dossier
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
-    #[ORM\Column(length: 20)]
+    #[ORM\Column(length: 20, unique: true)]
     private ?string $numero_ot = null;
 
     #[ORM\Column]
-    private ?Uuid $tonnage = null;
+    private ?float $tonnage = null;
 
     #[ORM\Column(nullable: true)]
     private ?bool $formule = null;
@@ -34,7 +34,7 @@ class Dossier
     private ?bool $cheque = null;
 
     #[ORM\Column]
-    private ?Uuid $nb_tc = null;
+    private ?int $nb_tc = null;
 
     #[ORM\Column(nullable: true)]
     private ?bool $tc_selectionnne = null;
@@ -206,12 +206,12 @@ class Dossier
         return $this;
     }
 
-    public function getTonnage(): ?Uuid
+    public function getTonnage(): ?float
     {
         return $this->tonnage;
     }
 
-    public function setTonnage(int $tonnage): static
+    public function setTonnage(float $tonnage): static
     {
         $this->tonnage = $tonnage;
 
@@ -242,7 +242,7 @@ class Dossier
         return $this;
     }
 
-    public function getNbTc(): ?Uuid
+    public function getNbTc(): ?int
     {
         return $this->nb_tc;
     }

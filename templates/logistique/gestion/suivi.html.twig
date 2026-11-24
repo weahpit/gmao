@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+{% block title %}Suivi documentaire — {{ dossier.numeroOt }}{% endblock %}
+{% block body %}<link rel="stylesheet" href="{{ asset('css/citrac/operations-logistiques.css') }}">
+<div class="exp-wrap"><h1>Suivi documentaire — OT {{ dossier.numeroOt }}</h1>{% include 'logistique/gestion/_nav.html.twig' %}
+<p>{{ dossier.produit ? dossier.produit.libelle : 'Produit non renseigné' }} / {{ dossier.client ? dossier.client.nomClient : 'Client non renseigné' }} — {{ dossier.tonnage|number_format(3, ',', ' ') }} kg — {{ dossier.nbTc }} TC</p>
+<a class="exp-btn" href="{{ path('logistique_dossier_gestion',{id:dossier.id}) }}">Consulter / modifier le dossier et les formules</a>
+{% if dossier.isCloture %}<div class="alert alert-warning mt-3">Dossier clôturé. Les téléchargements restent disponibles ; rouvrez le dossier pour modifier le suivi.</div>{% endif %}
+<section class="exp-card"><h2>Rapport d’empotage</h2>
+{% if suivi %}<p style="white-space:pre-wrap">{{ suivi.rapportEmpotage|default('Aucune observation renseignée.') }}</p>{% if suivi.fichierRapport %}<a class="exp-btn" href="{{ path('logistique_fichier_rapport',{id:dossier.id}) }}">Télécharger {{ suivi.nomRapport }}</a>{% endif %}
+{% else %}<p>Ce dossier historique ne possède pas encore de rapport dans le nouveau suivi.</p>{% endif %}</section>
+<section class="exp-card"><h2>Pièces exigées, approbations et transmissions</h2>
+{% set charges = 0 %}{% set approuves = 0 %}{% set transmis = 0 %}{% for doc in documents %}{% if doc.filename %}{% set charges = charges + 1 %}{% endif %}{% if doc.statut == 'APPROVE' %}{% set approuves = approuves + 1 %}{% endif %}{% if doc.transmisLe %}{% set transmis = transmis + 1 %}{% endif %}{% endfor %}
+<div class="exp-totals"><span>{{ documents|length }} exigés</span><span>{{ charges }} chargés</span><span>{{ approuves }} approuvés</span><span>{{ transmis }} transmis</span><span>{{ documents|length - transmis }} restant à transmettre</span></div>
+<p class="exp-note">« Marquer transmis » consigne une transmission effectuée en dehors de l’application ; aucun e-mail n’est envoyé automatiquement. Charger une nouvelle version réinitialise l’approbation et la transmission.</p>
+<div class="exp-scroll"><table class="exp-table"><thead><tr><th>Document à transmettre</th><th>Fichier / chargement</th><th>Approbation</th><th>Transmission</th></tr></thead><tbody>
+{% for doc in documents %}<tr><td>{{ doc.libelle }}</td><td>
+{% if doc.filename %}<a href="{{ path('logistique_fichier_document',{id:doc.id}) }}">{{ doc.nomOriginal|default(doc.filename) }}</a>{% else %}<span class="exp-error">À charger</span>{% endif %}
+{% if not dossier.isCloture %}<form method="post" enctype="multipart/form-data"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><input type="hidden" name="action" value="upload"><input type="hidden" name="document" value="{{ doc.id }}"><input type="file" name="fichier" aria-label="Fichier de {{ doc.libelle }}" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" required><button class="exp-btn mt-2">{{ doc.filename ? 'Charger une nouvelle version' : 'Charger' }}</button></form>{% endif %}
+</td><td><span class="exp-status {{ doc.statut }}">{{ statuts[doc.statut]|default(doc.statut) }}</span>
+{% if not dossier.isCloture and not doc.transmisLe %}<form method="post"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><input type="hidden" name="action" value="statut"><input type="hidden" name="document" value="{{ doc.id }}"><select name="statut" aria-label="Statut de {{ doc.libelle }}">{% for code,texte in statuts %}<option value="{{ code }}" {{ doc.statut == code ? 'selected' : '' }}>{{ texte }}</option>{% endfor %}</select><button class="exp-btn mt-2">Enregistrer le statut</button></form>{% endif %}
+</td><td>{% if doc.transmisLe %}<strong>Transmis</strong><br>{{ doc.transmisLe|date('d/m/Y H:i') }}<br><small>{{ doc.transmisPar }}</small>
+{% elseif not dossier.isCloture %}<form method="post"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><input type="hidden" name="action" value="transmettre"><input type="hidden" name="document" value="{{ doc.id }}"><button class="exp-btn" {{ not doc.filename or doc.statut != 'APPROVE' ? 'disabled' : '' }}>Marquer transmis</button></form>{% else %}Non transmis{% endif %}</td></tr>
+{% else %}<tr><td colspan="4">Aucun document suivi pour ce dossier historique. Initialisez sa liste ci-dessous.</td></tr>{% endfor %}</tbody></table></div>
+{% if not dossier.isCloture %}
+{% if documents is empty %}<form method="post"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><input type="hidden" name="action" value="initialiser"><button class="exp-btn exp-btn-primary">Initialiser la liste du produit / client</button></form>{% endif %}
+<form method="post" class="mt-3"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><input type="hidden" name="action" value="ajouter"><div class="exp-field"><label>Exigence complémentaire pour ce dossier<input name="libelle" maxlength="255" placeholder="Libellé du document à fournir" required></label></div><button class="exp-btn mt-2">Ajouter sans supprimer les pièces existantes</button></form>
+{% endif %}</section></div>{% endblock %}

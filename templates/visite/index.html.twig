@@ -16,7 +16,7 @@
             <p class="text-muted mb-0">Entrées, pièces d'identité déposées à la réception, sorties et historique.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ path('app_visites_entree') }}" class="btn btn-sm btn-cacao">+ Enregistrer une entrée</a>
+            {% if is_granted('VISITES_GERER') %}<a href="{{ path('app_visites_entree') }}" class="btn btn-sm btn-cacao">+ Enregistrer une entrée</a>{% endif %}
             <a href="{{ path('app_visites_etat') }}" class="btn btn-sm btn-outline-secondary">État des visites</a>
             <a href="{{ path('app_visites_etat_pdf') }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">État PDF du mois</a>
         </div>
@@ -71,7 +71,7 @@
 
     <div class="p-3 mb-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h2 class="h6 mb-0">Visiteurs présents — à faire sortir</h2>
+            <h2 class="h6 mb-0">Visiteurs présents {% if is_granted('VISITES_GERER') %}— à faire sortir{% else %}— passages en cours{% endif %}</h2>
             <span class="badge" style="background:#7a4c33;">{{ presents|length }}</span>
         </div>
 
@@ -117,7 +117,7 @@
                         <td class="small">{{ visite.heureEntree|date('H:i') }}</td>
                         <td class="small">{{ visite.dureeLibelle }}</td>
                         <td class="text-end">
-                            <a href="{{ path('app_visites_sortie', {id: visite.id}) }}" class="btn btn-sm btn-cacao">Sortie</a>
+                            <a href="{{ path('app_visites_sortie', {id: visite.id}) }}" class="btn btn-sm btn-cacao">{{ is_granted('VISITES_GERER') ? 'Sortie' : 'Consulter' }}</a>
                         </td>
                     </tr>
                 {% else %}

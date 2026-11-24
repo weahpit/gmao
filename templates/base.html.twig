@@ -500,6 +500,8 @@
                     </div>
                 </div>
             </div>
+        {% endif %}
+        {% if is_granted('VISITES_CONSULTER') %}
             {# ----------------------------- VISITES ----------------------------- #}
             <div class="nav-section">
                 <div class="nav-group">
@@ -512,9 +514,9 @@
                         <a href="{{ path('app_visites') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'app_visites' ? 'active' }}">
                             <span class="nav-label">Accueil des visiteurs</span>
                         </a>
-                        <a href="{{ path('app_visites_entree') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'app_visites_entree' ? 'active' }}">
+                        {% if is_granted('VISITES_GERER') %}<a href="{{ path('app_visites_entree') }}" class="nav-subitem {{ app.request.attributes.get('_route') == 'app_visites_entree' ? 'active' }}">
                             <span class="nav-label">Nouvelle entrée</span>
-                        </a>
+                        </a>{% endif %}
                         <a href="{{ path('app_visites_etat') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_visites_etat' ? 'active' }}">
                             <span class="nav-label">État des visites</span>
                         </a>
@@ -594,7 +596,7 @@
             </div>
         {% endif %}
 
-        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_LOGISTIQUE')%}
+        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_LOGISTIQUE') or is_granted('ROLE_LOGISTIQU') or is_granted('ROLE_DL') or is_granted('ROLE_SHIPPING') or is_granted('ROLE_AGENT_SHIPPING') or is_granted('AGENT_SHIPPING') %}
 
             {#*************************************************************************************************
             ************************* LOGISTIQUE *********************************************************
@@ -615,6 +617,12 @@
                         </a>
                         <a href="{{ path('enregistrement_embarquement') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'enregistrement_embarquement' ? 'active' }}">
                             <span class="nav-label">Nouvel embarquement</span>
+                        </a>
+                        <a href="{{ path('logistique_cvs_formules') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'logistique_cvs_formules' ? 'active' }}">
+                            <span class="nav-label">CV et formules</span>
+                        </a>
+                        <a href="{{ path('logistique_modeles_documents') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'logistique_modeles_documents' ? 'active' }}">
+                            <span class="nav-label">Modèles documentaires</span>
                         </a>
                         <span class="nav-section-title">Gestion des lots</span>
                         <a href="{{ path('production_lot') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'production_lot' ? 'active' }}">

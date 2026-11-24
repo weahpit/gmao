@@ -25,10 +25,10 @@ class Tc
     private ?string $numero_tc = null;
 
     #[ORM\Column]
-    private ?int $pn_th = null;
+    private ?float $pn_th = null;
 
     #[ORM\Column(nullable: true)]
-    private ?int $pn_reel = null;
+    private ?float $pn_reel = null;
 
     /**
      * @var Collection<Uuid, Dossier>
@@ -71,24 +71,24 @@ class Tc
         return $this;
     }
 
-    public function getPnTh(): ?int
+    public function getPnTh(): ?float
     {
         return $this->pn_th;
     }
 
-    public function setPnTh(int $pn_th): static
+    public function setPnTh(float $pn_th): static
     {
         $this->pn_th = $pn_th;
 
         return $this;
     }
 
-    public function getPnReel(): ?int
+    public function getPnReel(): ?float
     {
         return $this->pn_reel;
     }
 
-    public function setPnReel(?int $pn_reel): static
+    public function setPnReel(?float $pn_reel): static
     {
         $this->pn_reel = $pn_reel;
 

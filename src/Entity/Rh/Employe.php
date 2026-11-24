@@ -178,7 +178,8 @@ class Employe
 
     public function setMatricule(?string $matricule): static
     {
-        $this->matricule = $matricule;
+        $matricule = $matricule === null ? null : trim($matricule);
+        $this->matricule = $matricule === '' ? null : $matricule;
 
         return $this;
     }

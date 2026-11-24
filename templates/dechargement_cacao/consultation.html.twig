@@ -66,11 +66,22 @@
                 <a href="{{ path('app_dechargements_cacao') }}" class="dc-btn dc-btn-ghost">Réinitialiser</a>
             </form>
 
+            {% if is_granted('ROLE_ADMIN') %}
+                <form id="dc-suppression-masse" method="post" action="{{ path('app_dechargements_cacao_supprimer_selection') }}" class="mb-3">
+                    <input type="hidden" name="_token" value="{{ csrf_token('dechargement_cacao_suppression_masse') }}">
+                    <p class="hint">Cochez plusieurs bons puis vérifiez la sélection avant de confirmer. Les bons liés à des lots sont protégés.</p>
+                    <button type="submit" class="dc-btn dc-btn-primary">Supprimer la sélection…</button>
+                    <button type="button" id="dc-tout-cocher" class="dc-btn dc-btn-ghost">Tout cocher sur cette page</button>
+                    <button type="button" id="dc-tout-decocher" class="dc-btn dc-btn-ghost">Tout décocher</button>
+                    <span id="dc-nb-selection" class="hint" aria-live="polite">0 sélectionné(s)</span>
+                </form>
+            {% endif %}
             <div class="dc-table-wrap">
                 <div class="dc-table-scroll">
                     <table class="dc-table">
                         <thead>
                             <tr>
+                                {% if is_granted('ROLE_ADMIN') %}<th>Sélection</th>{% endif %}
                                 <th>Code</th>
                                 <th>Date</th>
                                 <th>Coopérative</th>
@@ -91,6 +102,9 @@
                         {% for d in items %}
                             {% set ecart = (d.pnp is not null and d.poidsNet is not null) ? (d.pnp - d.poidsNet) : null %}
                             <tr>
+                                {% if is_granted('ROLE_ADMIN') %}
+                                    <td data-label="Sélection"><input type="checkbox" class="dc-selection" name="ids[]" value="{{ d.id }}" form="dc-suppression-masse" aria-label="Sélectionner le bon {{ d.code }}"></td>
+                                {% endif %}
                                 <td data-label="Code" class="code">
                                     <a href="{{ path('stock_tracabilite_dechargement', {id: d.id}) }}" class="dc-code-link" title="Voir les lots fabriqués avec ce camion">{{ d.code }}</a>
                                 </td>
@@ -115,7 +129,7 @@
                                     <td data-label="Actions" class="num">
                                         <div class="dc-row-actions">
                                             <a href="{{ path('app_dechargement_cacao_modifier', {id: d.id}) }}" class="dc-mini-btn">Modifier</a>
-                                            <form method="post" action="{{ path('app_dechargement_cacao_supprimer', {id: d.id}) }}" onsubmit="return confirm('Supprimer définitivement le bon {{ d.code|e('js') }} ?\n\nCette action est irréversible.');">
+                                            <form method="post" action="{{ path('app_dechargement_cacao_supprimer', {id: d.id}) }}" class="dc-suppression-simple" data-bon="{{ d.code }}">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('dechargement_cacao_suppression') }}">
                                                 <button type="submit" class="dc-mini-btn danger">Supprimer</button>
                                             </form>
@@ -124,7 +138,7 @@
                                 {% endif %}
                             </tr>
                         {% else %}
-                            <tr><td colspan="{{ is_granted('ROLE_ADMIN') ? 12 : 11 }}"><div class="dc-empty">
+                            <tr><td colspan="{{ is_granted('ROLE_ADMIN') ? 13 : 11 }}"><div class="dc-empty">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
                                 <div>Aucun déchargement enregistré pour le moment.</div>
                                 <a href="{{ path('app_dechargement_cacao_import') }}" class="dc-btn dc-btn-primary mt-3">Importer un fichier</a>
@@ -152,4 +166,9 @@
         </div>
     </section>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% if is_granted('ROLE_ADMIN') %}<script src="{{ asset('js/citrac/dechargements-selection.js') }}"></script>{% endif %}
 {% endblock %}

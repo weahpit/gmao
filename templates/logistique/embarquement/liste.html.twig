@@ -197,8 +197,10 @@
                                 {% endif %}
                             </td>
                             <td style="text-align:right;">
+                                <a class="dc-mini-btn" href="{{ path('logistique_dossier_gestion', {id:dossier.id}) }}">Gérer</a>
+                                <a class="dc-mini-btn" href="{{ path('logistique_suivi_documents', {id:dossier.id}) }}">Documents</a>
                                 <form method="post" action="{{ path('embarquement_statut', {id: dossier.id}) }}" style="display:inline;"
-                                      onsubmit="return confirm('{{ dossier.isCloture ? 'Rouvrir ce dossier ?' : 'Clôturer définitivement ce dossier ?' }}');">
+                                      >
                                     <input type="hidden" name="_token" value="{{ csrf_token('embarquement_statut_' ~ dossier.id) }}">
                                     <input type="hidden" name="retour" value="{{ app.request.requestUri }}">
                                     <button type="submit" class="dc-mini-btn {{ dossier.isCloture ? '' : 'danger' }}">

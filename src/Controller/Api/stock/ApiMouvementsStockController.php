@@ -28,7 +28,7 @@ use Symfony\Component\Uid\Uuid;
 
 final class ApiMouvementsStockController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em){}
+    public function __construct(private EntityManagerInterface $em, private \App\Service\Documents\OptimiseurDocuments $optimiseurDocuments){}
 
     #[Route('api/saveMvt', name: 'app_api_save_mouvement')]
     public function app_api_save_nature_equipement(Request $request, Functions $functions): Response
@@ -100,6 +100,7 @@ final class ApiMouvementsStockController extends AbstractController
 
                                         $filename = uniqid().'.'.$bon_livraison->guessExtension();
                                         $bon_livraison->move($this->getParameter('bon_livraison'), $filename);
+                                        $this->optimiseurDocuments->optimiser(rtrim((string) $this->getParameter('bon_livraison'), '/\\') . '/' . $filename);
                                         $mvt->setBonLivraison($filename);
                                     }
 
@@ -216,6 +217,7 @@ final class ApiMouvementsStockController extends AbstractController
 
                                         $filename = uniqid().'.'.$bon_livraison->guessExtension();
                                         $bon_livraison->move($this->getParameter('bon_livraison'), $filename);
+                                        $this->optimiseurDocuments->optimiser(rtrim((string) $this->getParameter('bon_livraison'), '/\\') . '/' . $filename);
                                         $mvt->setBonLivraison($filename);
                                     }
 
@@ -627,6 +629,7 @@ final class ApiMouvementsStockController extends AbstractController
                         ),
                         $fileName
                     );
+                    $this->optimiseurDocuments->optimiser(rtrim((string) $this->getParameter('bon_livraison'), '/\\') . '/' . $fileName);
 
                     $mouvement
                         ->setBonLivraison(

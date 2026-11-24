@@ -71,6 +71,9 @@ class DossierEmbarquement extends AbstractController
     #[Route('logistique/embarquements/{id}/statut', name: 'embarquement_statut', methods: ['POST'])]
     public function changerStatut(Request $request, string $id): Response
     {
+        $autorise = false;
+        foreach (['ROLE_ADMIN','ROLE_DG','AGENT_SHIPPING','ROLE_AGENT_SHIPPING','ROLE_LOGISTIQUE','ROLE_LOGISTIQU','ROLE_SHIPPING','ROLE_DL'] as $role) if ($this->isGranted($role)) $autorise = true;
+        if (!$autorise) throw $this->createAccessDeniedException();
         try {
             $dossier = $this->dossiers->find(Uuid::fromString($id));
         } catch (\Throwable) {
@@ -99,20 +102,6 @@ class DossierEmbarquement extends AbstractController
     // ------------------------------------------------------------------
     //  Formulaire de création (page existante)
     // ------------------------------------------------------------------
-    #[Route('logistique/enregistrement-dossier', name: 'enregistrement_embarquement')]
-    public function enregistrements_dossier(ManagerRegistry $registry): Response
-    {
-        return $this->render('logistique/embarquement/index.html.twig',
-            [
-                'produits'      => $registry->getRepository(Produit::class)->findAll(),
-                'clients'       => $registry->getRepository(Client::class)->findAll(),
-                'destinations'  => $registry->getRepository(Destination::class)->findAll(),
-                'navires'       => $registry->getRepository(Navire::class)->findAll(),
-                'proprietaires' => $registry->getRepository(Proprietaire::class)->findAll(),
-            ]
-        );
-    }
-
     /** Nom complet de l'utilisateur connecte, ou chaine vide. */
     private function nomUtilisateur(): string
     {
@@ -132,7 +121,7 @@ class DossierEmbarquement extends AbstractController
     private function redirigerVersListe(Request $request): Response
     {
         $retour = (string) $request->request->get('retour', '');
-        if ($retour !== '' && str_starts_with($retour, '/')) {
+        if ($retour !== '' && str_starts_with($retour, '/logistique/embarquements') && !str_contains($retour, chr(92)) && !str_contains($retour, "\r") && !str_contains($retour, "\n")) {
             return $this->redirect($retour);
         }
 

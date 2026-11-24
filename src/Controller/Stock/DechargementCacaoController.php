@@ -467,6 +467,79 @@ final class DechargementCacaoController extends AbstractController
         return $this->redirectToRoute('app_dechargements_cacao');
     }
 
+    /** Suppression de la selection : apercu puis confirmation, sans effacer les liens de tracabilite. */
+    #[Route('/Dechargements/supprimer-selection', name: 'app_dechargements_cacao_supprimer_selection', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function supprimerSelection(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('dechargement_cacao_suppression_masse', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Action refusee : session expiree. Rechargez la page.');
+            return $this->redirectToRoute('app_dechargements_cacao');
+        }
+        $ids = $request->request->all('ids');
+        if (count($ids) > 100) {
+            $this->addFlash('danger', 'Selectionnez au maximum 100 dechargements par operation.');
+            return $this->redirectToRoute('app_dechargements_cacao');
+        }
+        $selection = [];
+        foreach ($ids as $id) {
+            if (!is_string($id) || !Uuid::isValid($id)) {
+                $this->addFlash('danger', 'Selection invalide : aucun dechargement supprime.');
+                return $this->redirectToRoute('app_dechargements_cacao');
+            }
+            $selection[strtolower($id)] = Uuid::fromString($id);
+        }
+        if ($selection === []) {
+            $this->addFlash('warning', 'Cochez au moins un dechargement.');
+            return $this->redirectToRoute('app_dechargements_cacao');
+        }
+        $items = $this->repo->findBy(['id' => array_values($selection)]);
+        $supprimables = [];
+        $proteges = [];
+        // Controle renouvele lors de la confirmation : jamais de confiance dans l'apercu du navigateur.
+        foreach ($items as $item) {
+            if ($this->liens->compterPourDechargement($item) > 0) {
+                $proteges[] = $item;
+            } else {
+                $supprimables[] = $item;
+            }
+        }
+        $absents = count($selection) - count($items);
+        if ($request->request->get('confirmer') !== 'oui') {
+            return $this->render('dechargement_cacao/suppression_selection.html.twig', [
+                'supprimables' => $supprimables,
+                'proteges' => $proteges,
+                'absents' => $absents,
+                'ids' => array_keys($selection),
+            ]);
+        }
+        if ($supprimables !== []) {
+            $codes = array_map(static fn (DechargementCacao $d): string => (string) $d->getCode(), $supprimables);
+            try {
+                // Une seule transaction : en cas de contrainte FK concurrente, aucune suppression partielle.
+                $this->em->wrapInTransaction(function (EntityManagerInterface $em) use ($supprimables): void {
+                    foreach ($supprimables as $item) {
+                        $em->remove($item);
+                    }
+                });
+                $this->logger->info('Suppression en masse dechargements.', ['bons' => $codes, 'utilisateur' => $this->identiteUtilisateur()]);
+                $this->addFlash('success', count($supprimables) . ' dechargement(s) supprime(s).');
+            } catch (\Throwable $e) {
+                $this->logger->error('Suppression en masse dechargements : echec.', ['erreur' => $e->getMessage()]);
+                $this->addFlash('danger', 'Aucune suppression validee : un bon est peut-etre utilise depuis la confirmation. Consultez le journal du serveur.');
+                return $this->redirectToRoute('app_dechargements_cacao');
+            }
+        }
+        if ($proteges !== []) {
+            $codes = array_map(static fn (DechargementCacao $d): string => (string) $d->getCode(), $proteges);
+            $this->addFlash('warning', count($proteges) . ' bon(s) conserve(s), deja rattache(s) a des lots : ' . implode(', ', $codes) . '. Retirez d’abord les associations dans la tracabilite.');
+        }
+        if ($absents > 0) {
+            $this->addFlash('warning', $absents . ' bon(s) deja absent(s) de la base.');
+        }
+        return $this->redirectToRoute('app_dechargements_cacao');
+    }
+
     /* ------------------------------------------------------------------
      * Outils
      * ------------------------------------------------------------------ */

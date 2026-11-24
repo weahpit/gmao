@@ -16,7 +16,7 @@ use Symfony\Component\Uid\Uuid;
 
 final class ApiCvController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em){}
+    public function __construct(private EntityManagerInterface $em, private \App\Service\Logistique\ReglesCvs $regles){}
 
     #[Route('api/getAllCvsDeblocage', name: 'app_api_get_cv_deblocage')]
     public function index(): Response
@@ -78,9 +78,10 @@ final class ApiCvController extends AbstractController
             return new JsonResponse(json_encode($reponse));
         }
 
-    #[Route('api/saveCvDeblocage', name: 'app_api_save_cv_deblocage')]
+    #[Route('api/saveCvDeblocage', name: 'app_api_save_cv_deblocage', methods: ['POST'])]
     public function app_api_save_cv_deblocage(Request $request): Response
     {
+        if (!$this->isCsrfTokenValid('operations_logistiques', (string) $request->request->get('_token'))) return new JsonResponse(['code'=>'warning', 'msg'=>'Rechargez la page de gestion CV et formules.'], 403);
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_DG") or $this->isGranted("AGENT_SHIPPING")) {
@@ -93,18 +94,11 @@ final class ApiCvController extends AbstractController
                 if (!$numero_cv || !$tonnage || !$proprio) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir le numéro de contrat, le tonnage en Kg  et sélectionner le propriétaire!'];
                 } else {
-                        $cv = new CvDeblocage();
-
-                    $cv->setNumeroCv(strtoupper($numero_cv));
-                    $cv->setPoids(floatval(str_replace(' ', '', $tonnage)));
-                    $cv->setCodeProprietaire($proprio);
-
-                    $this->em->persist($cv);
-                    $this->em->flush();
+                    $cv = $this->regles->creerDeblocage((string) $numero_cv, $tonnage, $proprio);
 
                     $reponse = [
                         'code' => 'success',
-                        'msg' =>'CV Déblocage créé avec succès !'
+                        'msg' =>'Contrat créé avec succès !'
                     ];
                 }
             } catch (\Throwable $throwable) {
@@ -136,7 +130,7 @@ final class ApiCvController extends AbstractController
                 foreach ($cvs as $cv){
                     $data[] = array(
                         'id'=>$cv->getId(),
-                        'contrat'=>$cv->getNumeroCv(),
+                        'contrat'=>$cv->getNumeroCvExecution(),
                         'cv_deb'=>$cv->getCodeCvDeblocage() ? $cv->getCodeCvDeblocage()->getNumeroCv() : "",
                         'tonnage'=>$cv->getPoids()
                     );
@@ -186,9 +180,10 @@ final class ApiCvController extends AbstractController
         return new JsonResponse(json_encode($reponse));
     }
 
-    #[Route('api/saveCvExecution', name: 'app_api_save_cv_execution')]
+    #[Route('api/saveCvExecution', name: 'app_api_save_cv_execution', methods: ['POST'])]
     public function app_api_save_cv_execution(Request $request): Response
     {
+        if (!$this->isCsrfTokenValid('operations_logistiques', (string) $request->request->get('_token'))) return new JsonResponse(['code'=>'warning', 'msg'=>'Rechargez la page de gestion CV et formules.'], 403);
         $reponse = [];
         if (!$this->getUser()){return $this->redirectToRoute("app_login");}
         if ($this->isGranted("ROLE_ADMIN") or $this->isGranted("ROLE_DG") or $this->isGranted("AGENT_SHIPPING")) {
@@ -200,17 +195,11 @@ final class ApiCvController extends AbstractController
                 if (!$numero_cv ||!$cvDeb) {
                     $reponse = ['code' => 'warning', 'msg' => 'Merci de saisir le numéro de contrat d\'exécution, le tonnage en Kg  et sélectionner le CV Déblocage!'];
                 } else {
-                    $cv = new CvExecution();
-
-                    $cv->setNumeroCvExecution(strtoupper($numero_cv));
-                    $cv->setCodeCvDeblocage($cvDeb);
-
-                    $this->em->persist($cv);
-                    $this->em->flush();
+                    $cv = $this->regles->creerExecution($cvDeb, (string) $numero_cv, $request->request->get('tonnage'));
 
                     $reponse = [
                         'code' => 'success',
-                        'msg' =>'CV Déblocage créé avec succès !'
+                        'msg' =>'Contrat créé avec succès !'
                     ];
                 }
             } catch (\Throwable $throwable) {

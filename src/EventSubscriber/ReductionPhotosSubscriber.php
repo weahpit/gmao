@@ -50,7 +50,11 @@ final class ReductionPhotosSubscriber implements EventSubscriberInterface
     private function parcourir(array $entree): array
     {
         foreach ($entree as $cle => $valeur) {
-            if (is_array($valeur)) {
+            // FileBag::replace() refuse null : un champ fichier facultatif vide
+            // est converti en null par Symfony (UPLOAD_ERR_NO_FILE).
+            if ($valeur === null) {
+                unset($entree[$cle]);
+            } elseif (is_array($valeur)) {
                 $entree[$cle] = $this->parcourir($valeur);
             } elseif ($valeur instanceof UploadedFile) {
                 $entree[$cle] = $this->traiter($valeur);

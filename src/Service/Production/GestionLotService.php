@@ -49,6 +49,7 @@ final class GestionLotService
         $lot ??= new Lot();
 
         $erreurs = [];
+        if (!$creation && !$lot->getCodeDossier()->isEmpty()) $erreurs[] = 'Lot deja rattache a un dossier d’embarquement : ses donnees de production doivent etre rapprochees avant toute modification.';
 
         $numero = mb_strtoupper(trim((string) ($donnees['numero_lot'] ?? '')));
         $proprio = $donnees['proprietaire'] ?? null;
@@ -213,6 +214,7 @@ final class GestionLotService
     {
         $erreurs = [];
 
+        if (!$lot->getCodeDossier()->isEmpty()) $erreurs[] = 'Lot deja rattache a un dossier d’embarquement : scission bloquee pour conserver les poids reserves.';
         $pn = (float) ($lot->getPnTh() ?? 0);
         $poidsNc = round($poidsNc, 3);
 
@@ -305,6 +307,7 @@ final class GestionLotService
      */
     public function supprimer(Lot $lot): array
     {
+        if (!$lot->getCodeDossier()->isEmpty()) return ['ok'=>false, 'message'=>'Lot rattache a un dossier d’embarquement : suppression interdite.'];
         if ($this->liens->compterParLot($lot) > 0) {
             return ['ok' => false, 'message' => 'Ce lot est rattaché à un ou plusieurs camions : retirez-le de l\'ordre d\'usinage avant de le supprimer.'];
         }

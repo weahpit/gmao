@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+{% block title %}Confirmer la suppression des déchargements{% endblock %}
+{% block body %}
+<div class="container py-4">
+    <h1 class="h4">Vérifier la suppression des déchargements</h1>
+    <div class="alert alert-danger">Cette suppression est définitive. Seuls les bons non rattachés à des lots seront supprimés.</div>
+    <h2 class="h5">{{ supprimables|length }} bon(s) à supprimer</h2>
+    <div class="table-responsive">
+        <table class="table table-sm">
+            <thead><tr><th>Code</th><th>Coopérative</th><th>Déchargé le</th><th>Poids net (kg)</th></tr></thead>
+            <tbody>
+            {% for d in supprimables %}
+                <tr><td>{{ d.code }}</td><td>{{ d.cooperative ?: '—' }}</td><td>{{ d.dateDechargement ? d.dateDechargement|date('d/m/Y') : '—' }}</td><td>{{ d.poidsNet|number_format(2, ',', ' ') }}</td></tr>
+            {% else %}<tr><td colspan="4">Aucun bon supprimable dans cette sélection.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if proteges|length %}
+        <div class="alert alert-warning"><strong>{{ proteges|length }} bon(s) protégé(s), conservé(s) :</strong>
+            <ul>{% for d in proteges %}<li>{{ d.code }} — déjà rattaché à un lot.</li>{% endfor %}</ul>
+            Retirez les associations depuis la traçabilité du lot si leur suppression est réellement nécessaire.
+        </div>
+    {% endif %}
+    {% if absents > 0 %}<p>{{ absents }} bon(s) déjà absent(s) de la base.</p>{% endif %}
+    <form method="post" action="{{ path('app_dechargements_cacao_supprimer_selection') }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('dechargement_cacao_suppression_masse') }}">
+        <input type="hidden" name="confirmer" value="oui">
+        {% for id in ids %}<input type="hidden" name="ids[]" value="{{ id }}">{% endfor %}
+        {% if supprimables|length %}<button type="submit" class="btn btn-danger">Confirmer la suppression de {{ supprimables|length }} bon(s)</button>{% endif %}
+        <a href="{{ path('app_dechargements_cacao') }}" class="btn btn-secondary">Annuler / revenir à la liste</a>
+    </form>
+</div>
+{% endblock %}

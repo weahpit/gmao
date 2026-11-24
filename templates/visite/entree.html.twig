@@ -137,6 +137,30 @@
                     </div>
                 </div>
 
+                <fieldset class="mb-3 p-3 border rounded">
+                    <legend class="h6">Enquête sanitaire du visiteur</legend>
+                    <p class="small mb-2">Le visiteur présente-t-il les symptômes suivants ? Cochez OUI ou NON pour chaque ligne.</p>
+                    <p class="small text-muted">Déclaration du visiteur, sans diagnostic médical. Ces intitulés reprennent votre questionnaire ; plusieurs désignent des maladies, et non des symptômes. Les réponses ne provoquent aucun refus automatique d’accès.</p>
+                    {% for cle,libelle in questionsSanitaires %}
+                    <fieldset class="row g-2 align-items-center border-bottom py-2">
+                        <legend class="col-12 col-sm-7 small fw-semibold mb-0">{{ libelle }}</legend>
+                        <div class="col-12 col-sm-5 d-flex gap-3">
+                        {% for valeur in ['OUI','NON'] %}
+                            <label class="form-check-label" for="enquete_{{ cle }}_{{ valeur }}"><input class="form-check-input me-1" id="enquete_{{ cle }}_{{ valeur }}" type="radio" name="enquete[{{ cle }}]" value="{{ valeur }}" required {{ enquete[cle]|default('') == valeur ? 'checked' : '' }}>{{ valeur }}</label>
+                        {% endfor %}
+                        </div>
+                    </fieldset>
+                    {% endfor %}
+                </fieldset>
+                <section class="mb-3 p-3 border rounded" aria-labelledby="visiteur-signature-titre">
+                    <h2 id="visiteur-signature-titre" class="h6">Signature du visiteur</h2>
+                    <p class="small text-muted" id="visiteur-signature-aide">Signez avec la souris, le doigt ou un stylet. Signature manuscrite facultative, enregistrée avec ce passage ; ce n’est pas une signature électronique certifiée.</p>
+                    <canvas id="visiteur-signature" width="900" height="240" aria-label="Zone de signature manuscrite du visiteur" aria-describedby="visiteur-signature-aide" tabindex="0" style="display:block;width:100%;height:200px;border:1px solid #cbb6a4;border-radius:8px;background:#fff;touch-action:none;"></canvas>
+                    <input type="hidden" name="signature_visiteur" id="visiteur-signature-valeur" value="{{ signature|default('') }}">
+                    <div class="d-flex gap-2 mt-2"><button type="button" id="visiteur-signature-effacer" class="btn btn-sm btn-outline-secondary">Effacer la signature</button><button type="button" id="visiteur-signature-annuler" class="btn btn-sm btn-outline-secondary">Annuler le dernier trait</button></div>
+                    <p id="visiteur-signature-message" class="small text-muted mt-1" role="status"></p>
+                </section>
+
                 <h2 class="h6 mb-2">Pièce d'identité déposée <span style="color:#a33;">*</span></h2>
                 <div class="row g-2 mb-3">
                     <div class="col-12">
@@ -184,6 +208,7 @@
 {% endblock %}
 
 {% block javascripts %}
+<script src="{{ asset('js/citrac/visiteur-signature.js') }}" defer></script>
 <script>
 (function () {
     const champ = document.getElementById('recherche-visiteur');

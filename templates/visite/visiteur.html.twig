@@ -17,7 +17,7 @@
             <p class="text-muted mb-0">{{ visiteur.pieceComplete }}{% if visiteur.societe %} · {{ visiteur.societe }}{% endif %}</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ path('app_visites_entree', {visiteur: visiteur.id}) }}" class="btn btn-sm btn-cacao">Nouvelle visite</a>
+            {% if is_granted('VISITES_GERER') %}<a href="{{ path('app_visites_entree', {visiteur: visiteur.id}) }}" class="btn btn-sm btn-cacao">Nouvelle visite</a>{% endif %}
             <a href="{{ path('app_visites') }}" class="btn btn-sm btn-outline-secondary">Retour</a>
         </div>
     </div>
@@ -29,7 +29,7 @@
                 <div class="small">
                     {{ passage.reference }} · entrée à {{ passage.heureEntree|date('H:i') }} · {{ passage.serviceLibelle }}
                     · présent depuis {{ passage.dureeLibelle }}
-                    <a href="{{ path('app_visites_sortie', {id: passage.id}) }}" class="ms-1">Enregistrer la sortie</a>
+                    <a href="{{ path('app_visites_sortie', {id: passage.id}) }}" class="ms-1">{{ is_granted('VISITES_GERER') ? 'Enregistrer la sortie' : 'Consulter le passage' }}</a>
                 </div>
             {% endfor %}
         </div>
@@ -112,6 +112,7 @@
                                             {% else %}—{% endif %}
                                         </td>
                                     </tr>
+                                    <tr><td colspan="8">{% include 'visite/_enquete_consultation.html.twig' with {visite: passage} %}</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>

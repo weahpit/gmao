@@ -30,6 +30,7 @@ final class ServicesLogistique extends  AbstractController
 {public function __construct(
     private ManagerRegistry $em,
     private EmbarquementManager $embarquements,
+    private \App\Service\Documents\OptimiseurDocuments $optimiseurDocuments,
 )
 {
 }
@@ -63,7 +64,7 @@ final class ServicesLogistique extends  AbstractController
     }
 
     #[Route('/api/getListDocsByOT/{id_dossier}', name: 'app_api_listDocsByOT')]
-    public function getListDocsByOT(int $id_dossier, ManagerRegistry $registry): Response
+    public function getListDocsByOT(string $id_dossier, ManagerRegistry $registry): Response
     {
         $data = array();
         $reponse = array();
@@ -154,7 +155,7 @@ final class ServicesLogistique extends  AbstractController
     }
 
     #[Route('/api/getDocs/NotInModeleDoc/{code_modele}', name: 'app_api_get_docs_not_in_modele_doc')]
-    public function getDocsNotInModel(int $code_modele, ManagerRegistry $registry): Response
+    public function getDocsNotInModel(string $code_modele, ManagerRegistry $registry): Response
     {
         $reponse = array();
         $modele = $registry->getRepository(ModeleDoc::class)->find($code_modele);
@@ -177,7 +178,7 @@ final class ServicesLogistique extends  AbstractController
     }
 
     #[Route('/api/getProduits/getProduitsByProprio/{id_proprio}', name: 'app_api_get_produits_by_proprio')]
-    public function getProduitsByProprio(int $id_proprio, ManagerRegistry $registry): Response
+    public function getProduitsByProprio(string $id_proprio, ManagerRegistry $registry): Response
     {
         $reponse = array();
         $proprio = $registry->getRepository(Proprietaire::class)->find($id_proprio);
@@ -224,7 +225,7 @@ final class ServicesLogistique extends  AbstractController
 
 
     #[Route('/api/getLotsProduit/{id_pdt}', name: 'app_api_get_lots_pdt')]
-    public function getLotsProduits(ManagerRegistry $registry, int $id_pdt): Response
+    public function getLotsProduits(ManagerRegistry $registry, string $id_pdt): Response
     {
         $reponse = array();
         $produit= $registry->getRepository(Produit::class)->find($id_pdt);
@@ -243,7 +244,7 @@ final class ServicesLogistique extends  AbstractController
         return new JsonResponse(json_encode($reponse));
     }
     #[Route('/api/getInfosLot/{id_lot}', name: 'app_api_get_lots_infos')]
-    public function getLotInfos(ManagerRegistry $registry, int $id_lot): Response
+    public function getLotInfos(ManagerRegistry $registry, string $id_lot): Response
     {
         $reponse = array();
         $lot= $registry->getRepository(Lot::class)->find($id_lot);
@@ -324,7 +325,7 @@ final class ServicesLogistique extends  AbstractController
     }
 
     #[Route('/api/getLotInfos/{id_lot}', name: 'getInfosLot')]
-    public function getInfosLot(ManagerRegistry $registry, int $id_lot): Response
+    public function getInfosLot(ManagerRegistry $registry, string $id_lot): Response
     {
         $reponse = array();
         $lot = $registry->getRepository(Lot::class)->find($id_lot);
@@ -351,63 +352,7 @@ final class ServicesLogistique extends  AbstractController
     #[Route('/api/scinderLot/{data}', name: 'getScission')]
     public function getScission(ManagerRegistry $registry, string $data): Response
     {
-        $reponse = array();
-        $array_data = array();
-        try {
-            $array_data = json_decode($data);
-            $lot = $registry->getRepository(Lot::class)->find($array_data->id_lot);
-            if($lot){
-                if ((int) $array_data->pn_th > $lot->getPnTh() or (int) $array_data->pn_th <= 0) {
-                    $reponse = array(
-                        'code'=>2,
-                        'msg'=>'Merci de renseigner un Poids Net Correct !'
-                    );
-                } else {
-                    //Création du lolt NC
-                    $lot_nc = new Lot();
-                    $lot_nc->setScission(true);
-                    $lot_nc->setQualite("NC");
-                    $lot_nc->setPnTh((int) $array_data->pn_th);
-                    $lot_nc->setPoidsNetDispo((int) $array_data->pn_th);
-                    $lot_nc->setNumeroLot($lot->getNumeroLot()."-2");
-                    $lot_nc->setUpdatedAt(new \DateTimeImmutable());
-                    $lot_nc->setCreatedAt(new \DateTimeImmutable());
-                    $lot_nc->setUpdatedBy($this->getUser());
-                    $lot_nc->setCreatedBy($this->getUser());
-                    $lot_nc->setCodeMagasin($registry->getRepository(Magasin::class)->findOneBy(['libelle'=>'MAGASIN NON CONFORME']));
-                    $lot_nc->setCodeProduit($lot->getCodeProduit());
-                    $lot_nc->setCodeProprio($lot->getCodeProprio());
-                    $lot_nc->setDateProd($lot->getDateProd());
-                    $registry->getManager()->persist($lot_nc);
-
-                    // Mise à jour du lot principal
-                    $lot->setScission(true);
-                    $lot->setQualite("C");
-                    $lot->setPnTh($lot->getPnTh() - (int) $array_data->pn_th);
-                    $lot->setPoidsNetDispo($lot->getPnTh());
-                    $lot->setNumeroLot($lot->getNumeroLot()."-1");
-                    $lot->setUpdatedAt(new \DateTimeImmutable());
-                    $lot->setUpdatedBy($this->getUser());
-                    $registry->getManager()->persist($lot);
-                    $registry->getManager()->flush();
-                    $reponse = array(
-                        'code'=>1,
-                        'msg'=>'Scission effectuée avec succès'
-                    );
-                }
-            } else {
-                $reponse = array(
-                    'code'=>0,
-                    'msg'=>'Erreur lors de la scission !'
-                );
-            }
-        } catch (\Throwable $throwable){
-            $reponse = array(
-                'code'=>0,
-                'msg'=>$throwable->getMessage()
-            );
-        }
-        return new JsonResponse(json_encode($reponse));
+        return new JsonResponse(['code'=>'warning', 'msg'=>'Utilisez la scission controlee dans Production de lots.'], 409);
     }
 
     #[Route('/api/getListLots', name: 'app_api_get_lots')]
@@ -482,20 +427,7 @@ final class ServicesLogistique extends  AbstractController
     #[Route('api/addDossier/{data}', name: 'app_api_add_dossier')]
     public function addDossier(string $data, ManagerRegistry $registry): Response
     {
-        // Toute la logique (lecture des donnees, controle des references,
-        // unicite du numero d'OT, creation) est dans EmbarquementManager.
-        // Ici on ne fait que transmettre et generer les documents du dossier.
-        $donnees = json_decode($data, true);
-        $resultat = $this->embarquements->ouvrir(is_array($donnees) ? $donnees : [], $this->auteurCourant());
-
-        if (($resultat['code'] ?? '') === 'SUCCESS' && ($resultat['dossier'] ?? null) instanceof Dossier) {
-            $this->generateDossierDocs($resultat['dossier']);
-        }
-
-        // L'entite n'a pas sa place dans la reponse JSON.
-        unset($resultat['dossier']);
-
-        return new JsonResponse(json_encode($resultat));
+        return new JsonResponse(['code'=>'warning', 'msg'=>'Cette ancienne action est desactivee. Utilisez la gestion du dossier et son suivi documentaire.'], 409);
     }
 
     /** Nom de l'utilisateur connecte (ou « Admin » par defaut). */
@@ -515,169 +447,18 @@ final class ServicesLogistique extends  AbstractController
     #[Route('api/editSingleDossier/{data}', name: 'app_api_edit_dossier')]
     public function editDossier(string $data, ManagerRegistry $registry, Request $request): Response
     {
-        $reponse = array();
-        try {
-            $array_data = json_decode($data);
-            if ($array_data){
-                // Recherche du dossier
-
-                $ot = $registry->getRepository(Dossier::class)->find((int) $array_data->id_dossier);
-                if (!$ot){
-                    $reponse = array('code'=>"EXECPTION",  'msg'=>'OT non trouvé en base', 'value'=>0);
-                } else {
-
-                    $proprio = $registry->getRepository(Proprietaire::class)->find((int) $array_data->proprio);
-                    $pdt = $registry->getRepository(Produit::class)->find((int) $array_data->pdt);
-                    $clt = $registry->getRepository(Client::class)->find((int) $array_data->clt);
-                    $dest = $registry->getRepository(Destination::class)->find((int) $array_data->dest);
-                    $navire = $registry->getRepository(Navire::class)->find((int) $array_data->navire);
-                    $draft = $registry->getRepository(Approbation::class)->find((int) $array_data->draft);
-                    $pl = $registry->getRepository(Approbation::class)->find((int) $array_data->pl);
-                    $cert_poids = $registry->getRepository(Approbation::class)->find((int) $array_data->cert_poids);
-                    $co = $registry->getRepository(Approbation::class)->find((int) $array_data->co);
-                    $coa = $registry->getRepository(Approbation::class)->find((int) $array_data->coa);
-                    $conformite = $registry->getRepository(Approbation::class)->find((int) $array_data->conformite);
-                    $hygienne = $registry->getRepository(Approbation::class)->find((int) $array_data->hygienne);
-                    $cert_phyto = $registry->getRepository(Approbation::class)->find((int) $array_data->cert_phyto);
-                    $cert_fumigation = $registry->getRepository(Approbation::class)->find((int) $array_data->cert_fumigation);
-                    $halal = $registry->getRepository(Approbation::class)->find((int) $array_data->halal);
-
-                    $cv_exe = $array_data->cv_exe;
-                    $cv_deb = $array_data->cv_deb;
-                    $ville = $array_data->ville;
-
-                    if ((int) $array_data->formule == 0){ $formule = false;} else { $formule = true;}
-                    if ((int) $array_data->cheque == 0){ $cheque = false;} else { $cheque = true;}
-                    if ((int) $array_data->etiquette == 0){ $etiquette = false;} else { $etiquette = true;}
-                    if ((int) $array_data->fumigue == 0){ $fumigue = false;} else { $fumigue = true;}
-
-                    $eta = new \DateTime($array_data->eta);
-                    $date_emb = new \DateTime($array_data->date_emb );
-                    $date_emp = new \DateTime($array_data->date_emp);
-                    $date_relev = new \DateTime($array_data->date_relev);
-                    $remise= new \DateTime($array_data->remise);
-
-                    $tonnage = (int) $array_data->tonnage;
-                    $nb_tc =(int) $array_data->nb_tc;
-                    $poids_vgm =(float)  $array_data->poids_vgm;
-                    $poids_reel = (float) $array_data->poids_reel;
-
-                    // Vérification des valeurs obligatoires
-                    if (!$proprio) { $reponse = array("EXECPTION",  'msg'=>'Merci de sélectionner le propriétaire !', 'value'=>2); return new JsonResponse(json_encode($reponse));}
-                    if (!$pdt) { $reponse = array("EXECPTION",  'msg'=>'Merci de sélectionner le produit !', 'value'=>2); return new JsonResponse(json_encode($reponse));}
-                    if (!$clt) { $reponse = array("EXECPTION",  'msg'=>'Merci de sélectionner le client !', 'value'=>2); return new JsonResponse(json_encode($reponse));}
-                    if (!$dest) { $reponse = array("EXECPTION",  'msg'=>'Merci de sélectionner le pays de destination!', 'value'=>2); return new JsonResponse(json_encode($reponse));}
-                    if (!$cv_deb) { $reponse = array("EXECPTION",  'msg'=>'Merci de renseigner la CV de déblocage!', 'value'=>2); return new JsonResponse(json_encode($reponse));}
-                    if (!$cv_exe) { $reponse = array("EXECPTION",  'msg'=>'Merci de renseigner la CV d\'exécution!', 'value'=>2); return new JsonResponse(json_encode($reponse));}
-
-                    // Ajout des valeurs en base
-                    $ot->setNbTc($nb_tc);
-                    $ot->setTonnage($tonnage);
-                    $ot->setUpdatedAt(new \DateTimeImmutable());
-                    $ot->setAdresse(strtoupper($ville));
-
-                    $ot->setCertificatConformite($conformite ? $conformite->getId() : null);
-                    $ot->setCertificatFumigation($cert_fumigation ? $cert_fumigation ->getId() : null);
-                    $ot->setCertificatHalah($halal ? $halal->getId() : null);
-                    $ot->setCertificatHygienne($hygienne ? $hygienne->getId() : null);
-                    $ot->setCertificatPhyto($cert_phyto ? $cert_phyto->getId() : null);
-                    $ot->setCertificatPoids($cert_poids ? $cert_poids->getId() : null);
-                    $ot->setCheque($cheque);
-                    $ot->setClient($clt);
-                    $ot->setProduit($pdt);
-                    $ot->setCo($co ? $co->getId() : null);
-                    $ot->setCoa($coa ? $coa->getId() : null);
-                    $ot->setCodeNavire($navire);
-                    $ot->setCvDeblocage(strtoupper($cv_deb));
-                    $ot->setCvExecution(strtoupper($cv_exe));
-                    $ot->setDateEmbarquement($date_emb);
-                    $ot->setDestination($dest);
-                    $ot->setDateEmpotage($date_emp);
-                    $ot->setDateRelevage($date_relev);
-                    $ot->setDraft($draft ? $draft->getId() : null);
-                    $ot->setEta($eta);
-                    $ot->setEtiquette($etiquette);
-                    $ot->setCheque($cheque);
-                    $ot->setFormule($formule);
-                    $ot->setPoidsVgm($poids_vgm);
-                    $ot->setPackingList($pl ? $pl->getId() : null);
-                    $ot->setPoidsSigam($poids_reel);
-                    $ot->setProprietaire($proprio);
-                    $ot->setTcFumigue($fumigue);
-
-                    // Enregistrementen base
-                    $registry->getManager()->persist($ot);
-                    $registry->getManager()->flush();
-                    $reponse = array('code'=>'SUCCESS',  'msg'=>'OT mis à jour avec succès', 'value'=>1);
-                }
-            } else {
-                $reponse = array('code'=>'BAD_DATA',  'msg'=>'Erreur lors de l\'envoi des données', 'value'=>0);
-            }
-            return new JsonResponse(json_encode($reponse));
-        } catch (\Throwable $throwable){
-            $reponse = array('code'=>'ERROR', 'msg'=>$throwable->getMessage(), 'value'=>0);
-            return new JsonResponse(json_encode($reponse));
-        }
-
-
+        return new JsonResponse(['code'=>'warning', 'msg'=>'Cette ancienne action est desactivee. Utilisez la gestion du dossier et son suivi documentaire.'], 409);
     }
 
     #[Route('api/addDocByDossier/{data}', name: 'app_api_add_doc_by_dossier')]
     public function addDocByDossier(string $data, ManagerRegistry $registry, Request $request): Response
     {
-        // dd($data);
-        $reponse = array();
-        try {
-            $array_data = json_decode($data);
-            if ($array_data){
-                // Recherche du dossier
-
-                $ot = $registry->getRepository(Dossier::class)->find((int) $array_data->code_dossier);
-                $doc = $registry->getRepository(DocsDossier::class)->find((int) $array_data->code_doc);
-
-                if ($ot && $doc){
-                    // Ajout du fichier
-                    $file = $request->files->get('fichier');
-                    // dd($file);
-                    if ($file) {
-                        // $typeMime = mime_content_type($file->guessExtension());
-                        //dd($file->guessExtension());
-                        if (strtoupper($file->guessExtension()) == "PDF"){
-                            // Générer un nom unique
-                            $fileName = uniqid().'.'.$file->guessExtension();
-                            $doc->setFilename($fileName);
-                            // Déplacer le fichier vers un dossier (ex: public/uploads)
-                            $file->move(
-                                $this->getParameter('dossier_docs_directory'),
-                                $fileName
-                            );
-                            // Enregistrementen base
-                            $registry->getManager()->persist($doc);
-                            $registry->getManager()->flush();
-                            $reponse = array('code'=>'Fichier chargé avec succès', 'value'=>1);
-                        } else {
-                            $reponse = array('code'=>'Merci de télécharger un fichier de type PDF', 'value'=>2);
-                        }
-                    } else {
-                        $reponse = array('code'=>'Aucun fichier chargé !', 'value'=>2);
-                    }
-
-                } else {
-                    $reponse = array('code'=>'merci de sélectionner le dossier et le document à télécharger !', 'value'=>2);
-                }
-            } else {
-                $reponse = array('code'=>'Mauvaises données envoyées vers le serveur !', 'value'=>0);
-            }
-        } catch (\Throwable $throwable){
-            $reponse = array('code'=>$throwable->getMessage(), 'value'=>0);
-        }
-
-        return new JsonResponse(json_encode($reponse));
+        return new JsonResponse(['code'=>'warning', 'msg'=>'Cette ancienne action est desactivee. Utilisez la gestion du dossier et son suivi documentaire.'], 409);
     }
 
 
     #[Route('api/addPhotosByDossier/{code_dossier}', name: 'app_api_add_photos_by_dossier')]
-    public function addPhotosByDossier(int $code_dossier, ManagerRegistry $registry, Request $request): Response
+    public function addPhotosByDossier(string $code_dossier, ManagerRegistry $registry, Request $request): Response
     {
         $reponse[] = array();
         $ot = $registry->getRepository(Dossier::class)->find($code_dossier);
@@ -702,6 +483,7 @@ final class ServicesLogistique extends  AbstractController
                     $this->getParameter('dossier_photos_directory'),
                     $filename
                 );
+                $this->optimiseurDocuments->optimiser(rtrim((string) $this->getParameter('dossier_photos_directory'), '/\\') . '/' . $filename);
 
 
 
@@ -724,7 +506,7 @@ final class ServicesLogistique extends  AbstractController
     }
 
     #[Route('api/getSingleDossier/{id_dossier}', name: 'app_api_get_single_dossier')]
-    public function getSingleDossier(int $id_dossier, ManagerRegistry $registry): Response
+    public function getSingleDossier(string $id_dossier, ManagerRegistry $registry): Response
     {
         $reponse = array();
         $dossier = $registry->getRepository(Dossier::class)->find($id_dossier);
@@ -797,81 +579,13 @@ final class ServicesLogistique extends  AbstractController
 
 
     #[Route('api/addTcAndLots/{id_dossier}/{data}', name: 'app_api_add_tc_lots')]
-    public function addTcAndLots(int $id_dossier, string $data, ManagerRegistry $registry): Response
+    public function addTcAndLots(string $id_dossier, string $data, ManagerRegistry $registry): Response
     {
-        $reponse = array();
-        try {
-            $dossier = $registry->getRepository(Dossier::class)->find($id_dossier);
-
-            if ($dossier && $data) {
-                // decode le data
-                $array_data = json_decode($data);
-                if ((int) $array_data->pn_th > 0){
-                    $lots = $valeurs = explode(";", $array_data->lots);
-                    $tcs = $valeurs = explode(";", $array_data->tc);
-
-                    foreach ($lots as $lot) {
-                        // Recherche le lot
-                        $rech_lot = $registry->getRepository(Lot::class)->findOneBy(['numero_lot' => $lot]);
-                        if (!$rech_lot) {
-                            // Enregistrement  du lot
-                            $rech_lot = new Lot();
-                            $rech_lot->setNumeroLot($lot);
-                            $registry->getManager()->persist($rech_lot);
-                        }
-                        $dossier->addLot($rech_lot);
-                        $registry->getManager()->persist($dossier);
-                    }
-                    $i = 0;
-                    foreach ($tcs as $tc) {
-                        // Recherche le lot
-                        $i++;
-                        $rech_tc = $registry->getRepository(Tc::class)->findOneBy(['numero_tc' => $tc]);
-                        if (!$rech_tc) {
-                            // Enregistrement  du lot
-                            $rech_tc = new Tc();
-                            $rech_tc->setNumeroTc($tc);
-                            $rech_tc->setTypeTc(1);
-                            $rech_tc->setPnTh(0);
-                            $rech_tc->setPnReel(0);
-                            $registry->getManager()->persist($rech_tc);
-                        }
-                        $dossier->addTc($rech_tc);
-                        $registry->getManager()->persist($dossier);
-                    }
-
-                    $dossier->setNbTc($i);
-                    $dossier->setTonnage($array_data->pn_th);
-                    $registry->getManager()->persist($dossier);
-
-                    $registry->getManager()->flush();
-                    $reponse = array(
-                        'code' => 'SUCCESS',
-                        'msg' => 'TC enregistrés'
-                    );
-                } else {
-                    $reponse = array(
-                        'code' => 'FAILED',
-                        'msg' => 'Merci de renseigner le tonnage !'
-                    );
-                }
-
-
-
-
-            }
-            return new JsonResponse(json_encode($reponse));
-        } catch (\Throwable $throwable) {
-            $reponse = array(
-                'code' => 'ERROR',
-                'msg' => $throwable->getMessage()
-            );
-            return new JsonResponse(json_encode($reponse));
-        }
+        return new JsonResponse(['code'=>'warning', 'msg'=>'Cette ancienne action est desactivee. Utilisez la gestion du dossier et son suivi documentaire.'], 409);
     }
 
     #[Route('api/getTcAndLotsByDossier/{id_dossier}', name: 'app_api_get_tc_and_lots_by__dossier')]
-    public function getTcAndLotsByDossier(int $id_dossier, ManagerRegistry $registry): Response
+    public function getTcAndLotsByDossier(string $id_dossier, ManagerRegistry $registry): Response
     {
         $reponse = array();
         $dossier = $registry->getRepository(Dossier::class)->find($id_dossier);
@@ -901,7 +615,7 @@ final class ServicesLogistique extends  AbstractController
     }
 
     #[Route('api/supprimePhoto/{id_photo}', name: 'app_api_delete_photo_by__dossier')]
-    public function supprimePhoto(int $id_photo, ManagerRegistry $registry): Response
+    public function supprimePhoto(string $id_photo, ManagerRegistry $registry): Response
     {
         $reponse = array();
         $photo = $registry->getRepository(PhotosDocs::class)->find($id_photo);
@@ -936,56 +650,13 @@ final class ServicesLogistique extends  AbstractController
         return new JsonResponse(json_encode($reponse));
     }
     #[Route('api/supprimeDocRemise/{id_doc}', name: 'app_api_delete_remise_by__dossier')]
-    public function supprimeRemise(int $id_doc, ManagerRegistry $registry): Response
+    public function supprimeRemise(string $id_doc, ManagerRegistry $registry): Response
     {
-        $reponse = array();
-        try {
-            $doc = $registry->getRepository(DocsDossier::class)->find($id_doc);
-
-            if ($doc) {
-                /*Suppression du fichier en base*/
-                $chemin = $this->getParameter('dossier_docs_directory')."/".$doc->getFilename();
-                if (file_exists($chemin)) {
-                    if (unlink($chemin)) {
-                        $doc->setFilename("");
-                        $registry->getManager()->persist($doc);
-                        $registry->getManager()->flush();
-
-                        $reponse = array(
-                            'code' => "Document supprimé avec succès !",
-                            'value'=>1
-                        );
-                    } else {
-                        $reponse = array(
-                            'code' => "Erreur lors de la suppression du fichier !",
-                            'value'=>2
-                        );
-                    }
-                } else {
-                    $reponse = array(
-                        'code' => "Le fichier source n'existe pas !",
-                        'value'=>2
-                    );
-                }
-
-            } else {
-                $reponse = array(
-                    'code' => "Merci de sélectionner le dossier et cliquer sur le bouton supprimer !",
-                    'value'=>2
-                );
-            }
-        } catch (\Throwable $throwable){
-            $reponse = array(
-                'code' => $throwable->getMessage(),
-                'value'=>0
-            );
-        }
-
-        return new JsonResponse(json_encode($reponse));
+        return new JsonResponse(['code'=>'warning', 'msg'=>'Cette ancienne action est desactivee. Utilisez la gestion du dossier et son suivi documentaire.'], 409);
     }
 
     #[Route('api/getDossiersFiles/{id_dossier}', name: 'app_api_get_files_by__dossier')]
-    public function getDossierFiles(int $id_dossier, ManagerRegistry $registry): Response
+    public function getDossierFiles(string $id_dossier, ManagerRegistry $registry): Response
     {
         $reponse = array();
         $data = array();

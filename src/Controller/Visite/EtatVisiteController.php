@@ -20,7 +20,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  *  - /visites/etat.pdf    : meme etat, au format PDF (FPDF deja utilise par la GMAO)
  */
 #[Route('/visites/etat')]
-#[IsGranted('ROLE_USER')]
+#[IsGranted('VISITES_CONSULTER')]
 final class EtatVisiteController extends AbstractController
 {
     private const LIMITE_APERCU = 300;
@@ -145,7 +145,7 @@ final class EtatVisiteController extends AbstractController
     }
 
     /**
-     * @return array{du: string, au: string, q: string, service_id: string, statut: string}
+     * @return array{du: string, au: string, q: string, service: string, service_id: string, statut: string}
      */
     private function lireFiltres(Request $request): array
     {
@@ -155,7 +155,7 @@ final class EtatVisiteController extends AbstractController
 
         // Le formulaire envoie "service", l'ecran lit "service_id" : on expose
         // les deux cles pour eviter toute lecture d'une cle absente.
-        $service = trim((string) $request->query->get('service', ''));
+        $service = trim((string) $request->query->get('service', $request->query->get('service_id', '')));
 
         return [
             'du' => $this->dateValide($du) ?? (new \DateTimeImmutable('first day of this month'))->format('Y-m-d'),

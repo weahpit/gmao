@@ -361,7 +361,8 @@
                                                 {% for ligne in carte.donnees.lignes %}
                                                     <tr>
                                                         {% for cellule in ligne %}
-                                                            <td>{{ cellule }}</td>
+                                                            {% set titreColonne = carte.donnees.colonnes[loop.index0]|default('')|lower %}
+                                                            <td>{% if titreColonne in ['stock final', 'stock actuel', 'stock après'] %}<strong>{{ cellule }}</strong>{% else %}{{ cellule }}{% endif %}</td>
                                                         {% endfor %}
                                                     </tr>
                                                 {% endfor %}

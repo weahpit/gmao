@@ -9,6 +9,7 @@ use App\Entity\Visite\Visiteur;
 use App\Repository\Visite\VisiteRepository;
 use App\Repository\Visite\VisiteurRepository;
 use App\Service\Visite\StockagePieceIdentite;
+use App\Service\Visite\EnqueteVisiteur;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -29,7 +30,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  *  - /visites/piece/{id}         : consultation de la piece d'identite scannee
  */
 #[Route('/visites')]
-#[IsGranted('ROLE_USER')]
+#[IsGranted('VISITES_CONSULTER')]
 final class AccueilVisiteController extends AbstractController
 {
     public function __construct(
@@ -88,6 +89,7 @@ final class AccueilVisiteController extends AbstractController
     //  Enregistrement d'une entree
     // ------------------------------------------------------------------
     #[Route('/entree', name: 'app_visites_entree', methods: ['GET', 'POST'])]
+    #[IsGranted('VISITES_GERER')]
     public function entree(Request $request): Response
     {
         $erreurs = [];
@@ -107,6 +109,8 @@ final class AccueilVisiteController extends AbstractController
             'nombre_accompagnants' => '0',
             'observations' => '',
         ];
+
+        $enquete=[]; $signature='';
 
         // Arrivee depuis la fiche d'un visiteur : on reprend sa fiche pour eviter la ressaisie.
         if (!$request->isMethod('POST') && $request->query->get('visiteur')) {
@@ -142,6 +146,14 @@ final class AccueilVisiteController extends AbstractController
                 $donnees[$cle] = trim((string) $request->request->get($cle, ''));
             }
 
+            $enquete=$request->request->all('enquete');
+            $signature=(string) $request->request->get('signature_visiteur','');
+            $traits=null;
+            try { $enquete=EnqueteVisiteur::reponses($enquete); }
+            catch (\InvalidArgumentException $e) { $erreurs[]=$e->getMessage(); }
+            try { $traits=EnqueteVisiteur::signature($signature); }
+            catch (\InvalidArgumentException $e) { $erreurs[]=$e->getMessage(); $signature=''; }
+
             $visiteur = $this->resoudreVisiteur($donnees, $erreurs);
             $service = $this->resoudreService($donnees['service_id'], $erreurs);
             $motif = $donnees['motif'] !== '' ? $donnees['motif'] : null;
@@ -170,7 +182,8 @@ final class AccueilVisiteController extends AbstractController
                     ->setObservations($donnees['observations'] !== '' ? $donnees['observations'] : null)
                     ->setHeureEntree(new \DateTimeImmutable())
                     ->setStatut(Visite::EN_COURS)
-                    ->setReference($this->visites->genererReference(new \DateTimeImmutable()));
+                    ->setReference($this->visites->genererReference(new \DateTimeImmutable()))
+                    ->setEnqueteSanitaire($enquete)->setSignatureVisiteur($traits);
 
                 $utilisateur = $this->getUser();
                 if ($utilisateur instanceof \App\Entity\User) {
@@ -202,6 +215,7 @@ final class AccueilVisiteController extends AbstractController
 
         return $this->render('visite/entree.html.twig', [
             'donnees' => $donnees,
+            'questionsSanitaires' => EnqueteVisiteur::QUESTIONS, 'enquete' => $enquete, 'signature' => $signature,
             'erreurs' => $erreurs,
             'services' => $this->listeServices(),
             'servicesParDirection' => $this->servicesParDirection(),
@@ -219,6 +233,7 @@ final class AccueilVisiteController extends AbstractController
     #[Route('/sortie/{id}', name: 'app_visites_sortie', methods: ['GET', 'POST'])]
     public function sortie(string $id, Request $request): Response
     {
+        if ($request->isMethod('POST')) $this->denyAccessUnlessGranted('VISITES_GERER');
         $visite = $this->visites->find($id);
         if (!$visite instanceof Visite) {
             throw $this->createNotFoundException('Ce passage est introuvable (identifiant : ' . $id . ').');
@@ -345,6 +360,17 @@ final class AccueilVisiteController extends AbstractController
         $reponse->setContentDisposition('inline', (string) ($visite->getPieceNomOriginal() ?: 'piece-identite'));
 
         return $reponse;
+    }
+
+    #[Route('/signature/{id}', name: 'app_visites_signature', methods: ['GET'])]
+    public function signature(string $id): Response
+    {
+        $visite=$this->visites->find($id);
+        if (!$visite instanceof Visite || !$visite->getSignatureVisiteur()) throw $this->createNotFoundException('Aucune signature enregistree pour ce passage.');
+        return new Response(EnqueteVisiteur::image($visite->getSignatureVisiteur()),200,[
+            'Content-Type'=>'image/svg+xml', 'Cache-Control'=>'private, no-store',
+            'X-Content-Type-Options'=>'nosniff', 'Content-Security-Policy'=>"default-src 'none'; style-src 'none'; sandbox",
+        ]);
     }
 
     // ------------------------------------------------------------------

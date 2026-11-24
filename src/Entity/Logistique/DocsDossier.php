@@ -28,6 +28,27 @@ class DocsDossier
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $filename = null;
 
+    #[ORM\Column(length: 30, options: ['default' => 'POUR_APPROBATION'])]
+    private string $statut = 'POUR_APPROBATION';
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $nomOriginal = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $transmisLe = null;
+
+    #[ORM\Column(length: 180, nullable: true)]
+    private ?string $transmisPar = null;
+
+    public function getStatut(): string { return $this->statut; }
+    public function setStatut(string $s): static { $this->statut = $s; return $this; }
+    public function getNomOriginal(): ?string { return $this->nomOriginal; }
+    public function setNomOriginal(?string $s): static { $this->nomOriginal = $s; return $this; }
+    public function getTransmisLe(): ?\DateTimeImmutable { return $this->transmisLe; }
+    public function setTransmisLe(?\DateTimeImmutable $d): static { $this->transmisLe = $d; return $this; }
+    public function getTransmisPar(): ?string { return $this->transmisPar; }
+    public function setTransmisPar(?string $s): static { $this->transmisPar = $s; return $this; }
+
     public function getId(): ?Uuid
     {
         return $this->id;

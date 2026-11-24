@@ -18,7 +18,7 @@ class CvDeblocage
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
-    #[ORM\Column(length: 25)]
+    #[ORM\Column(length: 25, unique: true)]
     private ?string $numero_cv = null;
 
     #[ORM\Column(nullable: true)]

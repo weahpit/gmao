@@ -469,7 +469,7 @@ final class EmployeRhController extends AbstractController
             $tableaux
         );
 
-        $nom = 'fiche-employe-' . preg_replace('/[^A-Za-z0-9-]/', '-', (string) $employe->getMatricule()) . '.pdf';
+        $nom = 'fiche-employe-' . preg_replace('/[^A-Za-z0-9-]/', '-', (string) ($employe->getMatricule() ?: $employe->getId())) . '.pdf';
 
         return new Response($contenu, 200, [
             'Content-Type' => 'application/pdf',

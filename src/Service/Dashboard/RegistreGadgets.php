@@ -23,7 +23,7 @@ class RegistreGadgets
     private const ROLES = [
         'DIRECTION' => ['ROLE_DG', 'ROLE_ADMIN'],
         'RH' => ['ROLE_RH', 'ROLE_DRH'],
-        'LOGISTIQUE' => ['ROLE_DL', 'ROLE_LOGISTIQUE'],
+        'LOGISTIQUE' => ['ROLE_DL', 'ROLE_LOGISTIQUE', 'ROLE_LOGISTIQU', 'ROLE_SHIPPING', 'ROLE_AGENT_SHIPPING', 'AGENT_SHIPPING'],
         // Stock cacao : agents de saisie et roles de supervision.
         'STOCK' => ['ROLE_SAISIE_STOCK', 'ROLE_DL', 'ROLE_DG', 'ROLE_ADMIN', 'ROLE_RESP_LABO', 'ROLE_RESP_AQ'],
         // Stock PDR : magasinier et roles de supervision (jamais le cacao).
@@ -36,7 +36,7 @@ class RegistreGadgets
         // Accueil des visiteurs : guerite et roles de supervision. Place apres
         // l'encadrement pour ne pas changer le tableau par defaut d'un chef
         // de service.
-        'VISITES' => ['ROLE_VIGIL', 'ROLE_ADMIN', 'ROLE_DG', 'ROLE_DL', 'ROLE_CHEF_SERVICE'],
+        'VISITES' => ['ROLE_VIGIL', 'ROLE_COURRIER', 'ROLE_ADMIN', 'ROLE_DG', 'ROLE_DL', 'ROLE_CHEF_SERVICE', 'ROLE_AQ', 'ROLE_RESP_AQ'],
         'MON_ESPACE' => ['ROLE_USER'],
     ];
 
@@ -138,6 +138,7 @@ class RegistreGadgets
                 'icone' => 'briefcase',
                 'accroche' => "Vue consolidee de l'activite de l'entreprise.",
                 'gadgets' => [
+                    ['code' => 'st_dechargement', 'libelle' => 'Cacao decharge', 'description' => 'Poids net par jour (quatorze jours).', 'type' => 'aire', 'largeur' => 12, 'calcul' => static fn () => $d->dechargementParJour(14)],
                     ['code' => 'dg_effectif', 'libelle' => 'Effectif actif', 'description' => 'Employes en activite.', 'type' => 'chiffre', 'largeur' => 3, 'calcul' => static fn () => $d->effectifActif()],
                     ['code' => 'dg_courriers', 'libelle' => 'Courriers a traiter', 'description' => 'Courriers en attente de traitement.', 'type' => 'chiffre', 'largeur' => 3, 'calcul' => static fn () => $d->courriersATraiter()],
                     ['code' => 'dg_bons', 'libelle' => 'Bons en attente', 'description' => 'Bons de sortie a signer.', 'type' => 'chiffre', 'largeur' => 3, 'calcul' => static fn () => $d->bonsEnAttente()],
@@ -165,18 +166,13 @@ class RegistreGadgets
             ],
 
             'STOCK' => [
-                'libelle' => 'Stock et magasin',
+                'libelle' => 'Stocks et magasin',
                 'icone' => 'package',
-                'accroche' => 'Mouvements, seuils et circuit des bons.',
+                'accroche' => 'Stocks cacao, saisies du jour et suivi des demandes.',
                 'gadgets' => [
                     ['code' => 'st_recap', 'libelle' => 'Récapitulatif du stock par produit', 'description' => 'Comme la consultation des stocks : une ligne par type de stock (entrées, sorties, unité, stock initial, stock final).', 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->recapitulatifStockCacao()],
                     ['code' => 'st_jour', 'libelle' => 'Saisies du jour', 'description' => "Détail des entrées de stock cacao enregistrées aujourd'hui.", 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->saisiesDuJour()],
-                    ['code' => 'st_seuil', 'libelle' => 'Articles sous le seuil', 'description' => 'Articles dont la quantite atteint le seuil.', 'type' => 'chiffre', 'largeur' => 4, 'calcul' => static fn () => $d->articlesSousSeuil()],
-                    ['code' => 'st_bons', 'libelle' => 'Bons de sortie par statut', 'description' => 'Attente, validation, cloture, annulation.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->bonsParStatut()],
                     ['code' => 'st_demandes', 'libelle' => "Demandes d'achat par statut", 'description' => 'Suivi de la chaine de traitement.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->demandesParStatut()],
-                    ['code' => 'st_flux', 'libelle' => 'Entrees et sorties', 'description' => "Nombre d'operations par semaine (six semaines).", 'type' => 'barres', 'largeur' => 6, 'calcul' => static fn () => $d->fluxStock()],
-                    ['code' => 'st_rubriques', 'libelle' => 'Top 5 des rubriques sorties', 'description' => 'Quantites sorties sur trente jours.', 'type' => 'barres', 'largeur' => 6, 'calcul' => static fn () => $d->topRubriquesSorties()],
-                    ['code' => 'st_dechargement', 'libelle' => 'Cacao decharge', 'description' => 'Poids net par jour (quatorze jours).', 'type' => 'aire', 'largeur' => 12, 'calcul' => static fn () => $d->dechargementParJour(14)],
                 ],
             ],
 
@@ -185,10 +181,12 @@ class RegistreGadgets
                 'icone' => 'wrench',
                 'accroche' => 'Pièces de rechange : seuils, mouvements du jour et circuit des bons. Aucune donnée du stock cacao.',
                 'gadgets' => [
-                    ['code' => 'pdr_seuil', 'libelle' => 'Pièces sous le seuil', 'description' => 'Pièces de rechange à réapprovisionner en priorité.', 'type' => 'chiffre', 'largeur' => 4, 'calcul' => static fn () => $d->articlesSousSeuil()],
+                    ['code' => 'pdr_seuil', 'libelle' => 'Articles sous le seuil', 'description' => 'Articles dont la quantite atteint le seuil.', 'type' => 'chiffre', 'largeur' => 4, 'calcul' => static fn () => $d->articlesSousSeuil()],
                     ['code' => 'pdr_recap', 'libelle' => 'Récapitulatif du stock PDR', 'description' => 'Stock actuel, seuil et alerte de chaque pièce de rechange.', 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->recapitulatifStockPdr()],
                     ['code' => 'pdr_jour', 'libelle' => 'Mouvements PDR du jour', 'description' => "Entrées et sorties de pièces enregistrées aujourd'hui.", 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->mouvementsPdrDuJour()],
-                    ['code' => 'pdr_bons', 'libelle' => 'Bons de sortie par statut', 'description' => 'Attente, validation, signature, clôture.', 'type' => 'donut', 'largeur' => 6, 'calcul' => static fn () => $d->bonsParStatut()],
+                    ['code' => 'pdr_bons', 'libelle' => 'Bons de sortie par statut', 'description' => 'Attente, validation, cloture, annulation.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->bonsParStatut()],
+                    ['code' => 'pdr_flux', 'libelle' => 'Entrees et sorties', 'description' => "Nombre d'operations par semaine (six semaines).", 'type' => 'barres', 'largeur' => 6, 'calcul' => static fn () => $d->fluxStock()],
+                    ['code' => 'pdr_rubriques', 'libelle' => 'Top 5 des rubriques sorties', 'description' => 'Quantites sorties sur trente jours.', 'type' => 'barres', 'largeur' => 6, 'calcul' => static fn () => $d->topRubriquesSorties()],
                     ['code' => 'pdr_demandes', 'libelle' => "Demandes d'achat par statut", 'description' => 'Suivi de la chaîne de traitement magasin.', 'type' => 'donut', 'largeur' => 6, 'calcul' => static fn () => $d->demandesParStatut()],
                 ],
             ],

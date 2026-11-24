@@ -61,6 +61,7 @@ final class StockageDocumentRh
 
     public function __construct(
         #[Autowire('%kernel.project_dir%')] private string $projectDir,
+        private \App\Service\Documents\OptimiseurDocuments $optimiseurDocuments,
     ) {}
 
     public function dossierAbsolu(string $categorie = DocumentRh::CATEGORIE_RH, ?\DateTimeInterface $date = null): string
@@ -176,6 +177,7 @@ final class StockageDocumentRh
 
         try {
             $fichier->move($dossier, $nom);
+            $this->optimiseurDocuments->optimiser($dossier . $nom);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Enregistrement impossible dans ' . $dossier . ' : ' . $e->getMessage(), 0, $e);
         }
@@ -244,6 +246,7 @@ final class StockageDocumentRh
 
         try {
             $fichier->move($dossier, $nom);
+            $this->optimiseurDocuments->optimiser($dossier . $nom);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Enregistrement de la photo impossible : ' . $e->getMessage(), 0, $e);
         }
@@ -319,6 +322,7 @@ final class StockageDocumentRh
 
         try {
             $fichier->move($dossier, $nom);
+            $this->optimiseurDocuments->optimiser($dossier . $nom);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Enregistrement du fichier impossible : ' . $e->getMessage(), 0, $e);
         }

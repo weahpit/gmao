@@ -18,6 +18,7 @@ final class StockagePiecesJointes
 {
     public function __construct(
         #[Autowire('%kernel.project_dir%')] private string $projectDir,
+        private \App\Service\Documents\OptimiseurDocuments $optimiseurDocuments,
         #[Autowire('%courrier_pieces_jointes%')] private string $dossierRelatif = 'data/courriers/',
     ) {}
 
@@ -58,6 +59,7 @@ final class StockagePiecesJointes
 
         try {
             $fichier->move($dossier, $nom);
+            $this->optimiseurDocuments->optimiser($dossier . $nom);
         } catch (\Throwable $e) {
             throw new \RuntimeException(
                 'Deplacement du fichier impossible vers ' . $dossier . ' : ' . $e->getMessage()

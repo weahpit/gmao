@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Sortie visiteur — CITRAC{% endblock %}
+{% block title %}{{ is_granted('VISITES_GERER') ? 'Sortie visiteur' : 'Consultation visite' }} — CITRAC{% endblock %}
 
 {% block breadcrumb %}
     <span class="breadcrumb-item"><a href="{{ path('tdb_role') }}">Accueil</a></span>
@@ -13,8 +13,8 @@
 
     <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-            <h1 class="h4 mb-1">Sortie du visiteur</h1>
-            <p class="text-muted mb-0">Vérifiez l'identité, remettez la pièce, puis validez la sortie.</p>
+            <h1 class="h4 mb-1">{{ is_granted('VISITES_GERER') ? 'Sortie du visiteur' : 'Consultation du passage' }}</h1>
+            <p class="text-muted mb-0">{% if is_granted('VISITES_GERER') %}Vérifiez l’identité, remettez la pièce, puis validez la sortie.{% else %}Identité, enquête, signature et informations du passage.{% endif %}</p>
         </div>
         <a href="{{ path('app_visites') }}" class="btn btn-sm btn-outline-secondary">Retour à la liste des présents</a>
     </div>
@@ -74,7 +74,7 @@
             </div>
 
             {% if visite.enCours %}
-                <form method="post" action="{{ path('app_visites_sortie', {id: visite.id}) }}"
+                {% if is_granted('VISITES_GERER') %}<form method="post" action="{{ path('app_visites_sortie', {id: visite.id}) }}"
                       class="p-3" style="background:#fff; border:1px solid #e9ded5; border-radius:14px;">
                     <input type="hidden" name="_token" value="{{ csrf_token('visite_sortie_' ~ visite.id) }}">
 
@@ -90,7 +90,7 @@
                         <button type="submit" class="btn btn-cacao">Remettre la pièce et enregistrer la sortie</button>
                         <a href="{{ path('app_visites') }}" class="btn btn-outline-secondary">Annuler</a>
                     </div>
-                </form>
+                </form>{% else %}<p class="text-muted">Consultation uniquement : vous ne pouvez pas enregistrer la sortie.</p>{% endif %}
             {% endif %}
         </div>
 
@@ -131,4 +131,5 @@
         </div>
     </div>
 </div>
+{% include 'visite/_enquete_consultation.html.twig' with {visite: visite} %}
 {% endblock %}

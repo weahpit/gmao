@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modèles documentaires export{% endblock %}
+{% block body %}<link rel="stylesheet" href="{{ asset('css/citrac/operations-logistiques.css') }}">
+<div class="exp-wrap"><h1>Documents à fournir par produit et par client</h1>{% include 'logistique/gestion/_nav.html.twig' %}
+<section class="exp-card"><h2>Configurer une liste</h2><p>Sans client : liste standard du produit. Avec client : liste spécifique qui remplace la liste standard pour ce client. Enregistrez la liste complète souhaitée.</p>
+<form method="post" id="export-modeles-form" data-quick-url="{{ path('logistique_ajout_rapide') }}"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><div class="exp-grid">
+<div class="exp-field"><label>Produit<select name="produit" required><option value="">Sélectionnez</option>{% for p in produits %}<option value="{{ p.id }}">{{ p.libelle }}</option>{% endfor %}</select></label></div>
+<div class="exp-field"><label>Client<select name="client"><option value="">Standard : tous les clients</option>{% for c in clients %}<option value="{{ c.id }}">{{ c.nomClient }}</option>{% endfor %}</select></label></div>
+</div><div class="exp-grid mt-3" id="export-document-types">{% for t in types %}<label><input type="checkbox" name="documents[]" value="{{ t.id }}"> {{ t.libelle }}</label>{% else %}<p class="exp-note" id="export-types-empty">Aucun type documentaire. Ajoutez-en un ci-dessous.</p>{% endfor %}</div>
+<button type="button" class="exp-btn mt-3" data-quick-type="document" data-quick-target="export-document-types">+ Ajouter un type de document</button><p class="exp-note">Le nouveau type sera coché sans effacer vos autres choix. Enregistrez ensuite la liste complète.</p>{% include 'logistique/gestion/_ajout_rapide.html.twig' %}
+<button class="exp-btn exp-btn-primary mt-3">Enregistrer cette liste complète</button></form></section>
+<section class="exp-card"><h2>Listes configurées</h2><div class="exp-scroll"><table class="exp-table"><thead><tr><th>Produit</th><th>Client</th><th>Documents exigés</th></tr></thead><tbody>
+{% for m in modeles %}<tr><td>{{ m.codeProduit ? m.codeProduit.libelle : 'Non renseigné' }}</td><td>{{ m.codeClient ? m.codeClient.nomClient : 'Standard' }}</td><td><ul>{% for d in m.detailsModeleDocs %}{% if d.codeDoc %}<li>{{ d.codeDoc.libelle }}</li>{% endif %}{% endfor %}</ul></td></tr>{% else %}<tr><td colspan="3">Aucune liste configurée. À défaut, les documents déjà liés au produit sont utilisés.</td></tr>{% endfor %}</tbody></table></div>
+<p class="exp-note">Modifier un modèle ne supprime ni les exigences ni les fichiers des dossiers déjà créés. Ajoutez une exigence supplémentaire directement dans leur suivi si nécessaire.</p></section></div>{% endblock %}
+
+{% block javascripts %}<script src="{{ asset('js/citrac/ajout-rapide-export.js') }}" defer></script>{% endblock %}

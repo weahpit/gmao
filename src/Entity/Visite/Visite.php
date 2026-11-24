@@ -103,6 +103,17 @@ class Visite
     #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(name: 'enquete_sanitaire', type: 'json', nullable: true)]
+    private ?array $enqueteSanitaire = null;
+
+    #[ORM\Column(name: 'signature_visiteur', type: 'json', nullable: true)]
+    private ?array $signatureVisiteur = null;
+
+    public function getEnqueteSanitaire(): ?array { return $this->enqueteSanitaire; }
+    public function setEnqueteSanitaire(?array $v): static { $this->enqueteSanitaire=$v; return $this; }
+    public function getSignatureVisiteur(): ?array { return $this->signatureVisiteur; }
+    public function setSignatureVisiteur(?array $v): static { $this->signatureVisiteur=$v; return $this; }
+
     public function __construct()
     {
         $this->heureEntree = new \DateTimeImmutable();

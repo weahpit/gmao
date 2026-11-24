@@ -36,6 +36,7 @@ final class AdminReunionController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private \App\Service\Documents\OptimiseurDocuments $optimiseurDocuments,
         #[Autowire('%reunion_comptes_rendus%')] private string $dossierComptesRendus,
         #[Autowire('%reunion_signatures%')] private string $dossierSignatures,
     ) {}
@@ -248,6 +249,7 @@ final class AdminReunionController extends AbstractController
 
         $nom = 'cr_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.pdf';
         $fichier->move($dossier, $nom);
+        $this->optimiseurDocuments->optimiser($dossier . $nom);
 
         $reunion->setCompteRendu($nom)
             ->setCompteRenduNomOriginal($fichier->getClientOriginalName())

@@ -1,0 +1,16 @@
+<details class="p-3 my-2 border rounded">
+    <summary class="fw-semibold">Enquête et signature — {{ visite.reference }}</summary>
+    <p class="small text-muted mt-2">Déclaration du visiteur lors de ce passage, sans diagnostic médical. Informations confidentielles réservées aux personnes habilitées.</p>
+    {% if visite.enqueteSanitaire is null %}
+        <p class="small text-muted">Aucune enquête enregistrée pour ce passage ancien ou saisi sans enquête.</p>
+    {% else %}
+        <dl class="row small">
+        {% for cle,libelle in constant('App\\Service\\Visite\\EnqueteVisiteur::QUESTIONS') %}
+            <dt class="col-8">{{ libelle }}</dt><dd class="col-4"><strong>{{ visite.enqueteSanitaire[cle]|default('Non renseigné') }}</strong></dd>
+        {% endfor %}
+        </dl>
+    {% endif %}
+    {% if visite.signatureVisiteur %}
+        <img src="{{ path('app_visites_signature',{id:visite.id}) }}" alt="Signature manuscrite du visiteur pour le passage {{ visite.reference }}" loading="lazy" style="display:block;width:100%;max-width:700px;height:auto;border:1px solid #e9ded5;background:white;">
+    {% else %}<p class="small text-muted">Aucune signature enregistrée pour ce passage.</p>{% endif %}
+</details>
