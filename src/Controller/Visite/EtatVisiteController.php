@@ -34,7 +34,7 @@ final class EtatVisiteController extends AbstractController
     public function index(Request $request): Response
     {
         $filtres = $this->lireFiltres($request);
-        $service = $this->serviceDepuisFiltre($filtres['service_id'] ?? $filtres['service'] ?? '');
+        $service = $this->serviceDepuisFiltre($filtres['service_id']);
 
         $requete = $this->visites->construireRequete([
             'du' => $filtres['du'],
@@ -56,6 +56,7 @@ final class EtatVisiteController extends AbstractController
 
         return $this->render('visite/etat.html.twig', [
             'filtres' => $filtres,
+            'serviceChoisi' => $filtres['service_id'],
             'apercu' => $apercu,
             'total' => $total,
             'limiteApercu' => self::LIMITE_APERCU,
@@ -69,7 +70,7 @@ final class EtatVisiteController extends AbstractController
     public function pdf(Request $request, pdfService $pdfService): Response
     {
         $filtres = $this->lireFiltres($request);
-        $service = $this->serviceDepuisFiltre($filtres['service_id'] ?? $filtres['service'] ?? '');
+        $service = $this->serviceDepuisFiltre($filtres['service_id']);
 
         $liste = $this->visites->rechercher([
             'du' => $filtres['du'],
@@ -149,22 +150,34 @@ final class EtatVisiteController extends AbstractController
      */
     private function lireFiltres(Request $request): array
     {
+        // Toutes les cles sont construites ici, une par une : aucune lecture
+        // ulterieure ne peut tomber sur une cle absente du tableau.
         $du = trim((string) $request->query->get('du', ''));
         $au = trim((string) $request->query->get('au', ''));
         $statut = trim((string) $request->query->get('statut', ''));
+        $q = trim((string) $request->query->get('q', ''));
 
-        // Le formulaire envoie "service", l'ecran lit "service_id" : on expose
-        // les deux cles pour eviter toute lecture d'une cle absente.
-        $service = trim((string) $request->query->get('service', $request->query->get('service_id', '')));
+        // Le formulaire envoie "service", les liens PDF utilisent "service" ou
+        // "service_id" selon l'ecran d'origine : on lit les deux et on expose
+        // les deux cles, toujours remplies (chaine vide si aucun filtre).
+        $service = trim((string) $request->query->get('service', ''));
+        if ($service === '') {
+            $service = trim((string) $request->query->get('service_id', ''));
+        }
 
-        return [
-            'du' => $this->dateValide($du) ?? (new \DateTimeImmutable('first day of this month'))->format('Y-m-d'),
-            'au' => $this->dateValide($au) ?? (new \DateTimeImmutable())->format('Y-m-d'),
-            'q' => trim((string) $request->query->get('q', '')),
+        $filtres = [
+            'du' => '',
+            'au' => '',
+            'q' => $q,
             'service' => $service,
             'service_id' => $service,
             'statut' => isset(Visite::STATUTS[$statut]) ? $statut : '',
         ];
+
+        $filtres['du'] = $this->dateValide($du) ?? (new \DateTimeImmutable('first day of this month'))->format('Y-m-d');
+        $filtres['au'] = $this->dateValide($au) ?? (new \DateTimeImmutable())->format('Y-m-d');
+
+        return $filtres;
     }
 
     private function dateValide(string $valeur): ?string

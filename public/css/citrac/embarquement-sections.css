@@ -1,0 +1,59 @@
+/* =====================================================================
+ *  CITRAC GMAO - Nouvel embarquement : icones des rubriques
+ * ---------------------------------------------------------------------
+ *  Couche d'habillage ajoutee par-dessus operations-logistiques.css.
+ *  Elle ne modifie que l'en-tete des rubriques depliables (icone + titre).
+ *  Pour revenir a l'affichage d'origine, retirer la ligne <link> dans
+ *  templates/logistique/embarquement/index.html.twig.
+ * ===================================================================== */
+
+.exp-section-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex: 0 0 auto;
+    color: #8a6a4a;
+    opacity: .9;
+}
+
+.exp-section-title {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.exp-section-title > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Navigateurs recents : titre et icone alignes, marqueur +/- conserve a droite. */
+.exp-section-head:has(> .exp-section-title) {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+}
+
+.exp-section-head:has(> .exp-section-title) > .exp-section-title {
+    flex: 1 1 auto;
+}
+
+/* Sur petit ecran, l'icone reste lisible mais ne prend pas la place du texte. */
+@media (max-width: 576px) {
+    .exp-section-icon {
+        width: .98rem;
+        height: .98rem;
+    }
+
+    .exp-section-title {
+        gap: .45rem;
+    }
+}
+
+/* Impression : pas d'icone, le document reste sobre. */
+@media print {
+    .exp-section-icon {
+        display: none;
+    }
+}

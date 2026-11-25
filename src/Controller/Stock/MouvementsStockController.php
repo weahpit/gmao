@@ -9,20 +9,35 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class MouvementsStockController extends AbstractController
 {
+    public function __construct(private readonly \App\Service\Stock\AccesStockPdr $accesPdr)
+    {
+    }
+
+    /** Pages PDR fermees aux profils non habilites (AQ : famille EPI uniquement). */
+    private function garderAccesPdr(): void
+    {
+        if (!$this->accesPdr->peutVoir()) {
+            throw $this->createAccessDeniedException('Le stock et les mouvements PDR sont reserves aux profils PDR, DG et DL.');
+        }
+    }
+
     #[Route('/OperationsEntrees/Stock', name: 'app_mouvements_stock_entree')]
     public function entree(): Response
     {
+        $this->garderAccesPdr();
         return $this->render('mouvements_stock/entree.html.twig');
     }
 
     #[Route('/OperationsSorties/Stock', name: 'app_mouvements_stock_sortie')]
     public function sorties(): Response
     {
+        $this->garderAccesPdr();
         return $this->render('mouvements_stock/sortie.html.twig');
     }
     #[Route('/OperationsJournalieres/Stock', name: 'app_mouvements_operations_jour')]
     public function operationJour(): Response
     {
+        $this->garderAccesPdr();
         return $this->render('mouvements_stock/operations_jour.html.twig');
     }
 

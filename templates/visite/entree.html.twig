@@ -161,14 +161,15 @@
                     <p id="visiteur-signature-message" class="small text-muted mt-1" role="status"></p>
                 </section>
 
-                <h2 class="h6 mb-2">Pièce d'identité déposée <span style="color:#a33;">*</span></h2>
+                <h2 class="h6 mb-2">Pièce d'identité déposée <span class="text-muted small fw-normal">(facultatif)</span></h2>
                 <div class="row g-2 mb-3">
                     <div class="col-12">
-                        <input type="file" id="piece" name="piece" required
+                        <input type="file" id="piece" name="piece"
                                accept=".jpg,.jpeg,.png,.webp,.pdf"
                                class="form-control form-control-sm">
                         <div class="small text-muted mt-1">
-                            Scan ou photo de la pièce (JPG, PNG, WEBP ou PDF · {{ (tailleMax / 1048576)|round }} Mo maximum).
+                            Facultatif : scan ou photo de la pièce (JPG, PNG, WEBP ou PDF · {{ (tailleMax / 1048576)|round }} Mo maximum).
+                            L'entrée peut être enregistrée sans pièce si le visiteur la conserve.
                             Le fichier est conservé dans l'espace des visites et n'est visible que par les utilisateurs connectés.
                         </div>
                     </div>

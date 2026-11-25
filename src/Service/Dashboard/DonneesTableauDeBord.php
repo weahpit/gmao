@@ -8,7 +8,10 @@ use App\Entity\Courrier\Courrier;
 use App\Entity\DemandeAchat;
 use App\Entity\Equipement;
 use App\Entity\Logistique\DocsDossier;
+use App\Entity\Logistique\CvDeblocage;
+use App\Entity\Logistique\CvExecution;
 use App\Entity\Logistique\Dossier;
+use App\Entity\Logistique\FormuleExport;
 use App\Entity\Maintenance\FicheIntervention;
 use App\Entity\Production\Lot;
 use App\Entity\Rh\ArretTravail;
@@ -52,7 +55,8 @@ class DonneesTableauDeBord
     public function __construct(
         private EntityManagerInterface $em,
         private StockInitialService $stockInitial,
-        private ReferentielStock $referentiel
+        private ReferentielStock $referentiel,
+        private \App\Service\Stock\AccesStockPdr $accesPdr
     ) {
     }
 
@@ -696,9 +700,18 @@ class DonneesTableauDeBord
     {
         $colonnes = ['Code', 'Désignation', 'Nature', 'Stock actuel', 'Seuil', 'Alerte'];
 
+        if (!$this->accesPdr->peutVoir()) {
+            return ['colonnes' => $colonnes, 'lignes' => [], 'vide' => 'Le stock PDR est reserve aux profils PDR, DG et DL.'];
+        }
+
         $equipements = $this->em->createQuery(
             'SELECT e FROM ' . Equipement::class . ' e ORDER BY e.nom ASC'
         )->setMaxResults(300)->getResult();
+
+        // Profils qualite : uniquement les equipements de protection individuelle.
+        if (!$this->accesPdr->voitTout()) {
+            $equipements = array_values(array_filter($equipements, fn ($e): bool => $this->accesPdr->familleAutorisee($e->getNature()?->getLibelle())));
+        }
 
         $lignes = [];
         $sousSeuil = 0;
@@ -760,6 +773,10 @@ class DonneesTableauDeBord
         $colonnes = ['Heure', 'Pièce', 'Sens', 'Quantité', 'Service', 'Demandeur', 'Stock après'];
         $debut = new \DateTimeImmutable('today 00:00:00');
 
+        if (!$this->accesPdr->peutVoir()) {
+            return ['colonnes' => $colonnes, 'lignes' => [], 'vide' => 'Les mouvements PDR sont reserves aux profils PDR, DG et DL.'];
+        }
+
         $mouvements = $this->em->createQuery(
             'SELECT m FROM ' . MouvementEquipement::class . ' m'
             . ' LEFT JOIN m.code_equipement e'
@@ -770,6 +787,10 @@ class DonneesTableauDeBord
             ->setParameter('jour', new \DateTime('today'))
             ->setMaxResults(300)
             ->getResult();
+
+        if (!$this->accesPdr->voitTout()) {
+            $mouvements = array_values(array_filter($mouvements, fn ($m): bool => $this->accesPdr->familleAutorisee($m->getCodeEquipement()?->getNature()?->getLibelle())));
+        }
 
         $lignes = [];
         $entrees = 0;
@@ -1499,6 +1520,74 @@ class DonneesTableauDeBord
                 ['libelle' => 'Tonnage déclaré (SIGAM)', 'valeur' => $this->quantite((float) $tonnage) . ' kg'],
             ],
         ];
+    }
+
+    /**
+     * Volumes des CV de deblocage : accorde, octroye (executions), utilise (formules).
+     *
+     * Permet de reperer d'un coup d'oeil les CV sous-consommes ou saturees.
+     */
+    public function volumeCvParDeblocage(int $limite = 8): array
+    {
+        $deblocages = $this->em->createQuery(
+            'SELECT d.numero_cv AS numero, d.poids AS accorde FROM ' . CvDeblocage::class . ' d'
+            . ' ORDER BY d.numero_cv ASC'
+        )->setMaxResults(max(1, $limite))->getArrayResult();
+
+        if ($deblocages === []) {
+            return $this->graphique([], []);
+        }
+
+        $octroyes = $this->sommesParCv(
+            'SELECT d.numero_cv AS numero, SUM(e.poids) AS total'
+            . ' FROM ' . CvExecution::class . ' e JOIN e.code_cv_deblocage d'
+            . ' GROUP BY d.numero_cv'
+        );
+        $utilises = $this->sommesParCv(
+            'SELECT d.numero_cv AS numero, SUM(f.utilise) AS total'
+            . ' FROM ' . FormuleExport::class . ' f JOIN f.execution e JOIN e.code_cv_deblocage d'
+            . ' GROUP BY d.numero_cv'
+        );
+
+        $categories = [];
+        $accordes = [];
+        $octroyesSerie = [];
+        $utilisesSerie = [];
+
+        foreach ($deblocages as $ligne) {
+            $numero = (string) ($ligne['numero'] ?? '');
+            if ($numero === '') {
+                continue;
+            }
+            $categories[] = $numero;
+            $accordes[] = round((float) ($ligne['accorde'] ?? 0), 2);
+            $octroyesSerie[] = round($octroyes[$numero] ?? 0, 2);
+            $utilisesSerie[] = round($utilises[$numero] ?? 0, 2);
+        }
+
+        return $this->graphique($categories, [
+            ['nom' => 'Volume accorde (kg)', 'donnees' => $accordes],
+            ['nom' => 'Octroye aux executions (kg)', 'donnees' => $octroyesSerie],
+            ['nom' => 'Utilise par les formules (kg)', 'donnees' => $utilisesSerie],
+        ]);
+    }
+
+    /**
+     * Somme par numero de CV a partir d'une requete d'agregation.
+     *
+     * @return array<string, float>
+     */
+    private function sommesParCv(string $dql): array
+    {
+        $resultat = [];
+        foreach ($this->em->createQuery($dql)->getArrayResult() as $ligne) {
+            $numero = (string) ($ligne['numero'] ?? '');
+            if ($numero !== '') {
+                $resultat[$numero] = (float) ($ligne['total'] ?? 0);
+            }
+        }
+
+        return $resultat;
     }
 
     /** Derniers dossiers d'embarquement, avec navire, destination et poids. */

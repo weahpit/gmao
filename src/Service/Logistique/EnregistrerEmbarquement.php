@@ -29,7 +29,7 @@ final class EnregistrerEmbarquement
                 $poids = trim((string) ($l['qteExporter'] ?? ''));
                 $kg = ReglesCvs::grammes($poids === '' ? 0 : $poids);
                 $colis = filter_var(($l['nbCartons'] ?? '') === '' ? 0 : $l['nbCartons'], FILTER_VALIDATE_INT);
-                if ($colis === false || $colis < 0 || $colis > 10000000) throw new \InvalidArgumentException('Nombre de colis invalide.');
+                if ($colis === false || $colis < 0 || $colis > 10000000) throw new \InvalidArgumentException('Nombre de sacs invalide.');
                 return trim((string) ($l['id'] ?? '')) !== '' || $kg !== 0 || $colis !== 0;
             }));
             return $tc;
@@ -66,9 +66,15 @@ final class EnregistrerEmbarquement
             if ($suivi) $this->em->refresh($suivi, LockMode::PESSIMISTIC_WRITE);
             $suivi ??= (new SuiviEmbarquement())->setDossier($dossier);
             $ancienneReservation = []; $demandes = []; $lots = []; $numeros = [];
+            // Nombre de conteneurs deja utilises par lot dans le dossier enregistre :
+            // sert a tolerer les anciens dossiers ou un lot figurait deux fois, tout
+            // en refusant desormais ce cas sur une nouvelle saisie.
+            $anciensEmplacements = [];
             foreach ($suivi->getConteneurs() as $tc) foreach ($tc['lots'] as $l) {
                 $id = $l['id']; $ancienneReservation[$id] = ($ancienneReservation[$id] ?? 0) + ReglesCvs::grammes(($l['qteExporter'] ?? '') === '' ? 0 : $l['qteExporter']);
+                $anciensEmplacements[$id] = ($anciensEmplacements[$id] ?? 0) + 1;
             }
+            $emplacements = [];
             foreach ($conteneurs as $tc) {
                 if (!is_array($tc) || !is_array($tc['lots'] ?? null)) throw new \InvalidArgumentException('Liste des lots du conteneur invalide.');
                 $numeroTc = strtoupper(trim((string) ($tc['tc'] ?? '')));
@@ -84,8 +90,9 @@ final class EnregistrerEmbarquement
                     $doublons[$id] = true;
                     $kg = ReglesCvs::grammes(($l['qteExporter'] ?? '') === '' ? 0 : $l['qteExporter']);
                     $colis = filter_var(($l['nbCartons'] ?? '') === '' ? 0 : $l['nbCartons'], FILTER_VALIDATE_INT);
-                    if ($colis === false || $colis < 0 || $colis > 10000000) throw new \InvalidArgumentException('Nombre de colis invalide.');
+                    if ($colis === false || $colis < 0 || $colis > 10000000) throw new \InvalidArgumentException('Nombre de sacs invalide.');
                     $demandes[$id] = ($demandes[$id] ?? 0) + $kg;
+                    $emplacements[$id] = ($emplacements[$id] ?? 0) + 1;
                 }
             }
             $idsLots = array_unique(array_merge(array_keys($ancienneReservation), array_keys($demandes)));
@@ -97,6 +104,8 @@ final class EnregistrerEmbarquement
                 $disponible = $base + ($ancienneReservation[$id] ?? 0);
                 if (isset($demandes[$id]) && (string) $lot->getCodeProduit()?->getId() !== (string) $produit->getId()) throw new \InvalidArgumentException('Un lot ne correspond pas au produit du dossier.');
                 if (($demandes[$id] ?? 0) > $disponible) throw new \InvalidArgumentException('Lot ' . $lot->getNumeroLot() . ' : seulement ' . ReglesCvs::kilos($disponible) . ' kg disponibles.');
+                $limite = max(1, (int) ($anciensEmplacements[$id] ?? 1));
+                if (($emplacements[$id] ?? 0) > $limite) throw new \InvalidArgumentException('Le lot ' . $lot->getNumeroLot() . ' est deja charge dans un autre conteneur : un lot ne peut etre reparti que sur un seul conteneur.');
                 $lot->setPoidsNetDispo(($disponible - ($demandes[$id] ?? 0)) / 1000);
                 $lots[$id] = $lot;
             }

@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 {% block title %}Modèles documentaires export{% endblock %}
 {% block body %}<link rel="stylesheet" href="{{ asset('css/citrac/operations-logistiques.css') }}">
+<link rel="stylesheet" href="{{ asset('css/citrac/lecture-compacte.css') }}">
 <div class="exp-wrap"><h1>Documents à fournir par produit et par client</h1>{% include 'logistique/gestion/_nav.html.twig' %}
 <section class="exp-card"><h2>Configurer une liste</h2><p>Sans client : liste standard du produit. Avec client : liste spécifique qui remplace la liste standard pour ce client. Enregistrez la liste complète souhaitée.</p>
 <form method="post" id="export-modeles-form" data-quick-url="{{ path('logistique_ajout_rapide') }}"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><div class="exp-grid">

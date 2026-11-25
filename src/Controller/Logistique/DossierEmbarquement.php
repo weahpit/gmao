@@ -90,6 +90,15 @@ class DossierEmbarquement extends AbstractController
             return $this->redirigerVersListe($request);
         }
 
+        // La cloture est reservee aux profils DL et Shipping : les autres
+        // profils habilites au module peuvent toujours rouvrir un dossier.
+        $fermeture = !$dossier->isCloture();
+        if ($fermeture && !$this->isGranted('ROLE_DL') && !$this->isGranted('ROLE_SHIPPING')) {
+            $this->addFlash('warning', 'Seuls les profils DL et Shipping peuvent clôturer un dossier d\'embarquement.');
+
+            return $this->redirigerVersListe($request);
+        }
+
         $cloture = $this->embarquements->basculerCloture($dossier, $this->nomUtilisateur());
 
         $this->addFlash('success', $cloture

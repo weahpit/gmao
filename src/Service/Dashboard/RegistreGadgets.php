@@ -27,7 +27,7 @@ class RegistreGadgets
         // Stock cacao : agents de saisie et roles de supervision.
         'STOCK' => ['ROLE_SAISIE_STOCK', 'ROLE_DL', 'ROLE_DG', 'ROLE_ADMIN', 'ROLE_RESP_LABO', 'ROLE_RESP_AQ'],
         // Stock PDR : magasinier et roles de supervision (jamais le cacao).
-        'STOCK_PDR' => ['ROLE_PDR', 'ROLE_DL', 'ROLE_DG', 'ROLE_ADMIN', 'ROLE_RESP_LABO', 'ROLE_RESP_AQ'],
+        'STOCK_PDR' => ['ROLE_PDR', 'ROLE_DL', 'ROLE_DG', 'ROLE_ADMIN', 'ROLE_RESP_AQ', 'ROLE_AQ'],
         'COURRIER' => ['ROLE_COURRIER'],
         'MAINTENANCE' => ['ROLE_TECHNICIAN'],
         'SECURITE' => ['ROLE_VIGIL'],
@@ -179,7 +179,7 @@ class RegistreGadgets
             'STOCK_PDR' => [
                 'libelle' => 'Stock PDR',
                 'icone' => 'wrench',
-                'accroche' => 'Pièces de rechange : seuils, mouvements du jour et circuit des bons. Aucune donnée du stock cacao.',
+                'accroche' => 'Pièces de rechange : seuils, mouvements du jour et circuit des bons. Les profils qualite ne voient que la famille EQUIPEMENTS DE PROTECTION INDIVIDUELLE.',
                 'gadgets' => [
                     ['code' => 'pdr_seuil', 'libelle' => 'Articles sous le seuil', 'description' => 'Articles dont la quantite atteint le seuil.', 'type' => 'chiffre', 'largeur' => 4, 'calcul' => static fn () => $d->articlesSousSeuil()],
                     ['code' => 'pdr_recap', 'libelle' => 'Récapitulatif du stock PDR', 'description' => 'Stock actuel, seuil et alerte de chaque pièce de rechange.', 'type' => 'tableau', 'largeur' => 12, 'calcul' => static fn () => $d->recapitulatifStockPdr()],
@@ -197,6 +197,7 @@ class RegistreGadgets
                 'accroche' => 'Lots de production, embarquements, documents export et parc equipements.',
                 'gadgets' => [
                     ['code' => 'lg_embarq_point', 'libelle' => 'Point embarquement', 'description' => 'Dossiers en cours, clôturés, à planifier et tonnage déclaré.', 'type' => 'fiche', 'largeur' => 4, 'calcul' => static fn () => $d->pointGlobalEmbarquement()],
+                    ['code' => 'lg_cv_volume', 'libelle' => 'CV de deblocage : volumes', 'description' => 'Volume accorde, octroye aux executions et utilise par les formules (kg).', 'type' => 'barres', 'largeur' => 6, 'calcul' => static fn () => $d->volumeCvParDeblocage(8)],
                     ['code' => 'lg_lots_produit', 'libelle' => 'Poids net disponible par produit', 'description' => 'Somme du poids net disponible des lots, par produit fini.', 'type' => 'barres', 'largeur' => 4, 'calcul' => static fn () => $d->poidsDisponibleParProduit()],
                     ['code' => 'lg_lots_qualite', 'libelle' => 'Lots par qualité', 'description' => 'Répartition des lots de production selon la qualité déclarée.', 'type' => 'donut', 'largeur' => 4, 'calcul' => static fn () => $d->lotsParQualite()],
                     ['code' => 'lg_embarq_recents', 'libelle' => 'Derniers embarquements', 'description' => 'Référence OT, client, produit, destination, navire, poids et statut.', 'type' => 'tableau', 'largeur' => 8, 'calcul' => static fn () => $d->derniersEmbarquements(15)],

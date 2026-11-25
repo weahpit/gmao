@@ -23,22 +23,22 @@
         <div class="row g-2 align-items-end">
             <div class="col-6 col-md-2">
                 <label class="form-label small" for="du">Du</label>
-                <input type="date" id="du" name="du" value="{{ filtres.du }}" class="form-control form-control-sm">
+                <input type="date" id="du" name="du" value="{{ filtres.du|default('') }}" class="form-control form-control-sm">
             </div>
             <div class="col-6 col-md-2">
                 <label class="form-label small" for="au">Au</label>
-                <input type="date" id="au" name="au" value="{{ filtres.au }}" class="form-control form-control-sm">
+                <input type="date" id="au" name="au" value="{{ filtres.au|default('') }}" class="form-control form-control-sm">
             </div>
             <div class="col-12 col-md-3">
                 <label class="form-label small" for="q">Visiteur (nom, pièce, société)</label>
-                <input type="text" id="q" name="q" value="{{ filtres.q }}" class="form-control form-control-sm" placeholder="Recherche libre">
+                <input type="text" id="q" name="q" value="{{ filtres.q|default('') }}" class="form-control form-control-sm" placeholder="Recherche libre">
             </div>
             <div class="col-12 col-md-3">
                 <label class="form-label small" for="service">Service visité</label>
                 <select id="service" name="service" class="form-select form-select-sm">
                     <option value="">Tous les services</option>
                     {% for unService in services %}
-                        <option value="{{ unService.id }}" {{ (filtres.service_id ?? filtres.service ?? '')|trim == (unService.id ~ '') ? 'selected' }}>
+                        <option value="{{ unService.id }}" {{ serviceChoisi|default('') == (unService.id ~ '') ? 'selected' }}>
                             {{ unService.code_direction ? unService.code_direction.libelle ~ ' / ' : '' }}{{ unService.libelle }}
                         </option>
                     {% endfor %}
@@ -49,7 +49,7 @@
                 <select id="statut" name="statut" class="form-select form-select-sm">
                     <option value="">Tous</option>
                     {% for code, libelle in statuts %}
-                        <option value="{{ code }}" {{ filtres.statut == code ? 'selected' }}>{{ libelle }}</option>
+                        <option value="{{ code }}" {{ filtres.statut|default('') == code ? 'selected' }}>{{ libelle }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -58,11 +58,11 @@
         <div class="d-flex flex-wrap gap-2 mt-3">
             <button type="submit" class="btn btn-sm btn-cacao">Afficher l'état</button>
             <a href="{{ path('app_visites_etat_pdf', {
-                    du: filtres.du,
-                    au: filtres.au,
-                    q: filtres.q,
-                    service: filtres.service_id ?? filtres.service ?? '',
-                    statut: filtres.statut
+                    du: filtres.du|default(''),
+                    au: filtres.au|default(''),
+                    q: filtres.q|default(''),
+                    service: serviceChoisi|default(''),
+                    statut: filtres.statut|default('')
                 }) }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
                 Télécharger le PDF
             </a>
@@ -70,7 +70,7 @@
         </div>
 
         <div class="small text-muted mt-2">
-            Période appliquée : du {{ filtres.du|date('d/m/Y') }} au {{ filtres.au|date('d/m/Y') }}.
+            Période appliquée : du {{ filtres.du|default('now')|date('d/m/Y') }} au {{ filtres.au|default('now')|date('d/m/Y') }}.
             Sans filtre de date, le mois en cours est proposé par défaut.
         </div>
     </form>

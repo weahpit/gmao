@@ -26,11 +26,13 @@ class VisiteRepository extends ServiceEntityRepository
      */
     public function construireRequete(array $filtres): QueryBuilder
     {
+        // Seul le visiteur est rapatrie en une fois. Le service (et sa
+        // direction) restent charges a la demande : un fetch-join imbrique
+        // sur une association nullable faisait echouer l'hydratation
+        // ("Undefined array key service" dans ObjectHydrator).
         $qb = $this->createQueryBuilder('v')
-            ->addSelect('visiteur', 'service', 'direction')
+            ->addSelect('visiteur')
             ->leftJoin('v.visiteur', 'visiteur')
-            ->leftJoin('v.service', 'service')
-            ->leftJoin('service.code_direction', 'direction')
             ->orderBy('v.heureEntree', 'DESC');
 
         $this->filtrer($qb, $filtres);

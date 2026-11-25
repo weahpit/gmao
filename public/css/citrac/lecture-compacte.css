@@ -1,0 +1,100 @@
+/* =====================================================================
+ *  CITRAC GMAO - Lisibilite et compacite des formulaires "export"
+ * ---------------------------------------------------------------------
+ *  S'applique aux pages qui utilisent la mise en page .exp-* :
+ *  Nouvel embarquement, CV et formules, Modeles documentaires, Suivi.
+ *  Objectif : controles plus petits (taille sm), texte plus contraste.
+ *  Retirer le <link> de la page pour revenir au rendu d'origine.
+ * ===================================================================== */
+
+.exp-wrap {
+    --exp-texte: #2f2118;
+    --exp-texte-doux: #5d4a3a;
+    --exp-bord: #cbb6a4;
+    font-size: .94rem;
+    color: var(--exp-texte);
+}
+
+/* Libelles : plus petits mais plus fonces. */
+.exp-wrap .exp-field > label,
+.exp-wrap label {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--exp-texte);
+    letter-spacing: .01em;
+}
+
+/* Controles compacts. */
+.exp-wrap input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.exp-wrap select,
+.exp-wrap textarea {
+    font-size: .84rem;
+    line-height: 1.35;
+    padding: .3rem .5rem;
+    min-height: 0;
+    height: auto;
+    border: 1px solid var(--exp-bord);
+    border-radius: 7px;
+    color: var(--exp-texte);
+    background-color: #fff;
+}
+
+.exp-wrap select { padding-right: 1.6rem; }
+.exp-wrap textarea { min-height: 4.5rem; }
+
+.exp-wrap input:focus,
+.exp-wrap select:focus,
+.exp-wrap textarea:focus {
+    border-color: #7a4c33;
+    box-shadow: 0 0 0 2px rgba(122, 76, 51, .16);
+    outline: none;
+}
+
+/* Cases a cocher et boutons radio : taille normale, plus de "pave". */
+.exp-wrap input[type="checkbox"],
+.exp-wrap input[type="radio"] {
+    width: 1rem;
+    height: 1rem;
+    min-width: 1rem;
+    margin: .15rem .35rem .15rem 0;
+    vertical-align: middle;
+    accent-color: #7a4c33;
+    transform: none;
+}
+
+.exp-wrap input[type="file"] {
+    font-size: .82rem;
+    padding: .25rem .4rem;
+}
+
+/* Boutons plus discrets mais contrastes. */
+.exp-wrap .exp-btn {
+    font-size: .82rem;
+    padding: .38rem .7rem;
+    border-radius: 8px;
+}
+
+/* Tableaux : texte plus net. */
+.exp-wrap .exp-table th {
+    font-size: .78rem;
+    color: #3d2c20;
+    font-weight: 700;
+}
+.exp-wrap .exp-table td {
+    font-size: .84rem;
+    color: var(--exp-texte);
+}
+
+/* Textes d'aide : plus fonces pour rester lisibles. */
+.exp-wrap .exp-note,
+.exp-wrap small,
+.exp-wrap .exp-help {
+    color: var(--exp-texte-doux);
+    font-size: .8rem;
+}
+
+@media (max-width: 576px) {
+    .exp-wrap input:not([type="checkbox"]):not([type="radio"]),
+    .exp-wrap select,
+    .exp-wrap textarea { font-size: .86rem; }
+}

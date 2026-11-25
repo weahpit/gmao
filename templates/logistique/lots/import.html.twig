@@ -1,0 +1,257 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Importer des lots{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'dechargement_cacao/_styles.html.twig' %}
+    {% include 'logistique/lots/_styles.html.twig' %}
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('tdb_role') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('production_lot') }}">Production de lots</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Import</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Production · Cacao · Lots</span>
+                <h1>Importer des lots</h1>
+                <p>
+                    Déposez un fichier Excel ou CSV pour créer plusieurs lots en une seule fois.
+                    Les numéros de lot déjà présents dans la base ne sont jamais écrasés : ces lignes sont ignorées
+                    et signalées dans le rapport. Seules les nouvelles lignes valides sont enregistrées.
+                </p>
+            </div>
+            <div class="dc-header-actions dc-no-print">
+                <a href="{{ path('production_lot') }}" class="dc-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    Retour aux lots
+                </a>
+                <a href="{{ path('production_lot_import_modele_xlsx') }}" class="dc-chip solid">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+                    Modèle Excel
+                </a>
+            </div>
+        </div>
+    </header>
+
+    {% for message in app.flashes('success') %}
+        <div class="dc-alert dc-alert-ok mb-3">{{ message }}</div>
+    {% endfor %}
+    {% for message in app.flashes('warning') %}
+        <div class="dc-alert mb-3" style="background:#fff8e6;border-color:#f0d9a6;color:#7a5a12;">{{ message }}</div>
+    {% endfor %}
+    {% for message in app.flashes('danger') %}
+        <div class="dc-alert dc-alert-error mb-3">{{ message }}</div>
+    {% endfor %}
+
+    {% if erreurs is not empty %}
+        <div class="dc-alert dc-alert-error mb-3" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            <div>
+                <strong>{% if nomFichier %}Le fichier « {{ nomFichier }} » n'a pas pu être importé.{% else %}Import interrompu.{% endif %}</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    {% for erreur in erreurs %}<li>{{ erreur }}</li>{% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if rapport is not empty %}
+        <div class="dc-stats mb-3">
+            <div class="dc-stat total">
+                <div class="lbl">Lignes lues</div>
+                <div class="val">{{ rapport|length }}</div>
+                <div class="sub">dans le fichier</div>
+            </div>
+            <div class="dc-stat nouveau">
+                <div class="lbl">Lots créés</div>
+                <div class="val">{{ compteurs.crees|default(0) }}</div>
+                <div class="sub">nouveaux numéros</div>
+            </div>
+            <div class="dc-stat modifie">
+                <div class="lbl">Déjà existants</div>
+                <div class="val">{{ compteurs.existants|default(0) }}</div>
+                <div class="sub">ignorés, non écrasés</div>
+            </div>
+            <div class="dc-stat rejete">
+                <div class="lbl">Rejetés</div>
+                <div class="val">{{ compteurs.rejetes|default(0) + compteurs.doublons|default(0) }}</div>
+                <div class="sub">doublons du fichier inclus</div>
+            </div>
+        </div>
+
+        <section class="dc-card mb-3">
+            <div class="dc-card-head">
+                <div>
+                    <h2 class="h6 mb-0">Rapport de l'import</h2>
+                    <small class="dc-subtle">Chaque ligne du fichier, avec son sort.</small>
+                </div>
+            </div>
+            <div class="dc-card-body">
+                <div class="dc-table-wrap">
+                    <table class="dc-table">
+                        <thead>
+                            <tr>
+                                <th style="width:70px">Ligne</th>
+                                <th style="width:180px">N° de lot</th>
+                                <th style="width:150px">Résultat</th>
+                                <th>Détail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ligne in rapport %}
+                                <tr>
+                                    <td class="small dc-subtle">{{ ligne.ligne }}</td>
+                                    <td class="small"><strong>{{ ligne.numero ?: '—' }}</strong></td>
+                                    <td>
+                                        {% if ligne.statut == 'cree' %}
+                                            <span class="dc-badge" style="background:#e8f6ee;color:#1e7e46;border-color:#bfe3cd;">Créé</span>
+                                        {% elseif ligne.statut == 'existant' %}
+                                            <span class="dc-badge" style="background:#fdf3e2;color:#8a5a12;border-color:#f0d9a6;">Déjà existant</span>
+                                        {% elseif ligne.statut == 'doublon' %}
+                                            <span class="dc-badge" style="background:#fdf3e2;color:#8a5a12;border-color:#f0d9a6;">Doublon</span>
+                                        {% else %}
+                                            <span class="dc-badge" style="background:#fdecec;color:#a32323;border-color:#f4c4c4;">Rejeté</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small">{{ ligne.message }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="dc-note mb-0 mt-3">Pour réimporter un lot déjà existant, modifiez-le directement depuis la liste des lots : l'import ne remplace jamais un enregistrement existant.</p>
+            </div>
+        </section>
+    {% endif %}
+
+    <section class="dc-card mb-3">
+        <div class="dc-card-head">
+            <div>
+                <h2 class="h6 mb-0">1. Télécharger le modèle</h2>
+                <small class="dc-subtle">Deux formats identiques : utilisez celui qui vous arrange.</small>
+            </div>
+        </div>
+        <div class="dc-card-body">
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ path('production_lot_import_modele_xlsx') }}" class="dc-btn dc-btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+                    Modèle .xlsx
+                </a>
+                <a href="{{ path('production_lot_import_modele_csv') }}" class="dc-btn dc-btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M4 15h16M10 4v16"/></svg>
+                    Modèle .csv
+                </a>
+            </div>
+
+            <div class="dc-table-wrap mt-3">
+                <table class="dc-table">
+                    <thead>
+                        <tr>
+                            <th style="width:200px">Colonne</th>
+                            <th style="width:90px">Obligatoire</th>
+                            <th>Contenu attendu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for colonne in colonnesModele %}
+                            <tr>
+                                <td class="small"><strong>{{ colonne.0 }}</strong></td>
+                                <td class="small">{{ colonne.1 }}</td>
+                                <td class="small dc-subtle">{{ colonne.2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="dc-note mb-0 mt-3">Le fichier peut contenir une ligne de titre au-dessus des colonnes : l'en-tête est détecté automatiquement. Les accents et les majuscules des libellés n'ont pas d'importance.</p>
+        </div>
+    </section>
+
+    <section class="dc-card mb-3">
+        <div class="dc-card-head">
+            <div>
+                <h2 class="h6 mb-0">2. Déposer le fichier rempli</h2>
+                <small class="dc-subtle">Formats acceptés : .xlsx, .csv — 10 Mo maximum, 500 lignes maximum.</small>
+            </div>
+        </div>
+        <div class="dc-card-body">
+            {% if peutModifier %}
+                <form method="post" action="{{ path('production_lot_import_executer') }}" enctype="multipart/form-data" id="lot-import-form">
+                    <input type="hidden" name="_token" value="{{ csrf_token('lot_import') }}">
+                    <label class="dc-drop" id="lot-import-drop" for="lot-import-fichier">
+                        <span class="dc-drop-ico">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+                        </span>
+                        <span class="dc-drop-title d-block" id="lot-import-titre">Cliquez ou déposez votre fichier ici</span>
+                        <span class="dc-drop-sub d-block" id="lot-import-sous">.xlsx ou .csv, 10 Mo maximum</span>
+                        <input type="file" id="lot-import-fichier" name="fichier" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+                    </label>
+
+                    <div class="dc-form-actions mt-3">
+                        <button type="submit" class="dc-btn dc-btn-primary" id="lot-import-envoyer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+                            Importer les lots
+                        </button>
+                        <a href="{{ path('production_lot') }}" class="dc-btn dc-btn-ghost">Annuler</a>
+                    </div>
+                    <p class="dc-help">
+                        <span class="dc-help-item"><strong>Les anciens enregistrements sont conservés</strong>Un numéro de lot déjà en base n'est jamais modifié ni supprimé par l'import.</span>
+                        <span class="dc-help-item"><strong>Seules les lignes valides passent</strong>Une ligne incomplète ou avec un propriétaire/produit inconnu est rejetée, les autres sont enregistrées.</span>
+                    </p>
+                </form>
+            {% else %}
+                <div class="dc-lock-note">Votre profil ne permet pas de créer des lots. Demandez à un administrateur ou à la direction générale.</div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        (function () {
+            var champ = document.getElementById('lot-import-fichier');
+            var zone = document.getElementById('lot-import-drop');
+            var titre = document.getElementById('lot-import-titre');
+            var sous = document.getElementById('lot-import-sous');
+            var bouton = document.getElementById('lot-import-envoyer');
+            if (!champ || !zone) { return; }
+
+            function afficher() {
+                if (!champ.files || champ.files.length === 0) { return; }
+                var fichier = champ.files[0];
+                var octets = fichier.size;
+                var taille = octets > 1048576 ? (octets / 1048576).toFixed(1) + ' Mo' : Math.max(1, Math.round(octets / 1024)) + ' Ko';
+                zone.classList.add('has-file');
+                if (titre) { titre.textContent = fichier.name; }
+                if (sous) { sous.textContent = taille + ' — cliquez sur « Importer les lots » pour lancer le traitement.'; }
+            }
+
+            champ.addEventListener('change', afficher);
+            ['dragenter', 'dragover'].forEach(function (nom) {
+                zone.addEventListener(nom, function (evenement) { evenement.preventDefault(); zone.classList.add('drag'); });
+            });
+            ['dragleave', 'drop'].forEach(function (nom) {
+                zone.addEventListener(nom, function () { zone.classList.remove('drag'); });
+            });
+            var formulaire = document.getElementById('lot-import-form');
+            if (formulaire && bouton) {
+                formulaire.addEventListener('submit', function () {
+                    bouton.disabled = true;
+                    bouton.textContent = 'Import en cours…';
+                });
+            }
+        })();
+    </script>
+{% endblock %}
