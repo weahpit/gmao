@@ -596,6 +596,32 @@
             </div>
         {% endif %}
 
+        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_PRODUCTION')  or is_granted('ROLE_DL')%}
+
+            {#*************************************************************************************************
+            ************************* PRODUCTION *********************************************************
+            **************************************************************************************************#}
+
+            <div class="nav-section">
+                <div class="nav-group">
+                    <button type="button" class="nav-item has-submenu">
+                        <i data-lucide="package"></i>
+                        <span class="nav-label">Production</span>
+                        <i data-lucide="chevron-down" class="nav-chevron"></i>
+                    </button>
+                    <div class="nav-submenu">
+                        <span class="nav-section-title">Gestion des lots</span>
+                        <a href="{{ path('production_lot') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'production_lot' ? 'active' }}">
+                            <span class="nav-label">Production de lots</span>
+                        </a>
+                        <a href="#" class="nav-subitem">
+                            <span class="nav-label">Magasinage de Lots</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
         {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_DG') or is_granted('ROLE_LOGISTIQUE') or is_granted('ROLE_LOGISTIQU') or is_granted('ROLE_DL') or is_granted('ROLE_SHIPPING') or is_granted('ROLE_AGENT_SHIPPING') or is_granted('AGENT_SHIPPING') %}
 
             {#*************************************************************************************************
@@ -623,13 +649,6 @@
                         </a>
                         <a href="{{ path('logistique_modeles_documents') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'logistique_modeles_documents' ? 'active' }}">
                             <span class="nav-label">Modèles documentaires</span>
-                        </a>
-                        <span class="nav-section-title">Gestion des lots</span>
-                        <a href="{{ path('production_lot') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'production_lot' ? 'active' }}">
-                            <span class="nav-label">Production</span>
-                        </a>
-                        <a href="#" class="nav-subitem">
-                            <span class="nav-label">Magasinage de Lots</span>
                         </a>
                     </div>
                 </div>
@@ -697,13 +716,15 @@
                     </button>
 
                     <div class="nav-submenu">
-                        <a href="{{ path('app_dechargement_cacao_import') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargement_cacao_import' ? 'active' }}">
-                            <span class="nav-label">Import déchargement cacao</span>
-                        </a>
-                        <a href="{{ path('app_dechargement_cacao_import') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargement_cacao_import' ? 'active' }}">
-                            <span class="nav-label">Import Lots</span>
-                        </a>
-                        <hr>
+                        {%  if is_granted('ROLE_LOGISTIQUE') %}
+                            <a href="{{ path('app_dechargement_cacao_import') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargement_cacao_import' ? 'active' }}">
+                                <span class="nav-label">Import déchargement cacao</span>
+                            </a>
+                            <a href="{{ path('app_dechargement_cacao_import') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargement_cacao_import' ? 'active' }}">
+                                <span class="nav-label">Import Lots</span>
+                            </a>
+                            <hr>
+                        {% endif %}
                         <a href="{{ path('app_dechargements_cacao') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargements_cacao' ? 'active' }}">
                             <span class="nav-label">Déchargements cacao</span>
                         </a>
