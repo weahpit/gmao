@@ -1,0 +1,484 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ordre de production{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'dechargement_cacao/_styles.html.twig' %}
+    <style>
+        /* Filtres instantanes des deux listes (sans rechargement) */
+        .ou-filtre {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            align-items: center;
+            margin-bottom: .75rem;
+            padding: .6rem .7rem;
+            background: #fffdfa;
+            border: 1px solid #e9dfd2;
+            border-radius: 10px;
+        }
+        .ou-filtre .dc-input {
+            flex: 1 1 220px;
+            min-width: 160px;
+            margin: 0;
+        }
+        .ou-filtre select.dc-input {
+            flex: 0 1 200px;
+        }
+        .ou-filtre .ou-compteur {
+            font-size: .82rem;
+            color: #6b6259;
+            white-space: nowrap;
+        }
+        .ou-filtre .ou-bascule {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            font-size: .85rem;
+            color: #4a423a;
+            white-space: nowrap;
+        }
+        .dc-ou-camion[hidden],
+        .dc-table tbody tr[hidden] {
+            display: none !important;
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('tdb_role') }}">Accueil</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Production</span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('production_lot') }}">Production de lots</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">Ordre de production</span>
+{% endblock %}
+
+{% block body %}
+<div class="dc-wrap py-3">
+
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Production · Masse · Beurre · Tourteau</span>
+                <h1>Ordre de production</h1>
+                <p>
+                    Cochez les <strong>produits finis</strong> fabriqués, cochez les <strong>lots de fèves CITRAC</strong> qui les ont produits, puis enregistrez :
+                    l'application génère automatiquement un numéro d'ordre de production et rattache chaque produit coché à chacun des lots de fèves cochés.
+                    Aucun camion n'est saisi ici : les camions se rattachent aux fèves dans l'ordre d'usinage, la fiche du produit fini restitue ensuite toute la chaîne.
+                </p>
+            </div>
+            <div class="dc-header-actions dc-no-print">
+                <a href="{{ path('stock_origine_produit') }}" class="dc-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v12H3z"/><path d="M7 6V4h10v2"/><path d="M7 12h4"/></svg>
+                    Origine du produit
+                </a>
+                <a href="{{ path('stock_tracabilite_lots') }}" class="dc-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M6 7v13h12V7M9 11h6"/></svg>
+                    Ordre d'usinage
+                </a>
+                <a href="{{ path('production_lot') }}" class="dc-chip solid">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Lots de production
+                </a>
+            </div>
+        </div>
+
+        <div class="dc-steps dc-no-print">
+            <span class="dc-step active"><span class="num">1</span> Choisir les produits finis</span>
+            <span class="dc-step"><span class="num">2</span> Cocher les lots de fèves</span>
+            <span class="dc-step"><span class="num">3</span> Enregistrer l'ordre</span>
+        </div>
+    </header>
+
+    {% for message in app.flashes('success') %}<div class="dc-alert dc-alert-ok mb-3">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('info') %}<div class="dc-alert mb-3">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('warning') %}<div class="dc-alert mb-3">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('danger') %}<div class="dc-alert dc-alert-error mb-3">{{ message }}</div>{% endfor %}
+
+    <div class="dc-stats">
+        <div class="dc-stat total"><div class="lbl">Ordres de production</div><div class="val">{{ nbOrdres|number_format(0, ',', ' ') }}</div><div class="sub">enregistrés au total</div></div>
+        <div class="dc-stat nouveau"><div class="lbl">Produits finis tracés</div><div class="val">{{ totaux.finis|number_format(0, ',', ' ') }}</div><div class="sub">avec au moins un lot de fèves</div></div>
+        <div class="dc-stat modifie"><div class="lbl">Lots de fèves utilisés</div><div class="val">{{ totaux.feves|number_format(0, ',', ' ') }}</div><div class="sub">fèves CITRAC distinctes</div></div>
+        <div class="dc-stat"><div class="lbl">Rattachements</div><div class="val">{{ totaux.lignes|number_format(0, ',', ' ') }}</div><div class="sub">couples produit × fèves</div></div>
+    </div>
+
+    {# ---------- Barre de recherche (formulaire séparé : pas d'imbrication) ---------- #}
+    <section class="dc-card dc-no-print">
+        <div class="dc-card-head">
+            <h2>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                Rechercher
+            </h2>
+            <span class="hint">Filtre les produits finis et les lots de fèves affichés</span>
+        </div>
+        <div class="dc-card-body">
+            <form method="get" action="{{ path('stock_tracabilite_produits') }}" class="dc-ou-toolbar">
+                <div class="dc-field">
+                    <label class="dc-label" for="op-q">Produit fini (lot, produit, magasin)</label>
+                    <input id="op-q" type="search" name="q" value="{{ terme }}" class="dc-input" placeholder="Ex. 26B-014, BEURRE…">
+                </div>
+                <div class="dc-field ou-petit">
+                    <label class="dc-label" for="op-statut">Situation du produit</label>
+                    <select id="op-statut" name="statut" class="dc-input">
+                        <option value="tous" {{ statut == 'tous' ? 'selected' }}>Tous les produits finis</option>
+                        <option value="sans_feve" {{ statut == 'sans_feve' ? 'selected' }}>Sans fèves rattachées</option>
+                        <option value="avec_feve" {{ statut == 'avec_feve' ? 'selected' }}>Déjà tracés</option>
+                    </select>
+                </div>
+                <div class="dc-field">
+                    <label class="dc-label" for="op-fq">Lot de fèves (n°, grade, produit)</label>
+                    <input id="op-fq" type="search" name="fq" value="{{ rechercheFeve }}" class="dc-input" placeholder="Ex. 26A-012, grade 2…">
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="dc-btn dc-btn-primary">Rechercher</button>
+                    <a href="{{ path('stock_tracabilite_produits') }}" class="dc-btn dc-btn-ghost">Tout afficher</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    {# ---------- Formulaire principal : produits finis cochés + lots de fèves cochés ---------- #}
+    <form method="post" action="{{ path('stock_ordre_production_creer') }}" id="form-ordre-production">
+        <input type="hidden" name="_token" value="{{ csrf_token('ordre_production_creation') }}">
+
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <section class="dc-card h-100">
+                    <div class="dc-card-head">
+                        <h2>
+                            <span class="dc-ou-num" style="background:#fffdfa;">1</span>
+                            Produits finis à rattacher
+                        </h2>
+                        <span class="hint">Masse, beurre, tourteau · {{ total|number_format(0, ',', ' ') }} lot(s) · page {{ page }} / {{ pages }}</span>
+                    </div>
+                    <div class="dc-card-body">
+                        <div class="ou-filtre dc-no-print">
+                            <input type="search" id="filtre-produits" class="dc-input" autocomplete="off"
+                                   placeholder="Filtrer cette page : n° de lot, produit, qualité…"
+                                   aria-label="Filtrer la liste des produits finis sans recharger la page">
+                            <label class="ou-bascule">
+                                <input type="checkbox" id="filtre-produits-sans-feve">
+                                Sans fèves seulement
+                            </label>
+                            <span class="ou-compteur" id="compteur-produits"></span>
+                        </div>
+                        <div class="dc-table-wrap">
+                            <div class="dc-table-scroll">
+                                <table class="dc-table dc-keep">
+                                    <thead>
+                                        <tr>
+                                            <th class="dc-check-cell"><span class="dc-subtle">Choix</span></th>
+                                            <th>Produit fini</th>
+                                            <th>Production</th>
+                                            <th>Qualité</th>
+                                            <th class="num">PN th. (kg)</th>
+                                            <th class="num">Fèves</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for ligne in lignes %}
+                                        {% set l = ligne.lot %}
+                                        <tr data-recherche="{{ (l.numeroLot ~ ' ' ~ (l.codeProduit ? l.codeProduit.libelle : '') ~ ' ' ~ (l.qualite ?: '') ~ ' ' ~ ligne.qualite ~ ' ' ~ (l.codeMagasin ? l.codeMagasin.libelle : '') ~ ' ' ~ (l.dateProd ? l.dateProd|date('d/m/Y') : ''))|lower }}"
+                                            data-feves="{{ ligne.feves }}">
+                                            <td class="dc-check-cell">
+                                                <input class="dc-check" type="checkbox" name="lots[]" value="{{ l.id }}" id="lot-{{ l.id }}" aria-label="Sélectionner le produit fini {{ l.numeroLot }}" {{ peutModifier ? '' : 'disabled' }}>
+                                            </td>
+                                            <td data-label="Produit fini" class="code">
+                                                {% if peutModifier %}
+                                                    <a href="{{ path('stock_tracabilite_produit', {id: l.id}) }}" class="dc-lot-link">{{ l.numeroLot }}</a>
+                                                {% else %}
+                                                    {{ l.numeroLot }}
+                                                {% endif %}
+                                                {% if l.codeProduit %}<div class="dc-subtle trunc">{{ l.codeProduit.libelle }}</div>{% endif %}
+                                            </td>
+                                            <td data-label="Production">{{ l.dateProd ? l.dateProd|date('d/m/Y') : '—' }}</td>
+                                            <td data-label="Qualité">
+                                                <span class="dc-badge {{ ligne.estNc ? 'rejete' : 'nouveau' }}"><span class="dot"></span>{{ ligne.estNc ? 'Non conforme' : 'Conforme' }}</span>
+                                            </td>
+                                            <td data-label="PN th." class="num">{{ l.pnTh is not null ? l.pnTh|number_format(0, ',', ' ') : '—' }}</td>
+                                            <td data-label="Fèves" class="num">
+                                                <span class="dc-tag {{ ligne.feves == 0 ? 'zero' : 'ok' }}">{{ ligne.feves }}</span>
+                                            </td>
+                                        </tr>
+                                    {% else %}
+                                        <tr><td colspan="6"><div class="dc-empty">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+                                            <div>Aucun produit fini ne correspond à cette recherche.</div>
+                                        </div></td></tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {% if pages > 1 %}
+                        <nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 dc-no-print">
+                            <span class="hint">Page {{ page }} sur {{ pages }}</span>
+                            <div class="d-flex gap-2">
+                                {% if page > 1 %}
+                                    <a class="dc-btn dc-btn-ghost" href="{{ path('stock_tracabilite_produits', {page: page - 1, q: terme, statut: statut, fq: rechercheFeve}) }}">Précédent</a>
+                                {% endif %}
+                                {% if page < pages %}
+                                    <a class="dc-btn dc-btn-ghost" href="{{ path('stock_tracabilite_produits', {page: page + 1, q: terme, statut: statut, fq: rechercheFeve}) }}">Suivant</a>
+                                {% endif %}
+                            </div>
+                        </nav>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-lg-5">
+                <section class="dc-card h-100">
+                    <div class="dc-card-head">
+                        <h2>
+                            <span class="dc-ou-num" style="background:#fffdfa;">2</span>
+                            Lots de fèves CITRAC
+                        </h2>
+                        <span class="hint">{{ feves|length }} proposé(s)</span>
+                    </div>
+                    <div class="dc-card-body">
+                        <p class="dc-subtle mb-2">
+                            Cochez un ou plusieurs lots de fèves : chaque produit fini sélectionné sera rattaché à tous les lots de fèves cochés.
+                        </p>
+
+                        {% if feves is empty %}
+                            <div class="dc-empty">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 4 7v10l8 5 8-5V7z"/><path d="M4 7l8 5 8-5M12 12v10"/></svg>
+                                <div>Aucun lot de fèves ne correspond à la recherche.</div>
+                            </div>
+                        {% else %}
+                            <div class="ou-filtre dc-no-print">
+                                <input type="search" id="filtre-feves" class="dc-input" autocomplete="off"
+                                       placeholder="Filtrer : n° de lot, grade, produit…"
+                                       aria-label="Filtrer la liste des lots de fèves sans recharger la page">
+                                <select id="filtre-feves-finis" class="dc-input" aria-label="Filtrer selon les produits finis rattachés">
+                                    <option value="tous">Tous les lots de fèves</option>
+                                    <option value="sans">Sans produit fini</option>
+                                    <option value="avec">Avec au moins un produit fini</option>
+                                </select>
+                                <span class="ou-compteur" id="compteur-feves"></span>
+                                <button type="button" id="cocher-feves-visibles" class="dc-btn dc-btn-ghost">Cocher les lots affichés</button>
+                            </div>
+                            <div class="dc-ou-liste">
+                                {% for item in feves %}
+                                    {% set f = item.lot %}
+                                    <label class="dc-ou-camion" for="feve-{{ f.id }}"
+                                           data-recherche="{{ (f.numeroLot ~ ' ' ~ (f.codeProduit ? f.codeProduit.libelle : '') ~ ' ' ~ item.qualite ~ ' ' ~ (f.dateProd ? f.dateProd|date('d/m/Y') : ''))|lower }}"
+                                           data-finis="{{ item.finis }}">
+                                        <input class="dc-check" type="checkbox" name="feves[]" value="{{ f.id }}" id="feve-{{ f.id }}" {{ peutModifier ? '' : 'disabled' }}>
+                                        <span class="corps">
+                                            <span class="titre">
+                                                {{ f.numeroLot }}
+                                                <span class="dc-tag {{ item.finis > 0 ? 'ok' : 'zero' }}">{{ item.finis }} produit(s)</span>
+                                            </span>
+                                            <span class="sous">
+                                                {{ item.qualite }}
+                                                {% if f.dateProd %} · produit le {{ f.dateProd|date('d/m/Y') }}{% endif %}
+                                            </span>
+                                            <span class="sous">
+                                                {{ f.pnTh is not null ? f.pnTh|number_format(0, ',', ' ') ~ ' kg' : 'poids non renseigné' }}
+                                                {% if f.nbSacs %} · {{ f.nbSacs|number_format(0, ',', ' ') }} sacs{% endif %}
+                                            </span>
+                                        </span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="dc-field mt-3">
+                            <label class="dc-label" for="op-observation">Observation (facultatif)</label>
+                            <textarea id="op-observation" name="observation" rows="2" class="dc-input" maxlength="255" placeholder="Ex. campagne 2026, 2e passage, mélange de deux lots de fèves…"></textarea>
+                        </div>
+
+                        <div class="dc-ou-total">
+                            <div>
+                                <div class="dc-subtle">Numéro généré à l'enregistrement</div>
+                                <strong>OP-AAAA-0001</strong>
+                            </div>
+                            <button type="submit" class="dc-btn dc-btn-primary" {{ peutModifier ? '' : 'disabled' }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                Enregistrer l'ordre de production
+                            </button>
+                        </div>
+                        <p class="dc-actions-hint mt-2">
+                            Cochez au moins un produit fini et au moins un lot de fèves, sinon l'enregistrement est refusé.
+                            Un couple produit fini + lot de fèves déjà rattaché est automatiquement ignoré (pas de doublon).
+                        </p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </form>
+
+    {# ---------- Historique des ordres de production ---------- #}
+    <section class="dc-card mt-3">
+        <div class="dc-card-head">
+            <h2>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                Derniers ordres de production
+            </h2>
+            <span class="hint">{{ nbOrdres|number_format(0, ',', ' ') }} au total</span>
+        </div>
+        <div class="dc-card-body">
+            {% if ordres is empty %}
+                <div class="dc-empty">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
+                    <div>Aucun ordre de production enregistré pour le moment.</div>
+                </div>
+            {% else %}
+                <div class="dc-table-wrap">
+                    <div class="dc-table-scroll">
+                        <table class="dc-table dc-keep">
+                            <thead>
+                                <tr>
+                                    <th>Numéro</th>
+                                    <th>Créé le</th>
+                                    <th>Produits finis</th>
+                                    <th>Lots de fèves</th>
+                                    <th class="num">Couples</th>
+                                    <th>Observation</th>
+                                    <th class="num dc-no-print">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for o in ordres %}
+                                <tr>
+                                    <td data-label="Numéro"><span class="dc-ou-num">{{ o.numero }}</span></td>
+                                    <td data-label="Créé le">{{ o.dateCreation ? o.dateCreation|date('d/m/Y H:i') : '—' }}</td>
+                                    <td data-label="Produits finis">
+                                        <div class="dc-ou-lots">
+                                            {% for lot in o.produitsFinis %}
+                                                <span class="dc-ou-lot-chip">{{ lot.numeroLot }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="dc-subtle">{{ o.produitsFinis|length }} produit(s)</div>
+                                    </td>
+                                    <td data-label="Lots de fèves">
+                                        <div class="dc-ou-lots">
+                                            {% for lot in o.lotsFeves %}
+                                                <span class="dc-ou-lot-chip">{{ lot.numeroLot }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="dc-subtle">{{ o.lotsFeves|length }} lot(s)</div>
+                                    </td>
+                                    <td data-label="Couples" class="num">{{ o.lignes|length }}</td>
+                                    <td data-label="Observation"><span class="trunc" title="{{ o.observation }}">{{ o.observation ?: '—' }}</span></td>
+                                    <td data-label="Action" class="num dc-no-print">
+                                        {% if peutModifier %}
+                                        <form method="post" action="{{ path('stock_ordre_production_supprimer', {id: o.id}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('ordre_production_suppression') }}">
+                                            <button type="submit" class="dc-mini-btn danger">Annuler</button>
+                                        </form>
+                                        {% else %}—{% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+<script>
+/* Filtres instantanes : produits finis de la page courante et lots de feves
+   proposes. Le formulaire de recherche serveur reste disponible pour changer
+   de page ou elargir la recherche. */
+(function () {
+    'use strict';
+
+    function normaliser(valeur) {
+        return (valeur || '').toString().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // ---- Produits finis ----
+    var lignesProduits = Array.prototype.slice.call(document.querySelectorAll('#form-ordre-production tbody tr[data-recherche]'));
+    var champProduits = document.getElementById('filtre-produits');
+    var basculeSansFeve = document.getElementById('filtre-produits-sans-feve');
+    var compteurProduits = document.getElementById('compteur-produits');
+
+    function filtrerProduits() {
+        var texte = normaliser(champProduits ? champProduits.value : '');
+        var sansFeve = basculeSansFeve && basculeSansFeve.checked;
+        var visibles = 0;
+
+        lignesProduits.forEach(function (ligne) {
+            var okTexte = texte === '' || normaliser(ligne.dataset.recherche).indexOf(texte) !== -1;
+            var nbFeves = parseInt(ligne.dataset.feves || '0', 10);
+            var okFeve = !sansFeve || nbFeves === 0;
+            var visible = okTexte && okFeve;
+            ligne.hidden = !visible;
+            if (visible) { visibles++; }
+        });
+
+        if (compteurProduits) {
+            compteurProduits.textContent = visibles + ' / ' + lignesProduits.length + ' affiché(s)';
+        }
+    }
+
+    if (champProduits) { champProduits.addEventListener('input', filtrerProduits); }
+    if (basculeSansFeve) { basculeSansFeve.addEventListener('change', filtrerProduits); }
+    filtrerProduits();
+
+    // ---- Lots de feves ----
+    var cartesFeves = Array.prototype.slice.call(document.querySelectorAll('.dc-ou-camion'));
+    var champFeves = document.getElementById('filtre-feves');
+    var selectFeves = document.getElementById('filtre-feves-finis');
+    var compteurFeves = document.getElementById('compteur-feves');
+    var boutonCocher = document.getElementById('cocher-feves-visibles');
+
+    function filtrerFeves() {
+        var texte = normaliser(champFeves ? champFeves.value : '');
+        var choix = selectFeves ? selectFeves.value : 'tous';
+        var visibles = 0;
+
+        cartesFeves.forEach(function (carte) {
+            var okTexte = texte === '' || normaliser(carte.dataset.recherche).indexOf(texte) !== -1;
+            var nb = parseInt(carte.dataset.finis || '0', 10);
+            var okChoix = choix === 'tous' || (choix === 'sans' && nb === 0) || (choix === 'avec' && nb > 0);
+            var visible = okTexte && okChoix;
+            carte.hidden = !visible;
+            if (visible) { visibles++; }
+        });
+
+        if (compteurFeves) {
+            compteurFeves.textContent = visibles + ' / ' + cartesFeves.length + ' affiché(s)';
+        }
+    }
+
+    if (champFeves) { champFeves.addEventListener('input', filtrerFeves); }
+    if (selectFeves) { selectFeves.addEventListener('change', filtrerFeves); }
+    filtrerFeves();
+
+    if (boutonCocher) {
+        boutonCocher.addEventListener('click', function () {
+            cartesFeves.forEach(function (carte) {
+                if (carte.hidden) { return; }
+                var case_ = carte.querySelector('input[type="checkbox"]');
+                if (case_ && !case_.disabled) { case_.checked = true; }
+            });
+        });
+    }
+
+    // ---- Garde-fou avant envoi ----
+    var formulaire = document.getElementById('form-ordre-production');
+    if (formulaire) {
+        formulaire.addEventListener('submit', function (e) {
+            var produits = formulaire.querySelectorAll('input[name="lots[]"]:checked').length;
+            var feves = formulaire.querySelectorAll('input[name="feves[]"]:checked').length;
+            if (produits === 0 || feves === 0) {
+                e.preventDefault();
+                window.alert('Cochez au moins un produit fini et au moins un lot de fèves CITRAC.');
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

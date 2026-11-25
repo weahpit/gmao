@@ -12,6 +12,7 @@ use App\Repository\Production\LotRepository;
 use App\Repository\Production\ProduitRepository;
 use App\Repository\Stock\LotDechargementRepository;
 use App\Service\Production\GestionLotService;
+use App\Service\Production\NatureLot;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,7 +36,7 @@ use Symfony\Component\Uid\Uuid;
 class Lots extends AbstractController
 {
     private const PAR_PAGE = 25;
-    private const SITUATIONS = ['tous', 'avec_camion', 'sans_camion', 'nc', 'conforme', 'scinde'];
+    private const SITUATIONS = ['tous', 'avec_camion', 'sans_camion', 'nc', 'conforme', 'scinde', 'grade1', 'grade2', 'sous_grade'];
 
     public function __construct(
         private readonly LotRepository $lots,
@@ -44,6 +45,7 @@ class Lots extends AbstractController
         private readonly MagasinRepository $magasins,
         private readonly LotDechargementRepository $liens,
         private readonly GestionLotService $gestion,
+        private readonly NatureLot $nature,
     ) {
     }
 
@@ -86,6 +88,89 @@ class Lots extends AbstractController
             : sprintf('Le lot « %s » a été mis à jour.', $resultat['lot']->getNumeroLot()));
 
         return $this->redirectToRoute('production_lot', $this->retour($donnees));
+    }
+
+    /**
+     * Actions groupees sur les lots coches : declaration non conforme ou
+     * suppression. Les lots deja rattaches a un dossier ou a un camion sont
+     * ignores (aucune perte de tracabilite).
+     */
+    #[Route('/Selection', name: 'production_lot_selection', methods: ['POST'])]
+    public function selection(Request $request): Response
+    {
+        if (!$this->peutModifier()) {
+            $this->addFlash('danger', 'Votre profil ne permet pas de modifier les lots de production.');
+
+            return $this->redirectToRoute('production_lot');
+        }
+
+        if (!$this->isCsrfTokenValid('lot_selection', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Session expirée : rechargez la page puis recommencez.');
+
+            return $this->redirectToRoute('production_lot');
+        }
+
+        $action = (string) $request->request->get('action', 'nc');
+        $ids = array_values(array_filter((array) $request->request->all('ids'), static fn ($id): bool => is_string($id) && Uuid::isValid($id)));
+
+        if ($ids === []) {
+            $this->addFlash('warning', 'Aucun lot sélectionné.');
+
+            return $this->redirectToRoute('production_lot');
+        }
+
+        if ($action === 'supprimer' && !$this->isGranted('ROLE_ADMIN')) {
+            $this->addFlash('danger', 'Seul un administrateur peut supprimer des lots.');
+
+            return $this->redirectToRoute('production_lot');
+        }
+
+        $traites = 0;
+        $ignores = 0;
+
+        foreach ($ids as $id) {
+            $lot = $this->lots->find($id);
+            if (!$lot instanceof Lot) {
+                ++$ignores;
+
+                continue;
+            }
+
+            $rattache = !$lot->getCodeDossier()->isEmpty() || $this->liens->compterParLot($lot) > 0;
+
+            if ($action === 'supprimer') {
+                if ($rattache) {
+                    ++$ignores;
+
+                    continue;
+                }
+                $this->lots->getEntityManager()->remove($lot);
+                ++$traites;
+
+                continue;
+            }
+
+            // Seuls les produits finis ont une qualite C / NC : un lot de feves
+            // porte un grade (Grade 1, Grade 2, Sous-grade) et n'est pas scinde.
+            if (!$this->nature->estFini($lot) || 'NC' === mb_strtoupper((string) $lot->getQualite())) {
+                ++$ignores;
+
+                continue;
+            }
+
+            $lot->setQualite('NC')->setUpdatedAt(new \DateTimeImmutable())->setUpdatedBy($this->utilisateur());
+            ++$traites;
+        }
+
+        $this->lots->getEntityManager()->flush();
+
+        if ($action === 'supprimer') {
+            $this->addFlash($traites > 0 ? 'success' : 'warning', sprintf('%d lot(s) supprimé(s). %d ignoré(s) car rattaché(s) à un camion ou à un dossier.', $traites, $ignores));
+        } else {
+            $this->addFlash($traites > 0 ? 'success' : 'warning', sprintf('%d lot(s) déclaré(s) non conforme(s). %d ignoré(s) : déjà non conforme(s), déjà rattaché(s), ou lot de fèves (qualité par grade).', $traites, $ignores));
+        }
+
+        return $this->redirectToRoute('production_lot');
     }
 
     #[Route('/Scission', name: 'production_lot_scission', methods: ['POST'])]
@@ -214,8 +299,16 @@ class Lots extends AbstractController
 
         $liens = $this->liens->statistiques();
         $parLot = [];
+        $natures = [];
         foreach ($resultats as $ligne) {
             $parLot[(string) $ligne->getId()] = $liens[(string) $ligne->getId()]['nb'] ?? 0;
+            $natures[(string) $ligne->getId()] = $this->nature->natureLot($ligne);
+        }
+
+        $produits = $this->produits->findBy([], ['libelle' => 'ASC']);
+        $natureProduits = [];
+        foreach ($produits as $produit) {
+            $natureProduits[(string) $produit->getId()] = $this->nature->natureProduit($produit);
         }
 
         return $this->render('logistique/lots/index.html.twig', [
@@ -231,7 +324,10 @@ class Lots extends AbstractController
             'rattachements' => $this->liens->totauxGlobaux(),
             'camionsParLot' => $parLot,
             'proprietaires' => $this->proprietaires->findBy([], ['denomination' => 'ASC']),
-            'produits' => $this->produits->findBy([], ['libelle' => 'ASC']),
+            'produits' => $produits,
+            'natures' => $natures,
+            'natureProduits' => $natureProduits,
+            'libellesQualite' => NatureLot::GRADES + NatureLot::QUALITES_FINIES,
             'magasins' => $this->magasins->findBy([], ['libelle' => 'ASC']),
             'lotEdition' => $lot,
             'camionsEdition' => $lot instanceof Lot ? $this->liens->compterParLot($lot) : 0,

@@ -700,11 +700,21 @@
                         <a href="{{ path('app_dechargement_cacao_import') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargement_cacao_import' ? 'active' }}">
                             <span class="nav-label">Import déchargement cacao</span>
                         </a>
+                        <a href="{{ path('app_dechargement_cacao_import') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargement_cacao_import' ? 'active' }}">
+                            <span class="nav-label">Import Lots</span>
+                        </a>
+                        <hr>
                         <a href="{{ path('app_dechargements_cacao') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'app_dechargements_cacao' ? 'active' }}">
                             <span class="nav-label">Déchargements cacao</span>
                         </a>
-                        <a href="{{ path('stock_tracabilite_lots') }}" class="nav-subitem {{ traceActive ? 'active' }}">
-                            <span class="nav-label">Ordre d'usinage (lots de fèves)</span>
+                        <a href="{{ path('stock_tracabilite_lots') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'stock_tracabilite_lots' ? 'active' }}">
+                            <span class="nav-label">Ordre d'Usinage</span>
+                        </a>
+                        <a href="{{ path('stock_tracabilite_produits') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'stock_tracabilite_produits' ? 'active' }}">
+                            <span class="nav-label">Ordre de production</span>
+                        </a>
+                        <a href="{{ path('stock_origine_produit') }}" class="nav-subitem {{ app.request.attributes.get('_route') starts with 'stock_origine_produit' ? 'active' }}">
+                            <span class="nav-label">Origine du produit</span>
                         </a>
                     </div>
                 </div>

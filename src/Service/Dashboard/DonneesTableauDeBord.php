@@ -351,6 +351,27 @@ class DonneesTableauDeBord
 
     public function articlesSousSeuil(): array
     {
+        if (null !== $this->accesPdr->familleImposee()) {
+            // Profils qualite : comptage limite a la famille EPI.
+            $nombre = 0;
+            foreach ($this->em->getRepository(Equipement::class)->findBy([], ['nom' => 'ASC'], 500) as $equipement) {
+                if (!$this->accesPdr->familleAutorisee($equipement->getNature()?->getLibelle())) {
+                    continue;
+                }
+                $seuil = (int) ($equipement->getSeuil() ?? 0);
+                $stock = (float) ($equipement->getStockActuel() ?? $equipement->getStockFinal() ?? $equipement->getQte() ?? 0);
+                if ($seuil > 0 && $stock <= $seuil) {
+                    ++$nombre;
+                }
+            }
+
+            return [
+                'valeur' => $nombre,
+                'unite' => 'articles',
+                'detail' => $nombre === 0 ? 'Aucun equipement de protection sous le seuil.' : 'Equipements de protection a reapprovisionner.',
+            ];
+        }
+
         $nombre = $this->compter(
             Equipement::class,
             'e.seuil IS NOT NULL AND e.seuil > 0 AND e.qte <= e.seuil'
@@ -365,6 +386,10 @@ class DonneesTableauDeBord
 
     public function bonsParStatut(): array
     {
+        if (null !== $this->accesPdr->familleImposee()) {
+            return $this->graphique([], []);
+        }
+
         return $this->tableau(
             'SELECT b.statut AS libelle, COUNT(b.id) AS total'
             . ' FROM ' . BonSortie::class . ' b GROUP BY b.statut ORDER BY total DESC',
@@ -389,6 +414,10 @@ class DonneesTableauDeBord
 
     public function topRubriquesSorties(): array
     {
+        if (null !== $this->accesPdr->familleImposee()) {
+            return $this->graphique([], []);
+        }
+
         return $this->tableau(
             'SELECT s.rubrique AS libelle, SUM(s.quantite) AS total'
             . ' FROM ' . SortieStock::class . ' s'
@@ -403,6 +432,10 @@ class DonneesTableauDeBord
 
     public function fluxStock(): array
     {
+        if (null !== $this->accesPdr->familleImposee()) {
+            return $this->graphique([], []);
+        }
+
         $semaines = $this->semainesRecentes(6);
         $premierLundi = array_key_first($semaines);
         $debut = new \DateTimeImmutable($premierLundi . ' 00:00:00');

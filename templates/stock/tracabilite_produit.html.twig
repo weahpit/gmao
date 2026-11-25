@@ -1,0 +1,154 @@
+{% extends 'base.html.twig' %}
+{% block title %}Ordre de production · lot {{ lot.numeroLot }}{% endblock %}
+{% block stylesheets %}{{ parent() }}{% include 'dechargement_cacao/_styles.html.twig' %}{% include 'logistique/lots/_styles.html.twig' %}{% endblock %}
+{% block breadcrumb %}
+    <span class="breadcrumb-item"><a href="{{ path('production_lot') }}">Production de lots</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item"><a href="{{ path('stock_tracabilite_produits') }}">Ordre de production</a></span>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-item">{{ lot.numeroLot }}</span>
+{% endblock %}
+{% block body %}
+<div class="dc-wrap py-3">
+    <header class="dc-header">
+        <div class="dc-header-top">
+            <div>
+                <span class="dc-eyebrow">Ordre de production · Produit fini</span>
+                <h1>Lot {{ lot.numeroLot }}</h1>
+                <p>
+                    {{ lot.codeProduit ? lot.codeProduit.libelle : 'Produit non renseigné' }}
+                    {% if lot.codeProprio %} · {{ lot.codeProprio.denomination }}{% endif %}
+                    {% if lot.dateProd %} · produit le {{ lot.dateProd|date('d/m/Y') }}{% endif %}
+                    · Qualité <strong>{{ qualiteProduit }}</strong>
+                </p>
+            </div>
+            <div class="dc-header-actions dc-no-print">
+                <a href="{{ path('stock_tracabilite_produits') }}" class="dc-chip">Retour à la liste</a>
+                <a href="{{ path('stock_origine_produit') }}" class="dc-chip solid">Origine du produit</a>
+            </div>
+        </div>
+    </header>
+
+    {% for message in app.flashes('success') %}<div class="dc-alert dc-alert-ok mb-3">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('warning') %}<div class="dc-alert mb-3">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('danger') %}<div class="dc-alert dc-alert-error mb-3">{{ message }}</div>{% endfor %}
+
+    {% if ordreHisto is not empty %}
+    <section class="dc-card mb-3">
+        <div class="dc-card-head">
+            <h2>Ordres de production rattachés</h2>
+            <span class="hint">{{ ordreHisto|length }} ordre(s)</span>
+        </div>
+        <div class="dc-card-body">
+            <div class="dc-ou-lots">
+                {% for o in ordreHisto %}
+                    <span class="dc-ou-lot-chip">{{ o.numero }}{% if o.dateCreation %} · {{ o.dateCreation|date('d/m/Y') }}{% endif %}</span>
+                {% endfor %}
+            </div>
+            <p class="dc-subtle mb-0 mt-2">
+                Un ordre de production regroupe les produits finis et les lots de fèves cochés ensemble.
+                Pour ajouter ou retirer une fève sur plusieurs produits à la fois, utilisez l'écran « Ordre de production ».
+            </p>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="dc-stats">
+        <div class="dc-stat total"><div class="lbl">Lots de fèves</div><div class="val">{{ feves|length }}</div><div class="sub">à l'origine du lot</div></div>
+        <div class="dc-stat nouveau"><div class="lbl">Camions d'origine</div><div class="val">{{ camions|length }}</div><div class="sub">déchargements distincts</div></div>
+        <div class="dc-stat modifie"><div class="lbl">Poids tracé</div><div class="val">{{ poidsTotal|number_format(0, ',', ' ') }}</div><div class="sub">kg rattachés</div></div>
+        <div class="dc-stat"><div class="lbl">Poids net du lot</div><div class="val">{{ lot.pnTh is not null ? lot.pnTh|number_format(0, ',', ' ') : '—' }}</div><div class="sub">kg théoriques</div></div>
+    </div>
+
+    {% if peutRattacher %}
+    <section class="dc-card mb-3 dc-no-print">
+        <div class="dc-card-head">
+            <h2>Rattacher des lots de fèves CITRAC</h2>
+            <span class="hint">Seuls les lots de fèves sont acceptés</span>
+        </div>
+        <div class="dc-card-body">
+            {% if fevesDisponibles is empty %}
+                <div class="dc-empty">Aucun lot de fèves disponible. Créez d'abord les lots de fèves dans « Production de lots ».</div>
+            {% else %}
+                <form method="post" action="{{ path('stock_tracabilite_produit_composition', {id: lot.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('lot_composition_' ~ lot.id) }}">
+                    <input type="hidden" name="action" value="ajouter">
+                    <div class="dc-field">
+                        <label class="dc-label" for="tp-feves">Lots de fèves (Ctrl + clic pour en sélectionner plusieurs)</label>
+                        <select id="tp-feves" name="feves[]" class="dc-input" multiple size="10">
+                            {% for feve in fevesDisponibles %}
+                                <option value="{{ feve.id }}">{{ feve.numeroLot }} — {{ feve.codeProduit ? feve.codeProduit.libelle : 'Fèves' }} — {{ feve.pnTh is not null ? feve.pnTh|number_format(0, ',', ' ') ~ ' kg' : '' }}{{ feve.dateProd ? ' — ' ~ feve.dateProd|date('d/m/Y') : '' }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="dc-btn dc-btn-primary mt-3">Rattacher les lots sélectionnés</button>
+                </form>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="dc-card mb-3">
+        <div class="dc-card-head"><h2>Lots de fèves d'origine</h2><span class="hint">Chaîne produit fini → fèves → camions</span></div>
+        <div class="dc-card-body">
+            <div class="dc-table-wrap">
+                <table class="dc-table">
+                    <thead><tr><th>Lot de fèves</th><th>Produit</th><th>Production</th><th>Qualité</th><th class="text-end">Poids net</th><th class="text-end">Sacs</th><th class="text-end">Camions</th>{% if peutRattacher %}<th></th>{% endif %}</tr></thead>
+                    <tbody>
+                        {% for ligne in feves %}
+                            <tr>
+                                <td><strong>{{ ligne.lot.numeroLot }}</strong></td>
+                                <td>{{ ligne.lot.codeProduit ? ligne.lot.codeProduit.libelle : '—' }}</td>
+                                <td>{{ ligne.lot.dateProd ? ligne.lot.dateProd|date('d/m/Y') : '—' }}</td>
+                                <td><span class="dc-tag">{{ ligne.qualite }}</span></td>
+                                <td class="text-end">{{ ligne.lot.pnTh is not null ? ligne.lot.pnTh|number_format(0, ',', ' ') : '—' }}</td>
+                                <td class="text-end">{{ ligne.lot.nbSacs is not null ? ligne.lot.nbSacs|number_format(0, ',', ' ') : '—' }}</td>
+                                <td class="text-end"><span class="dc-tag {{ ligne.nbCamions > 0 ? 'ok' : 'zero' }}">{{ ligne.nbCamions }}</span></td>
+                                {% if peutRattacher %}
+                                <td class="text-end">
+                                    <form method="post" action="{{ path('stock_tracabilite_produit_composition', {id: lot.id}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('lot_composition_' ~ lot.id) }}">
+                                        <input type="hidden" name="action" value="retirer">
+                                        <input type="hidden" name="feve" value="{{ ligne.lot.id }}">
+                                        <button type="submit" class="dc-mini-btn">Retirer</button>
+                                    </form>
+                                </td>
+                                {% endif %}
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="{{ peutRattacher ? 8 : 7 }}"><div class="dc-empty">Aucun lot de fèves rattaché à ce produit fini.</div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="dc-card">
+        <div class="dc-card-head"><h2>Camions de déchargement d'origine</h2><span class="hint">Fèves CITRAC utilisées</span></div>
+        <div class="dc-card-body">
+            <div class="dc-table-wrap">
+                <table class="dc-table">
+                    <thead><tr><th>Camion / bon</th><th>Déchargé le</th><th>Coopérative</th><th>Immatriculation</th><th>Transporteur</th><th>Lot de fèves</th><th class="text-end">Poids affecté</th><th class="text-end">Sacs</th></tr></thead>
+                    <tbody>
+                        {% for camion in camions %}
+                            <tr>
+                                <td><strong>{{ camion.code }}</strong></td>
+                                <td>{{ camion.date ? camion.date|date('d/m/Y') : '—' }}</td>
+                                <td>{{ camion.cooperative }}</td>
+                                <td>{{ camion.immatriculation }}</td>
+                                <td>{{ camion.transporteur }}</td>
+                                <td>{{ camion.feve }}</td>
+                                <td class="text-end">{{ camion.poids|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ camion.sacs is not null ? camion.sacs|number_format(0, ',', ' ') : '—' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="8"><div class="dc-empty">Aucun camion : rattachez d'abord les lots de fèves, puis leurs camions depuis l'ordre d'usinage.</div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

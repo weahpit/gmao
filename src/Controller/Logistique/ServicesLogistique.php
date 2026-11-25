@@ -281,7 +281,10 @@ final class ServicesLogistique extends  AbstractController
                         $lot->setCreatedAt(new \DateTimeImmutable());
                         $lot->setCreatedBy($registry->getRepository(User::class)->find($this->getUser()));
                         $lot->setScission(false);
-                        $lot->setQualite("C");
+                        // Qualite par defaut selon la nature : feves -> Grade 1,
+                        // produits finis -> C (conforme).
+                        $libelleProduit = strtr(mb_strtoupper((string) $pdt->getLibelle()), ['È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E']);
+                        $lot->setQualite(str_contains($libelleProduit, 'FEVE') ? 'GRADE1' : 'C');
                     } else {
                         $lot = $registry->getRepository(Lot::class)->find($arraydata->id_lot);
                         if (!$lot){

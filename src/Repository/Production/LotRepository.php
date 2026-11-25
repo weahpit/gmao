@@ -205,6 +205,15 @@ class LotRepository extends ServiceEntityRepository
             case 'scinde':
                 $qb->andWhere('l.scission = true');
                 break;
+            case 'grade1':
+                $qb->andWhere("UPPER(l.qualite) = 'GRADE1'");
+                break;
+            case 'grade2':
+                $qb->andWhere("UPPER(l.qualite) = 'GRADE2'");
+                break;
+            case 'sous_grade':
+                $qb->andWhere("UPPER(l.qualite) = 'SOUS-GRADE'");
+                break;
         }
 
         return $qb;

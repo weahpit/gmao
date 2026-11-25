@@ -188,7 +188,7 @@ final class ApiLotController extends AbstractController
                         'magasin' => $magasin,
                         'date_prod' => $date_prod,
                         'pn_th' => $pn_th,
-                        'qualite' => 'C',
+                        'qualite' => '',
                     ], $lot instanceof Lot ? $lot : null, $this->utilisateur());
 
                     if (!$resultat['ok']) {

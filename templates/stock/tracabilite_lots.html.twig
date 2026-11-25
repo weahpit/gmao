@@ -65,8 +65,10 @@
                 <span class="dc-eyebrow">Gestion du stock · Cacao · Fèves</span>
                 <h1>Ordre d'usinage</h1>
                 <p>
-                    Cochez les lots fabriqués, cochez un ou plusieurs camions qui les ont alimentés, puis enregistrez :
+                    Cochez des <strong>lots de fèves</strong>, cochez un ou plusieurs camions qui les ont alimentés, puis enregistrez :
                     l'application génère automatiquement un numéro d'ordre d'usinage et rattache chaque lot coché à chacun des camions cochés.
+                    Seuls les lots de fèves entrent dans un ordre d'usinage, et un lot de fèves n'est jamais scindé :
+                    il ne peut appartenir qu'à un seul ordre à la fois.
                 </p>
             </div>
             <div class="dc-header-actions dc-no-print">
@@ -171,7 +173,7 @@
                                     <tbody>
                                     {% for ligne in lignes %}
                                         {% set l = ligne.lot %}
-                                        <tr data-recherche="{{ (l.numeroLot ~ ' ' ~ (l.codeProduit ? l.codeProduit.libelle : '') ~ ' ' ~ (l.qualite ?: '') ~ ' ' ~ (l.dateProd ? l.dateProd|date('d/m/Y') : ''))|lower }}"
+                                        <tr data-recherche="{{ (l.numeroLot ~ ' ' ~ (l.codeProduit ? l.codeProduit.libelle : '') ~ ' ' ~ (l.qualite ?: '') ~ ' ' ~ ligne.qualiteLibelle ~ ' ' ~ (l.dateProd ? l.dateProd|date('d/m/Y') : ''))|lower }}"
                                             data-camions="{{ ligne.camions }}">
                                             <td class="dc-check-cell">
                                                 <input class="dc-check" type="checkbox" name="lots[]" value="{{ l.id }}" id="lot-{{ l.id }}" aria-label="Sélectionner le lot {{ l.numeroLot }}">
@@ -181,7 +183,9 @@
                                                 {% if l.codeProduit %}<div class="dc-subtle trunc">{{ l.codeProduit.libelle }}</div>{% endif %}
                                             </td>
                                             <td data-label="Production">{{ l.dateProd ? l.dateProd|date('d/m/Y') : '—' }}</td>
-                                            <td data-label="Qualité">{{ l.qualite ?: '—' }}</td>
+                                            <td data-label="Qualité">
+                                                <span class="dc-tag">{{ ligne.qualiteLibelle }}</span>
+                                            </td>
                                             <td data-label="PN th." class="num">{{ ligne.theorique > 0 ? ligne.theorique|number_format(0, ',', ' ') : '—' }}</td>
                                             <td data-label="Camions" class="num">
                                                 <span class="dc-tag {{ ligne.camions == 0 ? 'zero' : 'ok' }}">{{ ligne.camions }}</span>

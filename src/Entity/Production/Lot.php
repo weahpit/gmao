@@ -36,6 +36,27 @@ class Lot
     #[ORM\ManyToMany(targetEntity: Dossier::class, inversedBy: 'lots')]
     private Collection $code_dossier;
 
+    /**
+     * Lots de feves CITRAC dont ce lot est issu (produit fini : masse, beurre,
+     * tourteau, poudre). Les feves portent elles-memes les camions de
+     * dechargement : la chaine complete est donc fini -> feves -> camions.
+     *
+     * @var Collection<int, Lot>
+     */
+    #[ORM\ManyToMany(targetEntity: Lot::class, inversedBy: 'lotsFils')]
+    #[ORM\JoinTable(name: 'production.lot_composition')]
+    #[ORM\JoinColumn(name: 'lot_fini_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(name: 'lot_feve_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    private Collection $lotsOrigine;
+
+    /**
+     * Lots de produits finis fabriques a partir de ce lot de feves.
+     *
+     * @var Collection<int, Lot>
+     */
+    #[ORM\ManyToMany(targetEntity: Lot::class, mappedBy: 'lotsOrigine')]
+    private Collection $lotsFils;
+
     #[ORM\ManyToOne(inversedBy: 'lots')]
     private ?Magasin $code_magasin = null;
 
@@ -78,6 +99,36 @@ class Lot
     public function __construct()
     {
         $this->code_dossier = new ArrayCollection();
+        $this->lotsOrigine = new ArrayCollection();
+        $this->lotsFils = new ArrayCollection();
+    }
+
+    /** @return Collection<int, Lot> */
+    public function getLotsOrigine(): Collection
+    {
+        return $this->lotsOrigine;
+    }
+
+    public function addLotOrigine(Lot $lot): static
+    {
+        if (!$this->lotsOrigine->contains($lot)) {
+            $this->lotsOrigine->add($lot);
+        }
+
+        return $this;
+    }
+
+    public function removeLotOrigine(Lot $lot): static
+    {
+        $this->lotsOrigine->removeElement($lot);
+
+        return $this;
+    }
+
+    /** @return Collection<int, Lot> */
+    public function getLotsFils(): Collection
+    {
+        return $this->lotsFils;
     }
 
     public function getId(): ?Uuid

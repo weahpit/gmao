@@ -9,6 +9,7 @@ use App\Entity\Stock\OrdreUsinage;
 use App\Repository\Production\LotRepository;
 use App\Repository\Stock\DechargementCacaoRepository;
 use App\Repository\Stock\LotDechargementRepository;
+use App\Service\Production\NatureLot;
 use App\Repository\Stock\OrdreUsinageRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -55,6 +56,7 @@ class TracabiliteLotController extends AbstractController
         private readonly OrdreUsinageRepository $ordres,
         private readonly EntityManagerInterface $em,
         private readonly LoggerInterface $logger,
+        private readonly NatureLot $nature,
     ) {
     }
 
@@ -69,7 +71,9 @@ class TracabiliteLotController extends AbstractController
 
         $qb = $this->lots->createQueryBuilder('l')->leftJoin('l.code_produit', 'p')->addSelect('p');
 
-        // ------ Uniquement les lots de feves (ordre d'usinage) ------
+        // ------ Lots proposes : uniquement les lots de feves ------
+        // L'ordre d'usinage rattache des FEVE aux camions. Les produits finis se
+        // rattachent aux lots de feves sur la page « Ordre de production ».
         $conditionsFeve = [];
         foreach (self::MOTIFS_FEVE as $i => $motif) {
             $conditionsFeve[] = 'p.libelle LIKE :feve' . $i;
@@ -102,6 +106,7 @@ class TracabiliteLotController extends AbstractController
             $theorique = (float) ($lot->getPnTh() ?? 0);
             $lignes[] = [
                 'lot'        => $lot,
+                'qualiteLibelle' => $this->nature->libelleLot($lot),
                 'camions'    => $s['nb'],
                 'poids'      => $s['poids'],
                 'theorique'  => $theorique,
@@ -263,6 +268,18 @@ class TracabiliteLotController extends AbstractController
                 continue;
             }
 
+            // Un lot de feves n'est pas scindable : il ne peut pas etre reparti
+            // entre plusieurs ordres d'usinage. Pour le deplacer, annulez d'abord
+            // l'ordre auquel il est rattache.
+            if ($this->liens->compterParLot($lot) > 0) {
+                $rejetes++;
+                $this->addFlash('danger', sprintf(
+                    'Le lot de fèves %s est déjà rattaché à un ordre d\'usinage : un lot de fèves ne peut pas être scindé entre plusieurs ordres. Annulez d\'abord cet ordre pour le déplacer.',
+                    (string) $lot->getNumeroLot()
+                ));
+                continue;
+            }
+
             // Camions pas encore lies a ce lot (pas de doublon).
             $nouveaux = [];
             foreach ($camions as $camion) {
@@ -373,6 +390,7 @@ class TracabiliteLotController extends AbstractController
             'totalAffecte' => $totalAffecte,
             'theorique'    => $theorique,
             'couverture'   => $theorique > 0 ? round($totalAffecte / $theorique * 100, 1) : null,
+            'qualiteLibelle' => $this->nature->libelleLot($lot),
         ]);
     }
 
@@ -416,6 +434,7 @@ class TracabiliteLotController extends AbstractController
             'dechargement' => $dechargement,
             'liens'        => $liens,
             'totalAffecte' => $total,
+            'qualites'     => NatureLot::GRADES + NatureLot::QUALITES_FINIES,
         ]);
     }
 

@@ -33,6 +33,7 @@ final class GestionLotService
         private readonly LotRepository $lots,
         private readonly LotDechargementRepository $liens,
         private readonly MagasinRepository $magasins,
+        private readonly NatureLot $nature,
     ) {
     }
 
@@ -124,13 +125,17 @@ final class GestionLotService
             $erreurs[] = 'Le poids brut ne peut pas être négatif.';
         }
 
-        $qualite = mb_strtoupper(trim((string) ($donnees['qualite'] ?? '')));
-        if ('' === $qualite || 'C' === $qualite || 'CONFORME' === $qualite) {
-            $qualite = 'C';
-        } elseif ('NC' === $qualite || 'NON CONFORME' === $qualite) {
-            $qualite = 'NC';
-        } else {
-            $erreurs[] = 'La qualité doit être « C » (conforme) ou « NC » (non conforme).';
+        // Qualite selon la nature du produit :
+        //  - feves : Grade 1, Grade 2 ou Sous-grade (jamais C / NC) ;
+        //  - produits finis (masse, beurre, tourteau, poudre) : C ou NC.
+        $nature = $this->nature->natureProduit($produit instanceof Produit ? $produit : null);
+        $qualite = $this->nature->normaliser((string) ($donnees['qualite'] ?? ''), $produit instanceof Produit ? $produit : null);
+        if (null === $qualite) {
+            $erreurs[] = match ($nature) {
+                NatureLot::FEVE => 'La qualité d\'un lot de fèves doit être « Grade 1 », « Grade 2 » ou « Sous-grade ».',
+                NatureLot::FINI => 'La qualité d\'un produit fini doit être « C » (conforme) ou « NC » (non conforme).',
+                default => 'Qualité invalide : Grade 1, Grade 2 ou Sous-grade pour des fèves ; C ou NC pour un produit fini.',
+            };
         }
 
         if ($erreurs !== []) {
@@ -213,6 +218,15 @@ final class GestionLotService
     public function scinder(Lot $lot, float $poidsNc, string $utilisateur): array
     {
         $erreurs = [];
+
+        // Un lot de feves n'est pas scindable : il reste entier, sa qualite se
+        // saisit en Grade 1 / Grade 2 / Sous-grade. Seuls les produits finis se
+        // scindent en conforme / non conforme.
+        if ($this->nature->estFeve($lot)) {
+            $erreurs[] = 'Un lot de fèves ne peut pas être scindé : sa qualité se saisit en Grade 1, Grade 2 ou Sous-grade. Seuls les produits finis (masse, beurre, tourteau) se scindent en C / NC.';
+
+            return ['ok' => false, 'erreurs' => $erreurs, 'lotC' => null, 'lotNc' => null, 'poidsNc' => 0.0, 'sacsNc' => 0.0];
+        }
 
         if (!$lot->getCodeDossier()->isEmpty()) $erreurs[] = 'Lot deja rattache a un dossier d’embarquement : scission bloquee pour conserver les poids reserves.';
         $pn = (float) ($lot->getPnTh() ?? 0);

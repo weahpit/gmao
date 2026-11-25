@@ -187,7 +187,9 @@ final class ImportLots extends AbstractController
                 'pn_th' => $this->nombre($this->valeur($ligne, $colonnes, 'pn_th')),
                 'pb_th' => $this->nombre($this->valeur($ligne, $colonnes, 'pb_th')),
                 'nb_sacs' => $this->nombre($this->valeur($ligne, $colonnes, 'nb_sacs')),
-                'qualite' => $this->valeur($ligne, $colonnes, 'qualite') ?: 'C',
+                // La valeur par defaut depend de la nature du produit
+                // (fèves : Grade 1 ; produits finis : C) : le service la pose.
+                'qualite' => $this->valeur($ligne, $colonnes, 'qualite') ?: '',
                 'origine' => $this->valeur($ligne, $colonnes, 'origine'),
             ];
 
@@ -228,7 +230,7 @@ final class ImportLots extends AbstractController
         $fh = fopen('php://temp', 'r+');
         fputcsv($fh, $this->entetesModele(), ';');
         fputcsv($fh, [
-            'LOT-2026-001', 'CITRAC', 'FEVES DE CACAO', '2026-01-31', '20000', '20400', '400', 'C', 'LOT-2026-001', 'MAGASIN FEVES CITRAC',
+            'LOT-2026-001', 'CITRAC', 'FEVES DE CACAO', '2026-01-31', '20000', '20400', '400', 'Grade 1', 'LOT-2026-001', 'MAGASIN FEVES CITRAC',
         ], ';');
         rewind($fh);
         $contenu = (string) stream_get_contents($fh);
@@ -245,7 +247,7 @@ final class ImportLots extends AbstractController
     {
         $contenu = $this->construireXlsx([
             $this->entetesModele(),
-            ['LOT-2026-001', 'CITRAC', 'FEVES DE CACAO', '2026-01-31', '20000', '20400', '400', 'C', 'LOT-2026-001', 'MAGASIN FEVES CITRAC'],
+            ['LOT-2026-001', 'CITRAC', 'FEVES DE CACAO', '2026-01-31', '20000', '20400', '400', 'Grade 1', 'LOT-2026-001', 'MAGASIN FEVES CITRAC'],
         ]);
 
         return new Response($contenu, 200, [
@@ -283,7 +285,7 @@ final class ImportLots extends AbstractController
                 ['Poids net théorique', 'Oui', 'En kilogrammes, nombre positif.'] ,
                 ['Poids brut théorique', 'Non', 'En kilogrammes. Calculé (poids net + tare × sacs) si vide.'] ,
                 ['Nombre de sacs', 'Non', 'Nombre entier de sacs du lot.'] ,
-                ['Qualité', 'Non', 'C / CONFORME ou NC / NON CONFORME. C par défaut.'] ,
+                ['Qualité', 'Non', 'Fèves : Grade 1, Grade 2 ou Sous-grade. Produits finis : C (conforme) ou NC (non conforme). Grade 1 / C par défaut.'] ,
                 ['Origine', 'Non', 'Reprise du numéro de lot si vide.'] ,
                 ['Magasin', 'Non', 'Déduit du produit (fèves / produits finis) si vide.'] ,
             ],

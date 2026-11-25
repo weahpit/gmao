@@ -83,7 +83,11 @@
                                     {% if l %}<a href="{{ path('stock_tracabilite_lot', {id: l.id}) }}" class="dc-lot-link">{{ l.numeroLot }}</a>{% else %}—{% endif %}
                                 </td>
                                 <td data-label="Date production">{{ l and l.dateProd ? l.dateProd|date('d/m/Y') : '—' }}</td>
-                                <td data-label="Qualité">{{ l and l.qualite ? l.qualite : '—' }}</td>
+                                <td data-label="Qualité">
+                                    {% if l and l.qualite %}
+                                        <span class="dc-tag">{{ qualites is defined and qualites[l.qualite|upper] is defined ? qualites[l.qualite|upper] : l.qualite }}</span>
+                                    {% else %}—{% endif %}
+                                </td>
                                 <td data-label="PN th." class="num">{{ l and l.pnTh is not null ? l.pnTh|number_format(0, ',', ' ') : '—' }}</td>
                                 <td data-label="Observation"><span class="dc-subtle">{{ lien.observation ?: '—' }}</span></td>
                                 <td data-label="Action" class="num dc-no-print">

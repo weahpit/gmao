@@ -26,7 +26,8 @@
                 <h1>Production de lots</h1>
                 <p>
                     Créez et suivez les lots fabriqués : propriétaire, produit, emplacement, date de production et poids net théorique.
-                    Un lot peut être scindé en conforme / non conforme sans perdre le lien avec les camions déjà rattachés.
+                    La qualité dépend de la nature du lot : <strong>fèves</strong> → Grade 1, Grade 2 ou Sous-grade (jamais scindées) ;
+                    <strong>produits finis</strong> (masse, beurre, tourteau) → Conforme (C) ou Non conforme (NC), avec scission possible.
                 </p>
             </div>
             <div class="dc-header-actions dc-no-print">
@@ -36,6 +37,10 @@
                     Importer des lots
                 </a>
                 {% endif %}
+                <a href="{{ path('stock_tracabilite_produits') }}" class="dc-chip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
+                    Ordre de production
+                </a>
                 <a href="{{ path('stock_tracabilite_lots') }}" class="dc-chip">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M6 7v13h12V7M9 11h6"/></svg>
                     Ordre d'usinage
@@ -131,8 +136,11 @@
                     <label class="dc-label" for="f-situation">Situation</label>
                     <select id="f-situation" name="situation" class="dc-input">
                         <option value="tous" {{ filtres.situation == 'tous' ? 'selected' }}>Tous les lots</option>
-                        <option value="conforme" {{ filtres.situation == 'conforme' ? 'selected' }}>Lots conformes</option>
-                        <option value="nc" {{ filtres.situation == 'nc' ? 'selected' }}>Lots non conformes</option>
+                        <option value="grade1" {{ filtres.situation == 'grade1' ? 'selected' }}>Fèves — Grade 1</option>
+                        <option value="grade2" {{ filtres.situation == 'grade2' ? 'selected' }}>Fèves — Grade 2</option>
+                        <option value="sous_grade" {{ filtres.situation == 'sous_grade' ? 'selected' }}>Fèves — Sous-grade</option>
+                        <option value="conforme" {{ filtres.situation == 'conforme' ? 'selected' }}>Produits finis conformes (C)</option>
+                        <option value="nc" {{ filtres.situation == 'nc' ? 'selected' }}>Produits finis non conformes (NC)</option>
                         <option value="scinde" {{ filtres.situation == 'scinde' ? 'selected' }}>Lots scindés</option>
                         <option value="avec_camion" {{ filtres.situation == 'avec_camion' ? 'selected' }}>Lots tracés (avec camion)</option>
                         <option value="sans_camion" {{ filtres.situation == 'sans_camion' ? 'selected' }}>Lots sans camion</option>
@@ -167,9 +175,27 @@
 
                     <div class="dc-table-wrap">
                         <div class="dc-table-scroll">
-                            <table class="dc-table dc-keep">
+                            {% if peutModifier %}
+    <form method="post" action="{{ path('production_lot_selection') }}" id="lot-selection-form" class="lot-bulk dc-no-print">
+        <input type="hidden" name="_token" value="{{ csrf_token('lot_selection') }}">
+        <span class="lot-bulk-info"><strong id="lot-check-count">0</strong> lot(s) sélectionné(s)</span>
+        <button type="submit" name="action" value="nc" class="dc-btn dc-btn-ghost">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            Déclarer non conforme
+        </button>
+        {% if peutSupprimer %}
+            <button type="submit" name="action" value="supprimer" class="dc-btn dc-btn-danger-ghost" id="lot-bulk-supprimer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                Supprimer la sélection
+            </button>
+        {% endif %}
+        <small class="lot-bulk-note">Les lots rattachés à un camion ou à un dossier sont ignorés.</small>
+    </form>
+{% endif %}
+<table class="dc-table dc-keep">
                                 <thead>
                                     <tr>
+                                    <th class="lot-check"><input type="checkbox" id="lot-check-all" aria-label="Tout sélectionner"></th>
                                         <th>N° lot</th>
                                         <th>Propriétaire</th>
                                         <th>Emplacement</th>
@@ -184,6 +210,11 @@
                                 {% for lot in lots %}
                                     {% set cleLot = lot.id ~ '' %}
                                     <tr>
+                                        <td class="lot-check">
+                                            {% if peutModifier %}
+                                                <input type="checkbox" name="ids[]" value="{{ cleLot }}" form="lot-selection-form" class="lot-check-one" aria-label="Sélectionner le lot {{ lot.numeroLot }}">
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             <span class="lot-num">{{ lot.numeroLot }}</span>
                                             <span class="lot-sous">{{ lot.codeProduit ? lot.codeProduit.libelle : 'Produit non renseigné' }}</span>
@@ -196,10 +227,22 @@
                                             {% if lot.nbSacs is not null %}<span class="lot-sous">{{ lot.nbSacs|number_format(0, ',', ' ') }} sac(s)</span>{% endif %}
                                         </td>
                                         <td>
-                                            {% if lot.qualite == 'NC' %}
-                                                <span class="dc-badge rejete"><span class="dot"></span>Non conforme</span>
+                                            {% set natureLot = natures[cleLot] is defined ? natures[cleLot] : 'INCONNU' %}
+                                            {% set qualiteLot = lot.qualite ? lot.qualite|upper : '' %}
+                                            {% if natureLot == 'FEVE' %}
+                                                {% if qualiteLot in ['GRADE1', 'GRADE2', 'SOUS-GRADE'] %}
+                                                    <span class="dc-badge nouveau"><span class="dot"></span>{{ libellesQualite[qualiteLot] }}</span>
+                                                {% elseif qualiteLot == 'NC' %}
+                                                    <span class="dc-badge rejete"><span class="dot"></span>Sous-grade (à confirmer)</span>
+                                                {% else %}
+                                                    <span class="dc-badge nouveau"><span class="dot"></span>Grade 1 (à confirmer)</span>
+                                                {% endif %}
                                             {% else %}
-                                                <span class="dc-badge nouveau"><span class="dot"></span>Conforme</span>
+                                                {% if qualiteLot == 'NC' %}
+                                                    <span class="dc-badge rejete"><span class="dot"></span>Non conforme</span>
+                                                {% else %}
+                                                    <span class="dc-badge nouveau"><span class="dot"></span>Conforme</span>
+                                                {% endif %}
                                             {% endif %}
                                             {% if lot.scission %}<span class="lot-sous">issu d'une scission</span>{% endif %}
                                         </td>
@@ -214,7 +257,7 @@
                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
                                                         Modifier
                                                     </a>
-                                                    {% if lot.qualite != 'NC' and lot.pnTh and lot.pnTh > 0 %}
+                                                    {% if natureLot == 'FINI' and lot.qualite != 'NC' and lot.pnTh and lot.pnTh > 0 %}
                                                         <button type="button" class="lot-action danger"
                                                                 data-scission
                                                                 data-lot-id="{{ cleLot }}"
@@ -234,7 +277,7 @@
                                     </tr>
                                 {% else %}
                                     <tr>
-                                        <td colspan="8">
+                                        <td colspan="9">
                                             <div class="dc-empty">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
                                                 <div>Aucun lot ne correspond à cette recherche.</div>
@@ -377,12 +420,16 @@
                             <div class="dc-field">
                                 <label class="dc-label" for="qualite">Qualité</label>
                                 <select id="qualite" name="qualite" class="dc-input" {{ peutModifier ? '' : 'disabled' }}>
-                                    <option value="C" {{ valeurs.qualite == 'C' ? 'selected' }}>C — Conforme</option>
-                                    <option value="NC" {{ valeurs.qualite == 'NC' ? 'selected' }}>NC — Non conforme</option>
-                                    {% if valeurs.qualite not in ['C', 'NC'] %}
-                                        <option value="{{ valeurs.qualite }}" selected>{{ valeurs.qualite }}</option>
+                                    <option value="GRADE1" data-nature="FEVE" {{ valeurs.qualite == 'GRADE1' ? 'selected' }}>Grade 1 (fèves)</option>
+                                    <option value="GRADE2" data-nature="FEVE" {{ valeurs.qualite == 'GRADE2' ? 'selected' }}>Grade 2 (fèves)</option>
+                                    <option value="SOUS-GRADE" data-nature="FEVE" {{ valeurs.qualite == 'SOUS-GRADE' ? 'selected' }}>Sous-grade (fèves)</option>
+                                    <option value="C" data-nature="FINI" {{ valeurs.qualite in ['C', 'CONFORME'] ? 'selected' }}>C — Conforme (produit fini)</option>
+                                    <option value="NC" data-nature="FINI" {{ valeurs.qualite == 'NC' ? 'selected' }}>NC — Non conforme (produit fini)</option>
+                                    {% if valeurs.qualite not in ['GRADE1', 'GRADE2', 'SOUS-GRADE', 'C', 'NC'] %}
+                                        <option value="{{ valeurs.qualite }}" data-nature="INCONNU" selected>{{ valeurs.qualite }}</option>
                                     {% endif %}
                                 </select>
+                                <span class="help">Fèves : Grade 1 / Grade 2 / Sous-grade. Produits finis : C / NC.</span>
                             </div>
                             </div>
                         </div>
@@ -451,7 +498,7 @@
 {% endblock %}
 
 {% block javascripts %}
-
+    {{ parent() }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // ---- Proposition automatique des valeurs du produit (PN / PB / sacs) ----
@@ -646,5 +693,62 @@ document.getElementById("produit").addEventListener('change', ()=>{
             document.getElementById("nb_sacs").value = pdt.nbSacs;
         })
 })
-</script>
+
+            var tout = document.getElementById('lot-check-all');
+            var cases = function () { return Array.prototype.slice.call(document.querySelectorAll('.lot-check-one')); };
+            var compteur = document.getElementById('lot-check-count');
+            function maj() {
+                var coches = cases().filter(function (c) { return c.checked; }).length;
+                if (compteur) { compteur.textContent = coches; }
+                if (tout) { tout.checked = coches > 0 && coches === cases().length; }
+            }
+            if (tout) {
+                tout.addEventListener('change', function () {
+                    cases().forEach(function (c) { c.checked = tout.checked; });
+                    maj();
+                });
+            }
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.classList.contains('lot-check-one')) { maj(); }
+            });
+            var bouton = document.getElementById('lot-bulk-supprimer');
+            if (bouton) {
+                bouton.addEventListener('click', function (e) {
+                    var n = cases().filter(function (c) { return c.checked; }).length;
+                    if (n === 0) { e.preventDefault(); return; }
+                    if (!window.confirm('Supprimer ' + n + ' lot(s) sélectionné(s) ? Les lots rattachés à un camion ou à un dossier seront ignorés.')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+    // ---- Qualite proposee selon la nature du produit (feves / produit fini) ----
+    (function () {
+        var natures = {{ natureProduits|json_encode|raw }};
+        var selectProduit = document.getElementById('produit');
+        var selectQualite = document.getElementById('qualite');
+        if (!selectProduit || !selectQualite) { return; }
+
+        var options = Array.prototype.slice.call(selectQualite.querySelectorAll('option'));
+
+        function appliquer() {
+            var nature = natures[selectProduit.value] || 'INCONNU';
+            var disponibles = [];
+            options.forEach(function (option) {
+                var optionNature = option.getAttribute('data-nature') || 'INCONNU';
+                var visible = nature === 'INCONNU' || optionNature === nature || optionNature === 'INCONNU';
+                option.hidden = !visible;
+                option.disabled = !visible;
+                if (visible) { disponibles.push(option); }
+            });
+            var choisie = options.filter(function (o) { return o.selected && !o.disabled; })[0];
+            if (!choisie && disponibles.length) {
+                disponibles[0].selected = true;
+            }
+        }
+
+        selectProduit.addEventListener('change', appliquer);
+        appliquer();
+    })();
+    </script>
 {% endblock %}
