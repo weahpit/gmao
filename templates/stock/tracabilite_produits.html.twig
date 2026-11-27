@@ -167,14 +167,15 @@
                         </div>
                         <div class="dc-table-wrap">
                             <div class="dc-table-scroll">
-                                <table class="dc-table dc-keep">
+                                {% set situations = situation_lots(lignes) %}
+<table class="dc-table dc-keep">
                                     <thead>
                                         <tr>
                                             <th class="dc-check-cell"><span class="dc-subtle">Choix</span></th>
                                             <th>Produit fini</th>
                                             <th>Production</th>
                                             <th>Qualité</th>
-                                            <th class="num">PN th. (kg)</th>
+                                            <th class="num">PN TH restant (kg)</th><th>N° OT</th>
                                             <th class="num">Fèves</th>
                                         </tr>
                                     </thead>
@@ -198,13 +199,13 @@
                                             <td data-label="Qualité">
                                                 <span class="dc-badge {{ ligne.estNc ? 'rejete' : 'nouveau' }}"><span class="dot"></span>{{ ligne.estNc ? 'Non conforme' : 'Conforme' }}</span>
                                             </td>
-                                            <td data-label="PN th." class="num">{{ l.pnTh is not null ? l.pnTh|number_format(0, ',', ' ') : '—' }}</td>
+                                            {% set situation = situations[l.id ~ '']|default({restant: null, theorique: null, ots: []}) %}<td data-label="PN TH restant" class="num">{% include 'logistique/lots/_pn_restant.html.twig' with {situation: situation} only %}</td><td data-label="N° OT">{% include 'logistique/lots/_numeros_ot.html.twig' with {situation: situation} only %}</td>
                                             <td data-label="Fèves" class="num">
                                                 <span class="dc-tag {{ ligne.feves == 0 ? 'zero' : 'ok' }}">{{ ligne.feves }}</span>
                                             </td>
                                         </tr>
                                     {% else %}
-                                        <tr><td colspan="6"><div class="dc-empty">
+                                        <tr><td colspan="7"><div class="dc-empty">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
                                             <div>Aucun produit fini ne correspond à cette recherche.</div>
                                         </div></td></tr>

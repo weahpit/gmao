@@ -19,7 +19,7 @@ use Symfony\Component\Uid\Uuid;
 #[IsGranted('ROLE_USER')]
 final class OperationsLogistiquesController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em, private ReglesCvs $cvs, private DocumentsExport $documents, private StockageDocumentsExport $stockage, private EnregistrerEmbarquement $enregistrement, private \App\Service\Logistique\PhotosEmpotage $photos) {}
+    public function __construct(private EntityManagerInterface $em, private ReglesCvs $cvs, private DocumentsExport $documents, private StockageDocumentsExport $stockage, private EnregistrerEmbarquement $enregistrement, private \App\Service\Logistique\PhotosEmpotage $photos, private \Psr\Log\LoggerInterface $logger) {}
 
     private function autoriser(): void
     {
@@ -76,8 +76,14 @@ final class OperationsLogistiquesController extends AbstractController
                 $this->addFlash('success', 'Enregistrement effectue. Les soldes sont recalcules.');
             } catch (\Throwable $e) {
                 if ($nouveauFichier) $this->stockage->supprimer($nouveauFichier['fichier']);
-                if ($request->isXmlHttpRequest()) return $this->json(['message'=>$e->getMessage()],422);
-                $this->addFlash('danger', $e->getMessage());
+                $reference = bin2hex(random_bytes(6));
+                $validation = $e instanceof \InvalidArgumentException;
+                $message = $validation && trim($e->getMessage()) !== ''
+                    ? $e->getMessage()
+                    : 'Erreur technique pendant l’enregistrement. Reference : '.$reference.'. Consultez le journal serveur pour cette reference ; votre saisie est conservee.';
+                $this->logger->error('Echec enregistrement embarquement {reference}', ['reference'=>$reference,'exception'=>$e]);
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>$message,'code'=>$validation ? 'VALIDATION_DOSSIER' : 'ERREUR_TECHNIQUE','reference'=>$reference], $validation ? 422 : 500);
+                $this->addFlash('danger', $message);
             }
             return $this->redirectToRoute('logistique_cvs_formules');
         }
@@ -115,7 +121,22 @@ final class OperationsLogistiquesController extends AbstractController
             if (!$affectations) foreach ($this->em->getRepository(FormuleExport::class)->findBy(['dossier'=>$dossier]) as $f) $affectations[]=['id'=>(string) $f->getId(), 'volume'=>$f->getUtilise()];
         }
         if ($request->isMethod('POST')) {
-            $this->jeton($request); $donnees=$request->request->all(); $nouveauFichier=null; $photosAjoutees=[]; $photosRetirees=[];
+            // PHP vide POST et FILES si post_max_size est depasse : ce n'est pas un CSRF expire.
+            $taille = (int) $request->server->get('CONTENT_LENGTH', 0);
+            $limiteTexte = trim((string) ini_get('post_max_size'));
+            $limite = (float) $limiteTexte;
+            $unite = strtolower(substr($limiteTexte, -1));
+            $limite *= match ($unite) { 'g' => 1073741824, 'm' => 1048576, 'k' => 1024, default => 1 };
+            if ($limite > 0 && $taille > $limite) {
+                $message = sprintf('Envoi trop volumineux : %.2f Mo envoyes ; limite totale PHP post_max_size = %s. Reduisez les fichiers ou faites augmenter cette limite sur le serveur.', $taille / 1048576, $limiteTexte);
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>$message,'code'=>'ENVOI_TROP_VOLUMINEUX'], 413);
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(413, $message);
+            }
+            if (!$this->isCsrfTokenValid('operations_logistiques', (string) $request->request->get('_token'))) {
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>'Formulaire expire. Votre saisie est conservee ; le jeton doit etre renouvele.','code'=>'FORMULAIRE_EXPIRE'], 403);
+                $this->jeton($request); // maintien de la protection pour un POST classique
+            }
+            $donnees=$request->request->all(); $nouveauFichier=null; $photosAjoutees=[]; $photosRetirees=[];
             try {
                 $tc=json_decode((string) $request->request->get('conteneurs_json','[]'), true, 32, JSON_THROW_ON_ERROR);
                 $affectations=$request->request->all('formules');

@@ -1,0 +1,3 @@
+{# situation est préparée en une requête pour la page entière. Zéro est une valeur valide. #}
+<strong class="lot-pn-restant">{{ situation.restant is not null ? situation.restant|number_format(3, ',', ' ') : '—' }}</strong>
+<span class="lot-pn-theorique">PN initial : {{ situation.theorique is not null ? situation.theorique|number_format(3, ',', ' ') : '—' }} kg</span>

@@ -12,9 +12,9 @@
 
 {% block body %}
 <link rel="stylesheet" href="{{ asset('css/citrac/evolutions-v5.css') }}">
-<script src="{{ asset('js/citrac/ajax-v5.js') }}" defer></script>
+<script src="{{ asset('js/citrac/ajax-v5.js') }}?v=55" defer></script>
 
-<div class="dc-wrap py-3" data-ajax-region>
+<div class="dc-wrap py-3 ot-page" data-ajax-region>
 
     {# ---------------- En-tête ---------------- #}
     <header class="dc-header">
@@ -148,9 +148,9 @@
                 </a>
             </div>
         {% else %}
-            <div class="dc-table-wrap">
+            <div class="dc-table-wrap ot-table-wrap">
                 {# Pagination deja geree par le serveur : on desactive la pagination automatique. #}
-                <table class="dc-table" data-pagination="off">
+                <table class="dc-table ot-table" data-pagination="off">
                     <thead>
                         <tr>
                             <th>N° OT</th>
@@ -167,14 +167,14 @@
                     <tbody>
                     {% for dossier in dossiers %}{% set indicateur=avancements[dossier.id ~ ''] %}
                         <tr>
-                            <td>
+                            <td data-label="N° OT"><div class="ot-cell-value">
                                 <strong style="color:#3b2515;">{{ dossier.numeroOt ?: '—' }}</strong>
                                 <div style="font-size:.72rem;color:#a89b8c;">{{ dossier.createdAt ? dossier.createdAt|date('d/m/Y') : '' }}</div>
-                            </td>
-                            <td>{{ dossier.client ? dossier.client.nomClient : '—' }}</td>
-                            <td>{{ dossier.produit ? dossier.produit.libelle : '—' }}</td>
-                            <td>{{ dossier.proprietaire ? dossier.proprietaire.denomination : '—' }}</td>
-                            <td>
+                            </div></td>
+                            <td data-label="Client"><div class="ot-cell-value">{{ dossier.client ? dossier.client.nomClient : '—' }}</div></td>
+                            <td data-label="Produit"><div class="ot-cell-value">{{ dossier.produit ? dossier.produit.libelle : '—' }}</div></td>
+                            <td data-label="Propriétaire"><div class="ot-cell-value">{{ dossier.proprietaire ? dossier.proprietaire.denomination : '—' }}</div></td>
+                            <td data-label="Navire"><div class="ot-cell-value">
                                 {% if dossier.codeNavire %}
                                     <span style="display:inline-flex;align-items:center;gap:6px;">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#8a7a68;"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/></svg>
@@ -183,25 +183,25 @@
                                 {% else %}
                                     <span style="color:#b9ab9b;">Non affecté</span>
                                 {% endif %}
-                            </td>
-                            <td>{{ dossier.destination ? dossier.destination.denomination : '—' }}</td>
-                            <td>
+                            </div></td>
+                            <td data-label="Destination"><div class="ot-cell-value">{{ dossier.destination ? dossier.destination.denomination : '—' }}</div></td>
+                            <td data-label="Embarquement"><div class="ot-cell-value">
                                 {% if dossier.dateEmbarquement %}
                                     {{ dossier.dateEmbarquement|date('d/m/Y') }}
                                 {% else %}
-                                    <span class="badge bg-warning">À planifier</span>
+                                    <span class="ot-badge encours">À planifier</span>
                                 {% endif %}
-                            </td>
-                            <td><div class="progress" role="progressbar" aria-label="Avancement du dossier" aria-valuenow="{{ indicateur.pourcentage }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width:{{ indicateur.pourcentage }}%">{{ indicateur.pourcentage }}%</div></div><small>{{ indicateur.pourcentage }}% — {{ indicateur.realise }}/{{ indicateur.total }} étapes</small></td>
-                            <td class="{{ indicateur.depasse ? 'v5-danger' : '' }}">{% if indicateur.incoherent %}<strong>Dates incohérentes</strong>{% elseif indicateur.jours is not null %}{{ indicateur.jours }} jour(s){% if not dossier.remiseDoc %}<br><small>Remise en attente</small>{% endif %}{% if indicateur.depasse %}<br><strong>Délai &gt; 5 jours</strong>{% endif %}{% else %}Non embarqué{% endif %}</td>
-                            <td>
+                            </div></td>
+                            <td data-label="Avancement"><div class="ot-cell-value"><progress class="ot-native-progress" max="100" value="{{ indicateur.pourcentage }}" aria-label="Avancement du dossier">{{ indicateur.pourcentage }}%</progress><small>{{ indicateur.pourcentage }}% — {{ indicateur.realise }}/{{ indicateur.total }} étapes</small></div></td>
+                            <td data-label="Délai documentaire" class="{{ indicateur.depasse ? 'v5-danger' : '' }}"><div class="ot-cell-value">{% if indicateur.incoherent %}<strong>Dates incohérentes</strong>{% elseif indicateur.jours is not null %}{{ indicateur.jours }} jour(s){% if not dossier.remiseDoc %}<br><small>Remise en attente</small>{% endif %}{% if indicateur.depasse %}<br><strong>Délai &gt; 5 jours</strong>{% endif %}{% else %}Non embarqué{% endif %}</div></td>
+                            <td data-label="Statut"><div class="ot-cell-value">
                                 {% if dossier.isCloture %}
-                                    <span class="badge bg-success">Clôturé</span>
+                                    <span class="ot-badge ok">Clôturé</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">En cours</span>
+                                    <span class="ot-badge encours">En cours</span>
                                 {% endif %}
-                            </td>
-                            <td style="text-align:right;">
+                            </div></td>
+                            <td data-label="Actions" style="text-align:right;"><div class="ot-cell-value">
                                 <a class="dc-mini-btn" href="{{ path('logistique_dossier_fiche', {id:dossier.id}) }}">Fiche</a>
                                 <a class="dc-mini-btn" href="{{ path('logistique_dossier_gestion', {id:dossier.id}) }}">Gérer</a>
                                 <a class="dc-mini-btn" href="{{ path('logistique_suivi_documents', {id:dossier.id}) }}">Documents</a>
@@ -217,7 +217,7 @@
                                     </button>
                                 </form>
                                 {% endif %}
-                            </td>
+                            </div></td>
                         </tr>
                     {% endfor %}
                     </tbody>

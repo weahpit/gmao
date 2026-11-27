@@ -56,14 +56,15 @@
         <div class="dc-card-body">
             <div class="dc-table-wrap">
                 <div class="dc-table-scroll">
-                    <table class="dc-table">
+                    {% set situations = situation_lots(liens) %}
+<table class="dc-table">
                         <thead>
                             <tr>
                                 <th>Ordre d'usinage</th>
                                 <th>Lot</th>
                                 <th>Date production</th>
                                 <th>Qualité</th>
-                                <th class="num">PN th. (kg)</th>
+                                <th class="num">PN TH restant (kg)</th><th>N° OT</th>
                                 <th>Observation</th>
                                 <th class="num">Action</th>
                             </tr>
@@ -88,14 +89,14 @@
                                         <span class="dc-tag">{{ qualites is defined and qualites[l.qualite|upper] is defined ? qualites[l.qualite|upper] : l.qualite }}</span>
                                     {% else %}—{% endif %}
                                 </td>
-                                <td data-label="PN th." class="num">{{ l and l.pnTh is not null ? l.pnTh|number_format(0, ',', ' ') : '—' }}</td>
+                                {% set situation = l ? situations[l.id ~ '']|default({restant: null, theorique: null, ots: []}) : {restant: null, theorique: null, ots: []} %}<td data-label="PN TH restant" class="num">{% include 'logistique/lots/_pn_restant.html.twig' with {situation: situation} only %}</td><td data-label="N° OT">{% include 'logistique/lots/_numeros_ot.html.twig' with {situation: situation} only %}</td>
                                 <td data-label="Observation"><span class="dc-subtle">{{ lien.observation ?: '—' }}</span></td>
                                 <td data-label="Action" class="num dc-no-print">
                                     {% if l %}<a href="{{ path('stock_tracabilite_lot', {id: l.id}) }}" class="dc-mini-btn">Voir le lot</a>{% endif %}
                                 </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="7"><div class="dc-empty">
+                            <tr><td colspan="8"><div class="dc-empty">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
                                 <div>Ce camion n'est rattaché à aucun lot pour le moment.</div>
                                 <a href="{{ path('stock_tracabilite_lots') }}" class="dc-btn dc-btn-primary mt-3">Créer un ordre d'usinage</a>

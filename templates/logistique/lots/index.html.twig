@@ -192,6 +192,7 @@
         <small class="lot-bulk-note">Les lots rattachés à un camion ou à un dossier sont ignorés.</small>
     </form>
 {% endif %}
+{% set situations = situation_lots(lots) %}
 <table class="dc-table dc-keep">
                                 <thead>
                                     <tr>
@@ -200,7 +201,7 @@
                                         <th>Propriétaire</th>
                                         <th>Emplacement</th>
                                         <th>Production</th>
-                                        <th class="num">PN th. (kg)</th>
+                                        <th class="num">PN TH restant (kg)</th><th>N° OT</th>
                                         <th>Qualité</th>
                                         <th class="num">Camions</th>
                                         <th class="num">Actions</th>
@@ -222,10 +223,7 @@
                                         <td>{{ lot.codeProprio ? lot.codeProprio.denomination : '—' }}</td>
                                         <td>{{ lot.codeMagasin ? lot.codeMagasin.libelle : '—' }}</td>
                                         <td>{{ lot.dateProd ? lot.dateProd|date('d/m/Y') : '—' }}</td>
-                                        <td class="num">
-                                            {{ lot.pnTh is not null ? lot.pnTh|number_format(0, ',', ' ') : '—' }}
-                                            {% if lot.nbSacs is not null %}<span class="lot-sous">{{ lot.nbSacs|number_format(0, ',', ' ') }} sac(s)</span>{% endif %}
-                                        </td>
+                                        {% set situation = situations[lot.id ~ '']|default({restant: null, theorique: null, ots: []}) %}<td class="num" data-label="PN TH restant">{% include 'logistique/lots/_pn_restant.html.twig' with {situation: situation} only %}{% if lot.nbSacs is not null %}<span class="lot-sous">{{ lot.nbSacs|number_format(0, ',', ' ') }} sac(s) initiaux</span>{% endif %}</td><td data-label="N° OT">{% include 'logistique/lots/_numeros_ot.html.twig' with {situation: situation} only %}</td>
                                         <td>
                                             {% set natureLot = natures[cleLot] is defined ? natures[cleLot] : 'INCONNU' %}
                                             {% set qualiteLot = lot.qualite ? lot.qualite|upper : '' %}
@@ -277,7 +275,7 @@
                                     </tr>
                                 {% else %}
                                     <tr>
-                                        <td colspan="9">
+                                        <td colspan="10">
                                             <div class="dc-empty">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
                                                 <div>Aucun lot ne correspond à cette recherche.</div>

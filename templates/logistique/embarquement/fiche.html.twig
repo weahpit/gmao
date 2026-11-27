@@ -1,1 +1,339 @@
-{% extends 'base.html.twig' %}{% block title %}Fiche dossier {{ dossier.numeroOt }} — CITRAC{% endblock %}{% block body %}<link rel="stylesheet" href="{{ asset('css/citrac/evolutions-v5.css') }}"><div class="exp-wrap"><p><a class="btn btn-sm btn-outline-secondary" href="{{ path('embarquements_index') }}">Retour aux dossiers</a> <a class="btn btn-sm btn-outline-secondary" href="{{ path('logistique_dossier_export',{id:dossier.id,format:'pdf'}) }}">Exporter PDF</a> <a class="btn btn-sm btn-outline-secondary" href="{{ path('logistique_dossier_export',{id:dossier.id,format:'xlsx'}) }}">Exporter Excel</a></p><p>Lecture seule — aucune donnée ne peut être modifiée ici.</p><div class="table-responsive">{% include 'logistique/embarquement/_fiche_contenu.html.twig' %}</div><h3>Photos d’empotage</h3><div class="v5-photos">{% for photo in (suivi ? suivi.photosEmpotage : []) %}<figure><a href="{{ path('logistique_photo_empotage',{id:dossier.id,nom:photo.fichier}) }}" target="_blank" rel="noopener"><img src="{{ path('logistique_photo_empotage',{id:dossier.id,nom:photo.fichier}) }}" alt="{{ photo.nom }}" loading="lazy"></a><figcaption>{{ photo.nom }}</figcaption></figure>{% else %}<p>Aucune photo.</p>{% endfor %}</div>{% if suivi and suivi.fichierRapport %}<p><a href="{{ path('logistique_fichier_rapport',{id:dossier.id}) }}">Télécharger le rapport : {{ suivi.nomRapport }}</a></p>{% endif %}<h3>Pièces à consulter</h3><ul>{% for doc in documents %}{% if doc.filename %}<li><a href="{{ path('logistique_fichier_document',{id:doc.id,visualiser:1}) }}" target="_blank" rel="noopener">{{ doc.libelle }}</a></li>{% endif %}{% endfor %}{% for f in formules %}{% if f.fichier %}<li><a href="{{ path('logistique_fichier_formule',{id:f.id}) }}">Formule {{ f.numero }}</a></li>{% endif %}{% endfor %}</ul>{% if photosHistoriques|length %}<h3>Photos documentaires historiques</h3><ul>{% for p in photosHistoriques %}<li>{{ p.filename }} / {{ p.fichier }}</li>{% endfor %}</ul>{% endif %}</div>{% endblock %}
+{% extends 'base.html.twig' %}
+{% block title %}Fiche dossier {{ dossier.numeroOt }} — CITRAC{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{{ asset('css/citrac/evolutions-v5.css') }}">
+
+{# essentiel : memes donnees que la fiche PDF, deja preparees par le service. #}
+{% set e = essentiel %}
+
+<div class="ot-fiche exp-wrap py-3">
+
+    <a class="ot-back" href="{{ path('embarquements_index') }}">
+        <span aria-hidden="true">←</span> Retour aux dossiers d’embarquement
+    </a>
+
+    {# ---------------- En-tête ---------------- #}
+    <header class="ot-hero">
+        <div class="ot-hero-top">
+            <div>
+                <span class="ot-eyebrow">Ordre de transit · Dossier d’embarquement</span>
+                <h1>{{ dossier.numeroOt ?: 'Dossier sans numéro' }}</h1>
+                <p class="ot-sub">{{ e.client ?: 'Client non renseigné' }}{{ e.produit ? ' · ' ~ e.produit : '' }}</p>
+                <div class="ot-hero-badges">
+                    <span class="ot-badge {{ e.cloture ? 'ok' : 'encours' }}">{{ e.cloture ? 'Dossier clôturé' : 'Dossier en cours' }}</span>
+                    <span class="ot-badge neutre">Lecture seule</span>
+                </div>
+            </div>
+            <div class="ot-hero-actions">
+                <a class="primaire" href="{{ path('logistique_dossier_export',{id:dossier.id,format:'pdf'}) }}">Télécharger le PDF</a>
+                <a href="{{ path('logistique_dossier_export',{id:dossier.id,format:'xlsx'}) }}">Télécharger l’Excel</a>
+            </div>
+        </div>
+
+        <div class="ot-kpis">
+            <div class="ot-kpi">
+                <div class="lbl">Avancement du dossier</div>
+                <div class="val">{{ indicateur.pourcentage }} <small>%</small></div>
+                <div class="ot-progress" role="progressbar" aria-label="Avancement du dossier" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ indicateur.pourcentage }}"><span style="width:{{ indicateur.pourcentage }}%"></span></div>
+                <div class="ot-progress-label"><span>{{ indicateur.realise }} / {{ indicateur.total }} étapes</span><span>documents inclus</span></div>
+            </div>
+            <div class="ot-kpi">
+                <div class="lbl">Tonnage du dossier</div>
+                <div class="val">{% if e.tonnage is not null %}{{ e.tonnage|number_format(3, ',', ' ') }} <small>kg</small>{% else %}—{% endif %}</div>
+                <div class="ot-kpi-note">{{ e.nb_tc is not null ? e.nb_tc : '—' }} conteneur(s) prévu(s)</div>
+            </div>
+            <div class="ot-kpi">
+                <div class="lbl">Embarquement</div>
+                <div class="val ot-kpi-date">{{ e.date_embarquement ? e.date_embarquement|date('d/m/Y') : 'À planifier' }}</div>
+                <div class="ot-kpi-note">{{ e.navire ?: 'Navire non affecté' }}</div>
+            </div>
+            <div class="ot-kpi">
+                <div class="lbl">Délai documentaire</div>
+                <div class="val {{ indicateur.depasse or indicateur.incoherent ? 'ot-kpi-alert' : '' }}">
+                    {% if indicateur.incoherent %}À vérifier
+                    {% elseif indicateur.jours is not null %}{{ indicateur.jours }} <small>jour(s)</small>
+                    {% elseif e.date_embarquement %}Planifié
+                    {% else %}Non embarqué{% endif %}
+                </div>
+                <div class="ot-kpi-note">
+                    {% if indicateur.incoherent %}Dates historiques incohérentes
+                    {% elseif indicateur.depasse %}Objectif de 5 jours dépassé
+                    {% elseif e.remise_doc %}Remise le {{ e.remise_doc|date('d/m/Y') }}
+                    {% else %}Remise des documents en attente{% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="ot-section-nav" aria-label="Rubriques de la fiche">
+        <a href="#ot-identite">Identité</a>
+        <a href="#ot-planning">Planning</a>
+        <a href="#ot-chargement">Chargement</a>
+        <a href="#ot-formules">Formules &amp; CV</a>
+        <a href="#ot-documents">Documents</a>
+        <a href="#ot-photos">Photos</a>
+    </nav>
+
+    {# ---------------- Identité ---------------- #}
+    <section class="ot-fiche-section" id="ot-identite">
+        <h2>Identité du dossier</h2>
+        <div class="ot-fiche-grid">
+            <article class="ot-card">
+                <h3>Client &amp; produit</h3>
+                <dl class="ot-dl">
+                    <dt>Client</dt><dd>{{ e.client ?: '—' }}</dd>
+                    <dt>Produit</dt><dd>{{ e.produit ?: '—' }}</dd>
+                    <dt>Propriétaire</dt><dd>{{ e.proprietaire ?: '—' }}</dd>
+                    <dt>Destination</dt><dd>{{ e.destination ?: '—' }}</dd>
+                    <dt>Tonnage</dt><dd>{{ e.tonnage is not null ? e.tonnage|number_format(3, ',', ' ') ~ ' kg' : '—' }}</dd>
+                </dl>
+            </article>
+            <article class="ot-card">
+                <h3>Transport maritime</h3>
+                <dl class="ot-dl">
+                    <dt>Navire</dt><dd>{{ e.navire ?: 'Non affecté' }}</dd>
+                    <dt>Booking</dt><dd>{{ e.booking ?: '—' }}</dd>
+                    <dt>Port d’embarquement</dt><dd>{{ e.port_embarquement ?: '—' }}</dd>
+                    <dt>N° BL</dt><dd>{{ e.numero_bl ?: '—' }}</dd>
+                    <dt>Date BL</dt><dd>{{ e.date_bl ? e.date_bl|date('d/m/Y') : '—' }}</dd>
+                </dl>
+            </article>
+            <article class="ot-card">
+                <h3>Intervenants &amp; financement</h3>
+                <dl class="ot-dl">
+                    <dt>Banque de nantissement</dt><dd>{{ e.banque ?: '—' }}</dd>
+                    <dt>Transitaire</dt><dd>{{ e.transitaire ?: '—' }}</dd>
+                    <dt>Compagnie maritime</dt><dd>{{ e.compagnie ?: '—' }}</dd>
+                    {% if suivi %}
+                    <dt>Contrat AFRICAO</dt><dd>{{ suivi.contratAfricao ?: '—' }}</dd>
+                    <dt>Montant</dt><dd>{% if suivi.montant is not null %}{{ suivi.montant }} {{ suivi.typeMontant }}{% else %}—{% endif %}</dd>
+                    <dt>Port de destination</dt><dd>{{ suivi.portDestination ?: '—' }}</dd>
+                    {% endif %}
+                </dl>
+            </article>
+        </div>
+    </section>
+
+    {# ---------------- Planning ---------------- #}
+    <section class="ot-fiche-section" id="ot-planning">
+        <h2>Planning &amp; observations</h2>
+        <div class="ot-fiche-grid">
+            <article class="ot-card">
+                <h3>Étapes clés</h3>
+                <ol class="ot-timeline">
+                    {% for etape in [{l:'Date de l’OT',d:e.date_ot},{l:'ETA',d:e.eta},{l:'Empotage',d:e.date_empotage},{l:'Relevage',d:e.date_relevage},{l:'Embarquement',d:e.date_embarquement},{l:'Remise des documents',d:e.remise_doc}] %}
+                        <li class="{{ etape.d ? 'fait' : 'attente' }}">
+                            <span class="ot-timeline-dot" aria-hidden="true"></span>
+                            <span class="ot-timeline-lbl">{{ etape.l }}</span>
+                            <span class="ot-timeline-val">{{ etape.d ? etape.d|date('d/m/Y') : 'À renseigner' }}</span>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </article>
+            <article class="ot-card">
+                <h3>Rapport d’empotage</h3>
+                {% if suivi and suivi.rapportEmpotage %}
+                    <p class="ot-observations">{{ suivi.rapportEmpotage }}</p>
+                {% else %}
+                    <p class="ot-vide">Aucune observation d’empotage enregistrée.</p>
+                {% endif %}
+                {% if suivi and suivi.nomRapport %}
+                    <p class="ot-kpi-note" style="color:#6b5443;">Rapport joint : {{ suivi.nomRapport }}</p>
+                {% endif %}
+                {% if suivi and suivi.fichierRapport %}
+                    <a class="ot-file" href="{{ path('logistique_fichier_rapport',{id:dossier.id}) }}">Télécharger le rapport d’empotage</a>
+                {% endif %}
+            </article>
+        </div>
+    </section>
+
+    {# ---------------- Chargement ---------------- #}
+    <section class="ot-fiche-section" id="ot-chargement">
+        <h2>Conteneurs, lots &amp; origine</h2>
+        <div class="ot-card">
+            <h3>Conteneurs et poids chargés</h3>
+            <div class="ot-scroll-x">
+                <table class="ot-table-mini">
+                    <thead><tr><th>Conteneur · type · plomb</th><th>Lot</th><th class="num">Sacs</th><th class="num">Net (kg)</th><th class="num">Brut (kg)</th></tr></thead>
+                    <tbody>
+                    {% if suivi %}
+                        {% for tc in suivi.conteneurs %}
+                            {% for l in tc.lots %}
+                                <tr>
+                                    <td><strong>{{ tc.tc ?: 'Non renseigné' }}</strong><span class="ot-table-sub">{{ tc.typeTc }}{{ tc.vrac|default(false) ? ' · Vrac' : '' }}{{ tc.plomb ? ' · plomb ' ~ tc.plomb : '' }}</span></td>
+                                    <td>{{ l.numero }}</td>
+                                    <td class="num">{{ l.nbCartons }}</td>
+                                    <td class="num">{{ l.qteExporter is not null ? l.qteExporter|number_format(3, ',', ' ') : '—' }}</td>
+                                    <td class="num">{{ l.pbExporter is defined and l.pbExporter is not null ? l.pbExporter|number_format(3, ',', ' ') : '—' }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="5" class="ot-muted">Aucun conteneur enregistré pour ce dossier.</td></tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="5" class="ot-muted">Dossier historique : détail du chargement non renseigné.</td></tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="ot-subheading">Origine des lots — N° lots ⇒ N° camions</h3>
+            <div class="ot-origin-list">
+                {% for o in origines %}
+                    <div class="ot-origin">
+                        <span class="ot-origin-lot">{{ o.lot ?: 'Lot sans numéro' }}</span>
+                        <span class="ot-origin-camions">
+                            {% for c in o.camions %}
+                                <span class="ot-tag">{{ c.numero }}<small>{{ c.immatriculation }} · lot source {{ c.lotSource }}</small></span>
+                            {% else %}
+                                <span class="ot-muted">Origine non renseignée{% if o.origineLibre %} · {{ o.origineLibre }}{% endif %}</span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                {% else %}
+                    <p class="ot-vide">Aucun lot rattaché à ce dossier.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    {# ---------------- Formules ---------------- #}
+    <section class="ot-fiche-section" id="ot-formules">
+        <h2>Formules &amp; CV</h2>
+        <div class="ot-card">
+            <div class="ot-scroll-x">
+                <table class="ot-table-mini">
+                    <thead><tr><th>Formule</th><th>CV d’exécution · période</th><th>CV de déblocage · période</th><th class="num">Volume (kg)</th><th class="num">Utilisé (kg)</th><th>Pièce</th></tr></thead>
+                    <tbody>
+                    {% for f in formules %}
+                        <tr>
+                            <td><strong>{{ f.numero }}</strong></td>
+                            <td>{{ f.execution.numeroCvExecution }}<span class="ot-table-sub">{{ f.execution.periode ?: 'Période non renseignée' }}</span></td>
+                            <td>{{ f.execution.codeCvDeblocage.numeroCv }}<span class="ot-table-sub">{{ f.execution.codeCvDeblocage.periode ?: 'Période non renseignée' }}</span></td>
+                            <td class="num">{{ f.volume|number_format(3, ',', ' ') }}</td>
+                            <td class="num">{{ f.utilise|number_format(3, ',', ' ') }}</td>
+                            <td>{% if f.fichier %}<a class="ot-file" href="{{ path('logistique_fichier_formule',{id:f.id}) }}">Télécharger</a>{% else %}<span class="ot-muted">Non chargée</span>{% endif %}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="ot-muted">Aucune formule affectée.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    {# ---------------- Documents ---------------- #}
+    <section class="ot-fiche-section" id="ot-documents">
+        <h2>Suivi documentaire</h2>
+        <div class="ot-card">
+            <div class="ot-scroll-x">
+                <table class="ot-table-mini">
+                    <thead><tr><th>Document</th><th>Statut</th><th>Fichier</th><th>Transmission</th></tr></thead>
+                    <tbody>
+                    {% for doc in documents %}
+                        <tr>
+                            <td><strong>{{ doc.libelle }}</strong></td>
+                            <td>
+                                {% set st = doc.statut %}
+                                <span class="ot-badge {{ st == 'APPROUVE' ? 'ok' : (st == 'NON_APPROUVE' ? 'alerte' : 'encours') }}">{{ statuts[st]|default(st) }}</span>
+                            </td>
+                            <td>
+                                {% if doc.filename %}
+                                    <a class="ot-file" href="{{ path('logistique_fichier_document',{id:doc.id,visualiser:1}) }}" target="_blank" rel="noopener">{{ doc.nomOriginal ?: doc.filename }}</a>
+                                {% else %}
+                                    <span class="ot-muted">À charger</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ doc.transmisLe ? doc.transmisLe|date('d/m/Y H:i') : 'En attente' }}{% if doc.transmisPar %}<span class="ot-table-sub">{{ doc.transmisPar }}</span>{% endif %}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="4" class="ot-muted">Aucun document attendu n’est configuré pour ce dossier.</td></tr>
+                    {% endfor %}
+                    {% for doc in historiques %}
+                        <tr>
+                            <td>{{ doc.codeTypeDoc ? doc.codeTypeDoc.libelle : 'Document historique' }}</td>
+                            <td><span class="ot-badge neutre">Historique</span></td>
+                            <td><span class="ot-muted">{{ doc.filename }}</span></td>
+                            <td>{{ doc.createdAt ? doc.createdAt|date('d/m/Y H:i') : '—' }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if suivi and (suivi.traitements|length or suivi.certificats|length) %}
+                <div class="ot-fiche-grid ot-detail-grid">
+                    {% if suivi.traitements|length %}
+                        <div class="ot-subcard">
+                            <h3>Traitements</h3>
+                            <dl class="ot-dl">
+                                {% for cle, valeur in suivi.traitements %}<dt>{{ cle }}</dt><dd>{{ valeur }}</dd>{% endfor %}
+                            </dl>
+                        </div>
+                    {% endif %}
+                    {% if suivi.certificats|length %}
+                        <div class="ot-subcard">
+                            <h3>Certificats</h3>
+                            <dl class="ot-dl">
+                                {% for cle, valeur in suivi.certificats %}<dt>{{ cle }}</dt><dd>{{ statuts[valeur]|default(valeur) }}</dd>{% endfor %}
+                            </dl>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <h3 class="ot-subheading">Pièces à consulter</h3>
+            <ul class="ot-files">
+                {% for doc in documents %}{% if doc.filename %}
+                    <li><a href="{{ path('logistique_fichier_document',{id:doc.id,visualiser:1}) }}" target="_blank" rel="noopener">{{ doc.libelle }}</a></li>
+                {% endif %}{% endfor %}
+                {% for f in formules %}{% if f.fichier %}
+                    <li><a href="{{ path('logistique_fichier_formule',{id:f.id}) }}">Formule {{ f.numero }}</a></li>
+                {% endif %}{% endfor %}
+            </ul>
+        </div>
+    </section>
+
+    {# ---------------- Photos ---------------- #}
+    <section class="ot-fiche-section" id="ot-photos">
+        <h2>Photos d’empotage</h2>
+        <div class="ot-card">
+            <div class="ot-photos">
+                {% for photo in (suivi ? suivi.photosEmpotage : []) %}
+                    <figure>
+                        <a href="{{ path('logistique_photo_empotage',{id:dossier.id,nom:photo.fichier}) }}" target="_blank" rel="noopener" aria-label="Ouvrir {{ photo.nom }}">
+                            <img src="{{ path('logistique_photo_empotage',{id:dossier.id,nom:photo.fichier}) }}" alt="{{ photo.nom }}" loading="lazy">
+                        </a>
+                        <figcaption>{{ photo.nom }}</figcaption>
+                    </figure>
+                {% else %}
+                    <p class="ot-vide">Aucune photo d’empotage pour ce dossier.</p>
+                {% endfor %}
+            </div>
+
+            {% if photosHistoriques|length %}
+                <h3 class="ot-subheading">Photos documentaires historiques</h3>
+                <ul class="ot-files">
+                    {% for p in photosHistoriques %}<li>{{ p.filename }} <span class="ot-muted">/ {{ p.fichier }}</span></li>{% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ---------------- Toutes les données ---------------- #}
+    <section class="ot-fiche-section">
+        <details class="ot-card ot-all-data">
+            <summary>Toutes les données du dossier <span>Champs techniques non repris ci-dessus</span></summary>
+            <dl class="ot-dl ot-dl-large">
+                {% for cle, valeur in champs %}
+                    <dt>{{ cle }}</dt>
+                    <dd>{{ valeur is not null and valeur != '' ? valeur : '—' }}</dd>
+                {% endfor %}
+            </dl>
+        </details>
+    </section>
+
+</div>
+{% endblock %}
