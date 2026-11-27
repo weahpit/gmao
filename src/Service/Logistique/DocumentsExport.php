@@ -11,7 +11,7 @@ use Doctrine\ORM\EntityManagerInterface;
 /** Un modele client/produit remplace le modele standard du produit ; instantane par dossier. */
 final class DocumentsExport
 {
-    public const STATUTS = ['APPROVE' => 'APPROVE', 'NON_APPROVE' => 'NON APPROVE', 'POUR_APPROBATION' => 'POUR APPROBATION'];
+    public const STATUTS = ['APPROUVE' => 'APPROUVÉ', 'NON_APPROUVE' => 'NON APPROUVÉ', 'POUR_APPROBATION' => 'POUR APPROBATION'];
 
     public function __construct(private EntityManagerInterface $em) {}
 

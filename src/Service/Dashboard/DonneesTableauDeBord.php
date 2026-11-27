@@ -1879,4 +1879,15 @@ class DonneesTableauDeBord
     {
         return (string) $this->compter(PlanVaccinal::class);
     }
+
+    public function avancementDossiers(): array {
+        $indicateurs=new \App\Service\Logistique\IndicateursDossier($this->em);$bins=[0,0,0,0];$page=0;
+        do {
+            $batch=$this->em->getRepository(Dossier::class)->findBy([],['id'=>'ASC'],200,$page*200);
+            foreach($indicateurs->pourDossiers($batch) as $i){$p=$i['pourcentage'];$bins[$p<25?0:($p<50?1:($p<100?2:3))]++;}
+            foreach($batch as $d)$this->em->detach($d);$page++;
+        }while(count($batch)===200);
+        return $this->graphique(['0–24%','25–49%','50–99%','100%'],[['nom'=>'Dossiers','donnees'=>$bins]]);
+    }
+
 }

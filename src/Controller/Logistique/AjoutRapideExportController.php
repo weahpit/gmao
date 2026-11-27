@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Logistique;
 
-use App\Entity\Logistique\{Client, Destination, Pays, Navire, Proprietaire, DocType};
+use App\Entity\Logistique\{Client, Destination, Pays, Navire, Proprietaire, DocType, Banque, Transitaire, CompagnieNavigation};
 use App\Entity\Production\Produit;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,6 +26,9 @@ final class AjoutRapideExportController extends AbstractController
         $type = (string) $request->request->get('type');
         $libelle = trim((string) $request->request->get('libelle'));
         $choix = [
+            'banque'=>[Banque::class,'libelle','setLibelle',100],
+            'transitaire'=>[Transitaire::class,'libelle','setLibelle',150],
+            'compagnie'=>[CompagnieNavigation::class,'libelle','setLibelle',150],
             'client'=>[Client::class,'nom_client','setNomClient',255],
             'pays'=>[Destination::class,'denomination','setDenomination',100],
             'navire'=>[Navire::class,'nom','setNom',255],

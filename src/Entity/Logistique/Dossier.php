@@ -853,4 +853,48 @@ class Dossier
 
         return $this;
     }
+
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTime $dateOt = null;
+    public function getDateOt(): ?\DateTime { return $this->dateOt; }
+    public function setDateOt(?\DateTime $v): static { $this->dateOt = $v; return $this; }
+
+    #[ORM\ManyToOne(targetEntity: Banque::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
+    private ?Banque $banqueNantissement = null;
+    public function getBanqueNantissement(): ?Banque { return $this->banqueNantissement; }
+    public function setBanqueNantissement(?Banque $v): static { $this->banqueNantissement = $v; return $this; }
+
+    #[ORM\ManyToOne(targetEntity: Transitaire::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
+    private ?Transitaire $transitaire = null;
+    public function getTransitaire(): ?Transitaire { return $this->transitaire; }
+    public function setTransitaire(?Transitaire $v): static { $this->transitaire = $v; return $this; }
+
+    #[ORM\ManyToOne(targetEntity: CompagnieNavigation::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
+    private ?CompagnieNavigation $compagnieNavigation = null;
+    public function getCompagnieNavigation(): ?CompagnieNavigation { return $this->compagnieNavigation; }
+    public function setCompagnieNavigation(?CompagnieNavigation $v): static { $this->compagnieNavigation = $v; return $this; }
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $booking = null;
+    public function getBooking(): ?string { return $this->booking; }
+    public function setBooking(?string $v): static { $this->booking = $v; return $this; }
+
+    #[ORM\Column(length: 150, nullable: true)]
+    private ?string $portEmbarquement = null;
+    public function getPortEmbarquement(): ?string { return $this->portEmbarquement; }
+    public function setPortEmbarquement(?string $v): static { $this->portEmbarquement = $v; return $this; }
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $numeroBl = null;
+    public function getNumeroBl(): ?string { return $this->numeroBl; }
+    public function setNumeroBl(?string $v): static { $this->numeroBl = $v; return $this; }
+
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTime $dateBl = null;
+    public function getDateBl(): ?\DateTime { return $this->dateBl; }
+    public function setDateBl(?\DateTime $v): static { $this->dateBl = $v; return $this; }
+
 }

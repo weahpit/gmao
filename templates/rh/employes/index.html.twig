@@ -5,7 +5,7 @@
     <span class="breadcrumb-item"><a href="{{ path('rh_dashboard') }}">Ressources humaines</a></span>
     <span class="breadcrumb-item">Employes</span>
 {% endblock %}
-{% block body %}
+{% block body %}<link rel="stylesheet" href="{{ asset('css/citrac/evolutions-v5.css') }}">
 <div class="container-fluid py-3">
     <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
@@ -55,7 +55,7 @@
             </thead>
             <tbody>
             {% for employe in employes %}
-                <tr>
+                <tr class="{{ employe.statut == 'sorti' ? 'rh-sorti' : '' }}">
                     <td>{{ employe.matricule }}</td>
                     <td>
                         <span class="d-inline-flex align-items-center gap-2">
@@ -70,7 +70,7 @@
                     <td>{{ employe.service ? employe.service.libelle : '-' }}</td>
                     <td>{{ employe.poste ? employe.poste.libelle : '-' }}</td>
                     <td>{{ employe.dateEmbauche ? employe.dateEmbauche|date('d/m/Y') : '-' }}</td>
-                    <td><span class="badge" style="background:#f2e7dd; color:#5a371e;">{{ employe.statutLibelle }}</span></td>
+                    <td><span class="badge {{ employe.statut == 'actif' ? 'rh-actif' : '' }}" style="background:#f2e7dd; color:#5a371e;">{{ employe.statutLibelle }}</span></td>
                     <td class="text-end"><a href="{{ path('rh_employes_fiche', {id: employe.id}) }}" class="btn btn-sm btn-outline-secondary">Fiche</a></td>
                 </tr>
             {% else %}

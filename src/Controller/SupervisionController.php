@@ -96,8 +96,8 @@ final class SupervisionController extends AbstractController
         $jours = (int) ($request?->query->get('j', 7));
         if (!in_array($jours, [7, 14, 30, 60], true)) { $jours = 7; }
         // Mode : MOVEMENTES (types qui bougent), CACAO (types cacao) ou TOUTES.
-        $mode = strtoupper(trim((string) $request?->query->get('mode', 'MOVEMENTES')));
-        if (!in_array($mode, ['MOVEMENTES', 'CACAO', 'TOUTES'], true)) { $mode = 'MOVEMENTES'; }
+        $mode = strtoupper(trim((string) $request?->query->get('mode', 'TOUTES')));
+        if (!in_array($mode, ['MOVEMENTES', 'CACAO', 'TOUTES'], true)) { $mode = 'TOUTES'; }
 
         return [
             'genere'    => (new \DateTimeImmutable())->format('d/m/Y H:i'),
@@ -108,6 +108,7 @@ final class SupervisionController extends AbstractController
             'courrier'  => $this->courrier(),
             'achats'    => $this->achats(),
             'embarqu'   => $this->embarquement(),
+            'visitesLots' => $this->visitesLots($jours),
         ];
     }
 
@@ -324,7 +325,8 @@ final class SupervisionController extends AbstractController
     {
         try {
             return $fn();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $defaut['erreur'] = $e->getMessage();
             return $defaut;
         }
     }
@@ -360,4 +362,16 @@ final class SupervisionController extends AbstractController
         // Dernier repli : code par defaut, a changer en production.
         return hash_equals(self::PIN_DEFAUT, $code) && $candidats === [];
     }
+
+    private function visitesLots(int $jours): array {
+        return $this->auCasOu(function() use($jours): array {
+            $debut=new \DateTimeImmutable('today -'.($jours-1).' days');$fin=new \DateTimeImmutable('tomorrow');$out=[];
+            for($j=$debut;$j<$fin;$j=$j->modify('+1 day'))$out[$j->format('Y-m-d')]=['jour'=>$j->format('d/m'),'visites'=>0,'lots'=>0];
+            foreach([\App\Entity\Visite\Visite::class=>['heureEntree','visites'],\App\Entity\Production\Lot::class=>['date_prod','lots']] as $classe=>[$field,$cle]){
+                $m=$this->em->getClassMetadata($classe);$p=$this->em->getConnection()->getDatabasePlatform();$q=static fn($v)=>$p->quoteIdentifier($v);$t=$m->getSchemaName()&&!str_contains($m->getTableName(),'.')?$m->getSchemaName().'.'.$m->getTableName():$m->getTableName();$date=$q($m->getColumnName($field));
+                foreach($this->em->getConnection()->fetchAllAssociative('SELECT CAST('.$date.' AS DATE) AS jour,COUNT(*) AS n FROM '.$q($t).' WHERE '.$date.' >= :du AND '.$date.' < :au GROUP BY CAST('.$date.' AS DATE)',['du'=>$debut->format('Y-m-d'),'au'=>$fin->format('Y-m-d')]) as $row)if(isset($out[$row['jour']]))$out[$row['jour']][$cle]=(int)$row['n'];
+            }return ['series'=>array_values($out)];
+        },['series'=>[]]);
+    }
+
 }

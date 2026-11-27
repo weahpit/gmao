@@ -355,4 +355,9 @@ class Lot
 
         return $this;
     }
+
+    #[ORM\Column(nullable: true)] private ?int $sacsRestants = null;
+    public function getSacsRestants(): ?int { return $this->sacsRestants; }
+    public function setSacsRestants(?int $v): static { $this->sacsRestants = $v; return $this; }
+
 }

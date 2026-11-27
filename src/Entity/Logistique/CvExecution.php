@@ -65,4 +65,9 @@ class CvExecution
 
         return $this;
     }
+
+    #[ORM\Column(length: 100, nullable: true)] private ?string $periode = null;
+    public function getPeriode(): ?string { return $this->periode; }
+    public function setPeriode(?string $v): static { $this->periode = $v; return $this; }
+
 }

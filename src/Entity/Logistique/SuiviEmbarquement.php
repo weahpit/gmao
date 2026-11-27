@@ -79,4 +79,9 @@ class SuiviEmbarquement
     public function setTypeMontant(?string $valeur): static { $this->typeMontant = $valeur; return $this; }
     public function getMontant(): ?string { return $this->montant; }
     public function setMontant(?string $valeur): static { $this->montant = $valeur; return $this; }
+
+    #[ORM\Column(type: 'json', options: ['default' => '[]'])] private array $photosEmpotage = [];
+    public function getPhotosEmpotage(): array { return $this->photosEmpotage; }
+    public function setPhotosEmpotage(array $v): static { $this->photosEmpotage = $v; return $this; }
+
 }

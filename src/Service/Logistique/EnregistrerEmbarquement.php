@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Logistique;
 
-use App\Entity\Logistique\{Dossier, SuiviEmbarquement, Client, Proprietaire, Navire, Tc, Destination};
+use App\Entity\Logistique\{Dossier, SuiviEmbarquement, Client, Proprietaire, Navire, Tc, Destination, Banque, Transitaire, CompagnieNavigation};
 use App\Entity\Production\{Produit, Lot};
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\LockMode;
@@ -59,13 +59,21 @@ final class EnregistrerEmbarquement
             $dossier->setNumeroOt($numero)->setClient($client)->setProprietaire($proprietaire)->setProduit($produit);
             $dossier->setCodeNavire(($donnees['navire'] ?? '') !== '' ? $this->reference(Navire::class, $donnees['navire']) : null);
             $dossier->setDestination(($donnees['destination'] ?? '') !== '' ? $this->reference(Destination::class, $donnees['destination']) : null);
+            foreach (['banque_nantissement'=>[Banque::class,'setBanqueNantissement'], 'transitaire'=>[Transitaire::class,'setTransitaire'], 'compagnie_navigation'=>[CompagnieNavigation::class,'setCompagnieNavigation']] as $cle=>[$classe,$setter]) {
+                $dossier->$setter(($donnees[$cle] ?? '') !== '' ? $this->reference($classe,$donnees[$cle]) : null);
+            }
+            foreach (['booking'=>['setBooking',100], 'port_embarquement'=>['setPortEmbarquement',150], 'numero_bl'=>['setNumeroBl',100]] as $cle=>[$setter,$limite]) {
+                $v=trim((string) ($donnees[$cle] ?? ''));
+                if (mb_strlen($v)>$limite) throw new \InvalidArgumentException($cle.' : '.$limite.' caractères maximum.');
+                $dossier->$setter($v ?: null);
+            }
             if ($creation) $dossier->setCreatedAt(new \DateTimeImmutable())->setCreatedBy($auteur)->setCloture(false);
             $dossier->setUpdatedAt(new \DateTimeImmutable())->setUpdatedBy($auteur);
             $suivi = $creation ? null : $this->em->getRepository(SuiviEmbarquement::class)->findOneBy(['dossier' => $dossier]);
             if (!$creation && !$suivi && (!$dossier->getTcs()->isEmpty() || ($dossier->getTonnage() ?? 0) > 0)) throw new \InvalidArgumentException('Dossier historique sans detail des lots charges : rapprochez les donnees avant toute edition des quantites.');
             if ($suivi) $this->em->refresh($suivi, LockMode::PESSIMISTIC_WRITE);
             $suivi ??= (new SuiviEmbarquement())->setDossier($dossier);
-            $ancienneReservation = []; $demandes = []; $lots = []; $numeros = [];
+            $anciensSacs = []; $demandesSacs = []; $ancienneReservation = []; $demandes = []; $lots = []; $numeros = [];
             // Nombre de conteneurs deja utilises par lot dans le dossier enregistre :
             // sert a tolerer les anciens dossiers ou un lot figurait deux fois, tout
             // en refusant desormais ce cas sur une nouvelle saisie.
@@ -73,6 +81,7 @@ final class EnregistrerEmbarquement
             foreach ($suivi->getConteneurs() as $tc) foreach ($tc['lots'] as $l) {
                 $id = $l['id']; $ancienneReservation[$id] = ($ancienneReservation[$id] ?? 0) + ReglesCvs::grammes(($l['qteExporter'] ?? '') === '' ? 0 : $l['qteExporter']);
                 $anciensEmplacements[$id] = ($anciensEmplacements[$id] ?? 0) + 1;
+                $anciensSacs[$id] = ($anciensSacs[$id] ?? 0) + (int) ($l['nbCartons'] ?? 0);
             }
             $emplacements = [];
             foreach ($conteneurs as $tc) {
@@ -92,6 +101,7 @@ final class EnregistrerEmbarquement
                     $colis = filter_var(($l['nbCartons'] ?? '') === '' ? 0 : $l['nbCartons'], FILTER_VALIDATE_INT);
                     if ($colis === false || $colis < 0 || $colis > 10000000) throw new \InvalidArgumentException('Nombre de sacs invalide.');
                     $demandes[$id] = ($demandes[$id] ?? 0) + $kg;
+                    $demandesSacs[$id] = ($demandesSacs[$id] ?? 0) + $colis;
                     $emplacements[$id] = ($emplacements[$id] ?? 0) + 1;
                 }
             }
@@ -106,6 +116,9 @@ final class EnregistrerEmbarquement
                 if (($demandes[$id] ?? 0) > $disponible) throw new \InvalidArgumentException('Lot ' . $lot->getNumeroLot() . ' : seulement ' . ReglesCvs::kilos($disponible) . ' kg disponibles.');
                 $limite = max(1, (int) ($anciensEmplacements[$id] ?? 1));
                 if (($emplacements[$id] ?? 0) > $limite) throw new \InvalidArgumentException('Le lot ' . $lot->getNumeroLot() . ' est deja charge dans un autre conteneur : un lot ne peut etre reparti que sur un seul conteneur.');
+                $sacs = ($lot->getSacsRestants() ?? (int) ($lot->getNbSacs() ?? 0)) + ($anciensSacs[$id] ?? 0);
+                if (($demandesSacs[$id] ?? 0) > $sacs) throw new \InvalidArgumentException('Lot '.$lot->getNumeroLot().' : seulement '.$sacs.' sacs disponibles.');
+                $lot->setSacsRestants($sacs - ($demandesSacs[$id] ?? 0));
                 $lot->setPoidsNetDispo(($disponible - ($demandes[$id] ?? 0)) / 1000);
                 $lots[$id] = $lot;
             }
@@ -131,12 +144,13 @@ final class EnregistrerEmbarquement
             }
             $this->cvs->affecter($dossier, $formules, $total);
             $dossier->setTonnage($total / 1000)->setNbTc(count($snapshot));
-            foreach (['date_empotage' => 'setDateEmpotage', 'date_relevage' => 'setDateRelevage', 'date_embarquement' => 'setDateEmbarquement', 'eta' => 'setEta', 'date_remise' => 'setRemiseDoc'] as $cle => $methode) {
+            foreach (['date_ot'=>'setDateOt', 'date_bl'=>'setDateBl', 'date_empotage' => 'setDateEmpotage', 'date_relevage' => 'setDateRelevage', 'date_embarquement' => 'setDateEmbarquement', 'eta' => 'setEta', 'date_remise' => 'setRemiseDoc'] as $cle => $methode) {
                 $v = (string) ($donnees[$cle] ?? '');
                 $d = $v !== '' ? \DateTime::createFromFormat('!Y-m-d', $v) : null;
                 if ($v !== '' && (!$d || $d->format('Y-m-d') !== $v)) throw new \InvalidArgumentException('Date invalide : ' . $cle);
                 $dossier->$methode($d ?: null);
             }
+            if ($dossier->getRemiseDoc() && (!$dossier->getDateEmbarquement() || $dossier->getRemiseDoc() < $dossier->getDateEmbarquement())) throw new \InvalidArgumentException('La remise documentaire doit être postérieure ou égale à la date d’embarquement.');
             $traitements = [];
             foreach (['formule','cheque','fumigue','etiquette'] as $cle) {
                 $v = (string) ($donnees['options-' . $cle] ?? ($cle === 'formule' && $formules !== [] ? 'oui' : 'non'));
@@ -165,6 +179,7 @@ final class EnregistrerEmbarquement
                 ->setRapportEmpotage(mb_substr((string) ($donnees['rapport_empotage'] ?? ''), 0, 20000))
                 ->setContratAfricao(mb_substr((string) ($donnees['contrat_africao'] ?? ''), 0, 100))
                 ->setPortDestination(mb_substr((string) ($donnees['port_destination'] ?? ''), 0, 150))->setTypeMontant($type)->setMontant($montant);
+            if (isset($donnees['_photos_empotage'])) $suivi->setPhotosEmpotage($donnees['_photos_empotage']);
             if (isset($donnees['_rapport_fichier'])) $suivi->setFichierRapport($donnees['_rapport_fichier'])->setNomRapport($donnees['_rapport_nom']);
             $this->em->persist($dossier); $this->em->persist($suivi);
             $this->em->flush();

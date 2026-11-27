@@ -172,4 +172,15 @@ class Candidat
     {
         return $this->candidatures;
     }
+
+    #[ORM\Column(length: 150, nullable: true)] private ?string $posteRecherche = null;
+    #[ORM\Column(type: 'text', nullable: true)] private ?string $observationsAccueil = null;
+    #[ORM\Column(type: 'boolean', options: ['default'=>false])] private bool $dossierSpontane = false;
+    public function getPosteRecherche(): ?string { return $this->posteRecherche; }
+    public function setPosteRecherche(?string $v): static { $this->posteRecherche=$v;return $this; }
+    public function getObservationsAccueil(): ?string { return $this->observationsAccueil; }
+    public function setObservationsAccueil(?string $v): static { $this->observationsAccueil=$v;return $this; }
+    public function isDossierSpontane(): bool { return $this->dossierSpontane; }
+    public function setDossierSpontane(bool $v): static { $this->dossierSpontane=$v;return $this; }
+
 }

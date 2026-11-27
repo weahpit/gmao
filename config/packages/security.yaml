@@ -68,6 +68,8 @@ security:
         ROLE_DG:                        [ROLE_PDR, ROLE_TECHNICIAN, ROLE_VIGIL, ROLE_COURRIER, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_SHIPPING, ROLE_MAGASIN, ROLE_LOGISTIQUE, ROLE_ACHATS, ROLE_RESP_RH, ROLE_RH, ROLE_PRODUCTION]
         ROLE_DL:                          [ROLE_PDR, ROLE_COURRIER, ROLE_USER, ROLE_SHIPPING, ROLE_MAGASIN, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_LOGISTIQUE, ROLE_ACHATS, ROLE_RESP_RH, ROLE_RH, ROLE_PRODUCTION]
         ROLE_COORD_USINE:      [ROLE_PDR, ROLE_TECHNICIAN, ROLE_USER, ROLE_SAISIE_STOCK, ROLE_LOGISTIQUE, ROLE_ACHATS, ROLE_PRODUCTION]
+        ROLE_AGENT_SHIPPING:          [ROLE_USER, ROLE_LOGISTIQUE]
+        AGENT_SHIPPING:               [ROLE_USER, ROLE_LOGISTIQUE]
         ROLE_SHIPPING:               [ROLE_USER, ROLE_MAGASIN, ROLE_LOGISTIQUE]
         ROLE_ACHATS:                 [ROLE_USER, ROLE_MAGASIN, ROLE_LOGISTIQUE]
         ROLE_RESP_AQ:                 [ROLE_USER, ROLE_RESP_LABO, ROLE_AQ]
@@ -97,6 +99,9 @@ security:
         dev:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        zkteco_api:
+            pattern: ^/api/presences/zkteco$
             security: false
         main:
             lazy: true

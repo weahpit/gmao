@@ -43,7 +43,7 @@ final class StockCacaoJourService
     public function pointDuJour(int $jours = 7, ?string $mode = null): array
     {
         $jours = max(1, min(60, $jours));
-        $mode  = in_array($mode, ['MOVEMENTES', 'CACAO', 'TOUTES'], true) ? $mode : 'MOVEMENTES';
+        $mode  = in_array($mode, ['MOVEMENTES', 'CACAO', 'TOUTES'], true) ? $mode : 'TOUTES';
 
         $aujourdhui = new \DateTimeImmutable('today');
         $debut      = $aujourdhui->modify('-' . ($jours - 1) . ' days');
@@ -76,7 +76,7 @@ final class StockCacaoJourService
             $types = array_keys($mouvementes);
         }
         if ($types === []) {
-            $types = array_keys($mouvementes);
+            $types = array_values($connues);
         }
 
         // 2) Stock au debut de la periode = stock final actuel moins les
@@ -87,8 +87,8 @@ final class StockCacaoJourService
             foreach ($this->stockInitial->stockFinal() as $l) {
                 $etatActuel[(string) $l['rubrique']] = (float) ($l['stockFinal']['kg'] ?? 0);
             }
-        } catch (\Throwable) {
-            $etatActuel = [];
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Calcul du stock actuel impossible : '.$e->getMessage(),0,$e);
         }
 
         $joursListe = [];
@@ -266,89 +266,21 @@ final class StockCacaoJourService
         $lignes = [];
         $litres = [];
 
-        try {
-            $rows = $this->em->createQueryBuilder()
-                ->select(
-                    'DATE(s.dateSaisie) AS jour',
-                    's.rubrique AS rubrique',
-                    's.nature AS nature',
-                    'SUM(CASE WHEN s.unite = :litres THEN 0 ELSE s.quantite END) AS qte',
-                    'COUNT(CASE WHEN s.unite = :litres THEN NULL ELSE s.id END) AS nb'
-                )
-                ->from(SaisieStock::class, 's')
-                ->where('s.dateSaisie >= :debut AND s.dateSaisie < :fin')
-                ->setParameter('debut', $debut)
-                ->setParameter('fin', $fin)
-                ->setParameter('litres', 'Litres')
-                ->groupBy('jour', 's.rubrique', 's.nature')
-                ->getQuery()->getArrayResult();
-
-            foreach ($rows as $r) {
-                $lignes[] = [
-                    'date'       => (string) $r['jour'],
-                    'rubrique'   => (string) $r['rubrique'],
-                    'nature'     => $this->natureLisible($r['nature']),
-                    'entrees'    => (float) $r['qte'],
-                    'sorties'    => 0.0,
-                    'mouvements' => (int) $r['nb'],
-                ];
-            }
-        } catch (\Throwable) {
-            // Table ou colonne absente : on continue avec les sorties.
-        }
-
-        try {
-            $rows = $this->em->createQueryBuilder()
-                ->select(
-                    'DATE(s.dateSortie) AS jour',
-                    's.rubrique AS rubrique',
-                    's.nature AS nature',
-                    'SUM(CASE WHEN s.unite = :litres THEN 0 ELSE s.quantite END) AS qte',
-                    'COUNT(CASE WHEN s.unite = :litres THEN NULL ELSE s.id END) AS nb'
-                )
-                ->from(SortieStock::class, 's')
-                ->where('s.dateSortie >= :debut AND s.dateSortie < :fin')
-                ->andWhere('s.statut IS NULL OR s.statut <> :annule')
-                ->setParameter('debut', $debut)
-                ->setParameter('fin', $fin)
-                ->setParameter('annule', SortieStock::STATUT_ANNULE)
-                ->setParameter('litres', 'Litres')
-                ->groupBy('jour', 's.rubrique', 's.nature')
-                ->getQuery()->getArrayResult();
-
-            foreach ($rows as $r) {
-                $lignes[] = [
-                    'date'       => (string) $r['jour'],
-                    'rubrique'   => (string) $r['rubrique'],
-                    'nature'     => $this->natureLisible($r['nature']),
-                    'entrees'    => 0.0,
-                    'sorties'    => (float) $r['qte'],
-                    'mouvements' => (int) $r['nb'],
-                ];
-            }
-        } catch (\Throwable) {
-        }
-
-        // Litres comptes a part (le point du jour reste exprime en Kg).
-        foreach (['entrees' => 'SaisieStock', 'sorties' => 'SortieStock'] as $sens => $entite) {
-            try {
-                $qb = $this->em->createQueryBuilder()
-                    ->from(constant($entite . '::class'), 's')
-                    ->where('s.date' . ($sens === 'entrees' ? 'Saisie' : 'Sortie') . ' >= :debut AND s.date' . ($sens === 'entrees' ? 'Saisie' : 'Sortie') . ' < :fin')
-                    ->andWhere('s.unite = :litres')
-                    ->setParameter('debut', $debut)
-                    ->setParameter('fin', $fin)
-                    ->setParameter('litres', 'Litres')
-                    ->groupBy('s.rubrique');
-                if ($sens === 'sorties') {
-                    $qb->andWhere('s.statut IS NULL OR s.statut <> :annule')
-                       ->setParameter('annule', [SortieStock::STATUT_ANNULE]);
-                }
-                $qb->select('s.rubrique AS rubrique', 'SUM(s.quantite) AS qte');
-                foreach ($qb->getQuery()->getArrayResult() as $r) {
-                    $litres[(string) $r['rubrique']] = round(($litres[(string) $r['rubrique']] ?? 0.0) + (float) $r['qte'], 3);
-                }
-            } catch (\Throwable) {
+        // SQL DBAL : DATE() n’est pas enregistré dans le DQL de ce projet.
+        // Une erreur est remontée à l’interface, jamais remplacée par des zéros.
+        foreach ([SaisieStock::class=>'dateSaisie',SortieStock::class=>'dateSortie'] as $classe=>$champDate) {
+            $m=$this->em->getClassMetadata($classe);$platform=$this->em->getConnection()->getDatabasePlatform();
+            $q=static fn($v)=>$platform->quoteIdentifier($v);
+            $table=$m->getSchemaName() && !str_contains($m->getTableName(),'.') ? $m->getSchemaName().'.'.$m->getTableName():$m->getTableName();
+            $date=$q($m->getColumnName($champDate));$rubrique=$q($m->getColumnName('rubrique'));$nature=$q($m->getColumnName('nature'));$unite=$q($m->getColumnName('unite'));$quantite=$q($m->getColumnName('quantite'));
+            $sql='SELECT CAST('.$date.' AS DATE) AS jour, '.$rubrique.' AS rubrique, '.$nature.' AS nature, '.$unite.' AS unite, SUM('.$quantite.') AS qte, COUNT(*) AS nb FROM '.$q($table).' WHERE '.$date.' >= :debut AND '.$date.' < :fin';
+            $params=['debut'=>$debut->format('Y-m-d'),'fin'=>$fin->format('Y-m-d')];$sortie=$classe===SortieStock::class;
+            if($sortie){$statut=$q($m->getColumnName('statut'));$sql.=' AND ('.$statut.' IS NULL OR '.$statut.' <> :annule)';$params['annule']=SortieStock::STATUT_ANNULE;}
+            $sql.=' GROUP BY CAST('.$date.' AS DATE), '.$rubrique.', '.$nature.', '.$unite;
+            foreach($this->em->getConnection()->fetchAllAssociative($sql,$params) as $row){
+                $r=(string)$row['rubrique'];$kg=(float)$row['qte'];
+                if($row['unite']==='Litres'){$litres[$r]=($litres[$r]??0)+($sortie?-$kg:$kg);continue;}
+                $lignes[]=['date'=>(string)$row['jour'],'rubrique'=>$r,'nature'=>$this->natureLisible($row['nature']),'entrees'=>$sortie?0:$kg,'sorties'=>$sortie?$kg:0,'mouvements'=>(int)$row['nb']];
             }
         }
 

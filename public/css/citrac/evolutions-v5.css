@@ -1,0 +1,8 @@
+/* Évolutions CITRAC : couche additive, contrôles compacts */
+.exp-wrap input:not([type=radio]):not([type=checkbox]),.exp-wrap select,.exp-wrap textarea,.dc-wrap input,.dc-wrap select{font-size:.875rem!important;min-height:31px!important;padding:.25rem .5rem!important;border-radius:.3rem}
+.exp-wrap textarea{min-height:70px!important}.exp-wrap .exp-btn,.dc-wrap button,.dc-wrap .dc-btn{font-size:.825rem!important;padding:.3rem .65rem!important}
+.v5-danger,.v5-danger *{color:#b42318!important;font-weight:600}.progress{min-width:110px;height:18px;background:#eee7df}.progress-bar{background:#6d8a72}
+.v5-photos{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}.v5-photos figure{border:1px solid #e5dacf;padding:8px;margin:0;border-radius:8px}.v5-photos img{width:100%;height:150px;object-fit:contain}.v5-photos figcaption{overflow-wrap:anywhere;font-size:.8rem}
+.v5-status{padding:10px;border-radius:5px;background:#eaf4ed;margin:8px 0}.v5-status.error{background:#ffedea;color:#9e261b}
+.exp-quick-dialog{border:1px solid #d5c7b8;border-radius:12px;padding:20px;width:min(560px,94vw)}.exp-quick-dialog::backdrop{background:#0005}.exp-hide{display:none}.exp-fieldset{border:0;padding:0;min-width:0}
+.rh-sorti td{background:#fff0ee!important;color:#b42318!important}.rh-sorti td a,.rh-sorti .text-muted{color:#b42318!important}.rh-actif{background:#e2f3e7!important;color:#176534!important}

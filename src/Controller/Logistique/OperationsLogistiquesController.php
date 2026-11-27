@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Logistique;
 
-use App\Entity\Logistique\{Dossier, CvDeblocage, CvExecution, FormuleExport, SuiviEmbarquement, Proprietaire, Client, Navire, Destination, ModeleDoc, DetailsModeleDoc, DocType, DocsDossier};
+use App\Entity\Logistique\{Dossier, CvDeblocage, CvExecution, FormuleExport, SuiviEmbarquement, Proprietaire, Client, Navire, Destination, ModeleDoc, DetailsModeleDoc, DocType, DocsDossier, Banque, Transitaire, CompagnieNavigation};
 use App\Entity\Production\{Produit, Lot};
 use App\Service\Logistique\{ReglesCvs, DocumentsExport, StockageDocumentsExport, EnregistrerEmbarquement};
 use Doctrine\DBAL\LockMode;
@@ -19,7 +19,7 @@ use Symfony\Component\Uid\Uuid;
 #[IsGranted('ROLE_USER')]
 final class OperationsLogistiquesController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em, private ReglesCvs $cvs, private DocumentsExport $documents, private StockageDocumentsExport $stockage, private EnregistrerEmbarquement $enregistrement) {}
+    public function __construct(private EntityManagerInterface $em, private ReglesCvs $cvs, private DocumentsExport $documents, private StockageDocumentsExport $stockage, private EnregistrerEmbarquement $enregistrement, private \App\Service\Logistique\PhotosEmpotage $photos) {}
 
     private function autoriser(): void
     {
@@ -50,9 +50,9 @@ final class OperationsLogistiquesController extends AbstractController
             try {
                 $action = (string) $request->request->get('action');
                 if ($action === 'deblocage') {
-                    $this->cvs->creerDeblocage((string) $request->request->get('numero'), $request->request->get('volume'), $this->trouver(Proprietaire::class, $request->request->get('proprietaire')));
+                    $this->cvs->creerDeblocage((string) $request->request->get('numero'), $request->request->get('volume'), $this->trouver(Proprietaire::class, $request->request->get('proprietaire')), (string) $request->request->get('periode'));
                 } elseif ($action === 'execution') {
-                    $this->cvs->creerExecution($this->trouver(CvDeblocage::class, $request->request->get('deblocage')), (string) $request->request->get('numero'), $request->request->get('volume'));
+                    $this->cvs->creerExecution($this->trouver(CvDeblocage::class, $request->request->get('deblocage')), (string) $request->request->get('numero'), $request->request->get('volume'), (string) $request->request->get('periode'));
                 } elseif ($action === 'volume_execution') {
                     $this->cvs->modifierVolumeExecution($this->trouver(CvExecution::class, $request->request->get('execution')), $request->request->get('volume'));
                 } elseif ($action === 'formule') {
@@ -72,9 +72,11 @@ final class OperationsLogistiquesController extends AbstractController
                     $nouveauFichier = null;
                     if ($ancien) $this->stockage->supprimer($ancien);
                 } else { throw new \InvalidArgumentException('Action inconnue.'); }
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>'Enregistrement effectué. Les soldes sont recalculés.']);
                 $this->addFlash('success', 'Enregistrement effectue. Les soldes sont recalcules.');
             } catch (\Throwable $e) {
                 if ($nouveauFichier) $this->stockage->supprimer($nouveauFichier['fichier']);
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>$e->getMessage()],422);
                 $this->addFlash('danger', $e->getMessage());
             }
             return $this->redirectToRoute('logistique_cvs_formules');
@@ -103,7 +105,9 @@ final class OperationsLogistiquesController extends AbstractController
         $suivi = $dossier ? $this->em->getRepository(SuiviEmbarquement::class)->findOneBy(['dossier'=>$dossier]) : null;
         if ($dossier) {
             $donnees = ['numero_ot'=>$dossier->getNumeroOt(), 'client'=>(string) $dossier->getClient()?->getId(), 'proprietaire'=>(string) $dossier->getProprietaire()?->getId(), 'produit'=>(string) $dossier->getProduit()?->getId(), 'navire'=>(string) $dossier->getCodeNavire()?->getId(), 'destination'=>(string) $dossier->getDestination()?->getId(), 'rapport_empotage'=>$suivi?->getRapportEmpotage(), 'contrat_africao'=>$suivi?->getContratAfricao(), 'port_destination'=>$suivi?->getPortDestination(), 'type_montant'=>$suivi?->getTypeMontant(), 'montant'=>$suivi?->getMontant()];
-            foreach (['date_empotage'=>'getDateEmpotage','date_relevage'=>'getDateRelevage','date_embarquement'=>'getDateEmbarquement','eta'=>'getEta','date_remise'=>'getRemiseDoc'] as $cle=>$methode) $donnees[$cle]=$dossier->$methode()?->format('Y-m-d');
+            foreach (['booking'=>'getBooking','port_embarquement'=>'getPortEmbarquement','numero_bl'=>'getNumeroBl'] as $cle=>$methode) $donnees[$cle]=$dossier->$methode();
+            foreach (['banque_nantissement'=>'getBanqueNantissement','transitaire'=>'getTransitaire','compagnie_navigation'=>'getCompagnieNavigation'] as $cle=>$methode) $donnees[$cle]=(string) $dossier->$methode()?->getId();
+            foreach (['date_ot'=>'getDateOt','date_bl'=>'getDateBl','date_empotage'=>'getDateEmpotage','date_relevage'=>'getDateRelevage','date_embarquement'=>'getDateEmbarquement','eta'=>'getEta','date_remise'=>'getRemiseDoc'] as $cle=>$methode) $donnees[$cle]=$dossier->$methode()?->format('Y-m-d');
             foreach ($suivi?->getCertificats() ?? [] as $cle=>$valeur) $donnees['cert_'.$cle]=$valeur;
             foreach ($suivi?->getTraitements() ?? [] as $cle=>$valeur) $donnees['options-'.$cle]=$valeur;
             $tc=$suivi?->getConteneurs() ?? [];
@@ -111,7 +115,7 @@ final class OperationsLogistiquesController extends AbstractController
             if (!$affectations) foreach ($this->em->getRepository(FormuleExport::class)->findBy(['dossier'=>$dossier]) as $f) $affectations[]=['id'=>(string) $f->getId(), 'volume'=>$f->getUtilise()];
         }
         if ($request->isMethod('POST')) {
-            $this->jeton($request); $donnees=$request->request->all(); $nouveauFichier=null;
+            $this->jeton($request); $donnees=$request->request->all(); $nouveauFichier=null; $photosAjoutees=[]; $photosRetirees=[];
             try {
                 $tc=json_decode((string) $request->request->get('conteneurs_json','[]'), true, 32, JSON_THROW_ON_ERROR);
                 $affectations=$request->request->all('formules');
@@ -121,15 +125,26 @@ final class OperationsLogistiquesController extends AbstractController
                     $nouveauFichier=$this->stockage->enregistrer($f);
                     $donnees['_rapport_fichier']=$nouveauFichier['fichier']; $donnees['_rapport_nom']=$nouveauFichier['nom'];
                 }
+                $existantes=$suivi?->getPhotosEmpotage() ?? [];
+                $retirer=$request->request->all('retirer_photos');
+                $conservees=[];
+                foreach ($existantes as $photo) { if (in_array($photo['fichier'],$retirer,true)) $photosRetirees[]=$photo; else $conservees[]=$photo; }
+                $photosAjoutees=$this->photos->ajouter($request->files->all('photos_empotage'),$conservees);
+                $donnees['_photos_empotage']=array_merge($conservees,$photosAjoutees);
                 $ancien=$suivi?->getFichierRapport();
                 $enregistre=$this->enregistrement->enregistrer($donnees, $tc, $affectations, (string) $this->getUser()->getUserIdentifier(), $dossier);
                 if ($nouveauFichier && $ancien) $this->stockage->supprimer($ancien);
+                foreach ($photosRetirees as $photo) $this->photos->supprimer($photo['fichier']);
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>'Dossier enregistré.','redirection'=>$this->generateUrl('logistique_suivi_documents',['id'=>$enregistre->getId()])]);
                 $this->addFlash('success', 'Dossier enregistre : conteneurs, consommation des CV/formules et suivi documentaire.');
                 return $this->redirectToRoute('logistique_suivi_documents', ['id'=>$enregistre->getId()]);
             } catch (\Throwable $e) {
                 if ($nouveauFichier) $this->stockage->supprimer($nouveauFichier['fichier']);
+                foreach ($photosAjoutees as $photo) $this->photos->supprimer($photo['fichier']);
+                unset($donnees['_photos_empotage']);
                 // La transaction a deja ete annulee : on redirige pour repartir d'un EM propre.
                 $request->getSession()->set('logistique_saisie', ['donnees'=>$donnees, 'tc'=>$tc, 'affectations'=>$affectations]);
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>$e->getMessage()],422);
                 $this->addFlash('danger', $e->getMessage());
                 return $dossier ? $this->redirectToRoute('logistique_dossier_gestion',['id'=>$dossier->getId()]) : $this->redirectToRoute('enregistrement_embarquement');
             }
@@ -141,8 +156,12 @@ final class OperationsLogistiquesController extends AbstractController
         }
         $formules=$this->em->getRepository(FormuleExport::class)->findBy([], ['numero'=>'ASC']); $disponibles=[];
         foreach ($formules as $f) if (!$f->getDossier() || ($dossier && (string) $f->getDossier()->getId()===(string) $dossier->getId())) $disponibles[]=$f;
-        $lots=$this->em->getRepository(Lot::class)->findBy([],['numero_lot'=>'ASC']); $lotsDonnees=[];
-        foreach ($lots as $lot) $lotsDonnees[]=['id'=>(string) $lot->getId(), 'numero'=>$lot->getNumeroLot(), 'produit'=>(string) $lot->getCodeProduit()?->getId(), 'pn'=>$lot->getPoidsNetDispo() ?? $lot->getPnTh() ?? 0, 'pnReference'=>$lot->getPnTh() ?? 0, 'pb'=>$lot->getPbTht() ?? 0, 'colis'=>$lot->getNbSacs() ?? 0];
+        $idsReserves=[]; foreach ($suivi?->getConteneurs() ?? [] as $ct) foreach ($ct['lots'] ?? [] as $l) $idsReserves[]=$l['id'];
+        $qbLots=$this->em->getRepository(Lot::class)->createQueryBuilder('l')->leftJoin('l.code_produit','p')->addSelect('p');
+        $qbLots->where('COALESCE(l.poids_net_dispo,l.pn_th,0) > 0');
+        if ($idsReserves) $qbLots->orWhere('l.id IN (:ids)')->setParameter('ids',array_map(static fn($id)=>Uuid::fromString($id),array_unique($idsReserves)));
+        $lots=$qbLots->orderBy('l.numero_lot','ASC')->getQuery()->getResult(); $lotsDonnees=[];
+        foreach ($lots as $lot) $lotsDonnees[]=['id'=>(string) $lot->getId(), 'numero'=>$lot->getNumeroLot(), 'produit'=>(string) $lot->getCodeProduit()?->getId(), 'pn'=>$lot->getPoidsNetDispo() ?? $lot->getPnTh() ?? 0, 'pnReference'=>$lot->getPnTh() ?? 0, 'pb'=>$lot->getPbTht() ?? 0, 'colis'=>$lot->getSacsRestants() ?? (int) ($lot->getNbSacs() ?? 0)];
         return $this->render('logistique/embarquement/index.html.twig', [
             'dossier'=>$dossier,'suivi'=>$suivi,'donnees'=>$donnees,'conteneurs'=>$tc,'affectations'=>$affectations,'lotsDonnees'=>$lotsDonnees,
             'reservationsOriginales'=>$suivi?->getConteneurs() ?? [],
@@ -151,6 +170,9 @@ final class OperationsLogistiquesController extends AbstractController
             'produits'=>$this->em->getRepository(Produit::class)->findBy([],['libelle'=>'ASC']),
             'clients'=>$this->em->getRepository(Client::class)->findBy([],['nom_client'=>'ASC']),
             'navires'=>$this->em->getRepository(Navire::class)->findBy([],['nom'=>'ASC']),
+            'banques'=>$this->em->getRepository(Banque::class)->findBy([],['libelle'=>'ASC']),
+            'transitaires'=>$this->em->getRepository(Transitaire::class)->findBy([],['libelle'=>'ASC']),
+            'compagnies'=>$this->em->getRepository(CompagnieNavigation::class)->findBy([],['libelle'=>'ASC']),
             'formules'=>$disponibles,'statuts'=>DocumentsExport::STATUTS,
         ]);
     }
@@ -204,8 +226,9 @@ final class OperationsLogistiquesController extends AbstractController
                     foreach ($types as $type) { $detail=(new DetailsModeleDoc())->setCodeDoc($type); $modele->addDetailsModeleDoc($detail); $this->em->persist($detail); }
                     $this->em->flush();
                 });
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>'Modèle enregistré.']);
                 $this->addFlash('success','Modele enregistre. Les dossiers existants conservent leur liste et leurs fichiers.');
-            } catch (\Throwable $e) { $this->addFlash('danger',$e->getMessage()); }
+            } catch (\Throwable $e) { if ($request->isXmlHttpRequest()) return $this->json(['message'=>$e->getMessage()],422); $this->addFlash('danger',$e->getMessage()); }
             return $this->redirectToRoute('logistique_modeles_documents');
         }
         return $this->render('logistique/gestion/modeles.html.twig',[
@@ -240,17 +263,18 @@ final class OperationsLogistiquesController extends AbstractController
                     } elseif ($action==='statut') {
                         $s=(string) $request->request->get('statut');
                         if (!isset(DocumentsExport::STATUTS[$s])) throw new \InvalidArgumentException('Statut invalide.');
-                        if ($s==='APPROVE' && !$doc->getFilename()) throw new \InvalidArgumentException('Chargez le document avant de l’approuver.');
+                        if ($s==='APPROUVE' && !$doc->getFilename()) throw new \InvalidArgumentException('Chargez le document avant de l’approuver.');
                         if ($doc->getTransmisLe()) throw new \InvalidArgumentException('Un document deja transmis ne peut pas etre requalifie sans charger une nouvelle version.');
                         $doc->setStatut($s);
                     } elseif ($action==='transmettre') {
-                        if (!$doc->getFilename() || $doc->getStatut()!=='APPROVE') throw new \InvalidArgumentException('Le document doit etre charge et approuve avant la transmission.');
+                        if (!$doc->getFilename() || $doc->getStatut()!=='APPROUVE') throw new \InvalidArgumentException('Le document doit etre charge et approuve avant la transmission.');
                         $doc->setTransmisLe(new \DateTimeImmutable())->setTransmisPar(mb_substr((string) $this->getUser()->getUserIdentifier(),0,180));
                     } else throw new \InvalidArgumentException('Action inconnue.');
                 });
                 if ($nouveau && $ancien && $this->stockage->chemin($ancien)) $this->stockage->supprimer($ancien);
+                if ($request->isXmlHttpRequest()) return $this->json(['message'=>'Suivi documentaire mis à jour.']);
                 $this->addFlash('success','Suivi documentaire mis a jour.');
-            } catch (\Throwable $e) { if ($nouveau) $this->stockage->supprimer($nouveau['fichier']); $this->addFlash('danger',$e->getMessage()); }
+            } catch (\Throwable $e) { if ($nouveau) $this->stockage->supprimer($nouveau['fichier']); if ($request->isXmlHttpRequest()) return $this->json(['message'=>$e->getMessage()],422); $this->addFlash('danger',$e->getMessage()); }
             return $this->redirectToRoute('logistique_suivi_documents',['id'=>$id]);
         }
         return $this->render('logistique/gestion/suivi.html.twig',[

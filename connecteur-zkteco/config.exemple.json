@@ -1,0 +1,19 @@
+{
+  "url": "https://gmao.ndiasoft.com/api/presences/zkteco",
+  "source": "CITRAC_LOCAL",
+  "token_env": "ZKTECO_API_TOKEN",
+  "premiere_date": "2026-11-01T00:00:00",
+  "jours_reprise": 3,
+  "taille_lot": 500,
+  "state_dir": "C:/CitracZkteco/etat",
+  "access": {
+    "fichier": "C:/ZKTeco/att2000.mdb",
+    "driver": "Microsoft Access Driver (*.mdb, *.accdb)",
+    "table_pointages": "CHECKINOUT",
+    "table_users": "USERINFO",
+    "pointage_user_id": "USERID",
+    "user_id": "USERID",
+    "badge": "Badgenumber",
+    "date": "CHECKTIME"
+  }
+}

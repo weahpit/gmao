@@ -186,6 +186,9 @@
 {% set cjMode = cj.mode ?? 'MOVEMENTES' %}
 
 <div class="sup-page">
+<link rel="stylesheet" href="{{ asset('css/citrac/supervision-v5.css') }}"><script src="{{ asset('js/citrac/supervision-v5.js') }}" defer></script>
+<div id="supervision-v5" data-url="{{ path('app_supervision_donnees') }}" data-j="{{ cjJours }}" data-mode="{{ cjMode }}" data-series="{{ donnees.visitesLots|default({})|json_encode|e('html_attr') }}"></div>
+
 
     {# ================= EN-TETE ================= #}
     <header class="sup-entete">
@@ -263,7 +266,7 @@
 
             <div class="cj-corps">
                 <div>
-                    <div class="graph cj-graph"><canvas id="graphCacaoJour"></canvas></div>
+                    <p id="cj-erreur" class="v5-error" role="alert">{{ cj.erreur|default('') }}</p><div class="graph cj-graph"><canvas id="graphCacaoJour"></canvas></div>
                     <div class="cj-cartes">
                         <div class="cj-carte"><span>Stock du jour</span><strong id="cjStock">{{ (cjDuJour.stock ?? 0)|number_format(0, ',', ' ') }} kg</strong></div>
                         <div class="cj-carte"><span>Entrees du jour</span><strong id="cjEntrees">{{ (cjDuJour.entrees ?? 0)|number_format(2, ',', ' ') }}</strong></div>
@@ -329,14 +332,14 @@
             <div class="graph graph--215"><canvas id="graphStock"></canvas></div>
         </article>
 
-        <article class="panneau c3" style="--p-c:#c58b3f">
+        <article class="panneau c6" style="--p-c:#c58b3f">
             <div class="panneau-entete">
                 <h2 class="panneau-titre">Interventions</h2>
             </div>
-            <div class="graph graph--215"><canvas id="graphGmao"></canvas></div>
+            <div class="graph graph--240"><canvas id="graphGmao"></canvas></div>
         </article>
 
-        <article class="panneau c3" style="--p-c:#5f7f8f">
+        <article class="panneau c6" style="--p-c:#5f7f8f">
             <div class="panneau-entete">
                 <h2 class="panneau-titre">Demandes d'achat</h2>
             </div>
@@ -349,6 +352,7 @@
             </ul>
         </article>
 
+        <article class="panneau c12" style="--p-c:#647d70"><div class="panneau-entete"><h2 class="panneau-titre">Visites et lots produits par jour</h2></div><div class="graph graph--240"><canvas id="graphVisitesLots"></canvas></div><p id="visites-lots-erreur" role="alert"></p></article>
         {# Ligne 3 : detail des stocks cacao + embarquements #}
         <article class="panneau c6" style="--p-c:#8a5a34">
             <div class="panneau-entete">

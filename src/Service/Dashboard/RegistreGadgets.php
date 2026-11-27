@@ -138,6 +138,8 @@ class RegistreGadgets
                 'icone' => 'briefcase',
                 'accroche' => "Vue consolidee de l'activite de l'entreprise.",
                 'gadgets' => [
+                    ['code'=>'dg_avancement_v5','libelle'=>'Avancement des dossiers','description'=>'Même pourcentage que le tableau général ; documents transmis et jalons opérationnels.','type'=>'barres','largeur'=>6,'calcul'=>static fn()=>$d->avancementDossiers()],
+                    ['code'=>'dg_cv_v5','libelle'=>'Consommation des CV','description'=>'Accordé, octroyé aux exécutions, consommé (kg).','type'=>'barres','largeur'=>6,'calcul'=>static fn()=>$d->volumeCvParDeblocage(12)],
                     ['code' => 'st_dechargement', 'libelle' => 'Cacao decharge', 'description' => 'Poids net par jour (quatorze jours).', 'type' => 'aire', 'largeur' => 12, 'calcul' => static fn () => $d->dechargementParJour(14)],
                     ['code' => 'dg_effectif', 'libelle' => 'Effectif actif', 'description' => 'Employes en activite.', 'type' => 'chiffre', 'largeur' => 3, 'calcul' => static fn () => $d->effectifActif()],
                     ['code' => 'dg_courriers', 'libelle' => 'Courriers a traiter', 'description' => 'Courriers en attente de traitement.', 'type' => 'chiffre', 'largeur' => 3, 'calcul' => static fn () => $d->courriersATraiter()],
@@ -196,6 +198,7 @@ class RegistreGadgets
                 'icone' => 'ship',
                 'accroche' => 'Lots de production, embarquements, documents export et parc equipements.',
                 'gadgets' => [
+                    ['code'=>'lg_avancement_v5','libelle'=>'Avancement des dossiers','description'=>'Même pourcentage que le tableau général ; documents transmis et jalons opérationnels.','type'=>'barres','largeur'=>6,'calcul'=>static fn()=>$d->avancementDossiers()],
                     ['code' => 'lg_embarq_point', 'libelle' => 'Point embarquement', 'description' => 'Dossiers en cours, clôturés, à planifier et tonnage déclaré.', 'type' => 'fiche', 'largeur' => 4, 'calcul' => static fn () => $d->pointGlobalEmbarquement()],
                     ['code' => 'lg_cv_volume', 'libelle' => 'CV de deblocage : volumes', 'description' => 'Volume accorde, octroye aux executions et utilise par les formules (kg).', 'type' => 'barres', 'largeur' => 6, 'calcul' => static fn () => $d->volumeCvParDeblocage(8)],
                     ['code' => 'lg_lots_produit', 'libelle' => 'Poids net disponible par produit', 'description' => 'Somme du poids net disponible des lots, par produit fini.', 'type' => 'barres', 'largeur' => 4, 'calcul' => static fn () => $d->poidsDisponibleParProduit()],

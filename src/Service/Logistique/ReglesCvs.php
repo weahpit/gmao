@@ -52,30 +52,30 @@ final class ReglesCvs
         return ['volume' => $volume / 1000, 'consomme' => $consomme / 1000, 'restant' => ($volume - $consomme) / 1000];
     }
 
-    public function creerDeblocage(string $numero, mixed $volume, Proprietaire $proprietaire): CvDeblocage
+    public function creerDeblocage(string $numero, mixed $volume, Proprietaire $proprietaire, ?string $periode = null): CvDeblocage
     {
         $numero = $this->numero($numero, 25);
         $kg = self::grammes($volume);
         if ($kg <= 0) throw new \InvalidArgumentException('Le volume accorde doit etre superieur a zero.');
         if ($this->em->getRepository(CvDeblocage::class)->findOneBy(['numero_cv' => $numero])) throw new \InvalidArgumentException('Ce numero de CV deblocage existe deja.');
-        $cv = (new CvDeblocage())->setNumeroCv($numero)->setPoids($kg / 1000)->setCodeProprietaire($proprietaire);
+        $cv = (new CvDeblocage())->setNumeroCv($numero)->setPoids($kg / 1000)->setCodeProprietaire($proprietaire)->setPeriode($this->periode($periode));
         $this->em->persist($cv);
         $this->em->flush();
         return $cv;
     }
 
-    public function creerExecution(CvDeblocage $deblocage, string $numero, mixed $volume): CvExecution
+    public function creerExecution(CvDeblocage $deblocage, string $numero, mixed $volume, ?string $periode = null): CvExecution
     {
         $numero = $this->numero($numero, 25);
         if (!$deblocage->getCodeProprietaire()) throw new \InvalidArgumentException('Renseignez le proprietaire du CV de deblocage avant de creer une execution.');
         $grammes = self::grammes($volume);
         if ($grammes <= 0) throw new \InvalidArgumentException('Le volume du contrat d’execution est obligatoire et doit etre positif.');
-        return $this->em->wrapInTransaction(function () use ($deblocage, $numero, $grammes): CvExecution {
+        return $this->em->wrapInTransaction(function () use ($deblocage, $numero, $grammes, $periode): CvExecution {
             $this->em->refresh($deblocage, LockMode::PESSIMISTIC_WRITE);
             $restant = self::grammes(max(0, $this->bilanDeblocage($deblocage)['restant']));
             if ($grammes > $restant) throw new \InvalidArgumentException('Le contrat depasse le volume deblocage restant : ' . self::kilos($restant) . ' kg.');
             if ($this->em->getRepository(CvExecution::class)->findOneBy(['code_cv_deblocage' => $deblocage, 'numero_cv_execution' => $numero])) throw new \InvalidArgumentException('Ce contrat d’execution existe deja.');
-            $cv = (new CvExecution())->setNumeroCvExecution($numero)->setPoids($grammes / 1000)->setCodeCvDeblocage($deblocage);
+            $cv = (new CvExecution())->setNumeroCvExecution($numero)->setPoids($grammes / 1000)->setCodeCvDeblocage($deblocage)->setPeriode($this->periode($periode));
             $this->em->persist($cv);
             return $cv;
         });
@@ -175,4 +175,12 @@ final class ReglesCvs
         if ($numero === '' || mb_strlen($numero) > $max) throw new \InvalidArgumentException('Numero obligatoire (maximum ' . $max . ' caracteres).');
         return $numero;
     }
+
+    private function periode(?string $v): ?string
+    {
+        $v = trim((string) $v);
+        if (mb_strlen($v) > 100) throw new \InvalidArgumentException('Période : 100 caractères maximum.');
+        return $v !== '' ? $v : null;
+    }
+
 }

@@ -8,7 +8,7 @@
     <span class="breadcrumb-item">Références</span>
 {% endblock %}
 
-{% block body %}
+{% block body %}{% if is_granted('ROLE_ADMIN') %}<p><a class="btn btn-sm btn-cacao" href="{{ path('references_edition') }}">Modifier toutes les références</a></p>{% endif %}
     <h2 class="p-1" style="background: var(--green-100)">Données de références</h2>
     <div class="bg-white">
         {%  for menu in menus %}

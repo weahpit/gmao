@@ -40,8 +40,10 @@ class DossierEmbarquement extends AbstractController
     //  Liste des dossiers d'embarquement
     // ------------------------------------------------------------------
     #[Route('logistique/embarquements', name: 'embarquements_index', methods: ['GET'])]
-    public function liste(Request $request): Response
+    public function liste(Request $request, \App\Service\Logistique\IndicateursDossier $indicateurs): Response
     {
+        $autorise=false;foreach (['ROLE_ADMIN','ROLE_DG','ROLE_DL','ROLE_SHIPPING','ROLE_AGENT_SHIPPING','AGENT_SHIPPING','ROLE_LOGISTIQUE','ROLE_LOGISTIQU'] as $role) if ($this->isGranted($role)) $autorise=true;
+        if (!$autorise) throw $this->createAccessDeniedException();
         $filtres = $this->embarquements->normaliserFiltres([
             'q'      => $request->query->get('q'),
             'statut' => $request->query->get('statut'),
@@ -62,6 +64,7 @@ class DossierEmbarquement extends AbstractController
             'nbPages'  => $resultat['nbPages'],
             'parPage'  => $resultat['parPage'],
             'stats'    => $this->embarquements->statistiques(),
+            'avancements'=> $indicateurs->pourDossiers($resultat['dossiers']),
         ]);
     }
 
@@ -85,6 +88,7 @@ class DossierEmbarquement extends AbstractController
         }
 
         if (!$this->isCsrfTokenValid('embarquement_statut_' . $dossier->getId(), (string) $request->request->get('_token'))) {
+            if ($request->isXmlHttpRequest()) return $this->json(['message'=>'Jeton invalide.'],403);
             $this->addFlash('danger', 'Action refusée : jeton de sécurité invalide. Rechargez la page et réessayez.');
 
             return $this->redirigerVersListe($request);
@@ -94,6 +98,7 @@ class DossierEmbarquement extends AbstractController
         // profils habilites au module peuvent toujours rouvrir un dossier.
         $fermeture = !$dossier->isCloture();
         if ($fermeture && !$this->isGranted('ROLE_DL') && !$this->isGranted('ROLE_SHIPPING')) {
+            if ($request->isXmlHttpRequest()) return $this->json(['message'=>'Clôture réservée aux profils DL et Shipping.'],403);
             $this->addFlash('warning', 'Seuls les profils DL et Shipping peuvent clôturer un dossier d\'embarquement.');
 
             return $this->redirigerVersListe($request);
@@ -101,6 +106,7 @@ class DossierEmbarquement extends AbstractController
 
         $cloture = $this->embarquements->basculerCloture($dossier, $this->nomUtilisateur());
 
+        if ($request->isXmlHttpRequest()) return $this->json(['message'=>$cloture ? 'Dossier clôturé.' : 'Dossier rouvert.']);
         $this->addFlash('success', $cloture
             ? 'Dossier ' . $dossier->getNumeroOt() . ' clôturé.'
             : 'Dossier ' . $dossier->getNumeroOt() . ' rouvert.');

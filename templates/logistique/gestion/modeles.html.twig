@@ -1,10 +1,13 @@
 {% extends 'base.html.twig' %}
 {% block title %}Modèles documentaires export{% endblock %}
-{% block body %}<link rel="stylesheet" href="{{ asset('css/citrac/operations-logistiques.css') }}">
+{% block body %}
+<link rel="stylesheet" href="{{ asset('css/citrac/evolutions-v5.css') }}">
+<script src="{{ asset('js/citrac/ajax-v5.js') }}" defer></script>
+<link rel="stylesheet" href="{{ asset('css/citrac/operations-logistiques.css') }}">
 <link rel="stylesheet" href="{{ asset('css/citrac/lecture-compacte.css') }}">
-<div class="exp-wrap"><h1>Documents à fournir par produit et par client</h1>{% include 'logistique/gestion/_nav.html.twig' %}
+<div class="exp-wrap" data-ajax-region><h1>Documents à fournir par produit et par client</h1>{% include 'logistique/gestion/_nav.html.twig' %}
 <section class="exp-card"><h2>Configurer une liste</h2><p>Sans client : liste standard du produit. Avec client : liste spécifique qui remplace la liste standard pour ce client. Enregistrez la liste complète souhaitée.</p>
-<form method="post" id="export-modeles-form" data-quick-url="{{ path('logistique_ajout_rapide') }}"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><div class="exp-grid">
+<form data-ajax method="post" id="export-modeles-form" data-quick-url="{{ path('logistique_ajout_rapide') }}"><input type="hidden" name="_token" value="{{ csrf_token('operations_logistiques') }}"><div class="exp-grid">
 <div class="exp-field"><label>Produit<select name="produit" required><option value="">Sélectionnez</option>{% for p in produits %}<option value="{{ p.id }}">{{ p.libelle }}</option>{% endfor %}</select></label></div>
 <div class="exp-field"><label>Client<select name="client"><option value="">Standard : tous les clients</option>{% for c in clients %}<option value="{{ c.id }}">{{ c.nomClient }}</option>{% endfor %}</select></label></div>
 </div><div class="exp-grid mt-3" id="export-document-types">{% for t in types %}<label><input type="checkbox" name="documents[]" value="{{ t.id }}"> {{ t.libelle }}</label>{% else %}<p class="exp-note" id="export-types-empty">Aucun type documentaire. Ajoutez-en un ci-dessous.</p>{% endfor %}</div>
