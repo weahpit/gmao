@@ -2,7 +2,7 @@
 {% block title %}Suivi documentaire — {{ dossier.numeroOt }}{% endblock %}
 {% block body %}
 <link rel="stylesheet" href="{{ asset('css/citrac/evolutions-v5.css') }}">
-<script src="{{ asset('js/citrac/ajax-v5.js') }}?v=55" defer></script>
+<script src="{{ asset('js/citrac/ajax-v5.js') }}?v=57" defer></script>
 <link rel="stylesheet" href="{{ asset('css/citrac/operations-logistiques.css') }}">
 <div class="exp-wrap" data-ajax-region><h1>Suivi documentaire — OT {{ dossier.numeroOt }}</h1>{% include 'logistique/gestion/_nav.html.twig' %}
 <p>{{ dossier.produit ? dossier.produit.libelle : 'Produit non renseigné' }} / {{ dossier.client ? dossier.client.nomClient : 'Client non renseigné' }} — {{ dossier.tonnage|number_format(3, ',', ' ') }} kg — {{ dossier.nbTc }} TC</p>

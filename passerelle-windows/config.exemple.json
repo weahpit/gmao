@@ -1,0 +1,13 @@
+{
+  "api_url": "https://votre-domaine.tld/api/presences/zkteco",
+  "source": "CITRAC-ZKTECO-SANPEDRO",
+  "base_access": "C:\\Program Files (x86)\\ZKTeco\\att2000.mdb",
+  "requete_access": "Req_UserCheck",
+  "pilote_odbc": "Microsoft Access Driver (*.mdb, *.accdb)",
+  "etat_sqlite": "etat.sqlite",
+  "fichier_jeton": "jeton.dpapi",
+  "journal": "journaux/synchronisation.log",
+  "taille_lot": 300,
+  "lots_maximum": 20,
+  "delai_reseau_secondes": 30
+}

@@ -1,0 +1,26 @@
+Base : dernier CitracGmao.zip fourni. Tous ses fichiers conserves.
+
+AJOUT     LISEZ-MOI-V5.7.md
+AJOUT     config-exemples/zkteco-securite.yaml
+AJOUT     passerelle-windows/Installer-Tache.ps1
+AJOUT     passerelle-windows/config.exemple.json
+AJOUT     passerelle-windows/requirements.txt
+AJOUT     passerelle-windows/synchroniser.py
+AJOUT     passerelle-windows/test_sync.py
+AJOUT     public/css/citrac-login-filigrane.css
+AJOUT     public/images/citrac-login-filigrane.jpg
+AJOUT     public/js/citrac/ajax-v5.js
+AJOUT     public/js/citrac/embarquement-ajax.js
+MODIFIE   src/Controller/Api/ApiPresenceZktecoController.php
+MODIFIE   src/Controller/Logistique/FicheDossierController.php
+AJOUT     src/Migrations/Version20261128090000.php
+MODIFIE   templates/loginBase.html.twig
+MODIFIE   templates/logistique/embarquement/_fiche_contenu.html.twig
+MODIFIE   templates/logistique/embarquement/export_pdf.html.twig
+MODIFIE   templates/logistique/embarquement/fiche.html.twig
+MODIFIE   templates/logistique/embarquement/index.html.twig
+MODIFIE   templates/logistique/embarquement/liste.html.twig
+MODIFIE   templates/logistique/gestion/cvs_formules.html.twig
+MODIFIE   templates/logistique/gestion/modeles.html.twig
+MODIFIE   templates/logistique/gestion/suivi.html.twig
+MODIFIE   templates/security/login.html.twig

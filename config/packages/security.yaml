@@ -96,6 +96,9 @@ security:
                 property: email
 
     firewalls:
+        citrac_zkteco_api:
+            pattern: ^/api/presences/zkteco$
+            security: false
         dev:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/

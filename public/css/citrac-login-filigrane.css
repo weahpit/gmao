@@ -1,0 +1,12 @@
+/* Habillage reversible : retirer ce lien CSS pour retrouver le fond precedent. */
+:root { --citrac-filigrane-opacite: .14; }
+body > .login-wrapper { position: relative; isolation: isolate; min-height: 100vh; min-height: 100dvh; }
+body > .login-wrapper::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image: url('../images/citrac-login-filigrane.jpg');
+    background-position: center; background-repeat: no-repeat; background-size: cover;
+    opacity: var(--citrac-filigrane-opacite); filter: saturate(.65);
+}
+body > .login-wrapper .login-card { background: rgba(255, 251, 246, .95); }
+@media (max-width: 600px) { body > .login-wrapper::before { background-position: center; } }
+@media (prefers-reduced-transparency: reduce) { body > .login-wrapper .login-card { background: #fffbf6; } }

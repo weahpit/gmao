@@ -7,7 +7,7 @@
     form.dataset.saveHandler = '1';
     const zone = document.getElementById('export-erreur');
     const afficher = texte => { if (zone) zone.textContent = texte; };
-    const adresse = () => new URL(form.action || location.href, location.href);
+    const adresse = () => new URL(form.getAttribute('action') || location.href, location.href);
 
     function erreurHTTP(response, data) {
         const textes = [data?.message, data?.error, data?.detail, data?.title];

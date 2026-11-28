@@ -1,0 +1,10 @@
+# Exemple A FUSIONNER dans config/packages/security.yaml.
+# Ne pas remplacer votre configuration de securite complete.
+# Ce firewall doit preceder main et tout autre firewall attrapant /api/.
+security:
+    firewalls:
+        citrac_zkteco_api:
+            pattern: ^/api/presences/zkteco$
+            security: false
+        # Garder ici vos firewalls existants, dans leur ordre actuel.
+        # Le controleur valide lui-meme HTTPS + jeton Bearer pour cette unique route.
